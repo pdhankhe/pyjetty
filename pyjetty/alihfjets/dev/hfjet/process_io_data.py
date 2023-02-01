@@ -193,11 +193,11 @@ class HFAnalysis(MPBase):
 		pinfo('d0s after event cuts ', len(d0ev_df.index))
 
 		#apply fiducial cut on D candidate
-		d0ev_df =self.apply_cut_fiducial_acceptance(d0ev_df)
+		#d0ev_df =self.apply_cut_fiducial_acceptance(d0ev_df)
 		#apply special cuts for low pt
-		d0ev_df = self.apply_cut_special_np(d0ev_df)
+		#d0ev_df = self.apply_cut_special_np(d0ev_df)
 		#apply pt dependent custom selection cuts
-		d0ev_df=self.apply_cuts_ptbin(d0ev_df)
+		#d0ev_df=self.apply_cuts_ptbin(d0ev_df)
 	
 		pinfo('d0s after all selection cuts ', len(d0ev_df.index))	
 		d0ev_df_grouped = d0ev_df.groupby(['run_number','ev_id'])

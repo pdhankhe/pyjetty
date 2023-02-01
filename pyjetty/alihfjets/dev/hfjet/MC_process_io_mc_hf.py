@@ -1,13 +1,11 @@
 from pyjetty.mputils import MPBase, pwarning, pinfo, perror
 import random
-import ROOT
 import uproot
 from copy import deepcopy
 import pandas as pd
 import os
 import tqdm
 import numpy as np
-from array import array
 # from numba import jit
 # import numexpr
 
@@ -76,6 +74,7 @@ class HFAnalysis(MPBase):
 
 	def exec_analysis_d0_df(self, df):
 		self.pbar.update(1)
+		#print(df)
 		_n_d0s = len(df)
 		if _n_d0s < 1:
 			return
@@ -83,18 +82,41 @@ class HFAnalysis(MPBase):
 			_ev_query = "run_number == {} & ev_id == {} & ev_id_ext == {}".format(df['run_number'].values[0], df['ev_id'].values[0], df['ev_id_ext'].values[0])
 		else:
 			_ev_query = "run_number == {} & ev_id == {}".format(df['run_number'].values[0], df['ev_id'].values[0])
+		
 		self.df_tracks = self.track_df.query(_ev_query)
 		self.df_tracks.reset_index(drop=True)
-		self.analysis(df)
+		#print(self.df_tracks)
+		pd_reco=self.analysis(df)
+		#print(df)
+		#print(pd_reco)
 		#print("reconstructed loop")
 		self.df_tracks = None
+		
+		return pd_reco
 
+	def exec_analysis_d0_gen_df(self, df):
+		self.pbar.update(1)
+		_n_gen_d0s = len(df)
+		if _n_gen_d0s < 1:
+			return
+		if 'ev_id_ext' in list(self.event_df):
+			_ev_query = "run_number == {} & ev_id == {} & ev_id_ext == {}".format(df['run_number'].values[0], df['ev_id'].values[0], df['ev_id_ext'].values[0])
+		else:
+			_ev_query = "run_number == {} & ev_id == {}".format(df['run_number'].values[0], df['ev_id'].values[0])
+		self.df_gen_tracks = self.track_gen_df.query(_ev_query)
+		self.df_gen_tracks.reset_index(drop=True)
+		pd_gen=self.analysis_gen(df)
+		#print(pd_gen)
+		#print("generated loop")
+		self.df_gen_tracks = None
 
-	def selectfidacc(self,arr_pt_cand,arr_y_cand):
+		return pd_gen
+
+	def selectfidacc(self, arr_pt, arr_y):
 		array_is_sel = []
-		pt_cand = arr_pt_cand.to_numpy()
-		y_cand = arr_y_cand.to_numpy()
-		#pinfo("value of pt",pt_cand)
+		pt_cand=arr_pt.to_numpy()
+		y_cand=arr_y.to_numpy()
+
 		for icand, pt in enumerate(pt_cand):
 			if pt > 5:
 				if abs(y_cand[icand]) < 0.8:
@@ -171,43 +193,87 @@ class HFAnalysis(MPBase):
 
 
 	def analyze_slower(self):
-		_tot_event_df = self.event_df.copy()
-		_tot_event_df.query(self.event_selection.query_string, inplace=True)
-		
-		self.hNevents = ROOT.TH1F("hNevents", "hNevents", 2, array('f', [-0.5, 0.5, 1.5]) )
-		self.hNevents.Fill(1, _tot_event_df["ev_id"].nunique())
 
+		# generated D0 candidate dataframe
+		d0_gen_df_copy=self.d0_gen_df.query(self.d0_gen_selection.query_string,engine="python")
 		#reconstructed D0 candidate dataframe after applying D0 selection cuts
 		_d0_df = self.d0_df.query(self.d0_selection.query_string,engine="python")
 		
-		#Merging the D0 dataframe with event 
+		self.unique_identifier =  ['run_number', 'ev_id']
+
 		if 'ev_id_ext' in list(self.event_df):
-			d0ev_df = pd.merge(_d0_df, self.event_df, on=['run_number', 'ev_id', 'ev_id_ext'])
+			self.unique_identifier += ['ev_id_ext']
 
-		else:
-			d0ev_df = pd.merge(_d0_df, self.event_df, on=['run_number', 'ev_id'])
+		self.cand_identifier=self.unique_identifier+['cand_type','pt_cand','eta_cand','phi_cand','inv_mass']
+		self.jet_identifier=['jet_pt','jet_eta','jet_phi']
+		d0ev_df = pd.merge(_d0_df, self.event_df,on=self.unique_identifier)
+		d0ev_gen_df = pd.merge(d0_gen_df_copy, self.event_df,on=self.unique_identifier)
+		
 
-		#after merging the dataframe with event, apply the event selection cut on z vertex or event rejected	
+		#after merging the dataframe with event, apply the event selection cut on z vertex, event rejected..
 		d0ev_df.query(self.event_selection.query_string, inplace=True)
+		d0ev_gen_df.query(self.event_selection.query_string, inplace=True)
 
-		pinfo('d0s after event cuts ', len(d0ev_df.index))
+		pinfo('N generated d0s with d0 selection cuts and event cuts', len(d0ev_gen_df.index))
+	
+		#need to remove events id's at reconstructed level not present at generated level
+		#coming from fake D0 due to looser selection cuts 	
 
+		d0ev_df.sort_values(by=self.unique_identifier, inplace=True)
+		d0ev_gen_df.sort_values(by=self.unique_identifier, inplace=True)
+		
+
+		df_d0runs = d0ev_df[self.unique_identifier].copy()
+		df_gend0runs = d0ev_gen_df[self.unique_identifier].copy()
+
+		#find reconstructed event matching to generator
+		df_runs = pd.merge(df_d0runs, df_gend0runs, on=self.unique_identifier)
+		df_runs.drop_duplicates(keep='first', inplace=True)
+
+		d0ev_df = pd.merge(d0ev_df, df_runs, on=self.unique_identifier) 
+		
+		#print(df_runs)
 		#apply fiducial cut on D candidate
 		d0ev_df =self.apply_cut_fiducial_acceptance(d0ev_df)
 		#apply special cuts for low pt
 		d0ev_df = self.apply_cut_special_np(d0ev_df)
 		#apply pt dependent custom selection cuts
 		d0ev_df=self.apply_cuts_ptbin(d0ev_df)
-	
-		pinfo('d0s after all selection cuts ', len(d0ev_df.index))	
-		d0ev_df_grouped = d0ev_df.groupby(['run_number','ev_id'])
 
+		#apply fiducial cut on gen D candidate
+		d0ev_gen_df=self.apply_cut_fiducial_acceptance(d0ev_gen_df)
+		
+
+		d0ev_df_grouped = d0ev_df.groupby(self.unique_identifier)
+		d0ev_gen_df_grouped = d0ev_gen_df.groupby(self.unique_identifier)
+		
+
+		#print(d0ev_gen_df.head(6))
+		pinfo('d0s after event cuts ', len(d0ev_df.index))
 		pinfo('N d0 groups after event cuts ', len(d0ev_df_grouped))
 
-		with tqdm.tqdm(total=len(d0ev_df_grouped)) as self.pbar:
-			_tmp = d0ev_df_grouped.apply(self.exec_analysis_d0_df)
-		self.pbar.close()
+		pinfo('generated d0s after event cuts ', len(d0ev_gen_df.index))
+		pinfo('N generated d0 groups after event cuts ', len(d0ev_gen_df_grouped))
 
+		
+		with tqdm.tqdm(total=len(d0ev_df_grouped)) as self.pbar:
+			_pd_reco=d0ev_df_grouped.apply(self.exec_analysis_d0_df)
+			_pd_reco=_pd_reco.dropna()
+			_pd_reco=_pd_reco.set_index(self.unique_identifier)
+			print(_pd_reco)
+		self.pbar.close()
+		
+		#d0ev_gen_df_grouped.apply(self.exec_analysis_d0_gen_df)
+		with tqdm.tqdm(total=len(d0ev_gen_df_grouped)) as self.pbar:
+			_pd_gen = d0ev_gen_df_grouped.apply(self.exec_analysis_d0_gen_df)
+			_pd_gen=_pd_gen.dropna()
+			_pd_gen=_pd_gen.set_index(self.unique_identifier)	
+			print(_pd_gen)
+		self.pbar.close()
+	
+		#self.ResponseMatrix(_pd_reco,_pd_gen)	
+	
+	# analysis on the single data frame
 	# this is something specific to user - overload this one
 
 	def analysis(self, df):
@@ -218,11 +284,14 @@ class HFAnalysis(MPBase):
 class HFAnalysisIO(MPBase):
 	def __init__(self, **kwargs):
 		self.configure_from_args(d0_tree_name='PWGHF_TreeCreator/tree_D0',
+					d0_gen_tree_name='PWGHF_TreeCreator/tree_D0_gen',
 					track_tree_name='PWGHF_TreeCreator/tree_Particle',
+					track_gen_tree_name='PWGHF_TreeCreator/tree_Particle_gen',
 					event_tree_name='PWGHF_TreeCreator/tree_event_char')
 		super(HFAnalysisIO, self).__init__(**kwargs)
 		self.analyses = []
 		self.d0_df_grouped = None
+		self.d0_gen_df_grouped = None
 
 	def reset_analyses_list(self):
 		self.analyses = []
@@ -267,6 +336,15 @@ class HFAnalysisIO(MPBase):
 		self.track_df = self.pd_tree(path, self.track_tree_name)
 		if self.track_df is None:
 			return False
+
+		self.d0_gen_df = self.pd_tree(path, self.d0_gen_tree_name)
+		if self.d0_gen_df is None:
+			return False
+
+		self.track_gen_df = self.pd_tree(path, self.track_gen_tree_name)
+		if self.track_gen_df is None:
+			return False
+
 		return True
 
 	def execute_analyses(self):
@@ -276,14 +354,20 @@ class HFAnalysisIO(MPBase):
 			ana.d0_df 		= self.d0_df
 			ana.track_df 	= self.track_df
 
+			ana.d0_gen_df   = self.d0_gen_df
+			ana.track_gen_df     = self.track_gen_df
 			ana.analyze_slower()
 			ana.event_df 	= None
 			ana.d0_df 		= None
 			ana.track_df 	= None
+			ana.d0_gen_df         = None
+			ana.track_gen_df     = None
 		# drop the dfs
 		self.event_df = None
 		self.d0_df = None
 		self.track_df = None
+		self.d0_gen_df = None
+		self.track_gen_df = None
 
 	def update_status(self, mark):
 		if mark != self.pbar2_mark:
@@ -311,3 +395,4 @@ class HFAnalysisIO(MPBase):
 
 	def __def__(self):
 		self.d0_df_grouped = None
+		self.d0_gen_df_grouped = None

@@ -79,15 +79,8 @@ class HFAnalysis(MPBase):
 		_n_d0s = len(df)
 		if _n_d0s < 1:
 			return
-		if 'ev_id_ext' in list(self.event_df):
-			_ev_query = "run_number == {} & ev_id == {} & ev_id_ext == {}".format(df['run_number'].values[0], df['ev_id'].values[0], df['ev_id_ext'].values[0])
-		else:
-			_ev_query = "run_number == {} & ev_id == {}".format(df['run_number'].values[0], df['ev_id'].values[0])
-		self.df_tracks = self.track_df.query(_ev_query)
-		self.df_tracks.reset_index(drop=True)
 		self.analysis(df)
 		#print("reconstructed loop")
-		self.df_tracks = None
 
 
 	def selectfidacc(self,arr_pt_cand,arr_y_cand):
@@ -173,42 +166,12 @@ class HFAnalysis(MPBase):
 	def analyze_slower(self):
 		_tot_event_df = self.event_df.copy()
 		_tot_event_df.query(self.event_selection.query_string, inplace=True)
-		
-		self.hNevents = ROOT.TH1F("hNevents", "hNevents", 2, array('f', [-0.5, 0.5, 1.5]) )
-		self.hNevents.Fill(1, _tot_event_df["ev_id"].nunique())
 
-		#reconstructed D0 candidate dataframe after applying D0 selection cuts
-		_d0_df = self.d0_df.query(self.d0_selection.query_string,engine="python")
-		
-		#Merging the D0 dataframe with event 
-		if 'ev_id_ext' in list(self.event_df):
-			d0ev_df = pd.merge(_d0_df, self.event_df, on=['run_number', 'ev_id', 'ev_id_ext'])
-
-		else:
-			d0ev_df = pd.merge(_d0_df, self.event_df, on=['run_number', 'ev_id'])
-
-		#after merging the dataframe with event, apply the event selection cut on z vertex or event rejected	
-		d0ev_df.query(self.event_selection.query_string, inplace=True)
-
-		pinfo('d0s after event cuts ', len(d0ev_df.index))
-
-		#apply fiducial cut on D candidate
-		d0ev_df =self.apply_cut_fiducial_acceptance(d0ev_df)
-		#apply special cuts for low pt
-		d0ev_df = self.apply_cut_special_np(d0ev_df)
-		#apply pt dependent custom selection cuts
-		d0ev_df=self.apply_cuts_ptbin(d0ev_df)
-	
-		pinfo('d0s after all selection cuts ', len(d0ev_df.index))	
-		d0ev_df_grouped = d0ev_df.groupby(['run_number','ev_id'])
-
-		pinfo('N d0 groups after event cuts ', len(d0ev_df_grouped))
-
-		with tqdm.tqdm(total=len(d0ev_df_grouped)) as self.pbar:
-			_tmp = d0ev_df_grouped.apply(self.exec_analysis_d0_df)
+		_tot_event_df_ev_grouped= _tot_event_df.groupby(['run_number','ev_id'])
+		with tqdm.tqdm(total=len(_tot_event_df_ev_grouped)) as self.pbar:	
+			_tmp = _tot_event_df_ev_grouped.apply(self.exec_analysis_d0_df)
 		self.pbar.close()
 
-	# this is something specific to user - overload this one
 
 	def analysis(self, df):
 		if len(df) > 0:

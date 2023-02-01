@@ -1,0 +1,139 @@
+# Processing parameters
+jetR: [0.4]
+#betas: [1, 1.5, 2, 3]
+betas: [1]
+jet_range: [5,50]
+# Initial detector-level binnings. Distributions are rebinned via configs before unfolding
+n_pt_bins: 195
+pt_limits: [5, 200]
+n_lambda_bins: 160
+lambda_limits: [0, 0.8]
+n_rap_bins: 20            # just for fun, look at lambda distribution vs rapidity
+rap_limits: [-0.5, 0.5]
+branching_ratio: 0.0395
+p_nevents: 7.98356e8
+xsection_inel: 50.76
+fRebinMass: 10
+fMassRange: [1.72, 2.01]
+fsigmaSignal: 2
+jetptbinsMeasN: 10
+fDmass: 1.864
+fDsigma: 0.010
+fsigmaBkg: [-9, -4, 4, 9]
+fbkgtype: 0 # kExpo=0, kLin=1, kPol2=2, kNoBk=3, kPow=4, kPowEx=5
+fUseRefl: False
+jetptbinsMeasA: [2, 3, 4, 5, 6, 8, 10, 14, 20, 30, 50]
+fptbinsJetFinalN: 4
+jetptbinsFinalA: [5, 7, 10, 16, 50]
+ptbinsDN: 11
+ptbinsDA: [2, 3, 4, 5, 6, 7, 8, 10, 12, 16, 24,36]
+pt_dmeson_cut: [2, 4, 5, 10]
+
+obs_bins: [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65]
+# For extra verbose output in some functions
+debug_level: 0
+
+process_observables: ['ang']
+jet_matching_distance: 0.6        # Match jets with deltaR < jet_matching_distance*jetR
+reject_tracks_fraction: 0
+
+# SoftDrop setting (current same for all SD plots)
+sd_zcut: 0.2    # multiplier
+sd_beta: 0      # exponent on (deltaR / R)
+
+
+###############################################################################
+# Rebinning and unfolding parameters/configurations for angularity observables
+ang:
+
+  common_settings:
+    xtitle: '#it{#lambda}_{#it{#beta}}^{#it{#kappa}=1}'
+    ytitle: '#frac{1}{#it{#sigma}_{jet}} #frac{d#it{#sigma}}{d#it{#lambda}_{#it{#beta}}^{#it{#kappa}=1}}'
+    pt_bins_reported: [7, 10, 16]
+    plot_overlay_list:
+      - ['config_R0.4_B1', 'config_R0.4_B1.5', 'config_R0.4_B2', 'config_R0.4_B3']
+      - ['config_R0.4_B1_SD', 'config_R0.4_B1.5_SD', 'config_R0.4_B2_SD', 'config_R0.4_B3_SD']
+    max_reg_param: 10
+
+  ############################################################################
+  # Different R & beta configurations
+  config_R0.4_B1:
+    R: 0.4
+    beta: 1
+    pt_bins_truth:  [5, 7, 10, 16, 50]
+    pt_bins_det: [5, 7, 10, 16, 50]
+    pt_bins_det_sys_truncation: [10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 100, 120]
+    obs_bins_truth: [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65]
+    obs_max_reported: [0.65]
+    obs_bins_det: [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65]
+    obs_bins_det_sys_binning: [0, 0.05, 0.07, 0.09, 0.11, 0.13, 0.15, 0.17, 0.19, 0.20, 0.21,
+                               0.22, 0.23, 0.24, 0.25, 0.26, 0.27, 0.28, 0.30, 0.31, 0.32, 0.33,
+                               0.34, 0.35, 0.36, 0.37, 0.39, 0.41, 0.43, 0.45, 
+                               0.47, 0.49, 0.56, 0.66, 0.75]
+    reg_param:
+      0.4: 3
+
+  
+###############################################################################
+# Theory comparison parameters
+do_theory_comp: False
+theory_beta: [1.5, 2, 3]
+output_dir_fd: "/Users/preeti/Analysis/analysisHF/AnalysisResults/ang/main_feeddown_response"
+theory_pt_bins: [10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200]
+response_files: ["/rstorage/alice/AnalysisResults/ang/353823/AnalysisResultsFinal.root",
+                 "/rstorage/alice/AnalysisResults/ang/344912/AnalysisResultsFinal.root"]
+response_labels: ["PYTHIA8", "Herwig7"]
+rebin_theory_response: False
+
+
+###############################################################################
+# Analysis & plotting parameters
+file_format: ".pdf"
+output_dir: "/Users/preeti/Analysis/analysisHF/pyjetty/pyjetty/alihfjets/dev/hfjet/DmesonJet/analysis/AnalysisResults/ang/AngR04_ptbin1/main_data"
+roounfold_path: "/Users/preeti/Analysis/analysisHF/heppy/external/roounfold/roounfold-current/lib/libRooUnfold.so"
+
+analysis_observable: 'ang'
+do_unfolding: True
+force_rebin: True
+do_systematics: False
+do_plot_final_result: True
+do_plot_performance: False
+figure_approval_status: 'Preliminary'
+
+# Whether or not to use the previous preliminary result in final results
+use_prev_prelim: False
+
+# List of which systematics to perform
+# Options: [main, trkeff, prior1, prior2, truncation, binning, \
+#           random_mass, fastsim_generator0, fastsim_generator1]
+systematics_list:
+  - main
+  - trkeff
+  - prior1
+  - prior2
+  - truncation
+  - binning
+  - random_mass
+  - fastsim_generator0
+  - fastsim_generator1
+
+# Paths to processing output, to be used for unfolding
+main_rawdatafile: '/Users/preeti/Analysis/analysisHF/ang/main_data/AnalysisResults.root'
+main_data: '/Users/preeti/Analysis/analysisHF/pyjetty/pyjetty/alihfjets/dev/hfjet/DmesonJet/analysis/AnalysisResults/ang/AngR04_ptbin1/main_data/AnalysisResults.root'
+main_feeddown_simulation: '/Users/preeti/Analysis/analysisHF/ang/main_feeddown_simulation/trees_powheg+pythia8+evtgen_beauty.root'
+main_charm_simulation: '/Users/preeti/Analysis/analysisHF/ang/main_charm_simulation/trees_pythia8_charm.root'
+main_response: '/Users/preeti/Analysis/analysisHF/AnalysisResults/ang/main_response/AngR04_ptbin1/AnalysisResults.root'
+main_efffile: '/Users/preeti/Analysis/analysisHF/ang/reco_efficiency/D0JetRecoEff.root'
+reflection_template: ['/Users/preeti/Analysis/analysisHF/ang/reflection_template/Reflection_full_jet_pt.root',
+                        '/Users/preeti/Analysis/analysisHF/ang/reflection_template/Reflection_jet_pt_7_15.root',
+                        '/Users/preeti/Analysis/analysisHF/ang/reflection_template/Reflection_jet_pt_15_40.root']
+trkeff_response: '/rstorage/alice/AnalysisResults/ang/351489/AnalysisResultsFinal.root'
+randmass_data: '/rstorage/alice/AnalysisResults/ang/287383/AnalysisResultsFinal.root'
+randmass_response: '/rstorage/alice/AnalysisResults/ang/351488/AnalysisResultsFinal.root'
+fastsim_response: ['/rstorage/alice/AnalysisResults/ang/287385/AnalysisResultsFinal.root',
+                   '/rstorage/alice/AnalysisResults/ang/287386/AnalysisResultsFinal.root']
+
+# Prior variation parameters
+prior_variation_option: 1
+prior1_variation_parameter: 0.5
+prior2_variation_parameter: -0.5

@@ -1,10 +1,12 @@
 from pyjetty.mputils import MPBase, pwarning, pinfo, perror
 import random
 import uproot
+from copy import deepcopy
 import pandas as pd
 import os
 import tqdm
 import numpy as np
+from bitwise import filter_bit_df, tag_bit_df
 # from numba import jit
 # import numexpr
 
@@ -71,40 +73,32 @@ class HFAnalysis(MPBase):
 
 
 
-	def exec_analysis_d0_df(self, df):
+	def exec_analysis_d0_df(self, df,isMC):
 		self.pbar.update(1)
+		#print(df)
 		_n_d0s = len(df)
+		
 		if _n_d0s < 1:
 			return
 		if 'ev_id_ext' in list(self.event_df):
 			_ev_query = "run_number == {} & ev_id == {} & ev_id_ext == {}".format(df['run_number'].values[0], df['ev_id'].values[0], df['ev_id_ext'].values[0])
 		else:
 			_ev_query = "run_number == {} & ev_id == {}".format(df['run_number'].values[0], df['ev_id'].values[0])
-		self.df_tracks = self.track_df.query(_ev_query)
+		if isMC:
+			self.cand_identifier=self.unique_identifier+['cand_type','pt_cand','eta_cand','phi_cand']
+			self.df_particles = self.track_gen_df
+		else:
+			self.cand_identifier=self.unique_identifier+['cand_type','pt_cand','eta_cand','phi_cand','inv_mass']
+			self.df_particles = self.track_df
+
+		self.jet_identifier=['jet_pt','jet_eta','jet_phi']	
+		self.df_tracks = self.df_particles.query(_ev_query) 
 		self.df_tracks.reset_index(drop=True)
-		self.analysis(df)
-		#print("reconstructed loop")
+		pd_rec= self.analysis(df,isMC)
 		self.df_tracks = None
-
-
-
-	def exec_analysis_d0_gen_df(self, df):
-                self.pbar.update(1)
-                _n_gen_d0s = len(df)
-                if _n_gen_d0s < 1:
-                        return
-                if 'ev_id_ext' in list(self.event_df):
-                        _ev_query = "run_number == {} & ev_id == {} & ev_id_ext == {}".format(df['run_number'].values[0], df['ev_id'].values[0], df['ev_id_ext'].values[0])
-                else:
-                        _ev_query = "run_number == {} & ev_id == {}".format(df['run_number'].values[0], df['ev_id'].values[0])
-                self.df_gen_tracks = self.track_gen_df.query(_ev_query)
-                self.df_gen_tracks.reset_index(drop=True)
-                self.analysis_gen(df)
-		#print("generated loop")
-                self.df_gen_tracks = None
-
-
-
+		return pd_rec
+			
+		
 	def selectfidacc(self, arr_pt, arr_y):
 		array_is_sel = []
 		pt_cand=arr_pt.to_numpy()
@@ -170,26 +164,54 @@ class HFAnalysis(MPBase):
                 df_sel = df_[df_["is_sel_special"] == 1]
                 return df_sel
 
+	def apply_cuts_ptbin(self, df_):
+		self.ptcand_binmin=self.config["analysisD0"]["pt_cand_binning"].get("sel_an_binmin")
+		self.ptcand_binmax=self.config["analysisD0"]["pt_cand_binning"].get("sel_an_binmin")
+		self.npt_cand_bins = len(self.ptcand_binmin)
+		pt_cand_cuts = self.config["analysisD0"].get("cuts")
+		self.analysis_cuts = deepcopy(pt_cand_cuts)
+		print(self.ptcand_binmin)
+		d0ev_df_custom_cuts=[]
+		for ipt in range(self.npt_cand_bins):
+			print(ipt)
+			d0ev_df_custom_cuts.append(df_.query(self.analysis_cuts[ipt]))
+		d0ev_df_custom_cuts = pd.concat(d0ev_df_custom_cuts)
+		return(d0ev_df_custom_cuts)
 
 
 	def analyze_slower(self):
+		isMC = False
+
+
+		self.b_mcsigprompt = self.config["analysisD0"]["bitmap_sel"]["ismcprompt"]
+		self.b_mcsigfd =self.config["analysisD0"]["bitmap_sel"]["ismcfd"]
+		self.b_mcbkg = self.config["analysisD0"]["bitmap_sel"]["ismcbkg"]
+		self.b_mcrefl = self.config["analysisD0"]["bitmap_sel"]["ismcrefl"]
+
+		self.v_bitvar = self.config["analysisD0"]["bitmap_sel"]["var_name"]
+		self.v_isstd = self.config["analysisD0"]["bitmap_sel"]["var_isstd"]
+		self.v_ismcsignal = self.config["analysisD0"]["bitmap_sel"]["var_ismcsignal"]
+		self.v_ismcprompt = self.config["analysisD0"]["bitmap_sel"]["var_ismcprompt"]
+		self.v_ismcfd = self.config["analysisD0"]["bitmap_sel"]["var_ismcfd"]
+		self.v_ismcbkg = self.config["analysisD0"]["bitmap_sel"]["var_ismcbkg"]
+		self.v_ismcrefl = self.config["analysisD0"]["bitmap_sel"]["var_ismcrefl"]
+
 
 		# generated D0 candidate dataframe
-		d0_gen_df_copy=self.d0_gen_df.copy()
-
+		d0_gen_df_copy=self.d0_gen_df.query(self.d0_gen_selection.query_string,engine="python")
 		#reconstructed D0 candidate dataframe after applying D0 selection cuts
 		_d0_df = self.d0_df.query(self.d0_selection.query_string,engine="python")
 		
-		#Merging the D0 dataframe with event 
+		self.unique_identifier =  ['run_number', 'ev_id']
+
 		if 'ev_id_ext' in list(self.event_df):
-			d0ev_df = pd.merge(_d0_df, self.event_df, on=['run_number', 'ev_id', 'ev_id_ext'])
-			d0ev_gen_df = pd.merge(d0_gen_df_copy, self.event_df, on=['run_number', 'ev_id', 'ev_id_ext'])
+			self.unique_identifier += ['ev_id_ext']
 
-		else:
-			d0ev_df = pd.merge(_d0_df, self.event_df, on=['run_number', 'ev_id'])
-			d0ev_gen_df = pd.merge(d0_gen_df_copy, self.event_df, on=['run_number', 'ev_id'])
+		d0ev_df = pd.merge(_d0_df, self.event_df,on=self.unique_identifier)
+		d0ev_gen_df = pd.merge(d0_gen_df_copy, self.event_df,on=self.unique_identifier)
+		
 
-		#after merging the dataframe with event, apply the event selection cut on z vertex or event rejected	
+		#after merging the dataframe with event, apply the event selection cut on z vertex, event rejected..
 		d0ev_df.query(self.event_selection.query_string, inplace=True)
 		d0ev_gen_df.query(self.event_selection.query_string, inplace=True)
 
@@ -198,41 +220,67 @@ class HFAnalysis(MPBase):
 		#need to remove events id's at reconstructed level not present at generated level
 		#coming from fake D0 due to looser selection cuts 	
 
-		d0ev_df.sort_values(by=['run_number','ev_id'], inplace=True)
-		d0ev_gen_df.sort_values(by=['run_number','ev_id'], inplace=True)
+		d0ev_df.sort_values(by=self.unique_identifier, inplace=True)
+		d0ev_gen_df.sort_values(by=self.unique_identifier, inplace=True)
 		
 
-		df_d0runs = d0ev_df[['run_number','ev_id']].copy()
-		df_gend0runs = d0ev_gen_df[['run_number','ev_id']].copy()
+		df_d0runs = d0ev_df[self.unique_identifier].copy()
+		df_gend0runs = d0ev_gen_df[self.unique_identifier].copy()
 
 		#find reconstructed event matching to generator
-		df_runs = pd.merge(df_d0runs, df_gend0runs, on=['run_number','ev_id'])
+		df_runs = pd.merge(df_d0runs, df_gend0runs, on=self.unique_identifier)
 		df_runs.drop_duplicates(keep='first', inplace=True)
 
-		d0ev_df = pd.merge(d0ev_df, df_runs, on=['run_number','ev_id']) 
-
+		d0ev_df = pd.merge(d0ev_df, df_runs, on=self.unique_identifier) 
+		
+		#print(df_runs)
 		#apply fiducial cut on D candidate
 		d0ev_df =self.apply_cut_fiducial_acceptance(d0ev_df)
 		#apply special cuts for low pt
 		d0ev_df = self.apply_cut_special_np(d0ev_df)
-		
-		d0ev_df_grouped = d0ev_df.groupby(['run_number','ev_id'])
-		d0ev_gen_df_grouped = d0ev_gen_df.groupby(['run_number','ev_id'])
+		#apply pt dependent custom selection cuts
+		d0ev_df=self.apply_cuts_ptbin(d0ev_df)
 
+		#apply fiducial cut on gen D candidate
+		d0ev_gen_df=self.apply_cut_fiducial_acceptance(d0ev_gen_df)
+		
+
+		d0ev_df_grouped = d0ev_df.groupby(self.unique_identifier)
+		d0ev_gen_df_grouped = d0ev_gen_df.groupby(self.unique_identifier)
+	
+		#print(d0ev_gen_df.head(6))
 		pinfo('d0s after event cuts ', len(d0ev_df.index))
 		pinfo('N d0 groups after event cuts ', len(d0ev_df_grouped))
 
 		pinfo('generated d0s after event cuts ', len(d0ev_gen_df.index))
 		pinfo('N generated d0 groups after event cuts ', len(d0ev_gen_df_grouped))
 
+		#print(*d0ev_df_grouped)	
 		with tqdm.tqdm(total=len(d0ev_df_grouped)) as self.pbar:
-			_tmp = d0ev_df_grouped.apply(self.exec_analysis_d0_df)
+			_pd_reco=d0ev_df_grouped.apply(self.exec_analysis_d0_df,False)
+			_pd_reco=_pd_reco.dropna()
+			_pd_reco=_pd_reco.reset_index(drop=True)
+			_pd_reco=_pd_reco.set_index(self.unique_identifier)
+			_pd_reco[self.v_ismcfd] = np.array(tag_bit_df(_pd_reco, self.v_bitvar,self.b_mcsigfd), dtype=int)
+			_pd_reco[self.v_ismcprompt] = np.array(tag_bit_df(_pd_reco, self.v_bitvar,self.b_mcsigprompt), dtype=int)
+			_pd_reco[self.v_ismcrefl] = np.array(tag_bit_df(_pd_reco, self.v_bitvar,self.b_mcrefl), dtype=int)	
+			print(_pd_reco)
 		self.pbar.close()
-
+		
+		#d0ev_gen_df_grouped.apply(self.exec_analysis_d0_gen_df)
 		with tqdm.tqdm(total=len(d0ev_gen_df_grouped)) as self.pbar:
-			_tmp = d0ev_gen_df_grouped.apply(self.exec_analysis_d0_gen_df)
+			_pd_gen = d0ev_gen_df_grouped.apply(self.exec_analysis_d0_df,True)
+			_pd_gen=_pd_gen.dropna()
+			_pd_gen=_pd_gen.reset_index(drop=True)
+			_pd_gen=_pd_gen.set_index(self.unique_identifier)	
+			_pd_gen[self.v_ismcprompt] = np.array(tag_bit_df(_pd_gen, self.v_bitvar,self.b_mcsigprompt), dtype=int)
+			_pd_gen[self.v_ismcfd] = np.array(tag_bit_df(_pd_gen, self.v_bitvar,self.b_mcsigfd), dtype=int)
+			_pd_gen[self.v_ismcrefl] = np.array(tag_bit_df(_pd_gen, self.v_bitvar,self.b_mcrefl), dtype=int)
+			#print(_pd_gen)
 		self.pbar.close()
-
+	
+		self.EffandResponse(_pd_reco,_pd_gen)	
+	
 	# analysis on the single data frame
 	# this is something specific to user - overload this one
 
