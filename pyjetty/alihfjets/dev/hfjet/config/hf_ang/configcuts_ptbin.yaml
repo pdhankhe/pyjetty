@@ -1,3 +1,7 @@
+#author: Preeti Dhankher
+#set bit for prompt, non-prompt and reflections
+#apply custom selections on D-meson in D-meson pt bins
+
 analysisD0:
         pt_cand_binning:
                 sel_an_binmin: [2,3,4,5,6,7,8,10,12,16,24]

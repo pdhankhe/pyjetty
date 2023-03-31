@@ -1,3 +1,10 @@
+"""
+  Analysis IO class for jet analysis with HF and track dataframe.
+  Each instance of the class handles the IO of a *single* track tree.
+  Authors: Mateusz Ploskon
+           Preeti Dhankher
+"""
+
 from pyjetty.mputils.mputils import MPBase, pwarning, pinfo, perror
 import random
 import ROOT

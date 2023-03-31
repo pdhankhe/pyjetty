@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
 
+"""
+  Analysis class to read a ROOT TTree of hf and track information
+  and do jet-finding, and save hf jet information in ThnSparse for postprocessig
+  D-tagged jet reconstruction efficiency, kinematic efficiency and Response Matrix
+  Author: Preeti Dhankher (pdhankher@berkeley.edu)
+"""
+
 import numpy as np
 import argparse
 import os
