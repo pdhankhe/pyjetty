@@ -44,7 +44,7 @@ module list
 
 # Run python script via pipenv
 cd /home/preeti/analysis/pyjetty/pyjetty/alihfjets/dev/hfjet/
-python process/user/hf_ang/process_data_hfjetaxis_diff.py -c config/hf_ang/configcuts_ptbin.yaml -f $INPUT_FILE -o $OUTPUT_DIR
+python process/user/hf_jetaxes/process_data_hfjetaxis_diff.py -c config/hf_ang/configcuts_ptbin.yaml -f $INPUT_FILE -o $OUTPUT_DIR
 
 # Move stdout to appropriate folder
-mv /rstorage/alice/AnalysisResults/preeti/ang/slurm-${JOB_ID}_${TASK_ID}.out /rstorage/alice/AnalysisResults/preeti/ang/${JOB_ID}
+mv /rstorage/alice/AnalysisResults/preeti/hf_jetaxes/slurm-${JOB_ID}_${TASK_ID}.out /rstorage/alice/AnalysisResults/preeti/hf_jetaxes/${JOB_ID}
