@@ -4,11 +4,9 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
-#pragma link C++ class RUtil::Test+;
-#pragma link C++ class RUtil::HistUtils+;
-#pragma link C++ class RUtil::ParticleGrid+;
-#pragma link C++ class RUtil::Thermalizer+;
-#pragma link C++ class RUtil::AliHFInvMassFitter+;
+#pragma link C++ class RUtilExt::Test+;
+#pragma link C++ class RUtilExt::ParticleGrid+;
+#pragma link C++ class RUtilExt::Thermalizer+;
 
 // #pragma link off all class;
 // #pragma link off all function;

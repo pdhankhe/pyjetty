@@ -4,6 +4,9 @@
 #include <TObject.h>
 #include <TH2.h>
 #include <THn.h>
+#include "THnSparse.h"
+#include <iostream>
+
 
 //#if USE_ROOUNFOLD
 #include <RooUnfoldResponse.h>
@@ -89,6 +92,26 @@ namespace RUtil
                         const bool move_underflow=false,
                         const bool use_miss_fake=false,
                         const bool do_roounfoldresponse=true);
+        
+        THnSparseD* rebin_thn(const std::string & response_file_name,
+                        const THnSparseD* thn,
+                        const std::string & name_thn_rebinned,
+                        const std::string & name_roounfold,
+                        const int & n_dim,
+                        const int & n_pt_bins_det,
+                        const double* det_pt_bin_array,
+                        const int & n_obs_bins_det,
+                        const double* det_bin_array,
+                        const int & n_pt_bins_truth,
+                        const double* truth_pt_bin_array,
+                        const int & n_obs_bins_truth,
+                        const double* truth_bin_array,
+                        const std::string & label="",
+                        const double & prior_variation_parameter=0.,
+                        const int & prior_option=1,
+                        const bool move_underflow=false,
+                        const bool use_miss_fake=false,
+                        const bool do_roounfoldresponse=true);
 
         // Rebin N-dimensional THn to a new histogram with name name_thn_rebinned using provided axes
         // WARNING: currently requires n_dim = 4
@@ -96,6 +119,27 @@ namespace RUtil
         THnF* rebin_thn_th2prior(
             const std::string & response_file_name,
             const THnF* thn,
+            const std::string & name_thn_rebinned,
+            const std::string & name_roounfold,
+            const int & n_dim,
+            const int & n_pt_bins_det,
+            const double* det_pt_bin_array,
+            const int & n_obs_bins_det,
+            const double* det_bin_array,
+            const int & n_pt_bins_truth,
+            const double* truth_pt_bin_array,
+            const int & n_obs_bins_truth,
+            const double* truth_bin_array,
+            const std::string & label="",
+            const double & prior_variation_parameter=0.,
+            const TH2* prior_variation=nullptr,
+            const bool move_underflow=false,
+            const bool use_miss_fake=false,
+            const bool do_roounfoldresponse=true);
+        
+        THnSparseD* rebin_thn_th2prior_thnsparse(
+            const std::string & response_file_name,
+            const THnSparseD* thn,
             const std::string & name_thn_rebinned,
             const std::string & name_roounfold,
             const int & n_dim,
@@ -163,9 +207,18 @@ namespace RUtil
                                const int & n_obs_bins_det, const double* det_bin_array,
                                const int & n_pt_bins_truth, const double* truth_pt_bin_array,
                                const int & n_obs_bins_truth, const double* truth_bin_array);
+        
+        THnSparseD* create_empty_thnsparse(const char* name, const int & n_dim,
+                               const int & n_pt_bins_det, const double* det_pt_bin_array,
+                               const int & n_obs_bins_det, const double* det_bin_array,
+                               const int & n_pt_bins_truth, const double* truth_pt_bin_array,
+                               const int & n_obs_bins_truth, const double* truth_bin_array);
 
         RooUnfoldResponse* create_empty_roounfoldresponse(
             THnF* thn_rebinned, const std::string & name_roounfold, const std::string & label);
+        
+        RooUnfoldResponse* create_empty_roounfoldresponse(
+            THnSparseD* thn_rebinned, const std::string & name_roounfold, const std::string & label);
 
         // Fill empty thn_rebinned with data from thn
         void fill_rebinned_thn(const std::string & response_file_name, const THnF* thn,
@@ -200,6 +253,40 @@ namespace RUtil
                                const float max_det=0.,
                                const float max_truth=0.,
                                const TH2* prior_variation=nullptr,
+                               const double & prior_variation_parameter=0.,
+                               const bool move_underflow=false,
+                               const bool use_miss_fake=false);
+        
+        void fill_rebinned_thn(const std::string & response_file_name, const THnSparseD* thn,
+                               THnSparseD* thn_rebinned, const unsigned int & n_dim,
+                               const bool do_roounfoldresponse=true,
+                               RooUnfoldResponse* roounfold_response=nullptr,
+                               const float min_det_pt=0.,
+                               const float min_truth_pt=0.,
+                               const float min_det=0.,
+                               const float min_truth=0.,
+                               const float max_det_pt=0.,
+                               const float max_truth_pt=0.,
+                               const float max_det=0.,
+                               const float max_truth=0.,
+                               const TH2* prior_variation=nullptr,
+                               const double & prior_variation_parameter=0.,
+                               const bool move_underflow=false,
+                               const bool use_miss_fake=false);
+        
+        void fill_rebinned_thn(const std::string & response_file_name, const THnSparseD* thn,
+                               THnSparseD* thn_rebinned, const unsigned int & n_dim,
+                               const prior_scale_func prior_scale_f,
+                               const bool do_roounfoldresponse=true,
+                               RooUnfoldResponse* roounfold_response=nullptr,
+                               const float min_det_pt=0.,
+                               const float min_truth_pt=0.,
+                               const float min_det=0.,
+                               const float min_truth=0.,
+                               const float max_det_pt=0.,
+                               const float max_truth_pt=0.,
+                               const float max_det=0.,
+                               const float max_truth=0.,
                                const double & prior_variation_parameter=0.,
                                const bool move_underflow=false,
                                const bool use_miss_fake=false);
