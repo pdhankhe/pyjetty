@@ -1,5 +1,6 @@
 jetR: [0.4]
 process_observables: ['hf_EEC']
+observable_list: ['jetinfo', 'EEC']
 track_mass: 0.13957
 track_random_mass: False
 IsFiducialCut: True

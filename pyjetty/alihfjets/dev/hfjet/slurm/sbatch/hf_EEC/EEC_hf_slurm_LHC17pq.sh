@@ -1,19 +1,20 @@
 #! /bin/bash
 
-#SBATCH --job-name="hfEEC"
+#SBATCH --job-name="hftest"
 #SBATCH --nodes=1 --ntasks=1 --cpus-per-task=1
-#SBATCH --partition=std
-#SBATCH --time=24:00:00
-#SBATCH --array=1-640
+#SBATCH --partition=quick
+#SBATCH --time=2:00:00
+#SBATCH --array=1-2
 #SBATCH --output=/rstorage/alice/AnalysisResults/preeti/ang/slurm-%A_%a.out
 
 #FILE_PATHS='/home/preeti/analysis/pyjetty/pyjetty/alihfjets/dev/hfjet/FileList/files_D0count_pp5TeV_Data.txt'
-FILE_PATHS='/rstorage/alice/data/LHC17pq/448/files.txt'
+#FILE_PATHS='/rstorage/alice/data/LHC17pq/448/files.txt'
+FILE_PATHS='/home/preeti/files_test.txt '
 NFILES=$(wc -l < $FILE_PATHS)
 echo "N files to process: ${NFILES}"
 
 # Currently we have 8 nodes * 20 cores active
-FILES_PER_JOB=$(( $NFILES / 640 + 1 ))
+FILES_PER_JOB=$(( $NFILES / 2 + 1 ))
 echo "Files per job: $FILES_PER_JOB"
 
 STOP=$(( SLURM_ARRAY_TASK_ID * FILES_PER_JOB ))
