@@ -1,4 +1,21 @@
-is_treff_sys: False
+jetR: [0.4]
+process_observables: ['hf_ang']
+track_mass: 0.13957
+track_random_mass: False
+IsFiducialCut: True
+IsCustomSelectionCuts: True
+IsSpecialLowpTCuts: True
+sd_zcut: 0.2
+sd_beta: 0
+Is_treff_sys: False
+
+# For extra verbose output in some functions
+debug_level: 0
+
+
+jet_matching_distance: 0.6        # Match jets with deltaR < jet_matching_distance*jetR
+reject_tracks_fraction: 0
+
 analysisD0:
         pt_cand_binning:
                 sel_an_binmin: [2,3,4,5,6,7,8,10,12,16,24]

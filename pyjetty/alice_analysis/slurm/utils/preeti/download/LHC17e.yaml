@@ -1,0 +1,9 @@
+period: 'LHC17e'
+parent_dir: 'data'
+year: '2017'
+train_name: 'HF_TreeCreator'
+train_PWG: 'pass1/AOD234/PWGHF'
+train_number: '774_20230421-0343_child_1'
+runlist: ['000270822','000270824','000270827','000270828','000270830']
+
+output_dir: '/rstorage/alice/data/LHC17cefhijklmor/774'

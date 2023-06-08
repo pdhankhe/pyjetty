@@ -1,0 +1,8 @@
+period: 'LHC18g'
+parent_dir: 'data'
+year: '2018'
+train_name: 'HF_TreeCreator'
+train_PWG: 'pass1/AOD264/PWGHF'
+train_number: '775_20230421-0344_child_4'
+runlist: ['000288619', '000288640', '000288642', '000288644', '000288650', '000288687', '000288689', '000288690', '000288743', '000288748', '000288750']
+output_dir: '/rstorage/alice/data/LHC2018bdefghijklmnop/775'

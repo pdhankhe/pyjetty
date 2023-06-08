@@ -116,17 +116,17 @@ class HFAnalysisInvMass(hfdio.HFAnalysis):
 				jet_groomed = jet_groomed_lund.pair()
 				
 				#ang with the SD groomed axis################################  
-				a10 = fjext.lambda_beta_kappa(jet_groomed,  1.0, 1.0 ,0.4)
-				a15 = fjext.lambda_beta_kappa(jet_groomed,  1.5, 1.0 ,0.4)
-				a20 = fjext.lambda_beta_kappa(jet_groomed,  2.0, 1.0 ,0.4)
-				a30 = fjext.lambda_beta_kappa(jet_groomed,  3.0, 1.0 ,0.4)
+				a10 = fjext.lambda_alpha_kappa(j, jet_groomed, 1.0, 1.0, 0.4)
+				a15 = fjext.lambda_alpha_kappa(j, jet_groomed, 1.5, 1.0, 0.4)
+				a20 = fjext.lambda_alpha_kappa(j, jet_groomed, 3.0, 1.0, 0.4)
+				a30 = fjext.lambda_alpha_kappa(j, jet_groomed, 3.0, 1.0, 0.4)
 				
 				#if SD condition fails put in the negative bin
 				if jet_groomed_lund.Delta() < 0:
 					a10 = a15 = a20 = a30 = -0.005
 				
 				#else fill the THnSparse
-				self.fsparseJetSDvalue[0] = jet_groomed.perp()
+				self.fsparseJetSDvalue[0] = j.perp()
 				self.fsparseJetSDvalue[1] = dcand[0].perp()
 				self.fsparseJetSDvalue[2] = dcand[0].m()
 				self.fsparseJetSDvalue[3] = a10

@@ -43,14 +43,15 @@ class HFAnalysisInvMass(hfdio.HFAnalysis):
 		title = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'Invmass', '#it{R}_{L}']
 		title_jetinfo = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'Invmass', '#it{N}_{const}']
 		
-		RL_bins = np.linspace(0, 1, 500) 
-
-		pt_bins_jet = np.linspace(0, 60, 60)
-		pt_bins_dmeson = np.linspace(0, 60, 60)
-		dmeson_mass_bin = np.linspace(1.7, 2.07, 370)
+		RL_bins  = np.logspace(np.log10(1E-4), np.log10(1), 51)
+		print("print RL bins")
+		print(RL_bins)
+		pt_bins_jet = np.linspace(0, 60, 61)
+		pt_bins_dmeson = np.linspace(0, 60, 61)
+		dmeson_mass_bin = np.linspace(1.7, 2.07, 371)
 
 		dim = 4
-		nbins  = [len(pt_bins_jet)-1, len(pt_bins_dmeson)-1, len(dmeson_mass_bin)-1, len(RL_bins)-1]
+		nbins  = [len(pt_bins_jet)-1, len(pt_bins_dmeson)-1, len(dmeson_mass_bin)-1, 50]
 		min_li = [pt_bins_jet[0],     pt_bins_dmeson[0],     dmeson_mass_bin[0],     RL_bins[0]    ]
 		max_li = [pt_bins_jet[-1],    pt_bins_dmeson[-1],    dmeson_mass_bin[-1],    RL_bins[-1]   ]
 
@@ -73,6 +74,15 @@ class HFAnalysisInvMass(hfdio.HFAnalysis):
 		for i in range(0,dim):
 			self.fsparseJet.GetAxis(i).SetTitle(title[i])
 			self.fsparseJetInfo.GetAxis(i).SetTitle(title_jetinfo[i])
+			if i == 0 or i == 1:
+				self.fsparseJet.SetBinEdges(i, pt_bins_jet)
+				self.fsparseJetInfo.SetBinEdges(i, pt_bins_jet)
+			if i == 2:
+				self.fsparseJet.SetBinEdges(i, dmeson_mass_bin)
+				self.fsparseJetInfo.SetBinEdges(i, dmeson_mass_bin)
+			if i == 3:
+				self.fsparseJet.SetBinEdges(i, RL_bins)
+				self.fsparseJetInfo.SetBinEdges(i, RL_bins)
 
 		print(self.config_file)
 	
@@ -85,7 +95,6 @@ class HFAnalysisInvMass(hfdio.HFAnalysis):
 	
 	def analysis(self, df):
 		#print(df)
-
 		m_array = np.full((self.df_tracks['ParticlePt'].values.size), 0.1396)	
 
 		djmm = fjtools.DJetMatchMaker()
@@ -139,7 +148,7 @@ class HFAnalysisInvMass(hfdio.HFAnalysis):
 				self.fsparseJetInfovalue[0] = j.perp()
 				self.fsparseJetInfovalue[1] = dcand[0].perp()
 				self.fsparseJetInfovalue[2] = dcand[0].m()
-				self.fsparseJetInfovalue[3] = len(c_select)
+				self.fsparseJetInfovalue[3] = 0.5
 
 				self.fsparseJetInfo.Fill(self.fsparseJetInfovalue)
 		

@@ -7,7 +7,7 @@ from array import array
 import pandas as pd
 
 from pyjetty.alice_analysis.process.base import process_io, process_utils, jet_info, process_base
-import pyjetty.alihfjets.dev.hfjet.process.base.process_io_mc_hf as hfdio
+import pyjetty.alihfjets.dev.hfjet.process.user.hf_EEC.process_io_mc_hf as hfdio
 from pyjetty.mputils.mputils import perror, pinfo, pwarning
 from pyjetty.mputils import treewriter, jet_analysis
 
@@ -65,54 +65,6 @@ class HFAnalysisInvMass(hfdio.HFAnalysis):
 		xmin_array = array('d', xmin)
 		xmax_array = array('d', xmax)
 
-	
-		self.name='THnSparse_reflection_signal'
-		self.nbins=array('i',(55,55,40,40,370))
-		self.binlow=array('d',(0,0,0,0,1.7))
-		self.binhigh=array('d',(55,55,40,40,2.07))
-		title = [ '#it{p}_{T,truth}^{ch jet}', '#it{p}_{T,det}^{ch jet}', '#it{p}_{T,truth}^{D}', '#it{p}_{T,det}^{D}', 'Invmass']
-		self.fsparse_reflection=ROOT.THnSparseD(self.name,"Jet_gen_pt;Jet_reco_pt;D_pt_gen;D_pt_rec;D_m",5,self.nbins,self.binlow,self.binhigh)
-		self.fsparse_reflection.Sumw2()
-		for i in range(0,5):
-                        self.fsparse_reflection.GetAxis(i).SetTitle(title[i])
-		self.fsparse_reflection_value=array('d',(0,0,0,0,0))
-
-
-		title_RM = [ '#it{p}_{T,truth}^{ch jet}', '#it{p}_{T,det}^{ch jet}', '#it{p}_{T,truth}^{D}', '#it{p}_{T,det}^{D}', 'Invmass',
-                                 '#it{m}_{jet,truth}', '#it{m}_{jet,det}']
- 
-		self.name_prompt='THnSparse_prompt_signal_ungroomedjetmass'
-		self.fsparsejet_prompt_ungroomedjetmass=ROOT.THnSparseD(self.name_prompt,"Jet_gen_pt;Jet_reco_pt;D_pt_gen;D_pt_rec;invmass;ungroomedjetmass_gen;ungroomedjetmass_reco", dim,  nbins_array, xmin_array, xmax_array)
-		self.fsparsejet_prompt_ungroomedjetmass.Sumw2()
-		self.fsparse_prompt_ungroomedjetmass_value=array('d',(0,0,0,0,0,0,0))
-        
-		self.name_prompt='THnSparse_prompt_signal_groomedjetmass'
-		self.fsparsejet_prompt_groomedjetmass=ROOT.THnSparseD(self.name_prompt,"Jet_gen_pt;Jet_reco_pt;D_pt_gen;D_pt_rec;invmass;groomedjetmass_gen;groomedjetmass_reco", dim,  nbins_array, xmin_array, xmax_array)
-		self.fsparsejet_prompt_groomedjetmass.Sumw2()
-		self.fsparse_prompt_groomedjetmass_value=array('d',(0,0,0,0,0,0,0))
-
-        
-        
-		self.name_nonprompt='THnSparse_nonprompt_signal_ungroomedjetmass'
-		self.fsparsejet_nonprompt_ungroomedjetmass=ROOT.THnSparseD(self.name_nonprompt,"Jet_gen_pt;Jet_reco_pt;D_pt_gen;D_pt_rec;invmass;ungroomedjetmass_gen;ungroomedjetmass_reco", dim,  nbins_array, xmin_array, xmax_array)
-		self.fsparsejet_nonprompt_ungroomedjetmass.Sumw2()
-		self.fsparse_nonprompt_ungroomedjetmass_value=array('d',(0,0,0,0,0,0,0))
-
-
-		self.name_nonprompt='THnSparse_nonprompt_signal_groomedjetmass'
-		self.fsparsejet_nonprompt_groomedjetmass=ROOT.THnSparseD(self.name_nonprompt,"Jet_gen_pt;Jet_reco_pt;D_pt_gen;D_pt_rec;invmass;groomedjetmass_gen;groomedjetmass_reco",  dim,  nbins_array, xmin_array, xmax_array)
-		self.fsparsejet_nonprompt_groomedjetmass.Sumw2()
-		self.fsparse_nonprompt_groomedjetmass_value=array('d',(0,0,0,0,0,0,0))
-
-
-
-		for i in range(0,dim):
-			self.fsparsejet_prompt_ungroomedjetmass.GetAxis(i).SetTitle(title_RM[i])
-			self.fsparsejet_prompt_groomedjetmass.GetAxis(i).SetTitle(title_RM[i])
-			self.fsparsejet_nonprompt_ungroomedjetmass.GetAxis(i).SetTitle(title_RM[i])
-			self.fsparsejet_nonprompt_groomedjetmass.GetAxis(i).SetTitle(title_RM[i])
-
-
 		print(self.config_file)
 	
 		with open(self.config_file, 'r') as stream:
@@ -122,8 +74,11 @@ class HFAnalysisInvMass(hfdio.HFAnalysis):
 		print(df)
 		self.hNevents.Fill(1,df["ev_id"].nunique())
 	
+
 	def analysis(self, df, isMC):
+		
 		isJet=False
+
 		m_array = np.full((self.df_tracks['ParticlePt'].values.size), 0.1396)
 		djmm = fjtools.DJetMatchMaker()
 		djmm.set_ch_pt_eta_phi_m(self.df_tracks['ParticlePt'].values, self.df_tracks['ParticleEta'].values, self.df_tracks['ParticlePhi'].values, m_array)
@@ -216,110 +171,7 @@ class HFAnalysisInvMass(hfdio.HFAnalysis):
 	def fill_reco_info(self,_rec_df,_gen_df):
 		print("calculate eff")
 
-		_par_prompt_df = _rec_df[_rec_df['ismcprompt']==1]
-		_par_fd_df = _rec_df[_rec_df['ismcfd']==1]
-		
-		for index_par, row in _par_prompt_df.iterrows():
-			self.histo_particle_prompt.Fill(row['jet_pt'],row['pt_cand'])
-
-		for index_par, row in _par_fd_df.iterrows():
-			self.histo_particle_fd.Fill(row['jet_pt'],row['pt_cand'])
-
-		self.df_matching=pd.merge(_gen_df,_rec_df,left_index=True, right_index=True)
-		
-		print("Matching started")
-		print(self.df_matching)
-		for index_matching, row in self.df_matching.iterrows():
-			phi_gen=row['jet_phi_x']
-			eta_gen=row['jet_eta_x']
-			phi_reco=row['jet_phi_y']
-			eta_reco=row['jet_eta_y']
-			delta_jet_R=np.sqrt( (eta_gen - eta_reco)**2 + (phi_gen - phi_reco)**2 )
-			phi_cand_gen=row['phi_cand_x']
-			eta_cand_gen=row['eta_cand_x']
-			phi_cand_reco=row['phi_cand_y']
-			eta_cand_reco=row['eta_cand_y']
-			delta_cand_R=np.sqrt((eta_cand_gen - eta_cand_reco)**2 + (phi_cand_gen - phi_cand_reco)**2 )
-
-			cand_type_reflection = row['ismcrefl_y']
-			cand_type_prompt = row['ismcprompt_y']
-			cand_type_nonprompt = row['ismcfd_y']
-			
-			self.fsparse_reflection_value[0]=row['jet_pt_x']
-			self.fsparse_reflection_value[1]=row['jet_pt_y']
-			self.fsparse_reflection_value[2]=row['pt_cand_x']
-			self.fsparse_reflection_value[3]=row['pt_cand_y']
-			self.fsparse_reflection_value[4]=row['inv_mass']
-
-			self.fsparse_prompt_ungroomedjetmass_value[0]=row['jet_pt_x']
-			self.fsparse_prompt_ungroomedjetmass_value[1]=row['jet_pt_y']
-			self.fsparse_prompt_ungroomedjetmass_value[2]=row['pt_cand_x']
-			self.fsparse_prompt_ungroomedjetmass_value[3]=row['pt_cand_y']
-			self.fsparse_prompt_ungroomedjetmass_value[4]=row['inv_mass']
-			self.fsparse_prompt_ungroomedjetmass_value[5]=row['ungroomed_mass_x']
-			self.fsparse_prompt_ungroomedjetmass_value[6]=row['ungroomed_mass_y']
-
-			self.fsparse_prompt_groomedjetmass_value[0]=row['jet_pt_x']
-			self.fsparse_prompt_groomedjetmass_value[1]=row['jet_pt_y']
-			self.fsparse_prompt_groomedjetmass_value[2]=row['pt_cand_x']
-			self.fsparse_prompt_groomedjetmass_value[3]=row['pt_cand_y']
-			self.fsparse_prompt_groomedjetmass_value[4]=row['inv_mass']
-			self.fsparse_prompt_groomedjetmass_value[5]=row['groomed_mass_x']
-			self.fsparse_prompt_groomedjetmass_value[6]=row['groomed_mass_y']
-            
-            
-            
-			self.fsparse_nonprompt_ungroomedjetmass_value[0]=row['jet_pt_x']
-			self.fsparse_nonprompt_ungroomedjetmass_value[1]=row['jet_pt_y']
-			self.fsparse_nonprompt_ungroomedjetmass_value[2]=row['pt_cand_x']
-			self.fsparse_nonprompt_ungroomedjetmass_value[3]=row['pt_cand_y']
-			self.fsparse_nonprompt_ungroomedjetmass_value[4]=row['inv_mass']
-			self.fsparse_nonprompt_ungroomedjetmass_value[5]=row['ungroomed_mass_x']
-			self.fsparse_nonprompt_ungroomedjetmass_value[6]=row['ungroomed_mass_y']
-   
-   
-			self.fsparse_nonprompt_groomedjetmass_value[0]=row['jet_pt_x']
-			self.fsparse_nonprompt_groomedjetmass_value[1]=row['jet_pt_y']
-			self.fsparse_nonprompt_groomedjetmass_value[2]=row['pt_cand_x']
-			self.fsparse_nonprompt_groomedjetmass_value[3]=row['pt_cand_y']
-			self.fsparse_nonprompt_groomedjetmass_value[4]=row['inv_mass']
-			self.fsparse_nonprompt_groomedjetmass_value[5]=row['groomed_mass_x']
-			self.fsparse_nonprompt_groomedjetmass_value[6]=row['groomed_mass_y']
-            
-            
-            
-			#non prompt 
-			#prompt
-			
-			if delta_jet_R<(0.6*0.4):
-				if delta_cand_R<(0.1):
-					#print("matched")
-					if cand_type_reflection==1:
-						#print("reflection candidate is "+str(row['ismcrefl_y']))
-						self.fsparse_reflection.Fill(self.fsparse_reflection_value)
-
-					if cand_type_prompt==1:
-						#print("prompt candidate is "+str(row['ismcprompt_y']))
-						self.fsparsejet_prompt_ungroomedjetmass.Fill(self.fsparse_prompt_ungroomedjetmass_value)
-						self.fsparsejet_prompt_groomedjetmass.Fill(self.fsparse_prompt_groomedjetmass_value)
-					if cand_type_nonprompt==1:
-						#print("nonprompt candidate is "+str(row['ismcfd_y']))
-						self.fsparsejet_nonprompt_ungroomedjetmass.Fill(self.fsparse_nonprompt_ungroomedjetmass_value)
-						self.fsparsejet_nonprompt_groomedjetmass.Fill(self.fsparse_nonprompt_groomedjetmass_value)
-
-
 	def finalize(self):
-		self.hNevents.Write()
-		self.histo_truth_prompt.Write()
-		self.histo_truth_fd.Write()
-		self.histo_particle_prompt.Write()
-		self.histo_particle_fd.Write()
-		self.fsparse_reflection.Write()
-		self.fsparsejet_prompt_ungroomedjetmass.Write()
-		self.fsparsejet_prompt_groomedjetmass.Write()
-		self.fsparsejet_nonprompt_ungroomedjetmass.Write()
-		self.fsparsejet_nonprompt_groomedjetmass.Write()
-		self.fout.Write()
 		self.fout.Close()
 
 if __name__ == '__main__':
