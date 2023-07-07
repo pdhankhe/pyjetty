@@ -1,8 +1,7 @@
-
 #!/usr/bin/env python
 '''
 Script for looking at the quark vs gluon dependence of substructure observables
-Author: Beatrice Liang-Gilman, with most of the code from Ezra Lesser (elesser@berkeley.edu)
+Author: Ezra Lesser (elesser@berkeley.edu)
 '''
 
 from __future__ import print_function
@@ -11,7 +10,6 @@ from __future__ import print_function
 import fastjet as fj
 import fjcontrib
 import fjext
-import ecorrel
 
 import ROOT
 
@@ -24,7 +22,6 @@ import array
 import numpy as np
 
 from pyjetty.mputils import *
-from pyjetty.mputils.mputils import pinfo, pwarning
 
 from heppy.pythiautils import configuration as pyconf
 import pythia8
@@ -79,12 +76,11 @@ class PythiaQuarkGluon(process_base.ProcessBase):
         self.min_leading_track_pT = config["min_leading_track_pT"] if "min_leading_track_pT" in config else None
 
         self.pt_bins = array.array('d', list(range(5, 100, 5)) + list(range(100, 210, 10)))
-#        self.obs_bins_ang = np.concatenate((np.linspace(0, 0.009, 10), np.linspace(0.01, 0.1, 19),
-#                                            np.linspace(0.11, 0.8, 70)))
-#        self.obs_bins_mass = np.concatenate(
-#          (np.linspace(0, 0.9, 10), np.linspace(1, 9.8, 45), np.linspace(10, 14.5, 10),
-#           np.linspace(15, 19, 5), np.linspace(20, 60, 9)))
-        self.obs_bins_EEC = np.logspace(np.log10(1E-4), np.log10(1), 51)
+        self.obs_bins_ang = np.concatenate((np.linspace(0, 0.009, 10), np.linspace(0.01, 0.1, 19),
+                                            np.linspace(0.11, 0.8, 70)))
+        self.obs_bins_mass = np.concatenate(
+          (np.linspace(0, 0.9, 10), np.linspace(1, 9.8, 45), np.linspace(10, 14.5, 10),
+           np.linspace(15, 19, 5), np.linspace(20, 60, 9)))
 
         self.observable_list = config['process_observables']
         self.obs_settings = {}
@@ -92,17 +88,14 @@ class PythiaQuarkGluon(process_base.ProcessBase):
         self.obs_names = {}
         for observable in self.observable_list:
 
-            obs_config_dict = config[observable]
-            obs_config_list = [name for name in list(obs_config_dict.keys()) if 'config' in name ]
+          obs_config_dict = config[observable]
+          obs_config_list = [name for name in list(obs_config_dict.keys()) if 'config' in name ]
 
-            obs_subconfig_list = [name for name in list(obs_config_dict.keys()) if 'config' in name ]
-            pinfo("obs_subconfig_list", obs_subconfig_list)
-            self.obs_settings[observable] = self.utils.obs_settings(observable, obs_config_dict, obs_subconfig_list)
-            pinfo("self.obs_settings[observable]", self.obs_settings[observable])
-            self.obs_grooming_settings[observable] = self.utils.grooming_settings(obs_config_dict)
-            pinfo("self.obs_grooming_settings[observable]", self.obs_grooming_settings[observable])
+          obs_subconfig_list = [name for name in list(obs_config_dict.keys()) if 'config' in name ]
+          self.obs_settings[observable] = self.utils.obs_settings(observable, obs_config_dict, obs_subconfig_list)
+          self.obs_grooming_settings[observable] = self.utils.grooming_settings(obs_config_dict)
 
-            self.obs_names[observable] = obs_config_dict["common_settings"]["xtitle"]
+          self.obs_names[observable] = obs_config_dict["common_settings"]["xtitle"]
 
     #---------------------------------------------------------------
     # Main processing function
@@ -117,8 +110,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
         # Initialize response histograms
         self.initialize_hist()
 
-        pinfo('user seed for pythia', self.user_seed) #TODO: what does this do?? it doesn't work...
-#        print('user seed for pythia', self.user_seed)
+        pinfo('user seed for pythia', self.user_seed)
         mycfg = ['Random:setSeed=on', 'Random:seed={}'.format(self.user_seed)]
         mycfg.append('HadronLevel:all=off')
 
@@ -164,8 +156,8 @@ class PythiaQuarkGluon(process_base.ProcessBase):
             R_label = str(jetR).replace('.', '') + 'Scaled'
 
             for observable in self.observable_list:
-                # Should only be one: observable == "EEC"
-                if observable != "EEC":
+                # Should only be two: observable == "ang" or "mass"
+                if observable != "ang" and observable != "mass":
                     raise ValueError("Observable %s is not implemented in this script" % observable)
 
                 obs_name = self.obs_names[observable]
@@ -174,34 +166,22 @@ class PythiaQuarkGluon(process_base.ProcessBase):
                 pt_bins = array.array('d', list(range(0, 201, 1)))
 
                 # Loop over subobservable (alpha value)
-#                for i in range(len(self.obs_settings[observable])):
+                for i in range(len(self.obs_settings[observable])):
 
-                obs_setting = self.obs_settings[observable]
-                grooming_setting = self.obs_grooming_settings[observable]
-                obs_label = self.utils.obs_label(obs_setting, grooming_setting)
-                pinfo("all the settings", obs_setting, grooming_setting, obs_label)
+                    obs_setting = self.obs_settings[observable][i]
+                    grooming_setting = self.obs_grooming_settings[observable][i]
+                    obs_label = self.utils.obs_label(obs_setting, grooming_setting)
 
-                for parton_type in ["quark", "charm", "gluon"]:
+                    for parton_type in ["quark", "charm", "gluon"]:
 
-                    name = ('h_%s_JetPt_%s_R%s_%s' % (observable, parton_type, jetR, obs_label)) if \
-                        len(obs_label) else ('h_%s_JetPt_%s_R%s' % (observable, parton_type, jetR))
-                    h = ROOT.TH2F(name, name, len(pt_bins)-1, pt_bins, len(obs_bins)-1, obs_bins)
-                    h.GetXaxis().SetTitle('#it{p}_{T,%s}^{ch jet}' % (parton_type[0] + "-init"))
-#                    h.GetYaxis().SetTitle(obs_name + '^{%s}' % (parton_type[0] + "-init"))
-                    h.GetYaxis().SetTitle("R_{L}" + '^{%s}' % (parton_type[0] + "-init"))
-                    h.Sumw2()
-                    setattr(self, name, h)
-                    getattr(self, hist_list_name).append(h)
-                    
-                    # make another of histogram for the jet level (above is pair level)
-                    name_jetpt = ('h_JetPt_%s_R%s_%s_jetlevel' % (parton_type, jetR, obs_label)) if \
-                        len(obs_label) else ('h_JetPt_%s_R%s_jetlevel' % (parton_type, jetR))
-                    h_jetpt = ROOT.TH1F(name_jetpt, name_jetpt, len(pt_bins)-1, pt_bins)
-                    h_jetpt.GetXaxis().SetTitle('#it{p}_{T,%s}^{ch jet}' % (parton_type[0] + "-init"))
-                    h_jetpt.GetYaxis().SetTitle('Counts')
-                    h_jetpt.Sumw2()
-                    setattr(self, name_jetpt, h_jetpt)
-                    getattr(self, hist_list_name).append(h_jetpt)
+                        name = ('h_%s_JetPt_%s_R%s_%s' % (observable, parton_type, jetR, obs_label)) if \
+                            len(obs_label) else ('h_%s_JetPt_%s_R%s' % (observable, parton_type, jetR))
+                        h = ROOT.TH2F(name, name, len(pt_bins)-1, pt_bins, len(obs_bins)-1, obs_bins)
+                        h.GetXaxis().SetTitle('#it{p}_{T,%s}^{ch jet}' % (parton_type[0] + "-init"))
+                        h.GetYaxis().SetTitle(obs_name + '^{%s}' % (parton_type[0] + "-init"))
+                        h.Sumw2()
+                        setattr(self, name, h)
+                        getattr(self, hist_list_name).append(h)
 
     #---------------------------------------------------------------
     # Initiate jet defs, selectors, and sd (if required)
@@ -217,7 +197,6 @@ class PythiaQuarkGluon(process_base.ProcessBase):
             print(jet_def)
 
         pwarning('max eta for particles after hadronization set to', self.max_eta_hadron)
-#        print('max eta for particles after hadronization set to', self.max_eta_hadron)
         parts_selector_h = fj.SelectorAbsEtaMax(self.max_eta_hadron)
 
         for jetR in self.jetR_list:
@@ -313,10 +292,8 @@ class PythiaQuarkGluon(process_base.ProcessBase):
             self.parent0match, self.parent1match = None, None
             for i_jch, jch in enumerate(jets_ch):
                 # Do constituent pT cut
-#                pinfo("self.min_leading_track_pT", self.min_leading_track_pT)
                 if self.min_leading_track_pT and not \
-                    self.utils.is_truth_jet_accepted(jch):
-#                   self.utils.is_truth_jet_accepted(jch, self.min_leading_track_pT):
+                    self.utils.is_truth_jet_accepted(jch, self.min_leading_track_pT):
                     continue
                 for i_parent, parent in enumerate(self.parents):
                     parentmatch_name = "parent%imatch" % i_parent
@@ -332,19 +309,17 @@ class PythiaQuarkGluon(process_base.ProcessBase):
             for i_parent, parent in enumerate(self.parents):
                 jet = getattr(self, "parent%imatch" % i_parent)
                 if not jet:
-#                    pinfo("in not jet")
-                    if jet == 0:
-                        # More than one match -- take note and continue
-                        count1 += 1
-                        continue
-                    else:  # jet == None
-                        # No matches -- take note and continue
-                        count2 += 1
-                        continue
+                  if jet == 0:
+                      # More than one match -- take note and continue
+                      count1 += 1
+                      continue
+                  else:  # jet == None
+                      # No matches -- take note and continue
+                      count2 += 1
+                      continue
 
                 # One unique match
                 # Identify the histograms which need to be filled
-#                pinfo("passed not jet")
                 parton_id = self.parent_ids[i_parent]
                 parton_types = []
                 if parton_id in self.quark_pdg_ids:
@@ -360,40 +335,28 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 
                 # Fill histograms
                 for observable in self.observable_list:
-#                    pinfo("len(self.obs_settings[observable])", len(self.obs_settings[observable]))
-#                    for i in range(len(self.obs_settings[observable])): #looping through different configurations?
+                    for i in range(len(self.obs_settings[observable])):
 
-                    obs_setting = self.obs_settings[observable]
-                    grooming_setting = self.obs_grooming_settings[observable]
-                    obs_label = self.utils.obs_label(obs_setting, grooming_setting)
+                        obs_setting = self.obs_settings[observable][i]
+                        grooming_setting = self.obs_grooming_settings[observable][i]
+                        obs_label = self.utils.obs_label(obs_setting, grooming_setting)
 
-                    # Groom jet, if applicable
-                    jet_groomed_lund = None
-                    if grooming_setting:
-                        gshop = fjcontrib.GroomerShop(jet, jetR, self.reclustering_algorithm)
-                        jet_groomed_lund = self.utils.groom(gshop, grooming_setting, jetR)
-                        if not jet_groomed_lund:
-                            continue
+                        # Groom jet, if applicable
+                        jet_groomed_lund = None
+                        if grooming_setting:
+                            gshop = fjcontrib.GroomerShop(jet, jetR, self.reclustering_algorithm)
+                            jet_groomed_lund = self.utils.groom(gshop, grooming_setting, jetR)
+                            if not jet_groomed_lund:
+                                continue
 
-#                        obs = self.calculate_observable(
-#                            observable, jet, jet_groomed_lund, jetR, obs_setting,
-#                            grooming_setting, obs_label, jet.pt())
-                    obs = self.calculate_observable(
-                        observable, jet, jet_groomed_lund, jetR, jet.pt())
+                        obs = self.calculate_observable(
+                            observable, jet, jet_groomed_lund, jetR, obs_setting,
+                            grooming_setting, obs_label, jet.pt())
 
-#                        for parton_type in parton_types:
-#                            getattr(self, ('h_%s_JetPt_%s_R%s_%s' % (observable, parton_type, jetR, obs_label)) if \
-#                                len(obs_label) else ('h_%s_JetPt_%s_R%s' % (observable, parton_type, jetR))).Fill(
-#                                jet.pt(), obs)
-                    for parton_type in parton_types:
-                            getattr(self, ('h_JetPt_%s_R%s_%s_jetlevel' % (parton_type, jetR, obs_label)) if \
-                                len(obs_label) else ('h_JetPt_%s_R%s_jetlevel' % (parton_type, jetR))).Fill(
-                                jet.pt())
-                    for index in range(obs.correlator(2).rs().size()):
                         for parton_type in parton_types:
                             getattr(self, ('h_%s_JetPt_%s_R%s_%s' % (observable, parton_type, jetR, obs_label)) if \
                                 len(obs_label) else ('h_%s_JetPt_%s_R%s' % (observable, parton_type, jetR))).Fill(
-                                jet.pt(), obs.correlator(2).rs()[index], new_corr.correlator(2).weights()[index])
+                                jet.pt(), obs)
 
             setattr(self, "count1_R%s" % jetR_str, count1)
             setattr(self, "count2_R%s" % jetR_str, count2)
@@ -401,54 +364,25 @@ class PythiaQuarkGluon(process_base.ProcessBase):
     #---------------------------------------------------------------
     # Calculate the observable given a jet
     #---------------------------------------------------------------
-#    def calculate_observable(self, observable, jet, jet_groomed_lund,
-#        jetR, obs_setting, grooming_setting, obs_label, jet_pt_ungroomed):
     def calculate_observable(self, observable, jet, jet_groomed_lund,
-        jetR, jet_pt_ungroomed):
+        jetR, obs_setting, grooming_setting, obs_label, jet_pt_ungroomed):
 
-        if observable == "EEC":
+        if observable == "ang":
 
-            # idk about this grooming setting....
-            # WRITE STUFF HERE
-            
-            #TODO: get the dcand from the jet! (need the djmm??)
-#            j = jet[0]
-#            dcand = djmm.get_Dcand_in_jet(jet)
-            
-            # Extract information for EEC
-            constituents = fj.sorted_by_pt(jet.constituents())
-            c_select = fj.vectorPJ()
-            trk_thrd = 1 # track pt threshold
-                
-            # apply pT threshold on jet constituents
-            for c in constituents:
-                if c.pt() < trk_thrd:
-                    break
-                #print("constituent used for pair =", c)
-                c_select.append(c)
-                
-            dphi_cut = -9999
-            deta_cut = -9999
-            
-#            new_corr = ecorrel.CorrelatorBuilder(c_select, dcand, jet_pt_ungroomed, 2, 1, dphi_cut, deta_cut) #jet, D, scale, max, power, dphicut, detacut
-            new_corr = ecorrel.CorrelatorBuilder(c_select, jet.perp(), 2, 1, dphi_cut, deta_cut)
-            
-            return new_corr #new_corr.correlator(2).rs()[index]
-            
-#            return fjext.lambda_beta_kappa(jet, jet_groomed_lund.pair(), obs_setting, 1, jetR) \
-#                   if grooming_setting else fjext.lambda_beta_kappa(jet, obs_setting, 1, jetR)
+            return fjext.lambda_beta_kappa(jet, jet_groomed_lund.pair(), obs_setting, 1, jetR) \
+                   if grooming_setting else fjext.lambda_beta_kappa(jet, obs_setting, 1, jetR)
 
-#        elif observable == "mass":
-#
-#            if grooming_setting:
-#                j_groomed = jet_groomed_lund.pair()
-#                if not j_groomed.has_constituents():
-#                    # Untagged jet -- record underflow value
-#                    return -1
-#                else:
-#                    return j_groomed.m()
-#
-#            return jet.m()
+        elif observable == "mass":
+
+            if grooming_setting:
+                j_groomed = jet_groomed_lund.pair()
+                if not j_groomed.has_constituents():
+                    # Untagged jet -- record underflow value
+                    return -1
+                else:
+                    return j_groomed.m()
+
+            return jet.m()
 
         # Should not be any other observable
         raise ValueError("Observable %s not implemented" % observable)
@@ -463,8 +397,6 @@ class PythiaQuarkGluon(process_base.ProcessBase):
         for jetR in self.jetR_list:
             hist_list_name = "hist_list_R%s" % str(jetR).replace('.', '')
             for h in getattr(self, hist_list_name):
-                if 'jetlevel' in h.GetTitle():
-                    continue
                 h.Scale(scale_f)
 
         print("N total final events:", int(self.hNevents.GetBinContent(1)), "with",

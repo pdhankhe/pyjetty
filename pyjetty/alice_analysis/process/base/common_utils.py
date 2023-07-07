@@ -90,6 +90,8 @@ class CommonUtils(common_base.CommonBase):
     
       grooming_setting_dict = {}
     
+      print("OBS CONFIG DICT ITEMS", config_key, subconfig)
+
       if config_key == 'common_settings':
         continue
       if 'SoftDrop' in subconfig:
