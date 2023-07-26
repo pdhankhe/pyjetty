@@ -2,10 +2,10 @@
 
 #SBATCH --job-name="hf_13TeV"
 #SBATCH --nodes=1 --ntasks=1 --cpus-per-task=1
-#SBATCH --partition=quick
+#SBATCH --partition=std
 #SBATCH --time=2:00:00
 #SBATCH --array=1-1000
-#SBATCH --output=/rstorage/alice/AnalysisResults/preeti/ang/slurm-%A_%a.out
+#SBATCH --output=/rstorage/alice/AnalysisResults/preeti/EEC/slurm-%A_%a.out
 
 #FILE_PATHS='/home/preeti/analysis/pyjetty/pyjetty/alihfjets/dev/hfjet/FileList/files_D0count_pp5TeV_Data.txt'
 FILE_PATHS='/rstorage/alice/data/LHC2018bdefghijklmnop/file_list_pp13TeV.txt'
@@ -30,5 +30,5 @@ echo "STOP=$STOP"
 for (( JOB_N = $START; JOB_N <= $STOP; JOB_N++ ))
 do
   FILE=$(sed -n "$JOB_N"p $FILE_PATHS)
-  srun EEC_hf_pp13TeV.sh $FILE $SLURM_ARRAY_JOB_ID $SLURM_ARRAY_TASK_ID
+  srun EEC_hf_pp13TeV_sys1.sh $FILE $SLURM_ARRAY_JOB_ID $SLURM_ARRAY_TASK_ID
 done

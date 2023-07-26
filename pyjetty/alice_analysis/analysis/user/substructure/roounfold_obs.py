@@ -283,13 +283,15 @@ class Roounfold_Obs(analysis_base.AnalysisBase):
         hData = self.fData.Get(name_data)
 
         # Re-bin the data histogram
-        if use_histutils:
-          h = self.histutils.rebin_th2(hData, name_data, det_pt_bin_array, n_pt_bins_det,
-                                       det_bin_array, n_bins_det, move_underflow)
-        else:
-          h = self.utils.rebin_data(hData, name_data, n_pt_bins_det, det_pt_bin_array,
-                                    n_bins_det, det_bin_array, move_underflow=move_underflow)
+        #if use_histutils:
+        #  h = self.histutils.rebin_th2(hData, name_data, det_pt_bin_array, n_pt_bins_det,
+        #                               det_bin_array, n_bins_det, move_underflow)
+        #else:
+        #  h = self.utils.rebin_data(hData, name_data, n_pt_bins_det, det_pt_bin_array,
+        #                            n_bins_det, det_bin_array, move_underflow=move_underflow)
 
+        #dont rebin here for D0 tagged jets. Rebinning is done at the signal extraction level otherwise the error set are not right
+        h=hData.Clone()
         # If thermal model, smear MC input spectrum by measured data
         # Then update data to be the correct spectrum
         if self.thermal_model:
@@ -510,6 +512,13 @@ class Roounfold_Obs(analysis_base.AnalysisBase):
     for i in range(1, reg_param_final + 3):
 
       # Set up the Bayesian unfolding object
+      canvas_data = ROOT.TCanvas()
+      hData_input = hData.Clone("input_data_clone")
+      hData_input.GetXaxis().SetRangeUser(10,20)
+      hData_proj_obs = hData_input.ProjectionY()
+      hData_proj_obs.Scale(1/hData_proj_obs.Integral(),"width")
+      hData_proj_obs.Draw("ep")
+      canvas_data.SaveAs("DataDist.pdf")
       unfold_bayes = ROOT.RooUnfoldBayes(response, hData, i)
       #unfoldBayes.SetNToys(1000)
 
@@ -532,6 +541,14 @@ class Roounfold_Obs(analysis_base.AnalysisBase):
       # Write result to file
       # Note that in the case of SD, the first bin is the untagged splittings
       hUnfolded.Write()
+      
+      canvas_unfold = ROOT.TCanvas()
+      hunfolded_input = hUnfolded.Clone("unfolded_data_clone")
+      hunfolded_input.GetXaxis().SetRangeUser(10,20)
+      hUnfolded_proj_obs = hunfolded_input.ProjectionY()
+      hUnfolded_proj_obs.Scale(1/hUnfolded_proj_obs.Integral(),"width")
+      hUnfolded_proj_obs.Draw("ep")
+      canvas_unfold.SaveAs("UnfoldedDist.pdf")
 
       # Plot Pearson correlation coeffs for each iteration, to get a measure of
       # the correlation between the bins

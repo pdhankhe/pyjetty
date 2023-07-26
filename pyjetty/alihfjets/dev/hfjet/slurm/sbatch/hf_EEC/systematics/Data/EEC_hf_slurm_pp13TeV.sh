@@ -5,7 +5,7 @@
 #SBATCH --partition=quick
 #SBATCH --time=2:00:00
 #SBATCH --array=1-1000
-#SBATCH --output=/rstorage/alice/AnalysisResults/preeti/ang/slurm-%A_%a.out
+#SBATCH --output=/rstorage/alice/AnalysisResults/preeti/EEC/slurm-%A_%a.out
 
 #FILE_PATHS='/home/preeti/analysis/pyjetty/pyjetty/alihfjets/dev/hfjet/FileList/files_D0count_pp5TeV_Data.txt'
 FILE_PATHS='/rstorage/alice/data/LHC2018bdefghijklmnop/file_list_pp13TeV.txt'

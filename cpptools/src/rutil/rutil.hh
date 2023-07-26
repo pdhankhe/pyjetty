@@ -112,6 +112,20 @@ namespace RUtil
                         const bool move_underflow=false,
                         const bool use_miss_fake=false,
                         const bool do_roounfoldresponse=true);
+        
+        THnSparseD* rebin_thn(const THnSparseD* thn,
+                        const std::string & name_thn_rebinned,
+                        const int & n_dim,
+                        const int & n_pt_bins_det,
+                        const double* det_pt_bin_array,
+                        const int & n_obs_bins_det,
+                        const double* det_bin_array,
+                        const int & n_pt_bins_truth,
+                        const double* truth_pt_bin_array,
+                        const int & n_obs_bins_truth,
+                        const double* truth_bin_array,
+                        const std::string & label="",
+                        const bool move_underflow=false);
 
         // Rebin N-dimensional THn to a new histogram with name name_thn_rebinned using provided axes
         // WARNING: currently requires n_dim = 4
@@ -273,6 +287,19 @@ namespace RUtil
                                const double & prior_variation_parameter=0.,
                                const bool move_underflow=false,
                                const bool use_miss_fake=false);
+        
+        
+        void fill_rebinned_thn(const THnSparseD* thn,
+                               THnSparseD* thn_rebinned, const unsigned int & n_dim,
+                               const float min_det_pt=0.,
+                               const float min_truth_pt=0.,
+                               const float min_det=0.,
+                               const float min_truth=0.,
+                               const float max_det_pt=0.,
+                               const float max_truth_pt=0.,
+                               const float max_det=0.,
+                               const float max_truth=0.,
+                               const bool move_underflow=false);
         
         void fill_rebinned_thn(const std::string & response_file_name, const THnSparseD* thn,
                                THnSparseD* thn_rebinned, const unsigned int & n_dim,

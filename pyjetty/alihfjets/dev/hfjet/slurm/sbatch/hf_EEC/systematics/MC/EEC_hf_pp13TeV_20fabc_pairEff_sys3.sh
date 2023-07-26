@@ -29,7 +29,7 @@ fi
 # Define output path from relevant sub-path of input file
 OUTPUT_PREFIX="AnalysisResults/preeti/EEC/$JOB_ID"
 # Note: depends on file structure of input file -- need to edit appropriately for each dataset
-OUTPUT_SUFFIX=$(echo $INPUT_FILE | cut -d/ -f7-9)
+OUTPUT_SUFFIX=$(echo $INPUT_FILE | cut -d/ -f6-8 )
 #echo $OUTPUT_SUFFIX
 OUTPUT_DIR="/rstorage/alice/$OUTPUT_PREFIX/$OUTPUT_SUFFIX/"
 mkdir -p $OUTPUT_DIR
@@ -44,7 +44,7 @@ module list
 
 # Run python script via pipenv
 cd /home/preeti/analysis/pyjetty/pyjetty/alihfjets/dev/hfjet/
-python process/user/hf_EEC/process_data_hfjet_EEC.py -c config/hf_EEC/configcuts_ptbin_data.yaml -f $INPUT_FILE -o $OUTPUT_DIR
+python process/user/hf_EEC/process_mc_hfjet_EEC_withpair.py -c config/hf_EEC/configcuts_ptbin_syst_TighterCutVariation_1_MC.yaml -f $INPUT_FILE -o $OUTPUT_DIR
 
 # Move stdout to appropriate folder
 mv /rstorage/alice/AnalysisResults/preeti/EEC/slurm-${JOB_ID}_${TASK_ID}.out /rstorage/alice/AnalysisResults/preeti/EEC/${JOB_ID}

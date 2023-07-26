@@ -270,8 +270,8 @@ class RunAnalysis(common_base.CommonBase):
         self.plot_all_results(jetR) # You must implement this
         
     # Write hepdata submission
-    if self.do_plot_final_result:
-        self.write_hepdata()
+    #if self.do_plot_final_result:
+    #    self.write_hepdata()
 
     # Plot additional performance plots
     if self.do_plot_performance:
@@ -1086,11 +1086,11 @@ class RunAnalysis(common_base.CommonBase):
       if h:
         h.DrawCopy('P X0 same')
 
-    h_total.SetLineStyle(1)
-    h_total.SetLineColor(1)
-    h_total.SetLineWidth(2)
-    h_total.DrawCopy('same hist')
-    leg.AddEntry(h_total, 'Total {}'.format(suffix.replace('fastsim_', '')), 'l')
+    #h_total.SetLineStyle(1)
+    #h_total.SetLineColor(1)
+    #h_total.SetLineWidth(2)
+    #h_total.DrawCopy('same hist')
+    #leg.AddEntry(h_total, 'Total {}'.format(suffix.replace('fastsim_', '')), 'l')
 
     leg.Draw()
 
@@ -1136,26 +1136,16 @@ class RunAnalysis(common_base.CommonBase):
   #----------------------------------------------------------------------
   def truncate_hist(self, h, minbin, maxbin, new_name):
     length = h.GetNbinsX()
-
-    # Check if either minbin or maxbin exist, and if so set bin indices
-    if maxbin == None:
-      if minbin == None:
+    
+    if maxbin == None or maxbin == length:
         h.SetNameTitle(new_name, new_name)
         return h
-      bin_range = range(minbin+1, length+2)
-      if minbin >= length:
-        raise ValueError(f"Min bin number {minbin} larger or equal to histogram size {length}")
-      if minbin < 1:
-        raise ValueError(f"Min bin number {minbin} cannot be less than 1")
-
-    elif minbin == None:
-      bin_range = range(1, maxbin+2)
-      if maxbin >= length:
-        raise ValueError(f"Max bin number {maxbin} larger or equal to histogram size {length}")
-      if maxbin < 1:
-        raise ValueError(f"Max bin number {maxbin} cannot be less than 1")
-
-    bin_edges = array('d', [h.GetXaxis().GetBinLowEdge(i) for i in bin_range])
+    elif maxbin > length:
+        raise ValueError("Max bin number {} larger than histogram size {}".format(maxbin, length))
+    elif maxbin < 1:
+        raise ValueError("Max bin number {} cannot be less than 1".format(maxbin))
+        
+    bin_edges = array('d', [h.GetXaxis().GetBinLowEdge(i) for i in range(1, maxbin+2)])
     return h.Rebin(len(bin_edges)-1, new_name, bin_edges)
 
   #----------------------------------------------------------------------
