@@ -44,7 +44,7 @@ module list
 
 # Run python script via pipenv
 cd /home/preeti/analysis/pyjetty/pyjetty/alihfjets/dev/hfjet/
-python process/user/hf_EEC/process_mc_hfjet_EEC_withpair.py -c config/hf_EEC/configcuts_ptbin_default_MC.yaml -f $INPUT_FILE -o $OUTPUT_DIR
+python process/user/hf_EEC/process_mc_hfjet_EEC_withpair.py -c config/hf_EEC/configcuts_ptbin_syst_LooserCutVariation_3_MC.yaml -f $INPUT_FILE -o $OUTPUT_DIR
 
 # Move stdout to appropriate folder
 mv /rstorage/alice/AnalysisResults/preeti/EEC/slurm-${JOB_ID}_${TASK_ID}.out /rstorage/alice/AnalysisResults/preeti/EEC/${JOB_ID}

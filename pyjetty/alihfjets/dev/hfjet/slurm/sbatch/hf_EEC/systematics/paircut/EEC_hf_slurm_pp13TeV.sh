@@ -1,6 +1,6 @@
 #! /bin/bash
 
-#SBATCH --job-name="hf_sys"
+#SBATCH --job-name="hf_13TeV"
 #SBATCH --nodes=1 --ntasks=1 --cpus-per-task=1
 #SBATCH --partition=std
 #SBATCH --time=2:00:00
@@ -30,5 +30,5 @@ echo "STOP=$STOP"
 for (( JOB_N = $START; JOB_N <= $STOP; JOB_N++ ))
 do
   FILE=$(sed -n "$JOB_N"p $FILE_PATHS)
-  srun EEC_hf_pp13TeV_sys4.sh $FILE $SLURM_ARRAY_JOB_ID $SLURM_ARRAY_TASK_ID
+  srun EEC_hf_pp13TeV.sh $FILE $SLURM_ARRAY_JOB_ID $SLURM_ARRAY_TASK_ID
 done
