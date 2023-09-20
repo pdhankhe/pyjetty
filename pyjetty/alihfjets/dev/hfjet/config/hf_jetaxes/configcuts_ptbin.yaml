@@ -1,6 +1,6 @@
 jetR: [0.4]
-process_observables: ['hf_jet_axis']
-observable_list: ['STD-D', 'WTA-D', 'SD-D', 'STD-WTA', 'WTA-SD', 'STD-SD']
+process_observables: ['jet_axis']
+observable_list: ['jetinfo', 'jet_axis']
 track_mass: 0.13957
 track_random_mass: False
 IsFiducialCut: True
@@ -16,6 +16,32 @@ debug_level: 0
 
 jet_matching_distance: 0.6        # Match jets with deltaR < jet_matching_distance*jetR
 reject_tracks_fraction: 0
+
+
+###############################################################################
+# Rebinning and unfolding parameters/configurations for EEC observables
+jet_axis:
+
+    common_settings:
+        xtitle: '#DeltaR'
+        ytitle: '#frac{1}{#it{#sigma}_{jet}} #frac{d#it{#sigma}}{d#DeltaR}'
+
+    # Different alpha configurations with SoftDrop
+    config_R0.4_B3:
+        name: "jet_axis"
+        R: 0.4
+        alpha: 3
+        axis: "STD-D"
+        pt_bins:  [5, 7, 10, 20, 50]
+        obs_bins: [0, 0.01, 0.03, 0.05, 0.12, 0.25]
+        obs_max_reported: [0.12]
+        # SoftDrop:
+            # zcut: 0.2
+            # beta: 0
+
+
+###############################################################################
+
 
 analysisD0:
         pt_cand_binning:
@@ -36,17 +62,17 @@ analysisD0:
                 ismcbkg: [[2],[]]
                 ismcrefl: [[5],[]]
 
+        
         cuts:
-                - "pt_cand >= 2 and pt_cand < 3 and abs(inv_mass - 1.864) <= 0.400 and dca <= 300.e-4 and abs(cos_t_star) <= 0.8 and pt_prong1 >= 0.7 and pt_prong0 >= 0.7 and abs(imp_par_prong1) <= 1000.e-4 and abs(imp_par_prong0) <= 1000.e-4 and imp_par_prod <= -30000.e-8 and cos_p >= 0.95 and abs(cos_p_xy) >= 0. and norm_dl_xy >= 5."
-                - "pt_cand >= 3 and pt_cand < 4 and abs(inv_mass - 1.864) <= 0.400 and dca <= 300.e-4 and abs(cos_t_star) <= 0.8 and pt_prong1 >= 0.7 and pt_prong0 >= 0.7 and abs(imp_par_prong1) <= 1000.e-4 and abs(imp_par_prong0) <= 1000.e-4 and imp_par_prod <= -30000.e-8 and cos_p >= 0.95 and abs(cos_p_xy) >= 0. and norm_dl_xy >= 5."
-                - "pt_cand >= 4 and pt_cand < 5 and abs(inv_mass - 1.864) <= 0.400 and dca <= 300.e-4 and abs(cos_t_star) <= 0.8 and pt_prong1 >= 0.7 and pt_prong0 >= 0.7 and abs(imp_par_prong1) <= 1000.e-4 and abs(imp_par_prong0) <= 1000.e-4 and imp_par_prod <= -15000.e-8 and cos_p >= 0.95 and abs(cos_p_xy) >= 0. and norm_dl_xy >= 5."
-                - "pt_cand >= 5 and pt_cand < 6 and abs(inv_mass - 1.864) <= 0.400 and dca <= 300.e-4 and abs(cos_t_star) <= 0.8 and pt_prong1 >= 0.7 and pt_prong0 >= 0.7 and abs(imp_par_prong1) <= 1000.e-4 and abs(imp_par_prong0) <= 1000.e-4 and imp_par_prod <= -10000.e-8 and cos_p >= 0.95 and abs(cos_p_xy) >= 0. and norm_dl_xy >= 4."
-                - "pt_cand >= 6 and pt_cand < 7 and abs(inv_mass - 1.864) <= 0.400 and dca <= 300.e-4 and abs(cos_t_star) <= 0.8 and pt_prong1 >= 0.7 and pt_prong0 >= 0.7 and abs(imp_par_prong1) <= 1000.e-4 and abs(imp_par_prong0) <= 1000.e-4 and imp_par_prod <= -8000.e-8 and cos_p >= 0.95 and abs(cos_p_xy) >= 0. and norm_dl_xy >= 4."
-                - "pt_cand >= 7 and pt_cand < 8 and abs(inv_mass - 1.864) <= 0.400 and dca <= 300.e-4 and abs(cos_t_star) <= 0.8 and pt_prong1 >= 0.7 and pt_prong0 >= 0.7 and abs(imp_par_prong1) <= 1000.e-4 and abs(imp_par_prong0) <= 1000.e-4 and imp_par_prod <= -8000.e-8 and cos_p >= 0.95 and abs(cos_p_xy) >= 0. and norm_dl_xy >= 4."
-                - "pt_cand >= 8 and pt_cand < 10 and abs(inv_mass - 1.864) <= 0.400 and dca <= 300.e-4 and abs(cos_t_star) <= 0.9 and pt_prong1 >= 0.7 and pt_prong0 >= 0.7 and abs(imp_par_prong1) <= 1000.e-4 and abs(imp_par_prong0) <= 1000.e-4 and imp_par_prod <= -5000.e-8 and cos_p >= 0.95 and abs(cos_p_xy) >= 0. and norm_dl_xy >= 3."
-                - "pt_cand >= 10 and pt_cand < 12 and abs(inv_mass - 1.864) <= 0.400 and dca <= 300.e-4 and abs(cos_t_star) <= 0.9 and pt_prong1 >= 0.7 and pt_prong0 >= 0.7 and abs(imp_par_prong1) <= 1000.e-4 and abs(imp_par_prong0) <= 1000.e-4 and imp_par_prod <= -5000.e-8 and cos_p >= 0.95 and abs(cos_p_xy) >= 0. and norm_dl_xy >= 3."
-                - "pt_cand >= 12 and pt_cand < 16 and abs(inv_mass - 1.864) <= 0.400 and dca <= 300.e-4 and abs(cos_t_star) <= 1.0 and pt_prong1 >= 0.7 and pt_prong0 >= 0.7 and abs(imp_par_prong1) <= 1000.e-4 and abs(imp_par_prong0) <= 1000.e-4 and imp_par_prod <= 10000.e-8 and cos_p >= 0.95 and abs(cos_p_xy) >= 0. and norm_dl_xy >= 3."
-                - "pt_cand >= 16 and pt_cand < 24 and abs(inv_mass - 1.864) <= 0.400 and dca <= 300.e-4 and abs(cos_t_star) <= 1.0 and pt_prong1 >= 0.7 and pt_prong0 >= 0.7 and abs(imp_par_prong1) <= 1000.e-4 and abs(imp_par_prong0) <= 1000.e-4 and imp_par_prod <= 10000.e-8 and cos_p >= 0.90 and abs(cos_p_xy) >= 0. and norm_dl_xy >= 3."
-                - "pt_cand >= 24 and pt_cand < 36 and abs(inv_mass - 1.864) <= 0.400 and dca <= 300.e-4 and abs(cos_t_star) <= 1.0 and pt_prong1 >= 0.7 and pt_prong0 >= 0.7 and abs(imp_par_prong1) <= 1000.e-4 and abs(imp_par_prong0) <= 1000.e-4 and imp_par_prod <= 10000.e-8 and cos_p >= 0.90 and abs(cos_p_xy) >= 0. and norm_dl_xy >= 3."
-
-
+                default:
+                        - "pt_cand >= 2 and pt_cand < 3 and abs(inv_mass - 1.864) <= 0.400 and dca <= 300.e-4 and abs(cos_t_star) <= 0.8 and pt_prong1 >= 0.7 and pt_prong0 >= 0.7 and abs(imp_par_prong1) <= 1000.e-4 and abs(imp_par_prong0) <= 1000.e-4 and imp_par_prod <= -30000.e-8 and cos_p >= 0.95 and abs(cos_p_xy) >= 0. and norm_dl_xy >= 5."
+                        - "pt_cand >= 3 and pt_cand < 4 and abs(inv_mass - 1.864) <= 0.400 and dca <= 300.e-4 and abs(cos_t_star) <= 0.8 and pt_prong1 >= 0.7 and pt_prong0 >= 0.7 and abs(imp_par_prong1) <= 1000.e-4 and abs(imp_par_prong0) <= 1000.e-4 and imp_par_prod <= -30000.e-8 and cos_p >= 0.95 and abs(cos_p_xy) >= 0. and norm_dl_xy >= 5."
+                        - "pt_cand >= 4 and pt_cand < 5 and abs(inv_mass - 1.864) <= 0.400 and dca <= 300.e-4 and abs(cos_t_star) <= 0.8 and pt_prong1 >= 0.7 and pt_prong0 >= 0.7 and abs(imp_par_prong1) <= 1000.e-4 and abs(imp_par_prong0) <= 1000.e-4 and imp_par_prod <= -15000.e-8 and cos_p >= 0.95 and abs(cos_p_xy) >= 0. and norm_dl_xy >= 5."
+                        - "pt_cand >= 5 and pt_cand < 6 and abs(inv_mass - 1.864) <= 0.400 and dca <= 300.e-4 and abs(cos_t_star) <= 0.8 and pt_prong1 >= 0.7 and pt_prong0 >= 0.7 and abs(imp_par_prong1) <= 1000.e-4 and abs(imp_par_prong0) <= 1000.e-4 and imp_par_prod <= -10000.e-8 and cos_p >= 0.95 and abs(cos_p_xy) >= 0. and norm_dl_xy >= 4."
+                        - "pt_cand >= 6 and pt_cand < 7 and abs(inv_mass - 1.864) <= 0.400 and dca <= 300.e-4 and abs(cos_t_star) <= 0.8 and pt_prong1 >= 0.7 and pt_prong0 >= 0.7 and abs(imp_par_prong1) <= 1000.e-4 and abs(imp_par_prong0) <= 1000.e-4 and imp_par_prod <= -8000.e-8 and cos_p >= 0.95 and abs(cos_p_xy) >= 0. and norm_dl_xy >= 4."
+                        - "pt_cand >= 7 and pt_cand < 8 and abs(inv_mass - 1.864) <= 0.400 and dca <= 300.e-4 and abs(cos_t_star) <= 0.8 and pt_prong1 >= 0.7 and pt_prong0 >= 0.7 and abs(imp_par_prong1) <= 1000.e-4 and abs(imp_par_prong0) <= 1000.e-4 and imp_par_prod <= -8000.e-8 and cos_p >= 0.95 and abs(cos_p_xy) >= 0. and norm_dl_xy >= 4."
+                        - "pt_cand >= 8 and pt_cand < 10 and abs(inv_mass - 1.864) <= 0.400 and dca <= 300.e-4 and abs(cos_t_star) <= 0.9 and pt_prong1 >= 0.7 and pt_prong0 >= 0.7 and abs(imp_par_prong1) <= 1000.e-4 and abs(imp_par_prong0) <= 1000.e-4 and imp_par_prod <= -5000.e-8 and cos_p >= 0.95 and abs(cos_p_xy) >= 0. and norm_dl_xy >= 3."
+                        - "pt_cand >= 10 and pt_cand < 12 and abs(inv_mass - 1.864) <= 0.400 and dca <= 300.e-4 and abs(cos_t_star) <= 0.9 and pt_prong1 >= 0.7 and pt_prong0 >= 0.7 and abs(imp_par_prong1) <= 1000.e-4 and abs(imp_par_prong0) <= 1000.e-4 and imp_par_prod <= -5000.e-8 and cos_p >= 0.95 and abs(cos_p_xy) >= 0. and norm_dl_xy >= 3."
+                        - "pt_cand >= 12 and pt_cand < 16 and abs(inv_mass - 1.864) <= 0.400 and dca <= 300.e-4 and abs(cos_t_star) <= 1.0 and pt_prong1 >= 0.7 and pt_prong0 >= 0.7 and abs(imp_par_prong1) <= 1000.e-4 and abs(imp_par_prong0) <= 1000.e-4 and imp_par_prod <= 10000.e-8 and cos_p >= 0.95 and abs(cos_p_xy) >= 0. and norm_dl_xy >= 3."
+                        - "pt_cand >= 16 and pt_cand < 24 and abs(inv_mass - 1.864) <= 0.400 and dca <= 300.e-4 and abs(cos_t_star) <= 1.0 and pt_prong1 >= 0.7 and pt_prong0 >= 0.7 and abs(imp_par_prong1) <= 1000.e-4 and abs(imp_par_prong0) <= 1000.e-4 and imp_par_prod <= 10000.e-8 and cos_p >= 0.90 and abs(cos_p_xy) >= 0. and norm_dl_xy >= 3."
+                        - "pt_cand >= 24 and pt_cand < 36 and abs(inv_mass - 1.864) <= 0.400 and dca <= 300.e-4 and abs(cos_t_star) <= 1.0 and pt_prong1 >= 0.7 and pt_prong0 >= 0.7 and abs(imp_par_prong1) <= 1000.e-4 and abs(imp_par_prong0) <= 1000.e-4 and imp_par_prod <= 10000.e-8 and cos_p >= 0.90 and abs(cos_p_xy) >= 0. and norm_dl_xy >= 3."

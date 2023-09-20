@@ -103,7 +103,7 @@ namespace EnergyCorrelators
         ;
     }
 
-    CorrelatorBuilder::CorrelatorBuilder(const std::vector<fastjet::PseudoJet> &parts, const std::vector<fastjet::PseudoJet> Dmeson,  const double &scale, const int &nmax, const int &power, const double dphi_cut = -9999, const double deta_cut = -9999)
+    CorrelatorBuilder::CorrelatorBuilder(const std::vector<fastjet::PseudoJet> &parts,  const double &scale, const int &nmax, const int &power, const double dphi_cut = -9999, const double deta_cut = -9999)
     : fec()
     , fncmax(nmax)
     {
@@ -147,19 +147,115 @@ namespace EnergyCorrelators
 		// for i = j the RL=0
 		// currently counting the pairs twice
 		// future check the indices of track which is Dmeson and then assign the weight	
-		if (parts[i].delta_R(Dmeson[0]) == 0){	
-			_w2 = (std::sqrt(parts[i].m()*parts[i].m()+parts[i].perp()*parts[i].perp()) * parts[j].perp() / std::pow(scale, 2));
-			}
-		if (parts[j].delta_R(Dmeson[0]) == 0){
-                        _w2 = (std::sqrt(parts[j].m()*parts[j].m()+parts[j].perp()*parts[j].perp()) * parts[i].perp() / std::pow(scale, 2));
-                        }
-
-		else  _w2 = parts[i].perp() * parts[j].perp() / std::pow(scale, 2);
+        _w2 = parts[i].perp() * parts[j].perp() / std::pow(scale, 2);
                 
 		_w2 = pow(_w2, power);
 		fec[2 - 2]->addwr(_w2, _d12, i, j); // save weight, distance and indices of the pair
 		
 		if (fncmax < 3)
+                    continue;
+                for (size_t k = 0; k < parts.size(); k++)
+                {
+                    double _d13 = parts[i].delta_R(parts[k]);
+                    double _d23 = parts[j].delta_R(parts[k]);
+                    double _w3 = parts[i].perp() * parts[j].perp() * parts[k].perp() / std::pow(scale, 3);
+                    _w3 = pow(_w3, power);
+                    double _d3max = std::max({_d12, _d13, _d23});
+                    if (fabs(_d3max-_d12)<1E-5) fec[3 - 2]->addwr(_w3, _d3max, i, j);
+                    if (fabs(_d3max-_d13)<1E-5) fec[3 - 2]->addwr(_w3, _d3max, i, k);
+                    if (fabs(_d3max-_d23)<1E-5) fec[3 - 2]->addwr(_w3, _d3max, j, k);
+                    if (fncmax < 4)
+                        continue;
+                    for (size_t l = 0; l < parts.size(); l++)
+                    {
+                        double _d14 = parts[i].delta_R(parts[l]);
+                        double _d24 = parts[j].delta_R(parts[l]);
+                        double _d34 = parts[k].delta_R(parts[l]);
+                        double _w4 = parts[i].perp() * parts[j].perp() * parts[k].perp() * parts[l].perp() / std::pow(scale, 4);
+                        _w4 = pow(_w4, power);
+                        double _d4max = std::max({_d12, _d13, _d23, _d14, _d24, _d34});
+                        if (fabs(_d4max-_d12)<1E-5) fec[4 - 2]->addwr(_w4, _d4max, i, j);
+                        if (fabs(_d4max-_d13)<1E-5) fec[4 - 2]->addwr(_w4, _d4max, i, k);
+                        if (fabs(_d4max-_d23)<1E-5) fec[4 - 2]->addwr(_w4, _d4max, j, k);
+                        if (fabs(_d4max-_d14)<1E-5) fec[4 - 2]->addwr(_w4, _d4max, i, l);
+                        if (fabs(_d4max-_d24)<1E-5) fec[4 - 2]->addwr(_w4, _d4max, j, l);
+                        if (fabs(_d4max-_d34)<1E-5) fec[4 - 2]->addwr(_w4, _d4max, k, l);
+                        if (fncmax < 5)
+                            continue;
+                        for (size_t m = 0; m < parts.size(); m++)
+                        {
+                            double _d15 = parts[i].delta_R(parts[m]);
+                            double _d25 = parts[j].delta_R(parts[m]);
+                            double _d35 = parts[k].delta_R(parts[m]);
+                            double _d45 = parts[l].delta_R(parts[m]);
+                            double _w5 = parts[i].perp() * parts[j].perp() * parts[k].perp() * parts[l].perp() * parts[m].perp() / std::pow(scale, 5);
+                            _w5 = pow(_w5, power);
+                            double _d5max = std::max({_d12, _d13, _d23, _d14, _d24, _d34, _d15, _d25, _d35, _d45});
+                            fec[5 - 2]->addwr(_w5, _d5max); // the indices not filled for 5-point yet
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    CorrelatorBuilder::CorrelatorBuilder(const std::vector<fastjet::PseudoJet> &parts, const std::vector<fastjet::PseudoJet> Dmeson,  const double &scale, const int &nmax, const int &power, const double dphi_cut = -9999, const double deta_cut = -9999)
+    : fec()
+    , fncmax(nmax)
+    {
+        // std::cout << "Initializing n point correlator with power " << power << " for " << parts.size() << " paritlces" << std::endl;
+        if (fncmax < 2)
+        {
+            throw std::overflow_error("asking for n-point correlator with n < 2?");
+        }
+        if (fncmax > 5)
+        {
+            throw std::overflow_error("max n for n-point correlator is currently 4");
+        }
+        for (int i = 0; i < fncmax - 2 + 1; i++)
+        {
+            fec.push_back(new CorrelatorsContainer());
+        }
+        for (size_t i = 0; i < parts.size(); i++)
+        {
+            for (size_t j = 0; j < parts.size(); j++)
+            {
+                double _phi12 = fabs(parts[i].delta_phi_to(parts[j])); // expecting delta_phi_to() to return values in [-pi, pi]
+                double _eta12 = parts[i].eta() - parts[j].eta();
+                if (dphi_cut > -1)
+                { // if dphi_cut is on, apply it to pairs
+                    double _pt1 = parts[i].pt();
+                    double _pt2 = parts[j].pt();
+                    int _q1 = 1; // FIX ME: just dummy (no charge info available yet in data and full sim)
+                    int _q2 = 1;
+                    if ( !ApplyDeltaPhiRejection(dphi_cut, _q1, _q2, _pt1, _pt2, _phi12) ) continue;
+                }
+                if (deta_cut > -1)
+                { // if deta_cut is on, apply it to pairs
+                    if ( !ApplyDeltaEtaRejection(deta_cut, _eta12) ) continue;
+                }
+                double _d12 = parts[i].delta_R(parts[j]);
+        
+        
+        double _w2 = 0;
+    
+        // for dmeson the weight is calculated as mT = sqrt(m*m+pT*pT)
+        // for i = j the RL=0
+        // currently counting the pairs twice
+        // future check the indices of track which is Dmeson and then assign the weight
+        if (parts[i].delta_R(Dmeson[0]) == 0){
+            _w2 = (std::sqrt(parts[i].m()*parts[i].m()+parts[i].perp()*parts[i].perp()) * parts[j].perp() / std::pow(scale, 2));
+            }
+        if (parts[j].delta_R(Dmeson[0]) == 0){
+                        _w2 = (std::sqrt(parts[j].m()*parts[j].m()+parts[j].perp()*parts[j].perp()) * parts[i].perp() / std::pow(scale, 2));
+                        }
+
+        else  _w2 = parts[i].perp() * parts[j].perp() / std::pow(scale, 2);
+                
+        _w2 = pow(_w2, power);
+        fec[2 - 2]->addwr(_w2, _d12, i, j); // save weight, distance and indices of the pair
+        
+        if (fncmax < 3)
                     continue;
                 for (size_t k = 0; k < parts.size(); k++)
                 {
