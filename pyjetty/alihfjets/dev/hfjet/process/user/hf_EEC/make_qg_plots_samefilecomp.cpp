@@ -140,7 +140,7 @@ void make_qg_plots_samefilecomp() {
     const char infile_charmON[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/14680822/AnalysisResultsFinal.root"; //perlmutter 
     const char infile_replaceKPON[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/13777236/AnalysisResultsFinal.root";
     const char infile_D0_fromPreeti[] = "/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_EEC/D0jet_EEC_15_30_ForBeatrice.root";
-    const char infile_D0[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/15442613/AnalysisResultsFinal.root";
+    const char infile_D0[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/16298816/AnalysisResultsFinal.root"; //this is using thnsparse
     
     bool include_gluon = true; //true = draw gluon, false = do not draw gluon
     bool unweighted = false; //true = draw unweighted, false = do not draw unweighted
@@ -155,7 +155,8 @@ void make_qg_plots_samefilecomp() {
     std::string quarkstring = include_gluon ? "" : "_justquarks";
     std::string unweightedstring = unweighted ? "_samefilecomp" : "";
     std::string logstring = "_log"; //not currently using this or have a bool
-    TString ptbin = inclusive ? "15 #leq #it{p}_{T}^{ch. jet} < 30 GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5" : "15 #leq #it{p}_{T}^{ch. jet} < 30 GeV/#it{c}";
+    // TString ptbin = inclusive ? "15 #leq #it{p}_{T}^{ch. jet} < 30 GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5" : "15 #leq #it{p}_{T}^{ch. jet} < 30 GeV/#it{c}";
+    TString ptbin = "15 #leq #it{p}_{T}^{ch. jet} < 30 GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5";
     TString ptD = "5 #leq #it{p}_{T}^{D^{0}} < 30 GeV/#it{c}, #font[122]{|}#it{y}_{D^{0}}#font[122]{|} #leq 0.8";
                 
     if (inclusive) { 

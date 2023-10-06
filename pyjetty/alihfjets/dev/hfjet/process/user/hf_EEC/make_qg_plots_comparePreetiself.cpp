@@ -140,7 +140,7 @@ void make_qg_plots_comparePreetiself() {
     const char infile_charmON[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/14680822/AnalysisResultsFinal.root"; //perlmutter 
     const char infile_replaceKPON[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/13777236/AnalysisResultsFinal.root";
     const char infile_D0_fromPreeti[] = "/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_EEC/D0jet_EEC_15_30_ForBeatrice.root";
-    const char infile_D0[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/15442613/AnalysisResultsFinal.root";
+    const char infile_D0[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/16512625/AnalysisResultsFinal.root"; //this is using thnsparse
     
     bool include_gluon = true; //true = draw gluon, false = do not draw gluon
     bool unweighted = false; //true = draw unweighted, false = do not draw unweighted
@@ -256,33 +256,56 @@ void make_qg_plots_comparePreetiself() {
                 l->SetBorderSize(0);
                 // l->Draw("same");
 
-                TH2* hi2D = (TH2*) f->Get(hi_name.c_str());
-                TH1* hi1D_jet = (TH1*) f->Get(hi_jet_name.c_str()); 
+                THnSparse* hsparsejet_i = (THnSparse*) f->Get(hi_name.c_str());
+                THnSparse* hsparsejet_i_jetlevel = (THnSparse*) f->Get(hi_jet_name.c_str());
+                // TH1* hi1D_jet = (TH1*) f->Get(hi_jet_name.c_str()); 
                 TH1* hD0 = (TH1*) f2->Get(D0_jet_name.c_str());
         
+                // for THnSparse: make clone to work with, make cuts, get projection
+                THnSparse *hsparsejet_i_clone = (THnSparse *) hsparsejet_i->Clone("hsparsejet_i_clone");
+                THnSparse *hsparsejet_i_jetlevel_clone = (THnSparse *) hsparsejet_i_jetlevel->Clone("hsparsejet_i_jetlevel_clone");
+                
+                
 
                 // get jet pT range
-                hi2D->GetXaxis()->SetRangeUser(pt_min, pt_max);
-                hi1D_jet->GetXaxis()->SetRangeUser(pt_min, pt_max);
+                hsparsejet_i_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max); // apply cut on jet pt
+                hsparsejet_i_clone->GetAxis(1)->SetRangeUser(5., pt_max); // apply cut on Dmeson pt
+                hsparsejet_i_jetlevel_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max); // apply cut on jet pt
+                hsparsejet_i_jetlevel_clone->GetAxis(1)->SetRangeUser(5., pt_max); // apply cut on Dmeson pt
+                // hi1D_jet->GetXaxis()->SetRangeUser(pt_min, pt_max);
 
                 // Project onto observable axis
-                TH1* hi = (TH1*) hi2D->ProjectionY();
+                // TH1* hi = (TH1*) hi2D->ProjectionY();
+                TH1D *hi = hsparsejet_i_clone->Projection(2); //CALL THESE TH1*????
+                TH1D *hi1D_jet = hsparsejet_i_jetlevel_clone->Projection(0); //project onto jet pt axis??
 
                 // Set to appropriate name
                 std::string hname = hi->GetName();
                 hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
                 hi->SetNameTitle(hname.c_str(), hname.c_str());
 
+                //-------------------------------------------------//
                 // find D0 reconstruction through charm
-                TH2* hc2D = (TH2*) f->Get(hc_name.c_str());
-                TH1* hc1D_jet = (TH1*) f->Get(hc_jet_name.c_str()); 
+                THnSparse* hsparsejet_c = (THnSparse*) f->Get(hc_name.c_str());
+                THnSparse* hsparsejet_c_jetlevel = (THnSparse*) f->Get(hc_jet_name.c_str());
+                // TH1* hc1D_jet = (TH1*) f->Get(hc_jet_name.c_str()); 
+
+                // for THnSparse: make clone to work with, make cuts, get projection
+                THnSparse *hsparsejet_c_clone = (THnSparse *) hsparsejet_c->Clone("hsparsejet_c_clone");
+                THnSparse *hsparsejet_c_jetlevel_clone = (THnSparse *) hsparsejet_c_jetlevel->Clone("hsparsejet_c_jetlevel_clone");
 
                 // get jet pT range
-                hc2D->GetXaxis()->SetRangeUser(pt_min, pt_max);
-                hc1D_jet->GetXaxis()->SetRangeUser(pt_min, pt_max);
+                hsparsejet_c_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max); // apply cut on jet pt
+                hsparsejet_c_clone->GetAxis(1)->SetRangeUser(5., pt_max); // apply cut on Dmeson pt
+                hsparsejet_c_jetlevel_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max); // apply cut on jet pt
+                hsparsejet_c_jetlevel_clone->GetAxis(1)->SetRangeUser(5., pt_max); // apply cut on Dmeson pt
+                // hc2D->GetXaxis()->SetRangeUser(pt_min, pt_max);
+                // hc1D_jet->GetXaxis()->SetRangeUser(pt_min, pt_max);
 
                 // Project onto observable axis
-                TH1* hc = (TH1*) hc2D->ProjectionY();
+                TH1D *hc = hsparsejet_c_clone->Projection(2); //CALL THESE TH1*????
+                TH1D *hc1D_jet = hsparsejet_c_jetlevel_clone->Projection(0);
+                // TH1* hc = (TH1*) hc2D->ProjectionY();
 
                 // Set to appropriate name
                 hname = hc->GetName();
@@ -320,23 +343,25 @@ void make_qg_plots_comparePreetiself() {
                 hi->Scale(1/numjets_inclusive, "width");
 
                 // Find maximum
-                maxy = hc->GetMaximum() * 1.1;
-                hc->SetMaximum(maxy); 
+                maxy = hi->GetMaximum() * 1.1;
+                hi->SetMaximum(maxy); 
 
                 // Format histograms for plotting (this order needed to keep legend in order and graphs lookin good)
-                hc->GetXaxis()->SetTitle("#it{R}_{L}");
-                hc->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
+                hi->GetXaxis()->SetTitle("#it{R}_{L}");
+                hi->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
                 cout << "about to format Beatrice" << endl;
-                FormatHist(l, hc, "D^{0}-tagged from charm-init jets (Beatrice)", kRed-7, 29);
+                FormatHist(l, hi, "D^{0}-tagged from inclusive-init jets (Beatrice)", kRed-7, 29);
                 cout << "about to format Preeti" << endl;
                 FormatHist(l, hD0, "D^{0}-tagged jets (Preeti)", kMagenta+3, kFullSquare);
-                hc->Draw("L same");
+                hi->Draw("L same");
                 hD0->Draw("L same");
 
                 
 
-                double hc_top_binpos = findTopOfCurve(hc);
-                drawVertLine(hc->GetBinCenter(hc_top_binpos), 0, hc->GetBinContent(hc_top_binpos), kRed-7, 1)->Draw();
+                // double hc_top_binpos = findTopOfCurve(hc);
+                // drawVertLine(hc->GetBinCenter(hc_top_binpos), 0, hc->GetBinContent(hc_top_binpos), kRed-7, 1)->Draw();
+                double hi_top_binpos = findTopOfCurve(hi);
+                drawVertLine(hi->GetBinCenter(hi_top_binpos), 0, hi->GetBinContent(hi_top_binpos), kRed-7, 1)->Draw();
                 double hD0_top_binpos = findTopOfCurve(hD0);
                 drawVertLine(hD0->GetBinCenter(hD0_top_binpos), 0, hD0->GetBinContent(hD0_top_binpos), kMagenta+3, 1)->Draw();
                 
@@ -352,7 +377,7 @@ void make_qg_plots_comparePreetiself() {
                 // leg->SetTextSize(0.037);
                 // leg->SetBorderSize(0);
                 // leg->Draw("same");
-                l->AddEntry("NULL","          Charm decay off","h");
+                // l->AddEntry("NULL","          Charm decay off","h");
                 
 
             } else {
