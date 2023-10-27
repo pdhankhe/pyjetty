@@ -1,7 +1,7 @@
 #! /bin/bash
 # Script to merge output ROOT files
 
-JOB_ID=16512625
+JOB_ID=17412030
 #1161137 MC run 
 #1162319 Data run
 FILE_DIR="/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/$JOB_ID"
