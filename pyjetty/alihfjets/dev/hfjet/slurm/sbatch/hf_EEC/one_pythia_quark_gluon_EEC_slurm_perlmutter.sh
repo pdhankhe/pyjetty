@@ -29,8 +29,10 @@ echo "Number of events per job: $NEV_PER_JOB"
 NCORES_PER_BIN=$(( $NCORES / ${#PTHAT_BINS[@]} ))
 echo "Number of cores per pT-hat bin: $NCORES_PER_BIN"
 
-BIN=$(( ($SLURM_ARRAY_TASK_ID - 1) / $NCORES_PER_BIN + 1))
-CORE_IN_BIN=$(( ($SLURM_ARRAY_TASK_ID - 1) % $NCORES_PER_BIN + 1))
+JOBTASK_ID=245 # The number after the job ID aka the XXX of "xxxxxxxx_XXX", or can just change the SEED
+
+BIN=$(( ($JOBTASK_ID - 1) / $NCORES_PER_BIN + 1))
+CORE_IN_BIN=$(( ($JOBTASK_ID - 1) % $NCORES_PER_BIN + 1))
 PTHAT_MIN=${PTHAT_BINS[$(( $BIN - 1 ))]}
 if [ $BIN -lt ${#PTHAT_BINS[@]} ]; then
     USE_PTHAT_MAX=true
@@ -58,8 +60,8 @@ CONFIG="${BASEDIR}/pyjetty/pyjetty/alihfjets/dev/hfjet/config/hf_EEC/configcuts_
 
 
 pipenv run python $SCRIPT -c $CONFIG --output-dir $OUTDIR --user-seed $SEED \
-    --py-pthatmin 7 --py-ecm 13000 --nev 375000 \
-    --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2,PhaseSpace:pTHatMax=9 --nocharmdecay 1
+    --py-pthatmin 45 --py-ecm 13000 --nev 375000 \
+    --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2,PhaseSpace:pTHatMax=57 --replaceKP 1 --chinitscat 3 --DstarON 1 --difNorm 1
 
 
 # if $USE_PTHAT_MAX; then

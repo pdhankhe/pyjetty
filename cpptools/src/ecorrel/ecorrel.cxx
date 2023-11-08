@@ -302,6 +302,109 @@ namespace EnergyCorrelators
         }
     }
 
+    // CorrelatorBuilder::CorrelatorBuilder(const std::vector<fastjet::PseudoJet> &parts, const std::vector<fastjet::PseudoJet> Dmeson, const std::vector<fastjet::PseudoJet> softpion,  const double &scale, const int &nmax, const int &power, const double dphi_cut = -9999, const double deta_cut = -9999)
+    CorrelatorBuilder::CorrelatorBuilder(const std::vector<fastjet::PseudoJet> &parts, const fastjet::PseudoJet Dmeson, const fastjet::PseudoJet softpion,  const double &scale, const int &nmax, const int &power, const double dphi_cut = -9999, const double deta_cut = -9999)
+    : fec()
+    , fncmax(nmax)
+    {
+        // std::cout << "Initializing n point correlator with power " << power << " for " << parts.size() << " paritlces" << std::endl;
+        if (fncmax < 2)
+        {
+            throw std::overflow_error("asking for n-point correlator with n < 2?");
+        }
+        if (fncmax > 3)
+        {
+            throw std::overflow_error("max n for n-point correlator is currently 2");
+        }
+        for (int i = 0; i < fncmax - 2 + 1; i++)
+        {
+            fec.push_back(new CorrelatorsContainer());
+        }
+
+        // if (softpion == NULL){
+        //     throw std::overflow_error("no soft pion to correlate");
+        // }
+
+        //check what index of pion is
+        int softpionindex = -1;
+
+        for (size_t i = 0; i < parts.size(); i++)
+        {
+            if (parts[i].user_index() == softpion.user_index()) {
+                // std::cout << "soft pion here" << std::endl;
+                softpionindex = i;
+                break;
+            }
+        }
+
+        bool autocorrelation = false;
+        // std::cout << "There are " << parts.size() << " particles." << std::endl;
+        for (size_t i = 0; i < parts.size(); i++)
+        {
+         
+
+            // std::cout << "user index here" << parts[i].user_index() << std::endl;
+            if (parts[i].user_index() == Dmeson.user_index()) {
+                // std::cout << "Dmeson here" << Dmeson.user_index() << std::endl;
+                continue;
+            }
+
+            double _phi12 = fabs(parts[i].delta_phi_to(softpion)); // expecting delta_phi_to() to return values in [-pi, pi]
+            double _eta12 = parts[i].eta() - softpion.eta();
+            if (dphi_cut > -1)
+            { // if dphi_cut is on, apply it to pairs
+                double _pt1 = parts[i].pt();
+                double _pt2 = softpion.pt();
+                int _q1 = 1; // FIX ME: just dummy (no charge info available yet in data and full sim)
+                int _q2 = 1;
+                if ( !ApplyDeltaPhiRejection(dphi_cut, _q1, _q2, _pt1, _pt2, _phi12) ) continue;
+            }
+            if (deta_cut > -1)
+            { // if deta_cut is on, apply it to pairs
+                if ( !ApplyDeltaEtaRejection(deta_cut, _eta12) ) continue;
+            }
+            double _d12 = parts[i].delta_R(softpion);
+    
+    
+            double _w2 = 0;
+        
+            // for dmeson the weight is calculated as mT = sqrt(m*m+pT*pT)
+            // for i = j the RL=0
+            // currently counting the pairs twice
+            // future check the indices of track which is Dmeson and then assign the weight
+            /*
+            if (parts[i].delta_R(Dmeson[0]) == 0){
+                _w2 = (std::sqrt(parts[i].m()*parts[i].m()+parts[i].perp()*parts[i].perp()) * parts[j].perp() / std::pow(scale, 2));
+                }
+            if (parts[j].delta_R(Dmeson[0]) == 0){
+                            _w2 = (std::sqrt(parts[j].m()*parts[j].m()+parts[j].perp()*parts[j].perp()) * parts[i].perp() / std::pow(scale, 2));
+                            }
+
+            else  _w2 = parts[i].perp() * parts[j].perp() / std::pow(scale, 2);
+            */
+
+            // we want only pairs where we are matching the soft pion from D* to every other charged particle
+            // so do not pair the D0 with the soft pion
+            _w2 = parts[i].perp() * softpion.perp() / std::pow(scale, 2);
+                    
+            _w2 = pow(_w2, power);
+            fec[2 - 2]->addwr(_w2, _d12, i, softpionindex); // save weight, distance and indices of the pair
+
+            //fill R_L twice, but only fill pion-pion correlation once
+            
+            if (parts[i].user_index() == softpion.user_index() and autocorrelation == false) {
+                autocorrelation = true;
+                continue;
+            }
+            
+            fec[2 - 2]->addwr(_w2, _d12, i, softpionindex); // save weight, distance and indices of the pair
+                
+        
+                
+            // }
+        }
+    }
+
     CorrelatorsContainer* CorrelatorBuilder::correlator(int n)
     {
         if (n > fncmax)

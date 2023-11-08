@@ -96,13 +96,16 @@ class PythiaQuarkGluon(process_base.ProcessBase):
         self.hardccbar = (bool)(args.onlyccbar) #hard2ccbar=True means only run hard->ccbar process
         self.Dstar = (bool)(args.DstarON) #Dstar=True means look at D* EEC, should be run with self.replaceKPpairs=True
         self.initscat = args.chinitscat #1=hard->ccbar, 2=gg->ccbar, 3=D0->Kpi channel
+        self.D0wDstar = (bool)(args.D0withDstarON) #D0wDstar=True means looking at D-tagged jets including D0 from D*
+        self.difNorm = (bool)(args.difNorm) #difNorm=True means normalize D* distribution with (D0+D*) jets
+        self.softpion_action = args.softpion #1 = remove soft pion from D*, 2 = only pair soft pion with charged particles
 
         # PDG ID values for quarks and gluons
-        self.quark_pdg_ids = [1, 2, 3, 4, 5, 6, 7, 8]
-        self.down_pdg_ids = [1]
-        self.up_pdg_ids = [2]
-        self.strange_pdg_ids = [3]
-        self.charm_pdg_ids = [4]
+        self.quark_pdg_ids = [1, 2, 3, 4, 5, 6, 7, 8, -1, -2, -3, -4, -5, -6, -7, -8]
+        self.down_pdg_ids = [1, -1]
+        self.up_pdg_ids = [2, -2]
+        self.strange_pdg_ids = [3, -3]
+        self.charm_pdg_ids = [4, -4]
         self.gluon_pdg_ids = [9, 21]
 
         # hadron level - ALICE tracking restriction
@@ -214,7 +217,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
             mycfg.append('421:onIfMatch = 321 211')
 
         if (self.replaceKPpairs):
-            if (not self.Dstar):
+            if (not (self.Dstar or self.D0wDstar or self.difNorm)):
                 pinfo("turning D*'s OFF")
                 mycfg.append('10411:mayDecay = no')
                 mycfg.append('10421:mayDecay = no')
@@ -269,6 +272,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
         self.hD0KpiNevents = ROOT.TH1I("hD0KpiNevents", "Number of D0->Kpi events (unscaled)", 2, -0.5, 1.5)
         self.hD0KpiNjets = ROOT.TH1I("hD0KpiNjets", "Number of D0->Kpi jets (unscaled)", 2, -0.5, 1.5) #accidentally called "hD0KpiNehD0KpiNjetsvents"
         self.hDstarNjets = ROOT.TH1I("hDstarNjets", "Number of D* jets (unscaled)", 2, -0.5, 1.5)
+        self.hsoftpionpT = ROOT.TH1D("hsoftpionpT", "pT of soft pion from D*", 50, 0, 50)
         self.hDeltaR = ROOT.TH1F("hDeltaR", 'Delta R between jet and each parent', 40, 0, 0.4)
 
         for jetR in self.jetR_list:
@@ -456,12 +460,20 @@ class PythiaQuarkGluon(process_base.ProcessBase):
             #         # print(eventcounter, "pion with event id", event.id())
             #     eventcounter+=1
 
+            #testing
+            # parts_pythia_hch_noreplace = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal, pythiafjext.kCharged], 0, True)
+            # parts_pythia_hch_replaced = pythiafjext.vectorize_select_replaceD0(pythia, [pythiafjext.kFinal, pythiafjext.kCharged], 0, True)
 
             # charged-hadron level
             if ( self.replaceKPpairs == False ):
                 parts_pythia_hch = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal, pythiafjext.kCharged], 0, True)
             else: #replace D0->Kpi
-                parts_pythia_hch = pythiafjext.vectorize_select_replaceD0(pythia, [pythiafjext.kFinal, pythiafjext.kCharged], 0, True)
+                if ( self.softpion_action == 0 ):
+                    parts_pythia_hch = pythiafjext.vectorize_select_replaceD0(pythia, [pythiafjext.kFinal, pythiafjext.kCharged], 0, True)
+                if ( self.softpion_action == 1 ):
+                    parts_pythia_hch = pythiafjext.vectorize_select_replaceD0(pythia, [pythiafjext.kFinal, pythiafjext.kCharged], 0, True, True)
+            # print("Size of 1 vector", len(parts_pythia_hch_noreplace))
+            # print("Size of 2 vector", len(parts_pythia_hch_replaced))
             # print("Size of new vector", len(parts_pythia_hch))
 
             # look at events in charged hadron??
@@ -472,6 +484,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
             # indeximportant = -1
             D0found = False
             D0Kpidecayfound = False
+            self.DstarKpipidecayfound = False
             for particle in self.event: #for event in pythia.event:
             #     # if particle.id() == 111 or particle.id() == 211 or particle.id() == -211: #pi0 or pi+ or pi-
             #         # print(particlecounter, "pion with particle id", particle.id())
@@ -484,8 +497,21 @@ class PythiaQuarkGluon(process_base.ProcessBase):
                         D0Kpidecayfound = True
                         self.getD0Info(particle)
 
+                        #debugging prompt/nonprompt
+                        # print("DEBUGGING!")
+                        # self.printD0mothers(particle, self.event, 0)
+
                     if self.checkDecayChannel(particle, self.event) == EMesonDecayChannel.kDecayDStartoKpipi:
-                        self.hDstarNjets.Fill(0)                            
+                        self.DstarKpipidecayfound = True #can't fill histogram here because it will fill at particle level
+                        print("Dstar found!") 
+
+                    # if D0's mother is D*, save pion info:
+                    if (checkD0motherIsDstar(particle, self.event)):
+                        softpion_index = getSoftPion(self, D0particle, self.event)
+                        if (softpion_index != -1):
+                            softpion_pt = self.event[softpion_index].pT()
+                            self.hsoftpionpT.Fill(softpion_pt)
+
 
                 particlecounter+=1
             #         # print("D0 daughter indices", pythia.event[event.daughter1()].id(), pythia.event[event.daughter2()].id())
@@ -506,6 +532,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
                 self.hD0KpiNevents.Fill(0)
             if (D0found):
                 self.hD0Nevents.Fill(0)
+
             # else:
                 # if len(parts_pythia_hch) > 0:
                 #         print(particlecounter, "There ARE particles in this jet (but shouldn't be)", len(parts_pythia_hch))
@@ -517,8 +544,10 @@ class PythiaQuarkGluon(process_base.ProcessBase):
             # self.event = pythia.event
             # iev_to_print = [28, 31, 32, 58, 61, 89, 110, 113, 118, 123, 137, 144, 147, 150, 161, 173, 174, 175, 185, 194, 200, 202,210,211,216, 228, 231, 236, 240, 247, 248,251, 257, 259,263, 272, 273,284, 292,301,972]
             # if (iev in iev_to_print):
-            #     print("event printed!")
+            # if (iev<10):
+            #     print(" event printed!:", iev)
             #     print(self.event)
+
 
 
             # if there is no D0 for charm jet, remove
@@ -656,7 +685,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
                         parton_types += ["light"]
                 elif parton_id in self.gluon_pdg_ids:
                     parton_types += ["gluon"]
-                parton_types += ["inclusive"]
+                # parton_types += ["inclusive"]
 
                 # If parent parton not identified, skip for now
                 if not len(parton_types):
@@ -674,20 +703,24 @@ class PythiaQuarkGluon(process_base.ProcessBase):
                     for c in jet.constituents():
                         constituent_pdg_idabs = pythiafjext.getPythia8Particle(c).idAbs()
                         if (constituent_pdg_idabs == 421): #TODO: this is assuming there is only one D0 per jet!
-                            print("The decay channel is ", self.checkDecayChannel(pythiafjext.getPythia8Particle(c), self.event))
-                            if (self.checkDecayChannel(pythiafjext.getPythia8Particle(c), self.event) == EMesonDecayChannel.kDecayD0toKpi or self.checkDecayChannel(pythiafjext.getPythia8Particle(c), self.event) == EMesonDecayChannel.kDecayDStartoKpipi ):
+                            # print("The decay channel is ", self.checkDecayChannel(pythiafjext.getPythia8Particle(c), self.event))
+                            if (self.checkDecayChannel(pythiafjext.getPythia8Particle(c), self.event) == EMesonDecayChannel.kDecayD0toKpi): # or self.checkDecayChannel(pythiafjext.getPythia8Particle(c), self.event) == EMesonDecayChannel.kDecayDStartoKpipi ):
                                 # print("Check the momentum!", pythiafjext.getPythia8Particle(c).px(), pythiafjext.getPythia8Particle(c).py())
                                 D0taggedjet = True
-                                if (self.checkDecayChannel(pythiafjext.getPythia8Particle(c), self.event) == EMesonDecayChannel.kDecayDStartoKpipi):
-                                    Dstartaggedjet = True
+                                break
+                            if (self.checkDecayChannel(pythiafjext.getPythia8Particle(c), self.event) == EMesonDecayChannel.kDecayDStartoKpipi):
+                                Dstartaggedjet = True
                                 break
                             
-                    if ( not D0taggedjet ): #if not a D0 tagged jet, move to next jet
-                        continue
 
                     # print("booleans are", self.Dstar, Dstartaggedjet)
-                    if ( self.Dstar and not Dstartaggedjet ): #if only looking at D*s and D* is not tagged, move to next jet
-                        continue
+                    if ( self.difNorm == False ): #if (not self.difNorm): but for my sanity I changed it
+                        if ( not self.Dstar and not self.D0wDstar ):
+                            if ( not D0taggedjet ): #if not a D0 tagged jet, move to next jet
+                                continue
+                        if ( self.Dstar and not Dstartaggedjet ): #if only looking at D*s and D* is not tagged, move to next jet
+                            continue
+                    
                     
                     # print ("HERE!!!!")
 
@@ -726,7 +759,10 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 
 
                     # count the number of D0-tagged jets. If the observable is not EEC, might have to change where this is
-                    self.hD0KpiNjets.Fill(0)
+                    if (D0Kpidecayfound):
+                        self.hD0KpiNjets.Fill(0)
+                    if (self.DstarKpipidecayfound):
+                        self.hDstarNjets.Fill(0) 
                     
 
 #                    obs = self.calculate_observable(
@@ -754,6 +790,16 @@ class PythiaQuarkGluon(process_base.ProcessBase):
                                 self.fsparsejetlevelJetvalue[2] = -99
                             getattr(self, ('h_JetPt_%s_R%s_%s_jetlevel' % (parton_type, jetR, obs_label)) if \
                                 len(obs_label) else ('h_JetPt_%s_R%s_jetlevel' % (parton_type, jetR))).Fill(self.fsparsejetlevelJetvalue)
+                    
+                    if (self.difNorm): 
+                        if ( not self.Dstar and not self.D0wDstar ):
+                            if ( Dstartaggedjet ):
+                                continue
+                        elif ( self.Dstar ):
+                            if ( D0taggedjet ):
+                                continue
+
+    
                     for index in range(obs.correlator(2).rs().size()):
                         for parton_type in parton_types:
                             #fill parton hnsparse info
@@ -914,11 +960,11 @@ class PythiaQuarkGluon(process_base.ProcessBase):
         promptness = Promptness.kUnknown
 
         absPdgPart = D0particle.idAbs()
-        mother_indices = D0particle.motherList()
-        # if (len(mother_indices) != 1):
+        motherlist_indices = D0particle.motherList()
+        # if (len(motherlist_indices) != 1):
         #     return  
-        print("D0's mothers", mother_indices)
-        for mother_index in mother_indices:
+        print("D0's mothers", motherlist_indices)
+        for mother_index in motherlist_indices:
             mother = event[mother_index]
             absPdg_mother = mother.idAbs()
             print("D0 mother ID", absPdg_mother)
@@ -938,6 +984,9 @@ class PythiaQuarkGluon(process_base.ProcessBase):
                     absPdg_charms_mother = charms_mother.idAbs()
                     print("charm mother ID", absPdg_charms_mother)
 
+                    if (absPdg_charms_mother == 4): #charm
+                        promptness = Promptness.kPrompt
+                        break
                     if (absPdg_charms_mother == 5): #beauty
                         promptness = Promptness.kNonPrompt
                         break
@@ -946,7 +995,70 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 
         return promptness
 
+
+            
+
     
+    def printD0mothers(self, particle, event, num):
+        # if num == 10: #break statement
+        #         print("Exited with num=10 ")
+        #         return
+
+        print("This is generation", num)
+
+        motherlist_indices = particle.motherList()
+        motherlist = [event[i].name() for i in motherlist_indices]
+        motherlist_status = [event[i].status() for i in motherlist_indices]
+        print("The indices are", motherlist_indices)
+        print("The mothers are", motherlist)
+        print("The statuss are", motherlist_status)
+
+        if len(motherlist_indices) == 0:
+            return
+
+        for mother_index in motherlist_indices:
+
+            # if mother_index < 5: #break statement
+            #     print("Exited with mother_index of ", mother_index)
+            #     break
+
+            mother = event[mother_index]
+            print("Following mother ", mother.name(), "with index", mother_index)
+            self.printD0mothers(mother, event, num+1)
+
+    
+
+    # check if D0's mother is D*
+	def checkD0motherIsDstar(self, D0particle, event):
+
+		motherisDstar = False
+
+		if (D0particle.idAbs() == 421): #D0
+
+			mother_indices = D0particle.motherList()
+			if mother_indices.size() == 1: # assuming D* is the only mother to D0
+				mo1 = mother_indices[0]
+				if event[mo1].idAbs() == 413: #D*
+					motherisDstar = True
+	
+		# std::cout << "is mother a Dstar?  " << motherisDstar << std::endl;
+		return motherisDstar
+	
+
+	def getSoftPion(self, D0particle, event):
+		softpion_index = -1
+		
+		Dstar_index = D0particle.motherList()[0]
+		poss_softpion_indices = event[Dstar_index].daughterList()
+		#TODO: check if there are only two daughters?? 
+		for daughter_index in poss_softpion_indices:
+			poss_softpion_idAbs = event[daughter_index].idAbs()
+			if poss_softpion_idAbs == 211:
+				softpion_index = daughter_index	
+		return softpion_index
+
+	
+
     
     
 
@@ -1000,6 +1112,9 @@ if __name__ == '__main__':
     parser.add_argument('--DstarON', action='store', type=int, default=0, help="'1' looks at EEC for D* only")
     parser.add_argument('--chinitscat', action='store', type=int, default=0, help="'0' runs all events, \
                         '1' runs only hard->ccbar events, '2' runs only gg->ccbar events, '3' runs only D0->Kpi events")
+    parser.add_argument('--D0withDstarON', action='store', type=int, default=0, help="'1' looks at EEC for D0 and D0 from D*")
+    parser.add_argument('--difNorm', action='store', type=int, default=0, help="'1' normalizes D* with (D0+D*)")
+    parser.add_argument('--softpion', action='store', type=int, default=0, help="'1' removes the soft pion from D* distribution, '2' gets only pairs of soft pion w other charged particles")
 
     args = parser.parse_args()
 

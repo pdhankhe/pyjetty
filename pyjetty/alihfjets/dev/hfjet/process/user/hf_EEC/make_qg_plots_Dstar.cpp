@@ -185,12 +185,23 @@ void make_qg_plots_Dstar() {
 
      //FOR WHEN WEIGHTED/UNWEIGHTED IN SAME FILE
     const char infile_D0_Preeti[] = "/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_EEC/D0jet_EEC_15_30_ForBeatrice.root";
-    const char infile_D0[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17204501/AnalysisResultsFinal.root"; //this is using thnsparse
-    const char infile_Dstar[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17243052/AnalysisResultsFinal.root"; //this is using thnsparse
+    const char infile_D0[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17651853/AnalysisResultsFinal.root"; //this is using thnsparse
+    const char infile_Dstar[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17666372/AnalysisResultsFinal.root"; //this is using thnsparse
     
-    const char infile_D0_difNorm[] = "";
-    const char infile_Dstar_difNorm[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17412030/AnalysisResultsFinal.root";
-    const char infile_D0wDstar_difNorm[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17412020/AnalysisResultsFinal.root";
+    const char infile_D0_difNorm[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17652140/AnalysisResultsFinal.root";
+    const char infile_Dstar_difNorm[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17666391/AnalysisResultsFinal.root";
+    const char infile_D0wDstar_difNorm[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17694315/AnalysisResultsFinal.root";
+    const char infile_Dstar_difNorm_softpionremoved[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17708207/AnalysisResultsFinal.root";
+    const char infile_Dstar_difNorm_justsoftpion[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17957250/AnalysisResultsFinal.root";
+
+    // //test
+    // const char infile_D0[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17460087/AnalysisResultsFinal.root"; //this is using thnsparse
+    // const char infile_Dstar[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17460100/AnalysisResultsFinal.root"; //this is using thnsparse
+    
+    // const char infile_D0_difNorm[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17460092/AnalysisResultsFinal.root";
+    // const char infile_Dstar_difNorm[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17460102/AnalysisResultsFinal.root";
+    // const char infile_D0wDstar_difNorm[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17460118/AnalysisResultsFinal.root";
+    // const char infile_Dstar_difNorm_softpionremoved[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17460125/AnalysisResultsFinal.root";
 
     bool include_gluon = true; //true = draw gluon, false = do not draw gluon
     bool unweighted = false; //true = draw unweighted, false = do not draw unweighted
@@ -201,7 +212,10 @@ void make_qg_plots_Dstar() {
     // 1 = compare D0 (norm with D0) with D* (norm with D*)
     // 2 = compare D0 (norm with D0) with D* (norm with (D0+D*))
     // 3 = compare D0 (norm with D0) with D0+D* (norm with (D0+D*))
-    int plot_case = 1;
+    // 4 = compare D* (norm with (D0+D*)) with D*, soft pion removed (norm with (D0+D*))
+    // 5 = compare D* (norm with (D0+D*)) with just soft pion correlations
+
+    int plot_case = 5;
 
     TFile* f;
     TFile* f2;
@@ -235,6 +249,14 @@ void make_qg_plots_Dstar() {
         f = new TFile(infile_D0, "READ");
         f2 = new TFile(infile_D0wDstar_difNorm, "READ");
         add_name = "_Dstar_plot_case3.pdf";
+    } else if (plot_case == 4) {
+        f = new TFile(infile_Dstar_difNorm, "READ");
+        f2 = new TFile(infile_Dstar_difNorm_softpionremoved, "READ");
+        add_name = "_Dstar_plot_case4.pdf";
+    } else if (plot_case == 5) {
+        f = new TFile(infile_Dstar_difNorm, "READ");
+        f2 = new TFile(infile_Dstar_difNorm_justsoftpion, "READ");
+        add_name = "_Dstar_plot_case5.pdf";
     }
     cout << "output name will be " << add_name << endl;
 
@@ -510,11 +532,25 @@ void make_qg_plots_Dstar() {
                 markerstyle2 = 29;
                 label1 = "D^{0}-tagged, c-init jets";
                 label2 = "D*-tagged, c-init jets";
-            } else {
+            } else if (plot_case == 3){
                 markercolor2 = kRed-3; //D*+D0
                 markerstyle2 = 29;
                 label1 = "D^{0}-tagged, c-init jets";
                 label2 = "(D^{0}+D*)-tagged, c-init jets";
+            } else if (plot_case == 4){
+                markercolor1 = kRed-3; //D*+D0
+                markerstyle1 = 29;
+                markercolor2 = kViolet+2;
+                markerstyle2 = 33;
+                label1 = "D*-tagged, c-init jets";
+                label2 = "D*-tagged, soft #pi removed, c-init jets";
+            } else if (plot_case == 5){
+                markercolor1 = kRed-3; //D*+D0
+                markerstyle1 = 29;
+                markercolor2 = kViolet+2;
+                markerstyle2 = 33;
+                label1 = "D*-tagged, c-init jets";
+                label2 = "D*-tagged, only soft #pi, c-init jets";
             }
             
 
