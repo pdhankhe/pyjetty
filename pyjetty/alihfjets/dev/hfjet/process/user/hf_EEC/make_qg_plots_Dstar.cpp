@@ -186,13 +186,15 @@ void make_qg_plots_Dstar() {
      //FOR WHEN WEIGHTED/UNWEIGHTED IN SAME FILE
     const char infile_D0_Preeti[] = "/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_EEC/D0jet_EEC_15_30_ForBeatrice.root";
     const char infile_D0[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17651853/AnalysisResultsFinal.root"; //this is using thnsparse
-    const char infile_Dstar[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17666372/AnalysisResultsFinal.root"; //this is using thnsparse
+    const char infile_Dstar[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/18008705/AnalysisResultsFinal.root"; //this is using thnsparse
     
     const char infile_D0_difNorm[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17652140/AnalysisResultsFinal.root";
-    const char infile_Dstar_difNorm[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17666391/AnalysisResultsFinal.root";
-    const char infile_D0wDstar_difNorm[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17694315/AnalysisResultsFinal.root";
-    const char infile_Dstar_difNorm_softpionremoved[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17708207/AnalysisResultsFinal.root";
-    const char infile_Dstar_difNorm_justsoftpion[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17957250/AnalysisResultsFinal.root";
+    const char infile_Dstar_difNorm[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/18008709/AnalysisResultsFinal.root";
+    const char infile_D0wDstar_difNorm[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/18044499/AnalysisResultsFinal.root";
+    const char infile_Dstar_difNorm_softpionremoved[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/18044503/AnalysisResultsFinal.root";
+    const char infile_Dstar_difNorm_justsoftpion_noD0[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/18008716/AnalysisResultsFinal.root";
+    const char infile_Dstar_difNorm_justsoftpionwD0[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/18043773/AnalysisResultsFinal.root";
+    const char infile_Dstar_difNorm_justsoftpion[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/18058284/AnalysisResultsFinal.root";
 
     // //test
     // const char infile_D0[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17460087/AnalysisResultsFinal.root"; //this is using thnsparse
@@ -208,14 +210,18 @@ void make_qg_plots_Dstar() {
     bool compareD0 = true; //true = compare the D0 reconstruction between me and Preeti - SET THIS TO TRUE IT IS THE PURPOSE OF THIS FILE
     
     // int plot_case:
-    // 0 = compare Preeti's D0 w my D0
-    // 1 = compare D0 (norm with D0) with D* (norm with D*)
-    // 2 = compare D0 (norm with D0) with D* (norm with (D0+D*))
+    // 0 = compare Preeti's D0 w my D0 - DONE
+    // 1 = compare D0 (norm with D0) with D* (norm with D*) - DONE
+    // 2 = compare D0 (norm with D0) with D* (norm with (D0+D*)) - DONE
     // 3 = compare D0 (norm with D0) with D0+D* (norm with (D0+D*))
     // 4 = compare D* (norm with (D0+D*)) with D*, soft pion removed (norm with (D0+D*))
-    // 5 = compare D* (norm with (D0+D*)) with just soft pion correlations
+    // 5 = compare D* (norm with (D0+D*)) with just soft pion correlations (without corelating to D0) - DONE
+    // 6 = compare D* (norm with (D0+D*)) with soft pion + D0 correlations - DONE
+    // 7 = compare D* (norm with (D0+D*)) with just soft pion correlations
 
-    int plot_case = 5;
+    //CONTOL VARIABLES HERE
+    int plot_case = 7;
+    bool unnormalized = false; //default = false
 
     TFile* f;
     TFile* f2;
@@ -240,11 +246,19 @@ void make_qg_plots_Dstar() {
     } else if (plot_case == 1) {
         f = new TFile(infile_D0, "READ");
         f2 = new TFile(infile_Dstar, "READ");
-        add_name = "_Dstar_plot_case1.pdf";
+        if (unnormalized == true) {
+            add_name = "_Dstar_plot_case1_unnormalized.pdf";
+        } else {
+            add_name = "_Dstar_plot_case1.pdf";
+        }
     } else if (plot_case == 2) {
         f = new TFile(infile_D0, "READ");
         f2 = new TFile(infile_Dstar_difNorm, "READ");
-        add_name = "_Dstar_plot_case2.pdf";
+        if (unnormalized == true) {
+            add_name = "_Dstar_plot_case2_unnormalized.pdf";
+        } else {
+            add_name = "_Dstar_plot_case2.pdf";
+        }
     } else if (plot_case == 3) {
         f = new TFile(infile_D0, "READ");
         f2 = new TFile(infile_D0wDstar_difNorm, "READ");
@@ -255,8 +269,16 @@ void make_qg_plots_Dstar() {
         add_name = "_Dstar_plot_case4.pdf";
     } else if (plot_case == 5) {
         f = new TFile(infile_Dstar_difNorm, "READ");
-        f2 = new TFile(infile_Dstar_difNorm_justsoftpion, "READ");
+        f2 = new TFile(infile_Dstar_difNorm_justsoftpion_noD0, "READ");
         add_name = "_Dstar_plot_case5.pdf";
+    } else if (plot_case == 6) {
+        f = new TFile(infile_Dstar_difNorm, "READ");
+        f2 = new TFile(infile_Dstar_difNorm_justsoftpionwD0, "READ");
+        add_name = "_Dstar_plot_case6.pdf";
+    } else if (plot_case == 7) {
+        f = new TFile(infile_Dstar_difNorm, "READ");
+        f2 = new TFile(infile_Dstar_difNorm_justsoftpion, "READ");
+        add_name = "_Dstar_plot_case7.pdf";
     }
     cout << "output name will be " << add_name << endl;
 
@@ -401,7 +423,7 @@ void make_qg_plots_Dstar() {
 
             // Find normalization factor
             double numjets_charm = hc1D_jet->Integral();
-            double numDtaggedjets = hD0KpiNjets->GetEntries();
+            double numDtaggedjets = hD0KpiNjets->GetEntries(); // this should match the # from projection before cuts
             double numDtaggedjets_fromhist = hc1D_jet->GetEntries();
             double numDtaggedjets_fromhist_eff = hc1D_jet->GetEffectiveEntries();
 
@@ -412,7 +434,9 @@ void make_qg_plots_Dstar() {
 
 
             // Set normalization
-            hD0->Scale(1/numjets_charm, "width");
+            if (unnormalized == false) {
+                hD0->Scale(1/numjets_charm, "width");
+            }
             // hc->Scale(numDtaggedjets, "width"); // this is wrong - maybe bc EEC is scaled when saved to root file
 
             
@@ -457,7 +481,9 @@ void make_qg_plots_Dstar() {
                 cout << "numDtaggedjets_fromhist_Dstar " << numDtaggedjets_fromhist_charm << endl;
 
                 // Set normalization
-                hDstar->Scale(1/numjets_charm_Dstar, "width");
+                if (unnormalized == false) {
+                    hDstar->Scale(1/numjets_charm_Dstar, "width");
+                }
 
             }
 
@@ -537,21 +563,22 @@ void make_qg_plots_Dstar() {
                 markerstyle2 = 29;
                 label1 = "D^{0}-tagged, c-init jets";
                 label2 = "(D^{0}+D*)-tagged, c-init jets";
-            } else if (plot_case == 4){
+            } else if (plot_case >= 4){
                 markercolor1 = kRed-3; //D*+D0
                 markerstyle1 = 29;
                 markercolor2 = kViolet+2;
                 markerstyle2 = 33;
                 label1 = "D*-tagged, c-init jets";
-                label2 = "D*-tagged, soft #pi removed, c-init jets";
-            } else if (plot_case == 5){
-                markercolor1 = kRed-3; //D*+D0
-                markerstyle1 = 29;
-                markercolor2 = kViolet+2;
-                markerstyle2 = 33;
-                label1 = "D*-tagged, c-init jets";
-                label2 = "D*-tagged, only soft #pi, c-init jets";
-            }
+                if (plot_case == 4) {
+                    label2 = "D*-tagged, soft #pi removed, c-init jets";
+                } else if (plot_case == 5) {
+                    label2 = "D*-tagged, only soft #pi";
+                } else if (plot_case == 6) {
+                    label2 = "D*-tagged, soft #pi w/ D0, c-init jets";
+                } else if (plot_case == 7) {
+                    label2 = "D*-tagged, only soft #pi, c-init jets";
+                }
+            } 
             
 
             // Format histograms for plotting (this order needed to keep legend in order and graphs lookin good)
@@ -565,7 +592,8 @@ void make_qg_plots_Dstar() {
             cout << "about to format Dstar" << endl;
             FormatHist(l, hDstar, label2, markercolor2, markerstyle2); //"D*-tagged, c-init jets", kRed-7, 29);
             if (plot_case == 0) l->AddEntry("NULL","          D* decays off","h");
-            if (plot_case == 1) {
+            if (plot_case == 5) l->AddEntry("NULL","           (w/out D^{0} correl), c-init jets","h");
+            if ((plot_case == 1 && unnormalized == false) or plot_case == 7) {
                 hDstar->Draw("L same");
                 hD0->Draw("L same");
             } else {

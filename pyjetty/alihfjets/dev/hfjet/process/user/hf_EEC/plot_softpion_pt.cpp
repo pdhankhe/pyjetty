@@ -99,7 +99,7 @@ void plot_softpion_pt() {
 
     // File containing quark vs gluon histograms
 
-    const char infile_Dstar_difNorm_justsoftpion[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17957250/AnalysisResultsFinal.root";
+    const char infile_Dstar_difNorm_justsoftpion[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/18058284/AnalysisResultsFinal.root";
 
    
 
@@ -111,7 +111,7 @@ void plot_softpion_pt() {
     TString label2 = "";  
 
     f = new TFile(infile_Dstar_difNorm_justsoftpion, "READ");
-    add_name = "softpion_pt.pdf";
+    add_name = "softpion_pt";
     cout << "output name will be " << add_name << endl;
 
     // Output directory
@@ -146,8 +146,8 @@ void plot_softpion_pt() {
             TCanvas* c = new TCanvas();
             ProcessCanvas(c);
             c->cd();
-            gPad->SetLogx();
-            // gPad->SetLogy();
+            // gPad->SetLogx();
+            gPad->SetLogy();
 
             TLegend* l; // = new TLegend(0.17, 0.65, 0.5, 0.85);
 
@@ -160,15 +160,15 @@ void plot_softpion_pt() {
             // Open histograms
 
 
-            l = new TLegend(0.1797168,0.400741,0.4562155,0.8885185,""); //(0.17, 0.4, 0.5, 0.53);
+            l = new TLegend(0.4797168,0.400741,0.7562155,0.8885185,""); //(0.17, 0.4, 0.5, 0.53);
             l->SetTextSize(0.045);
             // TLegend *leg = new TLegend(0.1797168,0.5390741,0.4562155,0.8885185,"");
             l->AddEntry("NULL","PYTHIA 8 Monash 2013","h");
             l->AddEntry("NULL","pp, #sqrt{#it{s}} = 13 TeV","h");
             l->AddEntry("NULL","D^{0} #rightarrow K^{#minus} #pi^{+} and charge conj.","h");
             l->AddEntry("NULL","in charged jets, anti-#it{k}_{T}, #it{R} = 0.4","h");
-            l->AddEntry("NULL",ptbin,"h");
-            l->AddEntry("NULL",ptD,"h");
+            // l->AddEntry("NULL",ptbin,"h");
+            // l->AddEntry("NULL",ptD,"h");
             l->SetTextSize(0.037);
             l->SetBorderSize(0);
  
@@ -181,17 +181,11 @@ void plot_softpion_pt() {
 
             // Format histograms for plotting (this order needed to keep legend in order and graphs lookin good)
             hsoftpionpt->GetXaxis()->SetTitle("p_{T}");
+            hsoftpionpt->SetLineColor(kBlue);hsoftpionpt->SetLineWidth(2);
             // FormatHist(l, hsoftpionpt, label2, markercolor2, markerstyle2); //"D*-tagged, c-init jets", kRed-7, 29);
             
-            hsoftpionpt->Draw();
-            
-
-    
-
-
-            
-
-
+            // hsoftpionpt->Draw();
+            hsoftpionpt->Draw("HIST SAME");
 
 
             // draw legend
@@ -199,7 +193,7 @@ void plot_softpion_pt() {
 
 
 
-            std::string fname = outdir + add_name + '_' + std::to_string(pt_min) + '-' + std::to_string(pt_max) + "_R" + jetR; 
+            std::string fname = outdir + add_name + '_' + std::to_string(pt_min) + '-' + std::to_string(pt_max) + "_R" + jetR + ".pdf"; 
             const char* fnamec = fname.c_str();
             c->SaveAs(fnamec);
             delete c;

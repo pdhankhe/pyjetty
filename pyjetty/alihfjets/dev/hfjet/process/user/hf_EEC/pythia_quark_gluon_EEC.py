@@ -99,7 +99,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 		self.initscat = args.chinitscat #1=hard->ccbar, 2=gg->ccbar, 3=D0->Kpi channel
 		self.D0wDstar = (bool)(args.D0withDstarON) #D0wDstar=True means looking at D-tagged jets including D0 from D*
 		self.difNorm = (bool)(args.difNorm) #difNorm=True means normalize D* distribution with (D0+D*) jets
-		self.softpion_action = args.softpion #1 = remove soft pion from D*, 2 = only pair soft pion with charged particles
+		self.softpion_action = args.softpion #1 = remove soft pion from D*, 2 = only pair soft pion with charged particles, 3 = only pair soft pion with D0, 4 = pair soft pion w everything
 
 		# PDG ID values for quarks and gluons
 		self.quark_pdg_ids = [1, 2, 3, 4, 5, 6, 7, 8, -1, -2, -3, -4, -5, -6, -7, -8]
@@ -107,7 +107,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 		self.up_pdg_ids = [2, -2]
 		self.strange_pdg_ids = [3, -3]
 		self.charm_pdg_ids = [4, -4]
-		self.gluon_pdg_ids = [9, 21] #, -9, -21]
+		self.gluon_pdg_ids = [9, 21] 
 
 		# hadron level - ALICE tracking restriction
 		self.max_eta_hadron = 0.9
@@ -470,9 +470,9 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			if ( self.replaceKPpairs == False ):
 				parts_pythia_hch = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal, pythiafjext.kCharged], 0, True)
 			else: #replace D0->Kpi
-				if ( self.softpion_action == 0 or self.softpion_action == 2 ):
+				if ( self.softpion_action != 1):
 					parts_pythia_hch = pythiafjext.vectorize_select_replaceD0(pythia, [pythiafjext.kFinal, pythiafjext.kCharged], 0, True)
-				if ( self.softpion_action == 1 ):
+				else:
 					parts_pythia_hch = pythiafjext.vectorize_select_replaceD0(pythia, [pythiafjext.kFinal, pythiafjext.kCharged], 0, True, True)
 			# print("Size of 1 vector", len(parts_pythia_hch_noreplace))
 			# print("Size of 2 vector", len(parts_pythia_hch_replaced))
@@ -715,7 +715,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 								Dstartaggedjet = True
 
 								# save soft pion info from D* if needed
-								if (self.softpion_action == 2): #(self.Dstar):
+								if ( self.softpion_action >= 2 ): #(self.Dstar):
 									# get the soft pion
 									if (self.checkD0motherIsDstar(self.D0particleinfo, self.event)):
 										# print("mother is in fact a Dstar")
@@ -891,6 +891,11 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 #            new_corr = ecorrel.CorrelatorBuilder(c_select, dcand, jet_pt_ungroomed, 2, 1, dphi_cut, deta_cut) #jet, D, scale, max, power, dphicut, detacut
 			if (self.softpion_action == 2):
 				new_corr = ecorrel.CorrelatorBuilder(c_select, self.D0particleinfo_psjet, self.softpion_particleinfo_psjet, jet.perp(), 2, 1, dphi_cut, deta_cut)
+			elif (self.softpion_action == 3):
+				new_corr = ecorrel.CorrelatorBuilder(self.D0particleinfo_psjet, self.softpion_particleinfo_psjet, jet.perp(), 2, 1, dphi_cut, deta_cut, True)
+			elif (self.softpion_action == 4):
+                # this later can be combined w softpion_action=2
+				new_corr = ecorrel.CorrelatorBuilder(c_select, self.D0particleinfo_psjet, self.softpion_particleinfo_psjet, jet.perp(), 2, 1, dphi_cut, deta_cut, True)
 			else:
 				new_corr = ecorrel.CorrelatorBuilder(c_select, jet.perp(), 2, 1, dphi_cut, deta_cut)
 			
@@ -1112,6 +1117,9 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 	def scale_print_final_info(self, pythia):
 		# Scale all jet histograms by the appropriate factor from generated cross section and the number of accepted events
 		scale_f = pythia.info.sigmaGen() / self.hNevents.GetBinContent(1)
+		print("pythia.info.sigmaGen() is", pythia.info.sigmaGen())
+		print("scale_f is", scale_f)
+		print("int(pythia.info.nAccepted())", int(pythia.info.nAccepted()))
 
 		for jetR in self.jetR_list:
 			hist_list_name = "hist_list_R%s" % str(jetR).replace('.', '')
@@ -1158,7 +1166,9 @@ if __name__ == '__main__':
 						'1' runs only hard->ccbar events, '2' runs only gg->ccbar events, '3' runs only D0->Kpi events")
 	parser.add_argument('--D0withDstarON', action='store', type=int, default=0, help="'1' looks at EEC for D0 and D0 from D*")
 	parser.add_argument('--difNorm', action='store', type=int, default=0, help="'1' normalizes D* with (D0+D*)")
-	parser.add_argument('--softpion', action='store', type=int, default=0, help="'1' removes the soft pion from D* distribution, '2' gets only pairs of soft pion w other charged particles")
+	parser.add_argument('--softpion', action='store', type=int, default=0, help="'1' removes the soft pion from D* distribution, \
+                        '2' gets only pairs of soft pion w other charged particles,'3' gets only the pair of soft pion with D0, \
+                        '4' gives soft pion with everything")
 
 	args = parser.parse_args()
 

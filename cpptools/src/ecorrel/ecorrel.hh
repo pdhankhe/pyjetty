@@ -38,7 +38,8 @@ namespace EnergyCorrelators
 			CorrelatorBuilder(const std::vector<fastjet::PseudoJet> &parts, const double &scale, const int &nmax, const int &power, const double dphi_cut, const double deta_cut);
             CorrelatorBuilder(const std::vector<fastjet::PseudoJet> &parts, const std::vector<fastjet::PseudoJet> Dmeson, const double &scale, const int &nmax, const int &power, const double dphi_cut, const double deta_cut);
 			CorrelatorBuilder(const std::vector<fastjet::PseudoJet> &parts, const fastjet::PseudoJet Dmeson, const fastjet::PseudoJet softpion,  const double &scale, const int &nmax, const int &power, const double dphi_cut, const double deta_cut);
-    		// CorrelatorBuilder(const std::vector<fastjet::PseudoJet> &parts, const std::vector<fastjet::PseudoJet> Dmeson, const std::vector<fastjet::PseudoJet> softpion,  const double &scale, const int &nmax, const int &power, const double dphi_cut, const double deta_cut);
+			CorrelatorBuilder(const std::vector<fastjet::PseudoJet> &parts, const fastjet::PseudoJet Dmeson, const fastjet::PseudoJet softpion,  const double &scale, const int &nmax, const int &power, const double dphi_cut, const double deta_cut, const bool includeDmeson);
+			CorrelatorBuilder(const fastjet::PseudoJet Dmeson, const fastjet::PseudoJet softpion,  const double &scale, const int &nmax, const int &power, const double dphi_cut, const double deta_cut, const bool includeDmeson);
 			CorrelatorsContainer *correlator(int n);
 			virtual ~CorrelatorBuilder();
 
