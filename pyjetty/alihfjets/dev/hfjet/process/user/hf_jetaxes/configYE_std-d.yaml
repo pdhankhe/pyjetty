@@ -1,0 +1,164 @@
+jetR: [0.4]
+#betas: [1, 1.5, 2, 3]
+betas: [1]
+jet_range: [5,50]
+# Initial detector-level binnings. Distributions are rebinned via configs before unfolding
+n_pt_bins: 195
+pt_limits: [5, 200]
+n_lambda_bins: 160
+lambda_limits: [0, 0.8]
+n_rap_bins: 20            # just for fun, look at lambda distribution vs rapidity
+rap_limits: [-0.5, 0.5]
+branching_ratio: 0.0395
+p_nevents: 7.98356e8
+xsection_inel: 50.76
+fRebinMass: 1 #default is 1
+fMassRange: [1.72, 2.01] #1.72,2.01
+fsigmaSignal: 2 #default is 2
+jetptbinsMeasN: 10
+fDmass: 1.864
+fDsigma: 0.010
+fsigmaBkg: [-8, -4, 4, 8] #8,4,4,8
+fbkgtype: 0  # kExpo=0, kLin=1, kPol2=2, kNoBk=3, kPow=4, kPowEx=5
+fUseRefl: True
+use_MC_gauss_info: False #False
+use_PDG_gauss_info: False
+isRefSys: False
+refScale: -1.5
+jetptbinsMeasA: [2, 3, 4, 5, 6, 8, 10, 14, 20, 30, 50]
+fptbinsJetFinalN: 4
+#jetptbinsFinalA: [16,50]
+jetptbinsFinalA: [5, 7, 10, 20, 50]
+ptbinsDN: 11
+ptbinsDA: [2, 3, 4, 5, 6, 7, 8, 10, 12, 16, 20, 36]
+pt_dmeson_cut: [2, 3, 5, 12]
+#obs_bins: [0.0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5] #alpha1
+#obs_bins: [0.0, 0.03, 0.06, 0.09, 0.12, 0.16, 0.20, 0.24, 0.32] #alpha15
+#obs_bins: [0.0, 0.02, 0.04, 0.06, 0.09, 0.12, 0.15, 0.18, 0.25]#alpha2
+#obs_bins: [0.0, 0.01, 0.02, 0.03, 0.04, 0.055, 0.07, 0.085, 0.10, 0.25]#alpha3
+#obs_bins: [0.0, 0.005, 0.010, 0.015, 0.025, 0.035, 0.05, 0.065, 0.08, 0.1 ]
+#0.020, 0.25, 0.030, 0.040, 0.050, 0.060, 0.070, 0.08, 0.1]#alpha3
+#obs_bins: [0.0, 0.04, 0.08, 0.12, 0.16, 0.20, 0.25, 0.3, 0.35, 0.42, 0.5] #alpha1
+obs_bins: [0, 0.015, 0.03, 0.05, 0.12, 0.25]
+
+# For extra verbose output in some functions
+debug_level: 0
+
+process_observables: ['jet_axis']
+jet_matching_distance: 0.6        # Match jets with deltaR < jet_matching_distance*jetR
+reject_tracks_fraction: 0
+
+# SoftDrop setting (current same for all SD plots)
+sd_zcut: 0.2    # multiplier
+sd_beta: 0      # exponent on (deltaR / R)
+
+  #sparse
+hsparse_jet: ['hsparse_R0.4_STD-D'] #, 'hsparse_R0.4_WTA-D', 'hsparse_R0.4_SD-D',
+  #'hsparse_R0.4_STD-SD', 'hsparse_R0.4_STD-WTA', 'hsparse_R0.4_WTA-SD']
+  ##also set this!!
+obs_axis: [3] #['3', '4', '5', '6', '7', '8']
+
+###############################################################################
+# Rebinning and unfolding parameters/configurations for angularity observables
+jet_axis:
+
+  common_settings:
+    xtitle: '#DeltaR'
+    ytitle: '#frac{1}{#it{#sigma}_{jet}} #frac{d#it{#sigma}}{d#DeltaR}'
+    pt_bins_reported: [10, 20]
+    plot_overlay_list:
+      - ['config_R0.4_B3'] #'config_R0.4_B1.5', 'config_R0.4_B2', 'config_R0.4_B3']
+        #      - ['config_R0.4_B1_SD', 'config_R0.4_B1.5_SD', 'config_R0.4_B2_SD', 'config_R0.4_B3_SD']
+    max_reg_param: 5
+
+  ############################################################################
+  # Different R & beta configurations
+  config_R0.4_B3:
+    R: 0.4
+    alpha: 3
+    axis: 1
+    pt_bins_truth:  [5, 7, 10, 20, 50]
+    pt_bins_det: [5, 7, 10, 20, 50]
+    pt_bins_det_sys_truncation:  [6, 7, 10, 20, 50]
+    obs_bins_truth: [0, 0.015, 0.03, 0.05, 0.12, 0.25]
+    obs_max_reported: [0.12]
+    obs_bins_det: [0, 0.015, 0.03, 0.05, 0.12, 0.25]
+    obs_bins_det_sys_binning: [0, 0.05, 0.07, 0.09, 0.11, 0.13, 0.15, 0.17, 0.19, 0.20, 0.21,
+                               0.22, 0.23, 0.24, 0.25, 0.26, 0.27, 0.28, 0.30, 0.31, 0.32, 0.33,
+                               0.34, 0.35, 0.36, 0.37, 0.39, 0.41, 0.43, 0.45, 
+                               0.47, 0.49, 0.56, 0.66, 0.75]
+    reg_param:
+      0.4: 5 
+
+  
+###############################################################################
+# Theory comparison parameters
+do_theory_comp: False
+  #theory_beta: [1.5, 2, 3]
+  #output_dir_fd: "/global/cfs/cdirs/alice/eyeats/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_jetaxes/unfolding"
+  #theory_pt_bins: [10, 15, 20, 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200]
+  #response_files: ["/rstorage/alice/AnalysisResults/ang/353823/AnalysisResultsFinal.root",
+  #"/rstorage/alice/AnalysisResults/ang/344912/AnalysisResultsFinal.root"]
+  #response_labels: ["PYTHIA8", "Herwig7"]
+rebin_theory_response: False
+
+
+###############################################################################
+# Analysis & plotting parameters
+file_format: ".pdf"
+output_dir_fd: "/global/cfs/cdirs/alice/eyeats/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_jetaxes/std-d"
+output_dir: "/global/cfs/cdirs/alice/eyeats/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_jetaxes/std-d"
+roounfold_path: "/global/cfs/cdirs/alice/eyeats/mypyjetty/heppy/external/roounfold/roounfold-current/lib/libRooUnfold.so"
+
+analysis_observable: 'jet_axis'
+do_unfolding: True
+force_rebin: False
+do_systematics: True #False
+do_plot_final_result: True
+do_plot_performance: False
+figure_approval_status: 'Preliminary'
+
+# Whether or not to use the previous preliminary result in final results
+use_prev_prelim: False
+
+# List of which systematics to perform
+# Options: [main, trkeff, prior1, prior2, truncation, binning, \
+#           random_mass, fastsim_generator0, fastsim_generator1]
+systematics_list:
+  - main
+  #- trkeff
+  - prior1
+  - prior2
+  - truncation
+  #- binning
+  #- random_mass
+  #- fastsim_generator0
+  #- fastsim_generator1
+
+# Paths to processing output, to be used for unfolding
+main_rawdatafile: '/global/cfs/cdirs/alice/eyeats/AliceAnalyses/ResultsFromHiccup/1409411/AnalysisResultsFinal.root'
+#below is for topological cut variation
+#main_rawdatafile: '/global/cfs/cdirs/alice/eyeats/AliceAnalyses/ResultsFromHiccup/1343822/AnalysisResultsFinal.root'
+main_data_simulation: '/global/cfs/cdirs/alice/eyeats/AliceAnalyses/ResultsFromHiccup/1459581/AnalysisResultsFinal.root'
+#below is sim file for tracking efficiency study - 1358441
+#main_data_simulation: '/global/cfs/cdirs/alice/eyeats/AliceAnalyses/ResultsFromHiccup/1358441/AnalysisResultsFinal.root'
+#below is for topological cut variation
+#main_data_simulation: '/global/cfs/cdirs/alice/eyeats/AliceAnalyses/ResultsFromHiccup/1395747/AnalysisResultsFinal.root'
+main_data: '/global/cfs/cdirs/alice/eyeats/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_jetaxes/std-d/AnalysisResults_data.root'
+main_feeddown_simulation: '/global/cfs/cdirs/alice/eyeats/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_jetaxes/rootfiles/main_feeddown_simulation/trees_powheg+pythia8+evtgen_beauty.root'
+main_charm_simulation: ''
+main_response: '/global/cfs/cdirs/alice/eyeats/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_jetaxes/std-d/AnalysisResults_Response.root'
+main_gauss_info: '/global/cfs/cdirs/alice/eyeats/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_jetaxes/rootfiles/Gauss_mean.root'
+main_efffile: '/global/cfs/cdirs/alice/eyeats/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_jetaxes/rootfiles/D0JetRecoEff.root'
+#main_efffile: '/global/cfs/cdirs/alice/eyeats/AliceAnalyses/ResultsFromHiccup/1308474/D0JetRecoEff.root'
+reflection_template: ['/global/cfs/cdirs/alice/eyeats/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_jetaxes/rootfiles/ReflectionTemplate_10_20.root']
+main_nonprompt_kinematic_efffile: ''
+trkeff_response: ''
+randmass_data: ''
+randmass_response: ''
+fastsim_response: ['','']
+
+# Prior variation parameters
+prior_variation_option: 1
+prior1_variation_parameter: 0.5
+prior2_variation_parameter: -0.5
