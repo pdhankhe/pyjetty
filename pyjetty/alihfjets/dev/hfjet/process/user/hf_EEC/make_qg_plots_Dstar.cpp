@@ -220,7 +220,7 @@ void make_qg_plots_Dstar() {
     // 7 = compare D* (norm with (D0+D*)) with just soft pion correlations
 
     //CONTOL VARIABLES HERE
-    int plot_case = 7;
+    int plot_case = 6;
     bool unnormalized = false; //default = false
 
     TFile* f;
@@ -230,8 +230,8 @@ void make_qg_plots_Dstar() {
     std::string quarkstring = include_gluon ? "" : "_justquarks";
     std::string unweightedstring = unweighted ? "_samefilecomp" : "";
     std::string logstring = "_log"; //not currently using this or have a bool
-    TString ptbin = compareD0 ? "15 #leq #it{p}_{T}^{ch. jet} < 30 GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5" : "15 #leq #it{p}_{T}^{ch. jet} < 30 GeV/#it{c}";
-    TString ptD = "5 #leq #it{p}_{T}^{D^{0}} < 30 GeV/#it{c}, #font[122]{|}#it{y}_{D^{0}}#font[122]{|} #leq 0.8";
+    TString ptbin = compareD0 ? "10 #leq #it{p}_{T}^{ch. jet} < 15 GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5" : "10 #leq #it{p}_{T}^{ch. jet} < 15 GeV/#it{c}";
+    TString ptD = "5 #leq #it{p}_{T}^{D^{0}} < 15 GeV/#it{c}, #font[122]{|}#it{y}_{D^{0}}#font[122]{|} #leq 0.8";
 
     TString label1 = "";
     TString label2 = "";  
@@ -284,7 +284,7 @@ void make_qg_plots_Dstar() {
 
     // Output directory
     //std::string outdir = "/rstorage/alice/AnalysisResults/ang/1224559/plots/";
-    std::string outdir = "plots/test/";
+    std::string outdir = "plots/final/10-15/";//"plots/test/";
     // Output file for binned results
     std::string outfile = outdir + "AnalysisResultsFinal_afteranalysis.root";
     //std::string outfile = outdir + "AnalysisResultsFinal_test.root";
@@ -318,7 +318,7 @@ void make_qg_plots_Dstar() {
 
 
         //const int pt_bins[] = { 10, 20, 40, 60, 80, 100, 150 };
-        const int pt_bins[] = { 15, 30 }; //{ 10, 20, 40 };
+        const int pt_bins[] = { 10, 15 }; //{ 10, 20, 40 };
         const int n_bins = 1; //2;
         for (int i = 0; i < n_bins; i++) {
             cout << "in pt bin" << i << endl;
@@ -593,7 +593,7 @@ void make_qg_plots_Dstar() {
             FormatHist(l, hDstar, label2, markercolor2, markerstyle2); //"D*-tagged, c-init jets", kRed-7, 29);
             if (plot_case == 0) l->AddEntry("NULL","          D* decays off","h");
             if (plot_case == 5) l->AddEntry("NULL","           (w/out D^{0} correl), c-init jets","h");
-            if ((plot_case == 1 && unnormalized == false) or plot_case == 7) {
+            if ((plot_case == 1 && unnormalized == false && pt_min == 15) or plot_case == 7 or plot_case == 0 or plot_case == 4 or plot_case == 6) {
                 hDstar->Draw("L same");
                 hD0->Draw("L same");
             } else {

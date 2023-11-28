@@ -415,7 +415,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 
 			if (iev%10000 == 0):
 				print("Event", iev)
-			print("============ NEW EVENT ============", iev)
+			# print("============ NEW EVENT ============", iev)
 
 			self.parents = []
 			self.event = pythia.event
@@ -509,9 +509,9 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 
 			if ( self.replaceKPpairs ):
 				# Apply efficiency cut
-				start_time = time.time()
+				# start_time = time.time()
 				parts_pythia_hch = self.apply_eff_cut(parts_pythia_hch)
-				print('--- {} seconds ---'.format(time.time() - start_time))
+				# print('--- {} seconds ---'.format(time.time() - start_time))
 
 				# Reconstruct the D0
 				parts_pythia_hch = self.reconstructD0(pythia, parts_pythia_hch, D0_information)
@@ -579,7 +579,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			if (not eff_smearer.pass_eff_cut(pythia_particle_pt)): #if True, keep, if False, get rid of particle
 				indices_to_be_removed.append(count)
 		for index in reversed(indices_to_be_removed):
-			pythia_particles = pythiafjext.removeByIndex(pythia_particles, index)
+			pythia_particles = pythiafjext.removeByIndex(pythia_particles, index) # TODO: do this in python?
 		# print("check items to remove", len(indices_to_be_removed))
 		# print("check new length", og_len_pythia_particles - len(pythia_particles))
 
@@ -911,8 +911,9 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 							if ( D0taggedjet ):
 								continue
 
-					if (self.softpion_action >= 2 and softpion_index == -1): #skip because soft pion is not in the jet!
-						continue
+					if (self.softpion_action >= 2 and Dstartaggedjet):
+						if (softpion_index == -1): #skip because soft pion is not in the jet! 
+							continue
 
 #                    obs = self.calculate_observable(
 #                        observable, jet, jet_groomed_lund, jetR, obs_setting,

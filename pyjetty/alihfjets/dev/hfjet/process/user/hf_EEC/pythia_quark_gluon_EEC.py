@@ -823,6 +823,10 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 							if ( D0taggedjet ):
 								continue
 
+					if (self.softpion_action >= 2 and Dstartaggedjet):
+						if (softpion_index == -1): #skip because soft pion is not in the jet! 
+							continue
+
 
 #                    obs = self.calculate_observable(
 #                        observable, jet, jet_groomed_lund, jetR, obs_setting,
@@ -1106,6 +1110,13 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			poss_softpion_idAbs = event[daughter_index].idAbs()
 			if poss_softpion_idAbs == 211:
 				softpion_index = daughter_index	
+
+		# also check that the pion is in the jet constituents
+		# print("softpion index", softpion_index)
+		if len(jet_const_arr) > 0:
+			if (self.checkIfPartInJetConst(jet_const_arr, softpion_index) == False):
+				softpion_index = -1
+
 		return softpion_index
 
 	
