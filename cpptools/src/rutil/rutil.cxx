@@ -272,6 +272,58 @@ for (unsigned int i = 0; i < n_dim; i++) {
 
 }  // rebin_thn
 
+
+//---------------------------------------------------------------
+// Rebin THn according to specified binnings; return pointer to rebinned THn
+// Same function, but overloaded for THnSparseD
+//---------------------------------------------------------------
+THnSparseD* HistUtils::rebin_thn(const THnSparseD* thn,
+                       const std::string & name_thn_rebinned,
+                       const int & n_dim,
+                       const int & n_pt_bins_det,
+                       const double* det_pt_bin_array,
+                       const int & n_obs_bins_det,
+                       const double* det_bin_array,
+                       const int & n_pt_bins_truth,
+                       const double* truth_pt_bin_array,
+                       const int & n_obs_bins_truth,
+                       const double* truth_bin_array,
+                       const std::string & label/*=""*/,
+                       const bool move_underflow/*=false*/) {
+
+// ------------------------------------------------------
+// Create empty THn with specified binnings
+
+THnSparseD* thn_rebinned = this->create_empty_thnsparse(name_thn_rebinned.c_str(), n_dim,
+                                            n_pt_bins_det, det_pt_bin_array,
+                                            n_obs_bins_det, det_bin_array,
+                                            n_pt_bins_truth, truth_pt_bin_array,
+                                            n_obs_bins_truth, truth_bin_array);
+
+for (unsigned int i = 0; i < n_dim; i++) {
+    thn_rebinned->GetAxis(i)->SetTitle(thn->GetAxis(i)->GetTitle());
+}
+
+
+
+    // Loop through THn and fill rebinned THn and RooUnfoldResponse
+    float min_det_pt = det_pt_bin_array[0];
+    float min_truth_pt = truth_pt_bin_array[0];
+    float min_det = det_bin_array[0];
+    float min_truth = truth_bin_array[0];
+    float max_det_pt = det_pt_bin_array[n_pt_bins_det];
+    float max_truth_pt = truth_pt_bin_array[n_pt_bins_truth];
+    float max_det = det_bin_array[n_obs_bins_det];
+    float max_truth = truth_bin_array[n_obs_bins_truth];
+
+    this->fill_rebinned_thn(thn, thn_rebinned, n_dim,
+                        min_det_pt, min_truth_pt, min_det, min_truth,
+                        max_det_pt, max_truth_pt, max_det, max_truth, move_underflow);
+
+    return thn_rebinned;
+
+}  // rebin_thn
+
     //---------------------------------------------------------------
     // Rebin THn according to specified binnings; return pointer to rebinned THn
     // Overloaded function that takes TH2 for prior variation
@@ -997,6 +1049,102 @@ void HistUtils::fill_rebinned_thn(
 
 }  // fill_rebinned_thn
 
+
+//---------------------------------------------------------------
+// Fill thn_rebinned with data from thn
+//
+// Don't include underflow/overflow by default
+// If move_underflow = True, then fill underflow content of the observable
+// (from original THn) into first bin (of rebinned THn)
+//
+// Overloaded definition with prior_variation a TH2
+void HistUtils::fill_rebinned_thn(const THnSparseD* thn, THnSparseD* thn_rebinned,
+    const unsigned int & n_dim, const float min_det_pt, const float min_truth_pt,
+    const float min_det, const float min_truth,
+    const float max_det_pt, const float max_truth_pt,
+    const float max_det, const float max_truth,
+    const bool move_underflow/*=false*/) {
+
+    // Only working for n_dim == 4 at the moment; generalizing to N dimensions
+    // will require some sort of recursive implementation
+    if (n_dim != 4) {
+        std::cerr << "ERROR: Not Implemented: Assertion n_dim == 4 failed in "
+                  << "fjtools.cxx::fill_rebinned_thn()" << std::endl;
+        std::terminate();
+    }
+
+    // loop through all axes
+    const unsigned int n_bins_0 = thn->GetAxis(0)->GetNbins();
+    const unsigned int n_bins_1 = thn->GetAxis(1)->GetNbins();
+    const unsigned int n_bins_2 = thn->GetAxis(2)->GetNbins();
+    const unsigned int n_bins_3 = thn->GetAxis(3)->GetNbins();
+
+    // I don't find any global bin index implementation, so I manually loop through axes
+    int* global_bin = new int[n_dim];
+    double* x = new double[n_dim];
+    for (unsigned int bin_0 = 0; bin_0 < n_bins_0+2; bin_0++) {
+        global_bin[0] = bin_0;
+        x[0] = thn->GetAxis(0)->GetBinCenter(bin_0);
+
+        // print helpful message while waiting
+        std::cout << bin_0 << " / " << n_bins_0 << '\r' << std::flush;
+
+        for (unsigned int bin_1 = 0; bin_1 < n_bins_1+2; bin_1++) {
+            global_bin[1] = bin_1;
+            x[1] = thn->GetAxis(1)->GetBinCenter(bin_1);
+
+            for (unsigned int bin_2 = 0; bin_2 < n_bins_2+2; bin_2++) {
+                global_bin[2] = bin_2;
+                x[2] = thn->GetAxis(2)->GetBinCenter(bin_2);
+
+                for (unsigned int bin_3 = 0; bin_3 < n_bins_3+2; bin_3++) {
+                    global_bin[3] = bin_3;
+                    x[3] = thn->GetAxis(3)->GetBinCenter(bin_3);
+
+                    int bin = thn->GetBin(global_bin);
+                    double content = thn->GetBinContent(bin);
+                    if (content == 0) { continue; }
+                    double error = thn->GetBinError(bin);
+
+                    // If underflow bin, and if move_underflow flag is activated,
+                    // put the contents of the underflow bin into first bin of thn_rebinned
+                    if (bin_2 == 0 || bin_3 == 0) {
+                        if (move_underflow) {
+                            if (bin_2 == 0) {
+                                x[2] = thn_rebinned->GetAxis(2)->GetBinCenter(1);
+                            }  // bin_2 == 0
+                            if (bin_3 == 0) {
+                                x[3] = thn_rebinned->GetAxis(3)->GetBinCenter(1);
+                                std::string name(thn->GetName());
+                                if (name.find("matched") != std::string::npos) {
+                                    if (bin_2 == 0) { content = 1; }
+                                    else { content = 0; }
+                                }
+                            }  // bin_3 == 0
+                        }
+                    }  // underflow bins
+
+                    // THn is filled as (x[0], x[1], x[2], x[3])
+                    // corresponding e.g. to (pt_det, pt_true, obs_det, obs_true)
+                    bin = thn_rebinned->GetBin(x);
+                    double prev_content = thn_rebinned->GetBinContent(bin);
+                    double prev_error2 = thn_rebinned->GetBinError2(bin);
+                    thn_rebinned->SetBinContent(bin, prev_content + content);
+                    thn_rebinned->SetBinError(bin, std::sqrt(prev_error2 + std::pow(error, 2)));
+
+                }  // bin_3 loop
+            }  // bin_2 loop
+        }  // bin_1 loop
+    }  // bin_0 loop
+
+    // clean up memory
+    delete[] global_bin;
+    delete[] x;
+
+    return;
+
+}  // fill_rebinned_thn
+
 //---------------------------------------------------------------
 // Fill thn_rebinned with data from thn
 //
@@ -1560,3 +1708,4 @@ void HistUtils::fill_rebinned_thn(
 	} // sorted_match
 
 }  // namespace RUtil
+

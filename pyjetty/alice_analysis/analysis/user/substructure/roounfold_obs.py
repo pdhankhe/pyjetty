@@ -283,13 +283,15 @@ class Roounfold_Obs(analysis_base.AnalysisBase):
         hData = self.fData.Get(name_data)
 
         # Re-bin the data histogram
-        if use_histutils:
-          h = self.histutils.rebin_th2(hData, name_data, det_pt_bin_array, n_pt_bins_det,
-                                       det_bin_array, n_bins_det, move_underflow)
-        else:
-          h = self.utils.rebin_data(hData, name_data, n_pt_bins_det, det_pt_bin_array,
-                                    n_bins_det, det_bin_array, move_underflow=move_underflow)
+        #if use_histutils:
+        #  h = self.histutils.rebin_th2(hData, name_data, det_pt_bin_array, n_pt_bins_det,
+        #                               det_bin_array, n_bins_det, move_underflow)
+        #else:
+        #  h = self.utils.rebin_data(hData, name_data, n_pt_bins_det, det_pt_bin_array,
+        #                            n_bins_det, det_bin_array, move_underflow=move_underflow)
 
+        #dont rebin here for D0 tagged jets. Rebinning is done at the signal extraction level otherwise the error set are not right
+        h=hData.Clone()
         # If thermal model, smear MC input spectrum by measured data
         # Then update data to be the correct spectrum
         if self.thermal_model:
@@ -391,8 +393,12 @@ class Roounfold_Obs(analysis_base.AnalysisBase):
         #thn_rebinned.SetDirectory(0)
         thn_rebinned_shape1 = f.Get(name_thn_rebinned_shape1)
         thn_rebinned_shape2 = f.Get(name_thn_rebinned_shape2)
-
+        print("thn_rebinned_shape1 = ", thn_rebinned_shape1)
+        print("thn_rebinned_shape2 = ", thn_rebinned_shape2)
+        print("name_roounfold = ", name_roounfold)
         roounfold_response = f.Get(name_roounfold)
+        
+        print("roounfold_response = ", roounfold_response)
         roounfold_response.UseOverflow(False)
         roounfold_response_shape1 = f.Get(name_roounfold_shape1)
         roounfold_response_shape1.UseOverflow(False)
@@ -510,6 +516,13 @@ class Roounfold_Obs(analysis_base.AnalysisBase):
     for i in range(1, reg_param_final + 3):
 
       # Set up the Bayesian unfolding object
+      canvas_data = ROOT.TCanvas()
+      hData_input = hData.Clone("input_data_clone")
+      hData_input.GetXaxis().SetRangeUser(10,20)
+      hData_proj_obs = hData_input.ProjectionY()
+      hData_proj_obs.Scale(1/hData_proj_obs.Integral(),"width")
+      hData_proj_obs.Draw("ep")
+      canvas_data.SaveAs("DataDist.pdf")
       unfold_bayes = ROOT.RooUnfoldBayes(response, hData, i)
       #unfoldBayes.SetNToys(1000)
 
@@ -532,6 +545,14 @@ class Roounfold_Obs(analysis_base.AnalysisBase):
       # Write result to file
       # Note that in the case of SD, the first bin is the untagged splittings
       hUnfolded.Write()
+      
+      canvas_unfold = ROOT.TCanvas()
+      hunfolded_input = hUnfolded.Clone("unfolded_data_clone")
+      hunfolded_input.GetXaxis().SetRangeUser(10,20)
+      hUnfolded_proj_obs = hunfolded_input.ProjectionY()
+      hUnfolded_proj_obs.Scale(1/hUnfolded_proj_obs.Integral(),"width")
+      hUnfolded_proj_obs.Draw("ep")
+      canvas_unfold.SaveAs("UnfoldedDist.pdf")
 
       # Plot Pearson correlation coeffs for each iteration, to get a measure of
       # the correlation between the bins
@@ -1617,11 +1638,13 @@ class Roounfold_Obs(analysis_base.AnalysisBase):
     # First scale by bin width -- then normalize by integral
     # (where integral weights by bin width)
     h.Scale(1., scalingOptions)
+    print("h = ", h)
     integral = h.Integral(min_bin_for_normalization, h.GetNbinsX(), 'width')
     if integral < 1e-10:
       print("Warning: scaling skipped for histogram {} since integral is {}".format(h.GetName(), integral))
     else:
       h.Scale(1./integral)
+      print("Integral > 1e-10")
 
     if '_pt_' in outputFilename:
       h.GetYaxis().SetTitle('#frac{d#it{N}}{d#it{p}_{T}^{ch jet}}')
@@ -1647,6 +1670,9 @@ class Roounfold_Obs(analysis_base.AnalysisBase):
     # (where integral weights by bin width)
     h2.Scale(1., scalingOptions)
     integral = h2.Integral(min_bin_for_normalization, h2.GetNbinsX(), 'width')
+    print("integral = ", integral)
+    print("h2 = ", h2)
+    print("min_bin_for_norm = ", min_bin_for_normalization)
     h2.Scale(1./integral)
 
     h.Draw("hist same E")
