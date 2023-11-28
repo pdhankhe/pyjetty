@@ -76,7 +76,7 @@ class HFAnalysis(MPBase):
         if self.callback is not None:
             self.callback(df['ev_id'].values[0])
         
-    def exec_analysis_d0_df(self, df, m, random_mass, min_pt, IsGen):
+    def exec_analysis_d0_df(self, df, m, random_mass, min_pt):
         self.pbar.update(1)
         _n_d0s = len(df)
         if _n_d0s < 1:
@@ -87,12 +87,8 @@ class HFAnalysis(MPBase):
         else:
             _ev_query = "run_number == {} & ev_id == {}".format(df['run_number'].values[0], df['ev_id'].values[0])
             
-        if IsGen:
-            self.cand_identifier=self.unique_identifier+['cand_type','pt_cand','eta_cand','phi_cand']
-            self.df_particles = self.track_gen_df
-        else:
-            self.cand_identifier=self.unique_identifier+['cand_type','pt_cand','eta_cand','phi_cand','inv_mass']
-            self.df_particles = self.track_df
+        self.cand_identifier=self.unique_identifier+['pt_cand','eta_cand','phi_cand','inv_mass']
+        self.df_particles = self.track_df
 
         self.df_tracks = self.df_particles.query(_ev_query)
         self.df_tracks.reset_index(drop=True)
@@ -123,50 +119,34 @@ class HFAnalysis(MPBase):
         
         return fj_particles
     
-    def replace_daughter_group_fj_particles(self, df, IsGen):
+    def replace_daughter_group_fj_particles(self, df):
         djmm = fjtools.DJetMatchMaker()
-        
-        if IsGen:
-            m_cand_gen_array = np.full((df['pt_cand'].values.size), 1.864)
-            djmm.set_Ds_pt_eta_phi_m(df['pt_cand'].values, df['eta_cand'].values, df['phi_cand'].values,m_cand_gen_array)
-          
-        else:
-            djmm.set_Ds_pt_eta_phi_m(df['pt_cand'].values, df['eta_cand'].values, df['phi_cand'].values, df['inv_mass'].values)
-            djmm.set_daughters0_pt_eta_phi(df['pt_prong0'].values, df['eta_prong0'].values, df['phi_prong0'].values)
-            djmm.set_daughters1_pt_eta_phi(df['pt_prong1'].values, df['eta_prong1'].values, df['phi_prong1'].values)
+        djmm.set_Ds_pt_eta_phi_m(df['pt_cand'].values, df['eta_cand'].values, df['phi_cand'].values, df['inv_mass'].values)
+        djmm.set_daughters0_pt_eta_phi(df['pt_prong0'].values, df['eta_prong0'].values, df['phi_prong0'].values)
+        djmm.set_daughters1_pt_eta_phi(df['pt_prong1'].values, df['eta_prong1'].values, df['phi_prong1'].values)
             
         
-        _D0_fj_particles = df[['run_number', 'ev_id','ev_id_ext', 'ev_id_long', 'ismcfd', 'ismcprompt', 'ismcrefl']].copy()
+        _D0_fj_particles = df[['run_number', 'ev_id','ev_id_ext', 'ev_id_long']].copy()
         
         array_index_df= _D0_fj_particles.index.values
      
         _D0_fj_particles['fj_D0_particles'] = _D0_fj_particles.apply(lambda _: '', axis=1)
         #_D0_fj_particles['fj_new_particles'] = _D0_fj_particles['fj_new_particles'].astype('object')
         for id0, d0 in enumerate(djmm.Ds):
-            #replacing daughter tracks with matched D0 candidate
+            
             djmm.ch = df['fj_particles'].iloc[id0]
-            if IsGen:
-                _parts_and_ds=djmm.ch
-                for i in range(0,len(_parts_and_ds)):
-                    for j in range(i+1,len(_parts_and_ds)):
-                        daughtersSum=_parts_and_ds[i]+_parts_and_ds[j]
-                        diff=daughtersSum-d0
-                        if(ma.sqrt((diff.px()*diff.px()))<0.001 and ma.sqrt((diff.py()*diff.py()))<0.001 and ma.sqrt((diff.pz()*diff.pz()))<0.001):
-                            _parts_and_ds[i]=_parts_and_ds[i]* 1.e-6
-                            _parts_and_ds[j]=_parts_and_ds[j]* 1.e-6
-             
-        
-            else:
-                _parts_and_ds = djmm.ch
-                _parts_and_ds = djmm.match(0.005, id0)
-    
+            _parts_and_ds = djmm.ch
+            #replacing daughter tracks with matched D0 candidate
+            _parts_and_ds = djmm.match(0.005, id0)
             #including D0
             _parts_and_ds.push_back(d0)
             # converting list to std fj vector
             fj_particles = fj.vectorPJ()
+            
             for index in range(len(_parts_and_ds)):
                 fj_particles.append(_parts_and_ds[index])
             _D0_fj_particles.at[id0, 'fj_D0_particles'] = fj_particles
+       
                 
         return _D0_fj_particles
         
@@ -247,7 +227,7 @@ class HFAnalysis(MPBase):
 
 
     def analyze_d0_df(self, m, offset_indices,
-                group_by_evid, random_mass, min_pt, IsGen):
+                group_by_evid, random_mass, min_pt):
 
         #process total number of events
         _tot_event_df = self.event_df.copy()
@@ -255,64 +235,27 @@ class HFAnalysis(MPBase):
         _tot_event_df_ev_grouped= _tot_event_df.groupby(['run_number','ev_id'])
         print("number of events = " , len(_tot_event_df_ev_grouped))
         self.hNevents.Fill(1, _tot_event_df["ev_id"].nunique())
-
         ### configuration for trimming dataframe
         
         self.IsFiducialCut = self.config["IsFiducialCut"]
         self.IsCustomSelectionCuts = self.config["IsCustomSelectionCuts"]
         self.IsSpecialLowpTCuts = self.config["IsSpecialLowpTCuts"]
-        self.b_mcsigprompt = self.config["analysisD0"]["bitmap_sel"]["ismcprompt"]
-        self.b_mcsigfd =self.config["analysisD0"]["bitmap_sel"]["ismcfd"]
-        self.b_mcbkg = self.config["analysisD0"]["bitmap_sel"]["ismcbkg"]
-        self.b_mcrefl = self.config["analysisD0"]["bitmap_sel"]["ismcrefl"]
-
-        self.v_bitvar = self.config["analysisD0"]["bitmap_sel"]["var_name"]
-        self.v_isstd = self.config["analysisD0"]["bitmap_sel"]["var_isstd"]
-        self.v_ismcsignal = self.config["analysisD0"]["bitmap_sel"]["var_ismcsignal"]
-        self.v_ismcprompt = self.config["analysisD0"]["bitmap_sel"]["var_ismcprompt"]
-        self.v_ismcfd = self.config["analysisD0"]["bitmap_sel"]["var_ismcfd"]
-        self.v_ismcbkg = self.config["analysisD0"]["bitmap_sel"]["var_ismcbkg"]
-        self.v_ismcrefl = self.config["analysisD0"]["bitmap_sel"]["var_ismcrefl"]
         ############################################################################
         
-        
-        # generated D0 candidate dataframe
-        d0_gen_df_copy=self.d0_gen_df.query(self.d0_gen_selection.query_string,engine="python")
-        #reconstructed D0 candidate dataframe after applying D0 selection cuts
+        # D0 candidate dataframe after applying D0 selection cuts
         _d0_df = self.d0_df.query(self.d0_selection.query_string,engine="python")
 
         self.unique_identifier =  ['run_number', 'ev_id']
 
         if 'ev_id_ext' in list(self.event_df):
             self.unique_identifier += ['ev_id_ext']
-
-        d0ev_df = pd.merge(_d0_df, self.event_df,on=self.unique_identifier)
-        d0ev_gen_df = pd.merge(d0_gen_df_copy, self.event_df,on=self.unique_identifier)
-
-
+            d0ev_df = pd.merge(_d0_df, self.event_df,on=self.unique_identifier)
+        else:
+            d0ev_df = pd.merge(_d0_df, self.event_df,on=self.unique_identifier)
+            
         #after merging the dataframe with event, apply the event selection cut on z vertex, event rejected..
         d0ev_df.query(self.event_selection.query_string, inplace=True)
-        d0ev_gen_df.query(self.event_selection.query_string, inplace=True)
 
-        pinfo('N generated d0s with d0 selection cuts and event cuts', len(d0ev_gen_df.index))
-
-        #need to remove events id's at reconstructed level not present at generated level
-        #coming from fake D0 due to looser selection cuts
-
-        d0ev_df.sort_values(by=self.unique_identifier, inplace=True)
-        d0ev_gen_df.sort_values(by=self.unique_identifier, inplace=True)
-
-
-        df_d0runs = d0ev_df[self.unique_identifier].copy()
-        df_gend0runs = d0ev_gen_df[self.unique_identifier].copy()
-
-        #find reconstructed event matching to generator
-        df_runs = pd.merge(df_d0runs, df_gend0runs, on=self.unique_identifier)
-        df_runs.drop_duplicates(keep='first', inplace=True)
-
-        d0ev_df = pd.merge(d0ev_df, df_runs, on=self.unique_identifier)
-
-        #print(df_runs)
         #apply fiducial cut on D candidate
         if self.IsFiducialCut:
             print("aplying fiducial cuts")
@@ -328,80 +271,38 @@ class HFAnalysis(MPBase):
             print("aplying pt dependent cuts")
             d0ev_df=self.apply_cuts_ptbin(d0ev_df)
             
-        #apply fiducial cut on gen D candidate
-        if self.IsFiducialCut:
-            self.d0ev_gen_df=self.apply_cut_fiducial_acceptance(d0ev_gen_df)
-        
-        # tag prompt, fd and reflection signal
-        d0_ev_tagged_df = self.tagging_prompt_fd_reflection(d0ev_df, IsGen)
-        d0_ev_gen_tagged_df = self.tagging_prompt_fd_reflection(self.d0ev_gen_df, True)
-        
-        pinfo('N reconstructed  d0s with d0 selection cuts and event cuts', len(d0_ev_tagged_df.index))
+        df_fjparticles = self.group_df_fjparticles(d0ev_df, group_by_evid, m, random_mass, min_pt)
     
-        if IsGen:
-            df_fjparticles = self.group_df_fjparticles(d0_ev_gen_tagged_df, group_by_evid, m, random_mass, min_pt, IsGen)
-        else:
-            df_fjparticles = self.group_df_fjparticles(d0_ev_tagged_df, group_by_evid, m, random_mass, min_pt, IsGen)
-        
-        d0_ev_tagged_df = None
-        d0_ev_gen_tagged_df = None
-        
         return df_fjparticles
 
    
         
-    def group_df_fjparticles(self, D0_df, group_by_evid, m, random_mass, min_pt, IsGen):
+    def group_df_fjparticles(self, D0_df, group_by_evid, m, random_mass, min_pt):
+    
         d0ev_df_grouped = None
         d0ev_df_grouped = D0_df.groupby(self.unique_identifier)
 
-        if len(D0_df) > 0:
-            # reconstructed level
-            with tqdm.tqdm(total=len(d0ev_df_grouped)) as self.pbar:
-                fj_particles_lists = d0ev_df_grouped.apply(self.exec_analysis_d0_df, m, random_mass,  min_pt, IsGen)
-                fj_particles_lists=fj_particles_lists.dropna()
-            self.pbar.close()
+        # reconstructed level
+        with tqdm.tqdm(total=len(d0ev_df_grouped)) as self.pbar:
+            fj_particles_lists = d0ev_df_grouped.apply(self.exec_analysis_d0_df, m, random_mass,  min_pt)
+            fj_particles_lists=fj_particles_lists.dropna()
+        self.pbar.close()
         
+        
+        df_fj_particle = fj_particles_lists.to_frame()
+        df_fj_particle.columns = ['fj_particles']
+        
+        #merge D0 and fj particles into single dataframe
+        df_fjparticles = pd.merge(D0_df , df_fj_particle , on=self.unique_identifier)
 
-            df_fj_particle = fj_particles_lists.to_frame()
-            df_fj_particle.columns = ['fj_particles']
-            
-            #merge D0 and fj particles into single dataframe
-            df_fjparticles = pd.merge(D0_df , df_fj_particle , on=self.unique_identifier)
+        df_D0_daughter_fjparticles = self.replace_daughter_group_fj_particles(df_fjparticles)
+ 
+        #tagging with event label
+        df_fjparticle_reindex = df_D0_daughter_fjparticles.set_index(self.unique_identifier)
 
-            df_D0_daughter_fjparticles = self.replace_daughter_group_fj_particles(df_fjparticles, IsGen)
-       
-            #rename generated tages, needed fot matching the candidate
-            if IsGen:
-                df_D0_daughter_fjparticles.rename(columns = {'ismcfd':'ismcfd_gen', 'ismcprompt':'ismcprompt_gen', 'ismcrefl':'ismcrefl_gen', 'fj_D0_particles' : 'fj_D0_particles_gen' }, inplace = True)
-
-            #tagging with event label
-            
-            df_fjparticle_reindex = df_D0_daughter_fjparticles.set_index(self.unique_identifier)
-       
-            #print(df_fjparticle_reindex)
     
-            return df_fjparticle_reindex
-
-        else:
-            pinfo('Number of D0 in the event is = ', len(D0_df.index))
-            return d0ev_df_grouped
+        return df_fjparticle_reindex
     
-        
-
-
-    def tagging_prompt_fd_reflection(self, _df, isGen):
-        # save only relevant column
-        if isGen:
-            _df =_df[['run_number', 'ev_id','ev_id_ext','ev_id_long','cand_type','pt_cand','eta_cand','phi_cand']].copy()
-        else:
-            _df =_df[['run_number', 'ev_id','ev_id_ext','ev_id_long','cand_type','pt_cand','eta_cand','phi_cand', 'inv_mass', 'pt_prong0', 'eta_prong0', 'phi_prong0', 'pt_prong1', 'eta_prong1', 'phi_prong1']].copy()
-        
-        # tag bits
-        _df[self.v_ismcfd] = np.array(tag_bit_df(_df, self.v_bitvar, self.b_mcsigfd), dtype=int)
-        _df[self.v_ismcprompt] = np.array(tag_bit_df(_df, self.v_bitvar, self.b_mcsigprompt), dtype=int)
-        _df[self.v_ismcrefl] = np.array(tag_bit_df(_df, self.v_bitvar, self.b_mcrefl), dtype=int)
-        
-        return _df
 
     def analysis(self, df):
         if len(df) > 0:
@@ -411,14 +312,11 @@ class HFAnalysis(MPBase):
 class HFAnalysisIO(MPBase):
     def __init__(self, input_file, **kwargs):
         self.configure_from_args(d0_tree_name='PWGHF_TreeCreator/tree_D0',
-                    d0_gen_tree_name='PWGHF_TreeCreator/tree_D0_gen',
                     track_tree_name='PWGHF_TreeCreator/tree_Particle',
-                    track_gen_tree_name='PWGHF_TreeCreator/tree_Particle_gen',
                     event_tree_name='PWGHF_TreeCreator/tree_event_char')
         super(HFAnalysisIO, self).__init__(**kwargs)
         self.analyses = []
         self.d0_df_grouped = None
-        self.d0_gen_df_grouped = None
         self.input_file = input_file
         
     def reset_analyses_list(self):
@@ -476,39 +374,25 @@ class HFAnalysisIO(MPBase):
 
         print("number of particles after throwing out = "+str(len(self.track_df)))
 
-        self.d0_gen_df = self.pd_tree(input_file, self.d0_gen_tree_name)
-        if self.d0_gen_df is None:
-            return False
-
-        self.track_gen_df = self.pd_tree(input_file, self.track_gen_tree_name)
-        if self.track_gen_df is None:
-            return False
-
         return True
                 
     def execute_analyses(self, m, reject_tracks_fraction, offset_indices,
-                group_by_evid, random_mass, min_pt, IsGen):
+                group_by_evid, random_mass, min_pt):
         for ana in self.analyses:
             # update_df_references
             ana.event_df 	= self.event_df
             ana.d0_df 		= self.d0_df
             ana.track_df 	= self.track_df
 
-            ana.d0_gen_df   = self.d0_gen_df
-            ana.track_gen_df = self.track_gen_df
-            df_fjparticles = ana.analyze_d0_df(m, offset_indices,
-                group_by_evid, random_mass, min_pt, IsGen)
+            df_fjparticles = ana.analyze_d0_df(m, offset_indices, group_by_evid, random_mass, min_pt)
             ana.event_df 	= None
             ana.d0_df 		= None
             ana.track_df 	= None
-            ana.d0_gen_df         = None
-            ana.track_gen_df     = None
+        
         # drop the dfs
         self.event_df = None
         self.d0_df = None
         self.track_df = None
-        self.d0_gen_df = None
-        self.track_gen_df = None
         return df_fjparticles
     
 
@@ -525,12 +409,12 @@ class HFAnalysisIO(MPBase):
   #---------------------------------------------------------------
   
     def load_data(self, m=0.1396, offset_indices=False,
-                group_by_evid=True, random_mass=False, min_pt=0., Is_treff_sys  = False, reject_tracks_fraction=0., IsGen=False):
+                group_by_evid=True, random_mass=False, min_pt=0., Is_treff_sys  = False, reject_tracks_fraction=0.):
 
         if os.path.exists(self.input_file):
             if self.load_file(self.input_file, Is_treff_sys , reject_tracks_fraction):
                 df_fjparticles = self.execute_analyses(m, reject_tracks_fraction, offset_indices,
-                group_by_evid, random_mass, min_pt, IsGen)
+                group_by_evid, random_mass, min_pt)
                 return df_fjparticles
         else:
             perror('file list does not exist', self.input_file)

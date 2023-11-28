@@ -103,7 +103,7 @@ namespace EnergyCorrelators
         ;
     }
 
-    CorrelatorBuilder::CorrelatorBuilder(const std::vector<fastjet::PseudoJet> &parts, const std::vector<fastjet::PseudoJet> Dmeson,  const double &scale, const int &nmax, const int &power, const double dphi_cut = -9999, const double deta_cut = -9999)
+    CorrelatorBuilder::CorrelatorBuilder(const std::vector<fastjet::PseudoJet> &parts,  const double &scale, const int &nmax, const int &power, const double dphi_cut = -9999, const double deta_cut = -9999)
     : fec()
     , fncmax(nmax)
     {
@@ -147,14 +147,14 @@ namespace EnergyCorrelators
 		// for i = j the RL=0
 		// currently counting the pairs twice
 		// future check the indices of track which is Dmeson and then assign the weight	
-		if (parts[i].delta_R(Dmeson[0]) == 0){	
+		/*if (parts[i].delta_R(Dmeson[0]) == 0){	
 			_w2 = (std::sqrt(parts[i].m()*parts[i].m()+parts[i].perp()*parts[i].perp()) * parts[j].perp() / std::pow(scale, 2));
 			}
 		if (parts[j].delta_R(Dmeson[0]) == 0){
                         _w2 = (std::sqrt(parts[j].m()*parts[j].m()+parts[j].perp()*parts[j].perp()) * parts[i].perp() / std::pow(scale, 2));
                         }
-
-		else  _w2 = parts[i].perp() * parts[j].perp() / std::pow(scale, 2);
+			*/
+		_w2 = parts[i].perp() * parts[j].perp() / std::pow(scale, 2);
                 
 		_w2 = pow(_w2, power);
 		fec[2 - 2]->addwr(_w2, _d12, i, j); // save weight, distance and indices of the pair

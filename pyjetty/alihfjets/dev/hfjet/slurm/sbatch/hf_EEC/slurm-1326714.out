@@ -1,0 +1,10 @@
+Wrong command line arguments
+Wrong command line arguments
+Wrong command line arguments
+Output dir: /rstorage/alice/AnalysisResults/preeti/EEC///
+Currently Loaded Modulefiles:
+ModuleCmd_List.c(146):FATAL:996: The environment variables LOADEDMODULES and _LMFILES_ have inconsistent lengths.
+usage: process_mc_hfjet_EEC_withpair.py [-h] -c configFile [-f inputFile]
+                                        [-o outputDir]
+process_mc_hfjet_EEC_withpair.py: error: argument -f/--inputFile: expected one argument
+mv: cannot stat ‘/rstorage/alice/AnalysisResults/preeti/EEC/slurm-_.out’: No such file or directory

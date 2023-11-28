@@ -58,19 +58,14 @@ def download_data(config_file):
 #---------------------------------------------------------------------------
 def download_run(parent_dir, year, period, run, train_PWG, train_name, train_number, pt_hat_bins):
 
-    if parent_dir == 'data':
-    
-        train_output_dir = '/alice/{}/{}/{}/{}/{}/{}/{}'.format(parent_dir, year, period, run, train_PWG, train_name, train_number)
-        
-        download(train_output_dir, run)
-        
-    elif parent_dir == 'sim':
-    
-        for pt_hat_bin in pt_hat_bins:
-        
-            train_output_dir = '/alice/{}/{}/{}/{}/{}/{}/{}/{}'.format(parent_dir, year, period, pt_hat_bin, run, train_PWG, train_name, train_number)
-            
-            download(train_output_dir, run, pt_hat_bin)
+	if parent_dir == 'data':
+		train_output_dir = '/alice/{}/{}/{}/{}/{}/{}/{}'.format(parent_dir, year, period, run, train_PWG, train_name, train_number)
+		download(train_output_dir, run)
+
+	elif parent_dir == 'sim':
+
+		train_output_dir = '/alice/{}/{}/{}/{}/{}/{}/{}'.format(parent_dir, year, period, run, train_PWG, train_name, train_number)
+		download(train_output_dir, run)
 
 #---------------------------------------------------------------------------
 def download(train_output_dir, run, pt_hat_bin=None):

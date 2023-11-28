@@ -2,7 +2,7 @@
 #
 # Script to merge output ROOT files
 
-JOB_ID=1246622
+JOB_ID=1382326
 OUTPUT_DIR=/rstorage/alice/AnalysisResults/preeti/EEC/$JOB_ID
 
 # Merge separate subsets, since otherwise it is too large for hadd
