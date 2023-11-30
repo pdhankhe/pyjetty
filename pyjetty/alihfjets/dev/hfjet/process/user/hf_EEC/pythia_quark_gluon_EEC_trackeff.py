@@ -440,13 +440,6 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			# full-hadron level
 			#parts_pythia_h = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal], 0, True)
 
-			# print("!! pythia hadron (before vectorization) event size is ", pythia.event.size())
-			# eventcounter = 0
-			# for event in pythia.event:
-			#     # if event.id() == 111 or event.id() == 211 or event.id() == -211: #pi0 or pi+ or pi-
-			#         # print(eventcounter, "pion with event id", event.id())
-			#     eventcounter+=1
-
 			# look at events in charged hadron??
 			# print("!! pythia hadron (after vectorization) event size is ", pythia.event.size())
 			#TODO: move this block above choosing final state charged particles??
@@ -507,15 +500,6 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			parts_pythia_hch = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal, pythiafjext.kCharged], 0, True)
 			# pythiafjext.removeByIndex(parts_pythia_hch, 1)
 
-			if ( self.replaceKPpairs ):
-				# Apply efficiency cut
-				# start_time = time.time()
-				parts_pythia_hch = self.apply_eff_cut(parts_pythia_hch)
-				# print('--- {} seconds ---'.format(time.time() - start_time))
-
-				# Reconstruct the D0
-				parts_pythia_hch = self.reconstructD0(pythia, parts_pythia_hch, D0_information)
-
 
 
 			#if D0->Kpi found, count the events; if not, check that length of charged final state hadrons vector is 0
@@ -529,15 +513,6 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 				#         print(particlecounter, "There ARE particles in this jet (but shouldn't be)", len(parts_pythia_hch))
 
 			
-			
-
-
-			# self.event = pythia.event
-			# iev_to_print = [28, 31, 32, 58, 61, 89, 110, 113, 118, 123, 137, 144, 147, 150, 161, 173, 174, 175, 185, 194, 200, 202,210,211,216, 228, 231, 236, 240, 247, 248,251, 257, 259,263, 272, 273,284, 292,301,972]
-			# if (iev in iev_to_print):
-			# if (iev<10):
-			#     print(" event printed!:", iev)
-			#     print(self.event)
 
 
 
@@ -578,8 +553,11 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			# print(eff_smearer.pass_eff_cut(pythia_particle_pt))
 			if (not eff_smearer.pass_eff_cut(pythia_particle_pt)): #if True, keep, if False, get rid of particle
 				indices_to_be_removed.append(count)
-		for index in reversed(indices_to_be_removed):
-			pythia_particles = pythiafjext.removeByIndex(pythia_particles, index) # TODO: do this in python?
+		# for index in reversed(indices_to_be_removed):
+		# 	pythia_particles = pythiafjext.removeByIndex(pythia_particles, index) # TODO: do this in python?
+		reversed_indices_to_be_removed = list(reversed(indices_to_be_removed))
+		print(reversed_indices_to_be_removed)
+		pythia_particles = pythiafjext.removeByIndex(pythia_particles, reversed_indices_to_be_removed) # TODO: do this in python?
 		# print("check items to remove", len(indices_to_be_removed))
 		# print("check new length", og_len_pythia_particles - len(pythia_particles))
 
