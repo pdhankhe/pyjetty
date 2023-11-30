@@ -500,7 +500,16 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			parts_pythia_hch = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal, pythiafjext.kCharged], 0, True)
 			# pythiafjext.removeByIndex(parts_pythia_hch, 1)
 
+			if ( self.replaceKPpairs ):
+ 				# Apply efficiency cut
+ 				# start_time = time.time()
+ 				parts_pythia_hch = self.apply_eff_cut(parts_pythia_hch)
+ 				# print('--- {} seconds ---'.format(time.time() - start_time))
 
+ 				# Reconstruct the D0
+ 				parts_pythia_hch = self.reconstructD0(pythia, parts_pythia_hch, D0_information)
+
+				
 
 			#if D0->Kpi found, count the events; if not, check that length of charged final state hadrons vector is 0
 			if (D0Kpidecayfound):
