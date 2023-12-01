@@ -455,7 +455,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 				if particle.id() == 421 or particle.id() == -421: #D0
 					D0found = True
 					if self.checkDecayChannel(particle, self.event) == EMesonDecayChannel.kDecayD0toKpi or self.checkDecayChannel(particle, self.event) == EMesonDecayChannel.kDecayDStartoKpipi:
-						print(particlecounter, "This is a D0->Kpi decay!", particle.id())
+						# print(particlecounter, "This is a D0->Kpi decay!", particle.id())
 						D0Kpidecayfound = True
 						D0_information.append(self.getD0_information(particle, self.event))
 
@@ -565,7 +565,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 		# for index in reversed(indices_to_be_removed):
 		# 	pythia_particles = pythiafjext.removeByIndex(pythia_particles, index) # TODO: do this in python?
 		reversed_indices_to_be_removed = list(reversed(indices_to_be_removed))
-		print(reversed_indices_to_be_removed)
+		# print(reversed_indices_to_be_removed)
 		pythia_particles = pythiafjext.removeByIndex(pythia_particles, reversed_indices_to_be_removed) # TODO: do this in python?
 		# print("check items to remove", len(indices_to_be_removed))
 		# print("check new length", og_len_pythia_particles - len(pythia_particles))

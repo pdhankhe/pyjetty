@@ -906,7 +906,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 				# print("index", pythiafjext.getPythia8Particle(c_sel).index(), "id", pythiafjext.getPythia8Particle(c_sel).id(), "userindex", c_sel.user_index())
 #            new_corr = ecorrel.CorrelatorBuilder(c_select, dcand, jet_pt_ungroomed, 2, 1, dphi_cut, deta_cut) #jet, D, scale, max, power, dphicut, detacut
 			if (self.softpion_action == 2):
-				new_corr = ecorrel.CorrelatorBuilder(c_select, self.D0particleinfo_psjet, self.softpion_particleinfo_psjet, jet.perp(), 2, 1, dphi_cut, deta_cut)
+				new_corr = ecorrel.CorrelatorBuilder(c_select, self.D0particleinfo_psjet, self.softpion_particleinfo_psjet, jet.perp(), 2, 1, dphi_cut, deta_cut, False)
 			elif (self.softpion_action == 3):
 				new_corr = ecorrel.CorrelatorBuilder(self.D0particleinfo_psjet, self.softpion_particleinfo_psjet, jet.perp(), 2, 1, dphi_cut, deta_cut, True)
 			elif (self.softpion_action == 4):
