@@ -579,6 +579,18 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 				p = parent1
 		return p
 
+
+	# trk_thrd default set 0, meaning all tracks would pass
+	def checkIfPartInJetConst(self, jet_const_arr, pythia_particle_index, trk_thrd=0):
+		in_jet = False
+		for c in jet_const_arr:
+			# print("jet const user index", c.user_index(), pythiafjext.getPythia8Particle(c).name())
+			if (c.user_index() == pythia_particle_index and c.pt() >= trk_thrd):
+				in_jet = True
+				# print("ifpartinjet", c.user_index(), pythia_particle_index)
+				break
+		return in_jet
+
 	#---------------------------------------------------------------
 	# Find jets, do matching between levels, and fill histograms
 	#---------------------------------------------------------------
@@ -719,7 +731,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 									# get the soft pion
 									if (self.checkD0motherIsDstar(self.D0particleinfo, self.event)):
 										# print("mother is in fact a Dstar")
-										softpion_index = self.getSoftPion(self.D0particleinfo, self.event)
+										softpion_index = self.getSoftPion(self.D0particleinfo, self.event, jet.constituents())
 										# print("the soft pion index is", softpion_index)
 										if softpion_index == -1:
 											self.softpion_particleinfo_psjet = None
@@ -1100,7 +1112,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 		return motherisDstar
 	
 
-	def getSoftPion(self, D0particle, event):
+	def getSoftPion(self, D0particle, event, jet_const_arr):
 		softpion_index = -1
 		
 		Dstar_index = D0particle.motherList()[0]
@@ -1114,8 +1126,9 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 		# also check that the pion is in the jet constituents
 		# print("softpion index", softpion_index)
 		if len(jet_const_arr) > 0:
-			if (self.checkIfPartInJetConst(jet_const_arr, softpion_index) == False):
+			if (self.checkIfPartInJetConst(jet_const_arr, softpion_index, 1) == False):
 				softpion_index = -1
+				# print("  softpion index, softpion not in jet", softpion_index)
 
 		return softpion_index
 

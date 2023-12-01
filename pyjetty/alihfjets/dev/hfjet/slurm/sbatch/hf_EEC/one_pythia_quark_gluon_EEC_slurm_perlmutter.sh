@@ -60,7 +60,7 @@ CONFIG="${BASEDIR}/pyjetty/pyjetty/alihfjets/dev/hfjet/config/hf_EEC/configcuts_
 
 
 pipenv run python $SCRIPT -c $CONFIG --output-dir $OUTDIR --user-seed $SEED \
-    --py-pthatmin 45 --py-ecm 13000 --nev 375000 \
+    --py-pthatmin 45 --py-ecm 13000 --nev 1000 \
     --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2,PhaseSpace:pTHatMax=57 --replaceKP 1 --chinitscat 3 --DstarON 1 --difNorm 1
 
 
