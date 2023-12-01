@@ -2,6 +2,7 @@
 
 
 import numpy as np
+np.random.BitGenerator = np.random.bit_generator.BitGenerator
 import argparse
 import os
 from array import array
@@ -25,7 +26,7 @@ import time
 import ecorrel
 ROOT.gROOT.SetBatch(True)
 
-
+#CODE TO RUN --> ./process_data_hfjet_jetaxes_diff.py -c ../../../config/hf_jetaxes/configcuts_ptbin.yaml -f /rstorage/alice/data/LHC17pq/448/20-06-2020/448_20200619-0610/unmerged/child_1/2029/AnalysisResults.root
 
 
 import ROOT
@@ -93,7 +94,20 @@ class HFAnalysisInvMass(hfdio.HFAnalysis, process_base.ProcessBase):
         setattr(self, name, h)
         
         title = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'Invmass', '#it{#Delta R}']
-        delta_R = np.linspace(0, 0.8, 161)
+        
+        #needed to fix bins here
+        delta_R = np.linspace(-0.05, 0.8, 171) #need to change bins size
+        
+        
+        #delta_R = np.empty(171)
+        #begin = -0.05
+        #step = 0.005
+        #for i in range(len(delta_R)):
+        #    delta_R[i] = begin
+        #    begin+=step
+
+        print(delta_R)
+
         pt_bins_jet = np.linspace(0, 60, 61)
         pt_bins_dmeson = np.linspace(0, 60, 61)
         dmeson_mass_bin = np.linspace(1.7, 2.07, 371)
@@ -112,7 +126,7 @@ class HFAnalysisInvMass(hfdio.HFAnalysis, process_base.ProcessBase):
         xmax_array = array('d', xmax)
         
         for observable in self.observable_list:
-            name = 'hsparse_R{}_{}'.format(self.JetR, observable)
+            name = 'hsparse_R{}_{}'.format(self.JetR, observable)#self.JetR
             h = ROOT.THnSparseD( name, name, dim,  nbins_array, xmin_array, xmax_array)
             h.Sumw2()
             for axis in range(0,dim):
@@ -163,55 +177,71 @@ class HFAnalysisInvMass(hfdio.HFAnalysis, process_base.ProcessBase):
             if len(djets) > 0:
                 j = djets[0]
                 dcand = djmm.get_Dcand_in_jet(j)
-                
+                print("valid djet")
                 #jets with the winner take all axis################################
                 jet_def_wta = fj.JetDefinition(fj.cambridge_algorithm, 2*self.JetR)
                 jet_def_wta.set_recombination_scheme(fj.WTA_pt_scheme)
                 reclusterer_wta =  fjcontrib.Recluster(jet_def_wta)
                 jet_wta = reclusterer_wta.result(j)
                 ################################
-
-            
-                ##jets with the SD axis################################
+                print("jet_wta = ",jet_wta)
+                print("dcand[0] = ",dcand[0])          
+                print("WTA-D0 = ",jet_wta.delta_R(dcand[0]))
+                ##jets with the SD axis################################ 
                 gshop = fjcontrib.GroomerShop(j, self.JetR, fj.cambridge_algorithm)
                 #gshop.soft_drop(beta, zcut, jetR)
                 jet_groomed_lund = gshop.soft_drop(self.sd_beta,self.sd_zcut,self.JetR)
                 jet_groomed = jet_groomed_lund.pair()
-                
+                 
                 deltaR=jet_groomed.delta_R(dcand[0])
                 deltaR_STD_SD=j.delta_R(jet_groomed)
                 deltaR_WTA_SD=jet_wta.delta_R(jet_groomed)
-		
+                print("first deltaR = ",deltaR,", first deltaR_STD_SD = ",deltaR_STD_SD,"deltaR_WTA_SD = ",deltaR_WTA_SD)
+
                 print("number of constitutent"+str(len(j.constituents())))
+                if len(j.constituents())<1:
+                    continue;
                 #print("number of constitutent after"+str(len(jet_groomed.constituents())))
                 print("after grooming="+str(jet_groomed_lund.Delta()))
                 if jet_groomed_lund.Delta() < 0:
-                    deltaR=-0.005
-                    deltaR_STD_SD=-0.005
-                    deltaR_WTA_SD=-0.005
+                    deltaR=-0.05
+                    #print(deltaR)
+                    deltaR_STD_SD=-0.05
+                    deltaR_WTA_SD=-0.05
                 print("deltaR_STD_SD="+str(deltaR_STD_SD))
                 print("deltaR_WTA_SD="+str(deltaR_WTA_SD))
                 #################################
                 
+                #if j.delta_R(dcand[0]):
+                print("STD-D0 = ",j.delta_R(dcand[0]))
                 x_array = array( 'd', ( j.perp(), dcand[0].perp(), dcand[0].m(), j.delta_R(dcand[0])))
                 getattr(self, 'hsparse_R{}_{}'.format(self.JetR, self.observable_list[0])).Fill(x_array)
                 
+                #if jet_wta.delta_R(dcand[0])>=0:
+                print("WTA-D0 = ",jet_wta.delta_R(dcand[0]))
                 x_array = array( 'd', ( j.perp(), dcand[0].perp(), dcand[0].m(), jet_wta.delta_R(dcand[0])))
                 getattr(self, 'hsparse_R{}_{}'.format(self.JetR, self.observable_list[1])).Fill(x_array)
                 
+                #if deltaR:
+                print("SD-D0 = ",deltaR)
                 x_array = array( 'd', ( j.perp(), dcand[0].perp(), dcand[0].m(), deltaR))
                 getattr(self, 'hsparse_R{}_{}'.format(self.JetR, self.observable_list[2])).Fill(x_array)
                 
+                #if j.delta_R(jet_wta):
+                print("STD-WTA = ",j.delta_R(jet_wta))
                 x_array = array( 'd', ( j.perp(), dcand[0].perp(), dcand[0].m(), j.delta_R(jet_wta)))
                 getattr(self, 'hsparse_R{}_{}'.format(self.JetR, self.observable_list[3])).Fill(x_array)
                 
+                #if deltaR_WTA_SD:
+                print("WTA-SD = ",deltaR_WTA_SD)                     
                 x_array = array( 'd', ( j.perp(), dcand[0].perp(), dcand[0].m(), deltaR_WTA_SD))
                 getattr(self, 'hsparse_R{}_{}'.format(self.JetR, self.observable_list[4])).Fill(x_array)
                 
+                #if deltaR_STD_SD:
+                print("STD-SD = ",deltaR_STD_SD)
                 x_array = array( 'd', ( j.perp(), dcand[0].perp(), dcand[0].m(), deltaR_STD_SD))
                 getattr(self, 'hsparse_R{}_{}'.format(self.JetR, self.observable_list[5])).Fill(x_array)
-                
-                
+                                
                 getattr(self, 'hjetpt').Fill(j.pt(), jet_wta.pt(), jet_groomed.pt())
 
             if len(djets) > 1:
@@ -261,7 +291,7 @@ if __name__ == '__main__':
     #topomatic cut suggested by D2H.
     hfa.d0_selection.add_selection_range_abs('max_norm_d0d0exp',2)
     hfa.d0_selection.add_selection_range('pt_cand', 2, 1e3)
-    hfa.d0_selection.add_selection_range_abs('eta_cand', 0.8)
+    hfa.d0_selection.add_selection_range_abs('eta_cand', 0.7)
     hfa.d0_selection.add_selection_nsig('nsigTPC_Pi_0', 'nsigTOF_Pi_0', 'nsigTPC_K_1', 'nsigTOF_K_1', 'nsigTPC_Pi_1', 'nsigTOF_Pi_1', 'nsigTPC_K_0', 'nsigTOF_K_0', 3, -900)
 
     hfa.d0_gen_selection.add_selection_range('dau_in_acc',0, 1.1)
