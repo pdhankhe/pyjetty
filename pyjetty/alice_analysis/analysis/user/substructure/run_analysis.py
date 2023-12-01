@@ -272,11 +272,11 @@ class RunAnalysis(common_base.CommonBase):
     # Write hepdata submission
     #if self.do_plot_final_result:
     #    self.write_hepdata()
-<<<<<<< HEAD
-    print("LOOPED THROUGH JET RADII!")
-=======
 
->>>>>>> c85ca062c69e594479b16dcd883aac0f7f39ca4d
+    print("LOOPED THROUGH JET RADII!")
+
+
+
     # Plot additional performance plots
     if self.do_plot_performance:
       self.plot_performance() # You must implement this
