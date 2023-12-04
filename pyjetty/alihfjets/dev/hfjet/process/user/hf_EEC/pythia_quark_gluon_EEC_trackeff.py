@@ -413,7 +413,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			if not pythia.next():
 				continue
 
-			if (iev%10000 == 0):
+			if (iev%1000 == 0):
 				print("Event", iev)
 			# print("============ NEW EVENT ============", iev)
 
@@ -551,23 +551,18 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 	def apply_eff_cut(self, pythia_particles):
 
 		# print("length", len(pythia_particles))
-		og_len_pythia_particles = len(pythia_particles)
+		# og_len_pythia_particles = len(pythia_particles)
 		# Apply efficiency cut for fastjet particles
 		eff_smearer = alice_efficiency.AliceChargedParticleEfficiency()
 		# pythia_particles_pt = [np.sqrt(p.px()*p.px() + p.py()*p.py()) for p in pythia_particles]
 		# for p in pythia_particles:
-		indices_to_be_removed = []
-		for count, p in enumerate(pythia_particles):
-			pythia_particle_pt = np.sqrt(p.px()*p.px() + p.py()*p.py())
-			# print(eff_smearer.pass_eff_cut(pythia_particle_pt))
-			if (not eff_smearer.pass_eff_cut(pythia_particle_pt)): #if True, keep, if False, get rid of particle
-				indices_to_be_removed.append(count)
-		# for index in reversed(indices_to_be_removed):
-		# 	pythia_particles = pythiafjext.removeByIndex(pythia_particles, index) # TODO: do this in python?
-		reversed_indices_to_be_removed = list(reversed(indices_to_be_removed))
+
+		pythia_particles_pt = [np.sqrt(p.px()*p.px() + p.py()*p.py()) for p in pythia_particles]
+		ind_to_be_removed = [ind for ind, x in enumerate(pythia_particles_pt) if not eff_smearer.pass_eff_cut(x)]
+		reversed_indices_to_be_removed = list(reversed(ind_to_be_removed))
 		# print(reversed_indices_to_be_removed)
 		pythia_particles = pythiafjext.removeByIndex(pythia_particles, reversed_indices_to_be_removed) # TODO: do this in python?
-		# print("check items to remove", len(indices_to_be_removed))
+		# print("check items to remove", len(ind_to_be_removed))
 		# print("check new length", og_len_pythia_particles - len(pythia_particles))
 
 		# df = df[df["ParticlePt"].map(lambda x: eff_smearer.pass_eff_cut(x))]
@@ -589,6 +584,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 				p = parent1
 		return p
 
+
 	#---------------------------------------------------------------
 	# Reconstruct D0
 	#---------------------------------------------------------------
@@ -608,8 +604,8 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			D0_daughter_index2 = info[2]
 
 			counter = 0
-			
 			canReconstruct = False
+			# start_time = time.time()
 			for p in pythia_particles:
 				# print("D0 index", info[0], "D0 dau1 index", D0_daughter_index1, "D0 dau2 index", D0_daughter_index2)
 				# print("p.user_index", p.user_index()) #, "D0 index", event[info[0]].user_index(), "D0 dau1 user_index", event[D0_daughter_index1].user_index(), "D0 dau2 user_index", event[D0_daughter_index2].user_index())
@@ -621,6 +617,17 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 					canReconstruct = True
 					break
 			canReconstruct_arr.append(canReconstruct)
+			# print('--- {} seconds ---'.format(time.time() - start_time))
+
+			# #method 2: list comprehension
+			# start_time2 = time.time()
+			# part_user_indices = [True for p in pythia_particles if (p.user_index() == D0_daughter_index1 or p.user_index() == D0_daughter_index2)]
+			# if (sum(part_user_indices) == 2): #There are 2 True's in the part_user_indices array
+			# 	# canReconstruct = True
+			# 	print("true")
+			# print('--- {} seconds ---'.format(time.time() - start_time2))
+			
+
 		
 		#reconstruct any D0s
 		# print("canReconstruct_Arr", canReconstruct_arr)
@@ -778,7 +785,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 						# print("D0 index from pythiafjext", pythiafjext.getPythia8Particle(c).index())
 						# print("D0 user_index from pythiafjext", c.user_index())
 						if (constituent_pdg_idabs == 421): #TODO: this is assuming there is only one D0 per jet!
-							print("The decay channel is ", self.checkDecayChannel(pythiafjext.getPythia8Particle(c), self.event))
+							# print("The decay channel is ", self.checkDecayChannel(pythiafjext.getPythia8Particle(c), self.event))
 							if (self.checkDecayChannel(pythiafjext.getPythia8Particle(c), self.event) == EMesonDecayChannel.kDecayD0toKpi): # or self.checkDecayChannel(pythiafjext.getPythia8Particle(c), self.event) == EMesonDecayChannel.kDecayDStartoKpipi ):
 								# print("Check the momentum!", pythiafjext.getPythia8Particle(c).px(), pythiafjext.getPythia8Particle(c).py())
 								self.getD0Info(pythiafjext.getPythia8Particle(c))
@@ -872,7 +879,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 					if (Dstartaggedjet): #self.DstarKpipidecayfound):
 						self.hDstarNjets.Fill(0) 
 
-					print("filling jet level thnsparse")
+					# print("filling jet level thnsparse")
 					for parton_type in parton_types:
 							# fill jet pt histogram to give the normalization
 							self.fsparsejetlevelJetvalue[0] = jet.pt()
@@ -909,7 +916,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 						observable, jet, jet_groomed_lund, jetR, jet.pt())
 
 
-					print("filling pair level thnsparse")
+					# print("filling pair level thnsparse")
 					for index in range(obs.correlator(2).rs().size()):
 						for parton_type in parton_types:
 							#fill parton hnsparse info

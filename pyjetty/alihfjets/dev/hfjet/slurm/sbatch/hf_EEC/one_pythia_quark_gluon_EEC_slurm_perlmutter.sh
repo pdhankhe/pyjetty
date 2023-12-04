@@ -55,7 +55,7 @@ module use ${BASEDIR}/pyjetty/modules
 module load pyjetty/1.0
 echo "python is" $(which python)
 cd ${BASEDIR}/pyjettyenv/
-SCRIPT="${BASEDIR}/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_EEC/pythia_quark_gluon_EEC.py"
+SCRIPT="${BASEDIR}/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_EEC/pythia_quark_gluon_EEC_trackeff.py"
 CONFIG="${BASEDIR}/pyjetty/pyjetty/alihfjets/dev/hfjet/config/hf_EEC/configcuts_ptbin.yaml"
 
 
