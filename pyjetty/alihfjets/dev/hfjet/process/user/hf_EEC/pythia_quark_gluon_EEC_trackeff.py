@@ -402,6 +402,10 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			count2 = 0  # Number of partonic parents which match to zero ch-jets
 			setattr(self, "count2_R%s" % jetR_str, count2)
 
+		# initialize track efficiency smearer
+		eff_smearer = alice_efficiency.AliceChargedParticleEfficiency()
+		setattr(self, "eff_smearer", eff_smearer)
+
 	#---------------------------------------------------------------
 	# Calculate events and pass information on to jet finding
 	#---------------------------------------------------------------
@@ -413,7 +417,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			if not pythia.next():
 				continue
 
-			if (iev%1000 == 0):
+			if (iev%10000 == 0):
 				print("Event", iev)
 			# print("============ NEW EVENT ============", iev)
 
@@ -426,8 +430,6 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 
 			# Save PDG code of the parent partons
 			self.parent_ids = [pythia.event[5].id(), pythia.event[6].id()]
-
-
 
 
 			# parton level
@@ -500,16 +502,21 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			parts_pythia_hch = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal, pythiafjext.kCharged], 0, True)
 			# pythiafjext.removeByIndex(parts_pythia_hch, 1)
 
+			# apply track selector
+			track_selector_ch = getattr(self, "track_selector_ch")
+			parts_pythia_hch_selected = fj.vectorPJ(track_selector_ch(parts_pythia_hch))
+
 			if ( self.replaceKPpairs ):
  				# Apply efficiency cut
  				# start_time = time.time()
- 				parts_pythia_hch = self.apply_eff_cut(parts_pythia_hch)
+ 				parts_pythia_hch_witheffcut = self.apply_eff_cut(parts_pythia_hch_selected)
  				# print('--- {} seconds ---'.format(time.time() - start_time))
 
  				# Reconstruct the D0
- 				parts_pythia_hch = self.reconstructD0(pythia, parts_pythia_hch, D0_information)
+ 				# start_time = time.time()
+ 				parts_pythia_hch_final = self.reconstructD0(pythia, parts_pythia_hch_witheffcut, D0_information)
+ 				# print('--- {} seconds ---'.format(time.time() - start_time))
 
-				
 
 			#if D0->Kpi found, count the events; if not, check that length of charged final state hadrons vector is 0
 			if (D0Kpidecayfound):
@@ -541,7 +548,8 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 
 			# Some "accepted" events don't survive hadronization step -- keep track here
 			self.hNevents.Fill(0)
-			self.find_jets_fill_histograms(parts_pythia_hch, iev, D0Kpidecayfound)
+			# self.find_jets_fill_histograms(parts_pythia_hch_witheffcut, iev, D0Kpidecayfound)
+			self.find_jets_fill_histograms(parts_pythia_hch_final, iev, D0Kpidecayfound)
 
 			iev += 1
 
@@ -553,22 +561,54 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 		# print("length", len(pythia_particles))
 		# og_len_pythia_particles = len(pythia_particles)
 		# Apply efficiency cut for fastjet particles
-		eff_smearer = alice_efficiency.AliceChargedParticleEfficiency()
+		stime = time.time()
+		# eff_smearer = alice_efficiency.AliceChargedParticleEfficiency()
+		eff_smearer = getattr(self, "eff_smearer")
+		# print('IS SHE HER: --- {} seconds ---'.format(time.time() - stime))
 		# pythia_particles_pt = [np.sqrt(p.px()*p.px() + p.py()*p.py()) for p in pythia_particles]
 		# for p in pythia_particles:
 
+		# starttime = time.time()
 		pythia_particles_pt = [np.sqrt(p.px()*p.px() + p.py()*p.py()) for p in pythia_particles]
 		ind_to_be_removed = [ind for ind, x in enumerate(pythia_particles_pt) if not eff_smearer.pass_eff_cut(x)]
+		# ind_to_be_removed = [ind for ind, x in enumerate(pythia_particles_pt) if False]
 		reversed_indices_to_be_removed = list(reversed(ind_to_be_removed))
 		# print(reversed_indices_to_be_removed)
-		pythia_particles = pythiafjext.removeByIndex(pythia_particles, reversed_indices_to_be_removed) # TODO: do this in python?
+		pythia_particles_new = pythiafjext.removeByIndex(pythia_particles, reversed_indices_to_be_removed) # TODO: do this in python?
+		# print('method 1: --- {} seconds ---'.format(time.time() - starttime))
+		
 		# print("check items to remove", len(ind_to_be_removed))
 		# print("check new length", og_len_pythia_particles - len(pythia_particles))
 
 		# df = df[df["ParticlePt"].map(lambda x: eff_smearer.pass_eff_cut(x))]
 		# print("%i out of %i total truth tracks deleted after efficiency cut." % \
 		#       (self.nTracks_truth - len(df), self.nTracks_truth))
-		return pythia_particles
+
+		'''
+		#NEW, based on Kyle's code
+		starttime2 = time.time()
+		i = 0
+		parts_pythia_p_witheffcut = fj.vectorPJ()
+		for part in pythia_particles:
+			part.set_user_index(i)
+			
+			# track efficiency
+			pt_calc = np.sqrt(part.px()*part.px() + part.py()*part.py())
+			if eff_smearer.pass_eff_cut(pt_calc):
+			# if True:
+				new_part = fj.PseudoJet(part.px(), part.py(), part.pz(), part.E())
+				new_part.set_user_index(part.user_index())
+				parts_pythia_p_witheffcut.push_back(new_part)
+				
+			i += 1
+		print('method 2: --- {} seconds ---'.format(time.time() - starttime2))
+		
+		# print("length, meth1", len(pythia_particles_new))
+		# print("length, meth2", len(parts_pythia_p_witheffcut))
+		'''
+
+
+		return pythia_particles_new
 
 	#---------------------------------------------------------------
 	# Find primordial parent
@@ -671,7 +711,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			jetR_str = str(jetR).replace('.', '')
 			jet_selector = getattr(self, "jet_selector_R%s" % jetR_str)
 			jet_def = getattr(self, "jet_def_R%s" % jetR_str)
-			track_selector_ch = getattr(self, "track_selector_ch")
+			# track_selector_ch = getattr(self, "track_selector_ch")
 
 			count1 = getattr(self, "count1_R%s" % jetR_str)
 			count2 = getattr(self, "count2_R%s" % jetR_str)
@@ -679,9 +719,10 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			# Get the jets at different levels
 			#jets_p  = fj.sorted_by_pt(jet_selector(jet_def(parts_pythia_p  ))) # parton level
 			#jets_h  = fj.sorted_by_pt(jet_selector(jet_def(parts_pythia_h  ))) # full hadron level
-			jets_ch = fj.sorted_by_pt(jet_selector(jet_def(track_selector_ch(parts_pythia_hch)))) # charged hadron level
+			# jets_ch = fj.sorted_by_pt(jet_selector(jet_def(track_selector_ch(parts_pythia_hch)))) # charged hadron level
+			jets_ch = fj.sorted_by_pt(jet_selector(jet_def(parts_pythia_hch))) # charged hadron level, applied track selector earlier
 			# print("!! length of jets_ch", len(jets_ch))
-
+			
 			R_label = str(jetR).replace('.', '') + 'Scaled'
 
 			# look at events in charged hadron??

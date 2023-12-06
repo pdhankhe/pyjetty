@@ -171,7 +171,7 @@ TLine * drawHoriLine(double x1, double x2, double y1, int color, int linestyle=2
 }
 
 
-void make_qg_plots_Dstar() {
+void Dstar_addition_check() {
 
 //    gROOT->SetBatch(); //prevents plots from showing up
     gStyle->SetOptStat(0);
@@ -236,59 +236,60 @@ void make_qg_plots_Dstar() {
     TString label1 = "";
     TString label2 = "";  
     // if (compareD0) { 
-    // f = new TFile(infile_D0, "READ");
-    // f2 = new TFile(infile_Dstar, "READ");
-    // add_name = "_Dstar_17412030.pdf";
-    if (plot_case == 0) {
-        f = new TFile(infile_D0, "READ");
-        f2 = new TFile(infile_D0_Preeti, "READ");
-        add_name = "_Dstar_plot_case0.pdf";
-    } else if (plot_case == 1) {
-        f = new TFile(infile_D0, "READ");
-        f2 = new TFile(infile_Dstar, "READ");
-        if (unnormalized == true) {
-            add_name = "_Dstar_plot_case1_unnormalized.pdf";
-        } else {
-            add_name = "_Dstar_plot_case1.pdf";
-        }
-    } else if (plot_case == 2) {
-        f = new TFile(infile_D0, "READ");
-        f2 = new TFile(infile_Dstar_difNorm, "READ");
-        if (unnormalized == true) {
-            add_name = "_Dstar_plot_case2_unnormalized.pdf";
-        } else {
-            add_name = "_Dstar_plot_case2.pdf";
-        }
-    } else if (plot_case == 3) {
-        f = new TFile(infile_D0, "READ");
-        f2 = new TFile(infile_D0wDstar_difNorm, "READ");
-        add_name = "_Dstar_plot_case3.pdf";
-    } else if (plot_case == 4) {
-        f = new TFile(infile_Dstar_difNorm, "READ");
-        f2 = new TFile(infile_Dstar_difNorm_softpionremoved, "READ");
-        add_name = "_Dstar_plot_case4.pdf";
-    } else if (plot_case == 5) {
-        f = new TFile(infile_Dstar_difNorm, "READ");
-        f2 = new TFile(infile_Dstar_difNorm_justsoftpion_noD0, "READ");
-        add_name = "_Dstar_plot_case5.pdf";
-    } else if (plot_case == 6) {
-        f = new TFile(infile_Dstar_difNorm, "READ");
-        f2 = new TFile(infile_Dstar_difNorm_justsoftpionwD0, "READ");
-        add_name = "_Dstar_plot_case6.pdf";
-    } else if (plot_case == 7) {
-        f = new TFile(infile_Dstar_difNorm, "READ");
-        f2 = new TFile(infile_Dstar_difNorm_justsoftpion, "READ");
-        add_name = "_Dstar_plot_case7.pdf";
-    }
+    f = new TFile(infile_D0, "READ");
+    f2 = new TFile(infile_Dstar_difNorm, "READ");
+    TFile* f3 = new TFile(infile_D0wDstar_difNorm, "READ");
+    add_name = "_Dstar_addition_check.pdf";
+    // if (plot_case == 0) {
+    //     f = new TFile(infile_D0, "READ");
+    //     f2 = new TFile(infile_D0_Preeti, "READ");
+    //     add_name = "_Dstar_plot_case0.pdf";
+    // } else if (plot_case == 1) {
+    //     f = new TFile(infile_D0, "READ");
+    //     f2 = new TFile(infile_Dstar, "READ");
+    //     if (unnormalized == true) {
+    //         add_name = "_Dstar_plot_case1_unnormalized.pdf";
+    //     } else {
+    //         add_name = "_Dstar_plot_case1.pdf";
+    //     }
+    // } else if (plot_case == 2) {
+    //     f = new TFile(infile_D0, "READ");
+    //     f2 = new TFile(infile_Dstar_difNorm, "READ");
+    //     if (unnormalized == true) {
+    //         add_name = "_Dstar_plot_case2_unnormalized.pdf";
+    //     } else {
+    //         add_name = "_Dstar_plot_case2.pdf";
+    //     }
+    // } else if (plot_case == 3) {
+    //     f = new TFile(infile_D0, "READ");
+    //     f2 = new TFile(infile_D0wDstar_difNorm, "READ");
+    //     add_name = "_Dstar_plot_case3.pdf";
+    // } else if (plot_case == 4) {
+    //     f = new TFile(infile_Dstar_difNorm, "READ");
+    //     f2 = new TFile(infile_Dstar_difNorm_softpionremoved, "READ");
+    //     add_name = "_Dstar_plot_case4.pdf";
+    // } else if (plot_case == 5) {
+    //     f = new TFile(infile_Dstar_difNorm, "READ");
+    //     f2 = new TFile(infile_Dstar_difNorm_justsoftpion_noD0, "READ");
+    //     add_name = "_Dstar_plot_case5.pdf";
+    // } else if (plot_case == 6) {
+    //     f = new TFile(infile_Dstar_difNorm, "READ");
+    //     f2 = new TFile(infile_Dstar_difNorm_justsoftpionwD0, "READ");
+    //     add_name = "_Dstar_plot_case6.pdf";
+    // } else if (plot_case == 7) {
+    //     f = new TFile(infile_Dstar_difNorm, "READ");
+    //     f2 = new TFile(infile_Dstar_difNorm_justsoftpion, "READ");
+    //     add_name = "_Dstar_plot_case7.pdf";
+    // }
     cout << "output name will be " << add_name << endl;
 
     // Output directory
     //std::string outdir = "/rstorage/alice/AnalysisResults/ang/1224559/plots/";
-    std::string outdir = "plots/final/15-30/";//"plots/test/";
+    std::string outdir = "plots/";//"plots/test/";
     // Output file for binned results
-    std::string outfile = outdir + "AnalysisResultsFinal_afteranalysis.root";
+    // std::string outfile = outdir + "AnalysisResultsFinal_afteranalysis.root";
     //std::string outfile = outdir + "AnalysisResultsFinal_test.root";
-    TFile* f_out = new TFile(outfile.c_str(), "RECREATE");
+    // TFile* f_out = new TFile(outfile.c_str(), "RECREATE");
 
     // Angularity alpha value
 //    std::string alpha_list[] = { "1", "1.5", "2", "3" };
@@ -433,60 +434,97 @@ void make_qg_plots_Dstar() {
             cout << "numDtaggedjets_fromhist_eff " << numDtaggedjets_fromhist_eff << endl;
 
 
-            // Set normalization
-            if (unnormalized == false) {
-                hD0->Scale(1/numjets_charm, "width");
-            }
-            // hc->Scale(numDtaggedjets, "width"); // this is wrong - maybe bc EEC is scaled when saved to root file
+            // // Set normalization
+            // if (unnormalized == false) {
+            //     hD0->Scale(1/numjets_charm, "width");
+            // }
+            // // hc->Scale(numDtaggedjets, "width"); // this is wrong - maybe bc EEC is scaled when saved to root file
 
             
             TH1* hDstar;
-            if (plot_case == 0) {
-                hDstar = (TH1*) f2->Get(D0_jet_name.c_str());
-            } else {
-                // Find D* histogram
-                THnSparse* hsparsejet_c_Dstar = (THnSparse*) f2->Get(hc_name.c_str());
-                THnSparse* hsparsejet_c_Dstar_jetlevel = (THnSparse*) f2->Get(hc_jet_name.c_str());
-                // TH1* hc1D_jet = (TH1*) f->Get(hc_jet_name.c_str()); 
+            
+            // Find D* histogram
+            THnSparse* hsparsejet_c_Dstar = (THnSparse*) f2->Get(hc_name.c_str());
+            THnSparse* hsparsejet_c_Dstar_jetlevel = (THnSparse*) f2->Get(hc_jet_name.c_str());
+            // TH1* hc1D_jet = (TH1*) f->Get(hc_jet_name.c_str()); 
 
-                // for THnSparse: make clone to work with, make cuts, get projection
-                THnSparse *hsparsejet_c_Dstar_clone = (THnSparse *) hsparsejet_c_Dstar->Clone("hsparsejet_c_Dstar_clone");
-                THnSparse *hsparsejet_c_Dstar_jetlevel_clone = (THnSparse *) hsparsejet_c_Dstar_jetlevel->Clone("hsparsejet_c_Dstar_jetlevel_clone");
+            // for THnSparse: make clone to work with, make cuts, get projection
+            THnSparse *hsparsejet_c_Dstar_clone = (THnSparse *) hsparsejet_c_Dstar->Clone("hsparsejet_c_Dstar_clone");
+            THnSparse *hsparsejet_c_Dstar_jetlevel_clone = (THnSparse *) hsparsejet_c_Dstar_jetlevel->Clone("hsparsejet_c_Dstar_jetlevel_clone");
 
-                // get jet pT range
-                hsparsejet_c_Dstar_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max); // apply cut on jet pt
-                hsparsejet_c_Dstar_clone->GetAxis(1)->SetRangeUser(5., pt_max); // apply cut on Dmeson pt
-                hsparsejet_c_Dstar_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8); // apply cut on Dmeson rapidity
-                hsparsejet_c_Dstar_jetlevel_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max); // apply cut on jet pt
-                hsparsejet_c_Dstar_jetlevel_clone->GetAxis(1)->SetRangeUser(5., pt_max); // apply cut on Dmeson pt
-                hsparsejet_c_Dstar_jetlevel_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8); // apply cut on Dmeson rapidity
-                // hc2D->GetXaxis()->SetRangeUser(pt_min, pt_max);
-                // hc1D_jet->GetXaxis()->SetRangeUser(pt_min, pt_max);
+            // get jet pT range
+            hsparsejet_c_Dstar_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max); // apply cut on jet pt
+            hsparsejet_c_Dstar_clone->GetAxis(1)->SetRangeUser(5., pt_max); // apply cut on Dmeson pt
+            hsparsejet_c_Dstar_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8); // apply cut on Dmeson rapidity
+            hsparsejet_c_Dstar_jetlevel_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max); // apply cut on jet pt
+            hsparsejet_c_Dstar_jetlevel_clone->GetAxis(1)->SetRangeUser(5., pt_max); // apply cut on Dmeson pt
+            hsparsejet_c_Dstar_jetlevel_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8); // apply cut on Dmeson rapidity
+            // hc2D->GetXaxis()->SetRangeUser(pt_min, pt_max);
+            // hc1D_jet->GetXaxis()->SetRangeUser(pt_min, pt_max);
 
-                // Project onto observable axis
-                hDstar = hsparsejet_c_Dstar_clone->Projection(3); //CALL THESE TH1*????
-                TH1D *hc1D_Dstar_jet = hsparsejet_c_Dstar_jetlevel_clone->Projection(0);
-                // TH1* hc = (TH1*) hc2D->ProjectionY();
+            // Project onto observable axis
+            hDstar = hsparsejet_c_Dstar_clone->Projection(3); //CALL THESE TH1*????
+            TH1D *hc1D_Dstar_jet = hsparsejet_c_Dstar_jetlevel_clone->Projection(0);
+            // TH1* hc = (TH1*) hc2D->ProjectionY();
 
-                // Set to appropriate name
-                hname = hDstar->GetName();
-                hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
-                hDstar->SetNameTitle(hname.c_str(), hname.c_str());
+            // Set to appropriate name
+            hname = hDstar->GetName();
+            hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
+            hDstar->SetNameTitle(hname.c_str(), hname.c_str());
 
-                // Find normalization factor
-                double numjets_charm_Dstar = hc1D_Dstar_jet->Integral();
-                // double numDtaggedjets = hD0KpiNjets->GetEntries();
-                double numDtaggedjets_fromhist_charm = hc1D_Dstar_jet->GetEntries();
+            // Find normalization factor
+            double numjets_charm_Dstar = hc1D_Dstar_jet->Integral();
+            // double numDtaggedjets = hD0KpiNjets->GetEntries();
+            double numDtaggedjets_fromhist_charm = hc1D_Dstar_jet->GetEntries();
 
-                cout << "numDtaggedjets_fromhist_Dstar " << numDtaggedjets_fromhist_charm << endl;
+            cout << "numDtaggedjets_fromhist_Dstar " << numDtaggedjets_fromhist_charm << endl;
 
-                // Set normalization
-                if (unnormalized == false) {
-                    hDstar->Scale(1/numjets_charm_Dstar, "width");
-                }
+            // // Set normalization
+            // if (unnormalized == false) {
+            //     hDstar->Scale(1/numjets_charm_Dstar, "width");
+            // }
 
-            }
+            //----------------------------------------------------------------------------
+            TH1* hD0andDstar;
+            
+            // Find D* histogram
+            THnSparse* hsparsejet_c_D0andDstar = (THnSparse*) f3->Get(hc_name.c_str());
+            THnSparse* hsparsejet_c_D0andDstar_jetlevel = (THnSparse*) f3->Get(hc_jet_name.c_str());
+            // TH1* hc1D_jet = (TH1*) f->Get(hc_jet_name.c_str()); 
 
+            // for THnSparse: make clone to work with, make cuts, get projection
+            THnSparse *hsparsejet_c_D0andDstar_clone = (THnSparse *) hsparsejet_c_D0andDstar->Clone("hsparsejet_c_D0andDstar_clone");
+            THnSparse *hsparsejet_c_D0andDstar_jetlevel_clone = (THnSparse *) hsparsejet_c_D0andDstar_jetlevel->Clone("hsparsejet_c_D0andDstar_jetlevel_clone");
+
+            // get jet pT range
+            hsparsejet_c_D0andDstar_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max); // apply cut on jet pt
+            hsparsejet_c_D0andDstar_clone->GetAxis(1)->SetRangeUser(5., pt_max); // apply cut on Dmeson pt
+            hsparsejet_c_D0andDstar_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8); // apply cut on Dmeson rapidity
+            hsparsejet_c_D0andDstar_jetlevel_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max); // apply cut on jet pt
+            hsparsejet_c_D0andDstar_jetlevel_clone->GetAxis(1)->SetRangeUser(5., pt_max); // apply cut on Dmeson pt
+            hsparsejet_c_D0andDstar_jetlevel_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8); // apply cut on Dmeson rapidity
+            // hc2D->GetXaxis()->SetRangeUser(pt_min, pt_max);
+            // hc1D_jet->GetXaxis()->SetRangeUser(pt_min, pt_max);
+
+            // Project onto observable axis
+            hD0andDstar = hsparsejet_c_D0andDstar_clone->Projection(3); //CALL THESE TH1*????
+            TH1D *hc1D_D0andDstar_jet = hsparsejet_c_D0andDstar_jetlevel_clone->Projection(0);
+            // TH1* hc = (TH1*) hc2D->ProjectionY();
+
+            // Set to appropriate name
+            hname = hD0andDstar->GetName();
+            hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
+            hD0andDstar->SetNameTitle(hname.c_str(), hname.c_str());
+
+            // Find normalization factor
+            double numjets_charm_D0andDstar = hc1D_D0andDstar_jet->Integral();
+            // double numDtaggedjets = hD0KpiNjets->GetEntries();
+            double numDtaggedjets_fromhist_charm_D0andDstar = hc1D_D0andDstar_jet->GetEntries();
+
+            cout << "numDtaggedjets_fromhist_D0andDstar " << numDtaggedjets_fromhist_charm_D0andDstar << endl;
+            hD0andDstar->Scale(1/numjets_charm_D0andDstar, "width");
+
+            ////////////////////////////////////////
 
 
             // Rebin
@@ -541,65 +579,76 @@ void make_qg_plots_Dstar() {
                 cout << "------------------------------- " << endl;
             }
 
+            
+
+            // add together plots from f and f2
+            hname = hD0->GetName();
+            hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
+            TH1* hD0andDstar_added = (TH1*) hD0->Clone(hname.c_str());
+            hD0andDstar_added->Add(hDstar);
+
+            // Set normalization
+            hD0andDstar_added->Scale(1/(numjets_charm_Dstar + (numjets_charm/2)), "width");
+            
+            
 
 
             //Format color and style
-            int markercolor1 = kGreen-5; //D0, me
+            int markercolor1 = kOrange+7;
             int markerstyle1 = kFullCircle;
-            int markercolor2 = 0;
-            int markerstyle2 = 0;
-            if (plot_case == 0) { 
-                markercolor2 = kMagenta+3; //D0, Preeti
-                markerstyle2 = kOpenSquare;
-                label1 = "D^{0}-tagged, c-init jets, Beatrice";
-                label2 = "D^{0}-tagged, c-init jets, Preeti";
-            } else if (plot_case == 1 or plot_case == 2) {
-                markercolor2 = kRed-3; //D*
-                markerstyle2 = 29;
-                label1 = "D^{0}-tagged, c-init jets";
-                label2 = "D*-tagged, c-init jets";
-            } else if (plot_case == 3){
-                markercolor2 = kRed-3; //D*+D0
-                markerstyle2 = 29;
-                label1 = "D^{0}-tagged, c-init jets";
-                label2 = "(D^{0}+D*)-tagged, c-init jets";
-            } else if (plot_case >= 4){
-                markercolor1 = kRed-3; //D*+D0
-                markerstyle1 = 29;
-                markercolor2 = kViolet+2;
-                markerstyle2 = 33;
-                label1 = "D*-tagged, c-init jets";
-                if (plot_case == 4) {
-                    label2 = "D*-tagged, soft #pi removed, c-init jets";
-                } else if (plot_case == 5) {
-                    label2 = "D*-tagged, only soft #pi";
-                } else if (plot_case == 6) {
-                    label2 = "D*-tagged, soft #pi w/ D0, c-init jets";
-                } else if (plot_case == 7) {
-                    label2 = "D*-tagged, only soft #pi, c-init jets";
-                }
-            } 
+            int markercolor2 = kBlue+2;
+            int markerstyle2 = 4;
+            label1 = "D^{0}-tagged added with D*-tagged jets";
+            label2 = "(D^{0}+D*)-tagged, c-init jets";
+
+            // if (plot_case == 0) { 
+            //     markercolor2 = kMagenta+3; //D0, Preeti
+            //     markerstyle2 = kOpenSquare;
+            //     label1 = "D^{0}-tagged, c-init jets, Beatrice";
+            //     label2 = "D^{0}-tagged, c-init jets, Preeti";
+            // } else if (plot_case == 1 or plot_case == 2) {
+            //     markercolor2 = kRed-3; //D*
+            //     markerstyle2 = 29;
+            //     label1 = "D^{0}-tagged, c-init jets";
+            //     label2 = "D*-tagged, c-init jets";
+            // } else if (plot_case == 3){
+            //     markercolor2 = kRed-3; //D*+D0
+            //     markerstyle2 = 29;
+            //     label1 = "D^{0}-tagged, c-init jets";
+            //     label2 = "(D^{0}+D*)-tagged, c-init jets";
+            // } else if (plot_case >= 4){
+            //     markercolor1 = kRed-3; //D*+D0
+            //     markerstyle1 = 29;
+            //     markercolor2 = kViolet+2;
+            //     markerstyle2 = 33;
+            //     label1 = "D*-tagged, c-init jets";
+            //     if (plot_case == 4) {
+            //         label2 = "D*-tagged, soft #pi removed, c-init jets";
+            //     } else if (plot_case == 5) {
+            //         label2 = "D*-tagged, only soft #pi";
+            //     } else if (plot_case == 6) {
+            //         label2 = "D*-tagged, soft #pi w/ D0, c-init jets";
+            //     } else if (plot_case == 7) {
+            //         label2 = "D*-tagged, only soft #pi, c-init jets";
+            //     }
+            // } 
             
 
             // Format histograms for plotting (this order needed to keep legend in order and graphs lookin good)
-            hDstar->GetXaxis()->SetTitle("#it{R}_{L}");
-            hDstar->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
-            hD0->GetXaxis()->SetTitle("#it{R}_{L}");
-            hD0->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
-            cout << "about to format D0" << endl;
-            FormatHist(l, hD0, label1, markercolor1, markerstyle1); //FormatHist(l, hD0, "D^{0}-tagged, c-init jets", kMagenta+3, kOpenSquare);
+            hD0andDstar_added->GetXaxis()->SetTitle("#it{R}_{L}");
+            hD0andDstar_added->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
+            hD0andDstar->GetXaxis()->SetTitle("#it{R}_{L}");
+            hD0andDstar->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
+            cout << "about to format plot 1" << endl;
+            FormatHist(l, hD0andDstar_added, label1, markercolor1, markerstyle1); //FormatHist(l, hD0, "D^{0}-tagged, c-init jets", kMagenta+3, kOpenSquare);
             l->AddEntry("NULL","          D* decays off","h");
-            cout << "about to format Dstar" << endl;
-            FormatHist(l, hDstar, label2, markercolor2, markerstyle2); //"D*-tagged, c-init jets", kRed-7, 29);
-            if (plot_case == 0) l->AddEntry("NULL","          D* decays off","h");
-            if (plot_case == 5) l->AddEntry("NULL","           (w/out D^{0} correl), c-init jets","h");
-            if ((plot_case == 1 && unnormalized == false && pt_min == 15) or plot_case == 7 or plot_case == 0 or plot_case == 4) { //} or plot_case == 6) {
-                hDstar->Draw("L same");
-                hD0->Draw("L same");
-            } else {
-                hD0->Draw("L same");
-                hDstar->Draw("L same");
-            }
+            cout << "about to format plot 2" << endl;
+            FormatHist(l, hD0andDstar, label2, markercolor2, markerstyle2); //"D*-tagged, c-init jets", kRed-7, 29);
+            // if (plot_case == 0) l->AddEntry("NULL","          D* decays off","h");
+            // if (plot_case == 5) l->AddEntry("NULL","           (w/out D^{0} correl), c-init jets","h");
+            hD0andDstar_added->Draw("L same");
+            hD0andDstar->Draw("L same");
+            
             
             
             // hDstar->Draw("L same");
@@ -607,10 +656,10 @@ void make_qg_plots_Dstar() {
 
             // double hc_top_binpos = findTopOfCurve(hc);
             // drawVertLine(hc->GetBinCenter(hc_top_binpos), 0, hc->GetBinContent(hc_top_binpos), kRed-7, 1)->Draw();
-            double hD0_top_binpos = findTopOfCurve(hD0);
-            drawVertLine(hD0->GetBinCenter(hD0_top_binpos), 0, hD0->GetBinContent(hD0_top_binpos), markercolor1, 1)->Draw();
-            double hDstar_top_binpos = findTopOfCurve(hDstar);
-            drawVertLine(hDstar->GetBinCenter(hDstar_top_binpos), 0, hDstar->GetBinContent(hDstar_top_binpos), markercolor2, 1)->Draw();
+            double hD0andDstar_added_top_binpos = findTopOfCurve(hD0);
+            drawVertLine(hD0->GetBinCenter(hD0andDstar_added_top_binpos), 0, hD0->GetBinContent(hD0andDstar_added_top_binpos), markercolor1, 1)->Draw();
+            double hD0andDstar_top_binpos = findTopOfCurve(hDstar);
+            drawVertLine(hDstar->GetBinCenter(hD0andDstar_top_binpos), 0, hDstar->GetBinContent(hD0andDstar_top_binpos), markercolor2, 1)->Draw();
 
 
             
@@ -671,14 +720,14 @@ void make_qg_plots_Dstar() {
             delete c;
             delete t;
 
-            if (pt_min == 10) { //} && grooming == "") {
-                // Write rebinned histograms to root file
-                f_out->cd();
-                // if (!inclusive) {
-                //     hl->Write();
-                //     hg->Write();
-                // }
-            }
+            // if (pt_min == 10) { //} && grooming == "") {
+            //     // Write rebinned histograms to root file
+            //     f_out->cd();
+            //     // if (!inclusive) {
+            //     //     hl->Write();
+            //     //     hg->Write();
+            //     // }
+            // }
              
         } // pT bins loop
 //            } // grooming loop
