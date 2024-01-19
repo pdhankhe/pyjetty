@@ -1,5 +1,5 @@
 // ROOT macro to make quark-gluon jet plots
-// Ezra Lesser (elesser@berkeley.edu)
+// Beatrice Liang-Gilman (beatrice_lg@berkeley.edu)
 
 void SetStyle(Bool_t graypalette=true) {
   	cout << "Setting style!" << endl;
