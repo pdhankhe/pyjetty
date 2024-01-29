@@ -100,6 +100,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 		self.D0wDstar = (bool)(args.D0withDstarON) #D0wDstar=True means looking at D-tagged jets including D0 from D*
 		self.difNorm = (bool)(args.difNorm) #difNorm=True means normalize D* distribution with (D0+D*) jets
 		self.softpion_action = args.softpion #1 = remove soft pion from D*, 2 = only pair soft pion with charged particles, 3 = only pair soft pion with D0, 4 = pair soft pion w everything
+		self.use_ptRL = (bool)(args.giveptRL) #1=True=replace RL in THnSparse with pT*RL
 
 		# PDG ID values for quarks and gluons
 		self.quark_pdg_ids = [1, 2, 3, 4, 5, 6, 7, 8, -1, -2, -3, -4, -5, -6, -7, -8]
@@ -120,7 +121,10 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 #        self.obs_bins_mass = np.concatenate(
 #          (np.linspace(0, 0.9, 10), np.linspace(1, 9.8, 45), np.linspace(10, 14.5, 10),
 #           np.linspace(15, 19, 5), np.linspace(20, 60, 9)))
-		self.obs_bins_EEC = np.logspace(np.log10(1E-4), np.log10(1), 51)
+		if (self.use_ptRL):
+			self.obs_bins_EEC = np.logspace(np.log10(1E-4), np.log10(100), 51)
+		else:
+			self.obs_bins_EEC = np.logspace(np.log10(1E-4), np.log10(1), 51)
 
 		self.observable_list = config['process_observables']
 		self.obs_settings = {}
@@ -250,6 +254,9 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 		# -------------------------------
 
 		pythia = pyconf.create_and_init_pythia_from_args(args, mycfg)
+		# print("----------------- PARTICLE DATA INFO HERE -----------------")
+		# pythia.particleData.listAll()
+		# print("----------------- PARTICLE DATA INFO END -----------------")
 
 		self.init_jet_tools()
 		self.calculate_events(pythia)
@@ -333,7 +340,11 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 
 				for parton_type in ["charm", "light", "gluon", "inclusive"]: #got rid of quark
 
-					title = [ '#it{p}_{T}^{ch jet}', '#it{R}_{L}', 'y', '#it{p}_{T}^{D^{0}}']
+					# title = [ '#it{p}_{T}^{ch jet}', '#it{R}_{L}', 'y', '#it{p}_{T}^{D^{0}}']
+					if (self.use_ptRL):
+						title = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'y', '#it{p}_{T}*#it{R}_{L}' ]
+					else:
+						title = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'y', '#it{R}_{L}' ]
 
 					# make THnSparse for parton EECs
 					name = ('hsparse_%s_JetPt_%s_R%s_%s' % (observable, parton_type, jetR, obs_label)) if \
@@ -609,7 +620,10 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			# Get the jets at different levels
 			#jets_p  = fj.sorted_by_pt(jet_selector(jet_def(parts_pythia_p  ))) # parton level
 			#jets_h  = fj.sorted_by_pt(jet_selector(jet_def(parts_pythia_h  ))) # full hadron level
-			jets_ch = fj.sorted_by_pt(jet_selector(jet_def(track_selector_ch(parts_pythia_hch)))) # charged hadron level
+			if (self.use_ptRL):
+				jets_ch = fj.sorted_by_pt(jet_selector(jet_def(parts_pythia_hch))) # charged hadron level
+			else:
+				jets_ch = fj.sorted_by_pt(jet_selector(jet_def(track_selector_ch(parts_pythia_hch)))) # charged hadron level
 			# print("!! length of jets_ch", len(jets_ch))
 
 			R_label = str(jetR).replace('.', '') + 'Scaled'
@@ -852,7 +866,10 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 						for parton_type in parton_types:
 							#fill parton hnsparse info
 							self.fsparsepartonJetvalue[0] = jet.pt()
-							self.fsparsepartonJetvalue[3] = obs.correlator(2).rs()[index]
+							if (self.use_ptRL):
+								self.fsparsepartonJetvalue[3] = obs.correlator(2).rs()[index]*jet.pt()
+							else:
+								self.fsparsepartonJetvalue[3] = obs.correlator(2).rs()[index]
 							if ( self.replaceKPpairs ):
 								D0_px = self.D0particleinfo.px()
 								D0_py = self.D0particleinfo.py()
@@ -1193,6 +1210,8 @@ if __name__ == '__main__':
 	parser.add_argument('--softpion', action='store', type=int, default=0, help="'1' removes the soft pion from D* distribution, \
                         '2' gets only pairs of soft pion w other charged particles,'3' gets only the pair of soft pion with D0, \
                         '4' gives soft pion with everything")
+	parser.add_argument('--giveptRL', action='store', type=int, default=0, help="'1' changes THnSparse to calculate pT*RL (instead of RL)")
+
 
 	args = parser.parse_args()
 
