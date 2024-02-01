@@ -1307,6 +1307,7 @@ if __name__ == '__main__':
 						'4' gives soft pion with everything")
 
 	args = parser.parse_args()
+	pinfo("The arguments to run are: ", args)
 
 	# If invalid configFile is given, exit
 	if not os.path.exists(args.config_file):

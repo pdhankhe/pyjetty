@@ -531,6 +531,7 @@ if __name__ == '__main__':
     parser.add_argument('--leadingptcut', action='store', type=float, default=0, help="leading track pt cut")
 
     args = parser.parse_args()
+    pinfo("The arguments to run are: ", args)
 
     # If invalid configFile is given, exit
     if not os.path.exists(args.config_file):

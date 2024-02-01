@@ -6,13 +6,15 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
-#SBATCH --time=7:00:00
-#SBATCH --array=261,262
+#SBATCH --time=12:00:00
+#SBATCH --array=48-51,76-81,115,125,145,147,171,199,236,261-263,270
 #SBATCH --output=/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/slurm-%A_%a.out
 
 
 # Center of mass energy in GeV
 ECM=13000
+
+
 
 # Number of events per pT-hat bin (for statistics)
 NEV_DESIRED=10500000
@@ -60,10 +62,10 @@ if $USE_PTHAT_MAX; then
     echo "pipenv run python $SCRIPT -c $CONFIG --output-dir $OUTDIR --user-seed $SEED --py-pthatmin $PTHAT_MIN --py-ecm $ECM --nev $NEV_PER_JOB --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2,PhaseSpace:pTHatMax=$PTHAT_MAX"
     pipenv run python $SCRIPT -c $CONFIG --output-dir $OUTDIR --user-seed $SEED \
         --py-pthatmin $PTHAT_MIN --py-ecm $ECM --nev $NEV_PER_JOB \
-        --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2,PhaseSpace:pTHatMax=$PTHAT_MAX --nocharmdecay 0 --giveptRL 1 
+        --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2,PhaseSpace:pTHatMax=$PTHAT_MAX --runphi 1 
 else
     echo "pipenv run python $SCRIPT -c $CONFIG --output-dir $OUTDIR --user-seed $SEED --py-pthatmin $PTHAT_MIN --py-ecm $ECM --nev $NEV_PER_JOB --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2"
     pipenv run python $SCRIPT -c $CONFIG --output-dir $OUTDIR \
         --user-seed $SEED --py-pthatmin $PTHAT_MIN --py-ecm $ECM --nev $NEV_PER_JOB \
-        --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2 --nocharmdecay 0 --giveptRL 1 
+        --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2 --runphi 1 
 fi

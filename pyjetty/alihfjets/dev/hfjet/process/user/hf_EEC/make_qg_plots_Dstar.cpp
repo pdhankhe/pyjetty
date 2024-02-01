@@ -196,6 +196,8 @@ void make_qg_plots_Dstar() {
     const char infile_Dstar_difNorm_justsoftpionwD0[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/18864953/AnalysisResultsFinal.root";
     const char infile_Dstar_difNorm_justsoftpion[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/18865141/AnalysisResultsFinal.root";
 
+    const char infile_D0_feeddown[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/21046102/AnalysisResultsFinal.root";
+    
     // //test
     // const char infile_D0[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17460087/AnalysisResultsFinal.root"; //this is using thnsparse
     // const char infile_Dstar[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17460100/AnalysisResultsFinal.root"; //this is using thnsparse
@@ -218,9 +220,10 @@ void make_qg_plots_Dstar() {
     // 5 = compare D* (norm with (D0+D*)) with just soft pion correlations (without corelating to D0) - DONE
     // 6 = compare D* (norm with (D0+D*)) with soft pion + D0 correlations - DONE
     // 7 = compare D* (norm with (D0+D*)) with just soft pion correlations
+    // 8 = compare D0 (norm with D0) with the D0 feeddown
 
     //CONTOL VARIABLES HERE
-    int plot_case = 5;
+    int plot_case = 7;
     bool unnormalized = false; //default = false
 
     TFile* f;
@@ -279,6 +282,10 @@ void make_qg_plots_Dstar() {
         f = new TFile(infile_Dstar_difNorm, "READ");
         f2 = new TFile(infile_Dstar_difNorm_justsoftpion, "READ");
         add_name = "_Dstar_plot_case7.pdf";
+    } else if (plot_case == 8) {
+        f = new TFile(infile_D0, "READ");
+        f2 = new TFile(infile_D0_feeddown, "READ");
+        add_name = "_Dstar_plot_case8.pdf"
     }
     cout << "output name will be " << add_name << endl;
 
@@ -311,6 +318,9 @@ void make_qg_plots_Dstar() {
         const std::string hc_jet_name = "h_JetPt_charm_R" + jetR + "_jetlevel";
         const std::string hl_jet_name = "h_JetPt_light_R" + jetR + "_jetlevel";
         const std::string hg_jet_name = "h_JetPt_gluon_R" + jetR + "_jetlevel";
+        const std::string hb_name = "h_EEC_JetPt_beauty_R" + jetR;
+        const std::string hb_jet_name = "h_JetPt_beauty_R" + jetR + "_jetlevel";
+        
 
         const std::string hD0KpiNjets_name = "hD0KpiNjets"; //TODO later: = "hD0KpiNehD0KpiNjetsvents" for run 16729583
 

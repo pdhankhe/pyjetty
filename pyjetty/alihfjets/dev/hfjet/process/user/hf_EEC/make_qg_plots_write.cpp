@@ -196,28 +196,47 @@ void make_qg_plots_write() {
     const char infile_Dstar_difNorm_justsoftpionwD0[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/18864953/AnalysisResultsFinal.root";
     const char infile_Dstar_difNorm_justsoftpion[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/18865141/AnalysisResultsFinal.root";
 
-    const char infile_noD0replacement_charmdecaysOFF[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/14680819/AnalysisResultsFinal.root"
-    const char infile_noD0replacement_charmdecaysON[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/14680822/AnalysisResultsFinal.root"
-    
+    const char infile_noD0replacement_charmdecaysOFF[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/14680819/AnalysisResultsFinal.root";
+    const char infile_noD0replacement_charmdecaysON[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/14680822/AnalysisResultsFinal.root";
+    const char infile_D0_feeddown[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/21046102/AnalysisResultsFinal.root";
+    const char infile_phi[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/21077103/AnalysisResultsFinal.root";
+    const char infile_D0_feeddown_ptrl[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/21078054/AnalysisResultsFinal.root";
+
+
     // int plot_case:
     // 0 = D0, D* decays turned off
+    // 1 = D0 feeddown
+    // 2 = phi meson
+    // 3 = D0 feeddown, pT*RL
 
     //CONTOL VARIABLES HERE
-    int plot_case = 0;
-    bool unnormalized = false; //default = false
+    int plot_case = 3;
 
     TFile* f;
-    std::string logstring = "_log"; //not currently using this or have a bool
-
     TString label1 = "";
 
-    f = new TFile(infile_D0, "READ");
-    // cout << "output name will be " << add_name << endl;
+    TString file_list[4] = {string(infile_D0), string(infile_D0_feeddown), 
+                                string(infile_phi), string(infile_D0_feeddown_ptrl)};
+    // const char file_list[4][] = {infile_D0, infile_D0_feeddown, infile_phi, infile_D0_feeddown_ptrl};
+    f = new TFile(file_list[plot_case], "READ");
+    // std::string add_name = std::string(file_list[plot_case]).substr(6);
+    std::string add_name;
+    if (plot_case == 0) {
+        add_name = "_D0_noDstardecays";
+    } else if (plot_case == 1) {
+        add_name = "_D0_feeddown";
+    } else if (plot_case == 2) {
+        add_name = "_phi";
+    } else if (plot_case == 3) {
+        add_name = "_D0_feeddown_ptrl";
+    }
+
+    cout << "output name will be " << add_name << endl;
 
     // Output directory
     std::string outdir = "plots/final/";//"plots/test/"; 
     // Output file for binned results
-    std::string outfile = outdir + "AnalysisResultsFinal_D0_noDstardecays.root"; 
+    std::string outfile = outdir + "AnalysisResultsFinal" + add_name + ".root"; 
     TFile* f_out = new TFile(outfile.c_str(), "RECREATE");
 
     // Jet R value
@@ -228,6 +247,11 @@ void make_qg_plots_write() {
         const std::string hc_name = "h_EEC_JetPt_charm_R" + jetR;
         const std::string hc_unweighted_name = "h_EEC_JetPt_charm_R" + jetR + "_unweighted";
         const std::string hc_jet_name = "h_JetPt_charm_R" + jetR + "_jetlevel";
+        
+        const std::string hb_name = "h_EEC_JetPt_beauty_R" + jetR;
+        const std::string hb_jet_name = "h_JetPt_beauty_R" + jetR + "_jetlevel";
+        const std::string hi_name = "h_EEC_JetPt_inclusive_R" + jetR;
+        const std::string hi_jet_name = "h_JetPt_inclusive_R" + jetR + "_jetlevel";
 
         const std::string hD0KpiNjets_name = "hD0KpiNjets"; //TODO later: = "hD0KpiNehD0KpiNjetsvents" for run 16729583
 
@@ -278,9 +302,18 @@ void make_qg_plots_write() {
 
             //-------------------------------------------------//
             // find D0 reconstruction through charm
-            THnSparse* hsparsejet_c = (THnSparse*) f->Get(hc_name.c_str());
-            THnSparse* hsparsejet_c_jetlevel = (THnSparse*) f->Get(hc_jet_name.c_str());
-
+            THnSparse* hsparsejet_c;
+            THnSparse* hsparsejet_c_jetlevel;
+            if (plot_case == 0){ //look at charm case
+                hsparsejet_c = (THnSparse*) f->Get(hc_name.c_str());
+                hsparsejet_c_jetlevel = (THnSparse*) f->Get(hc_jet_name.c_str());
+            } else if (plot_case == 2) { // look at inclusive case
+                hsparsejet_c = (THnSparse*) f->Get(hi_name.c_str());
+                hsparsejet_c_jetlevel = (THnSparse*) f->Get(hi_jet_name.c_str());
+            } else { //look at beauty case
+                hsparsejet_c = (THnSparse*) f->Get(hb_name.c_str());
+                hsparsejet_c_jetlevel = (THnSparse*) f->Get(hb_jet_name.c_str());
+            }
             // testing - look at # jets before cuts
             cout << "numDtaggedjets from hist before cuts " << hsparsejet_c_jetlevel->Projection(0)->GetEntries() << endl;
 
@@ -290,11 +323,13 @@ void make_qg_plots_write() {
 
             // get jet pT range
             hsparsejet_c_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max); // apply cut on jet pt
-            hsparsejet_c_clone->GetAxis(1)->SetRangeUser(5., pt_max); // apply cut on Dmeson pt
-            hsparsejet_c_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8); // apply cut on Dmeson rapidity
             hsparsejet_c_jetlevel_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max); // apply cut on jet pt
-            hsparsejet_c_jetlevel_clone->GetAxis(1)->SetRangeUser(5., pt_max); // apply cut on Dmeson pt
-            hsparsejet_c_jetlevel_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8); // apply cut on Dmeson rapidity
+            if (plot_case != 2) {
+                hsparsejet_c_clone->GetAxis(1)->SetRangeUser(5., pt_max); // apply cut on Dmeson pt
+                hsparsejet_c_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8); // apply cut on Dmeson rapidity
+                hsparsejet_c_jetlevel_clone->GetAxis(1)->SetRangeUser(5., pt_max); // apply cut on Dmeson pt
+                hsparsejet_c_jetlevel_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8); // apply cut on Dmeson rapidity
+            }
 
             // Project onto observable axis
             TH1D *hD0_proj = hsparsejet_c_clone->Projection(3); //CALL THESE TH1*????
@@ -307,14 +342,6 @@ void make_qg_plots_write() {
 
             // Find normalization factor
             double numjets_charm = hc1D_jet->Integral();
-            double numDtaggedjets = hD0KpiNjets->GetEntries(); // this should match the # from projection before cuts
-            double numDtaggedjets_fromhist = hc1D_jet->GetEntries();
-            double numDtaggedjets_fromhist_eff = hc1D_jet->GetEffectiveEntries();
-
-            cout << "numjets_charm " << numjets_charm << endl;
-            cout << "numDtaggedjets " << numDtaggedjets << endl;
-            cout << "numDtaggedjets_fromhist " << numDtaggedjets_fromhist << endl;
-            cout << "numDtaggedjets_fromhist_eff " << numDtaggedjets_fromhist_eff << endl;
 
             // Set normalization
             // hD0_proj->Scale(1/numjets_charm, "width");
@@ -338,7 +365,8 @@ void make_qg_plots_write() {
                     0.07585775750291836, 0.15848931924611143, 0.3311311214825911, 0.47863009232263853, 0.6918309709189363, 1.0};
 
             cout << "About to rebin" << endl;
-            TH1* hD0 = (TH1*) hD0_proj->Rebin(n_obs_bins, (hname + "rebin").c_str(), obs_bins);
+            // TH1* hD0 = (TH1*) hD0_proj->Rebin(n_obs_bins, (hname + "rebin").c_str(), obs_bins);
+            TH1* hD0 = (TH1*) hD0_proj->Clone(hname.c_str());
             cout << "Rebin done" << endl;
 
             hD0->Scale(1/numjets_charm, "width");
@@ -349,16 +377,30 @@ void make_qg_plots_write() {
             //Format color and style
             int markercolor1 = kGreen-5; //D0, me
             int markerstyle1 = kFullCircle;
-            label1 = "D^{0}-tagged, c-init jets";
+            if (plot_case == 0) {
+                label1 = "D^{0}-tagged, c-init jets";
+            } else if (plot_case == 1 or plot_case == 3) {
+                label1 = "D^{0}-tagged feeddown, b-init jets";
+            } else if (plot_case == 2) {
+                label1 = "#phi-tagged, inclusive jets";
+            }
 
             
 
             // Format histograms for plotting (this order needed to keep legend in order and graphs lookin good)
-            hD0->GetXaxis()->SetTitle("#it{R}_{L}");
+            if (plot_case != 3) {
+                hD0->GetXaxis()->SetTitle("#it{R}_{L}");
+            } else {
+                hD0->GetXaxis()->SetTitle("p_{T}#it{R}_{L}");
+            }
             hD0->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
             cout << "about to format D0" << endl;
             FormatHist(l, hD0, label1, markercolor1, markerstyle1); //FormatHist(l, hD0, "D^{0}-tagged, c-init jets", kMagenta+3, kOpenSquare);
-            l->AddEntry("NULL","          D* decays off","h");
+            if (plot_case == 0){
+                l->AddEntry("NULL","          D* decays off","h");
+            } else if (plot_case == 2) {
+                l->AddEntry("NULL","         #phi decays off","h");
+            }
             hD0->Draw("L same");
             
             
@@ -377,9 +419,9 @@ void make_qg_plots_write() {
 
 
 
-            // std::string fname = outdir + "QG_comp_pt" + std::to_string(pt_min) + '-' + std::to_string(pt_max) + "_R" + jetR + add_name; //"_charmdecaysONcomparison.pdf"; // + "_normbytype.pdf"; //"_nonorm.pdf";
-            // const char* fnamec = fname.c_str();
-            // c->SaveAs(fnamec);
+            std::string fname = outdir + "QG_comp_pt" + std::to_string(pt_min) + '-' + std::to_string(pt_max) + "_R" + jetR + add_name + ".pdf";
+            const char* fnamec = fname.c_str();
+            c->SaveAs(fnamec);
             delete c;
 
             // if (pt_min == 10) { //} && grooming == "") {
