@@ -3,7 +3,7 @@
 """
   Analysis IO class for jet analysis with track dataframe.
   Each instance of the class handles the IO of a *single* track tree.
-
+  
   Authors: James Mulligan
            Mateusz Ploskon
            Ezra Lesser
@@ -13,15 +13,11 @@ from __future__ import print_function
 
 import os   # for creating file on output
 import sys
-import pathlib  # for obtaining this file's directory
-import yaml  # to load tr. eff. uncertainty
 
 # Data analysis and plotting
-import ROOT
 import uproot
 import pandas
 import numpy as np
-from array import array
 
 # Fastjet via python (from external library fjpydev)
 import fastjet as fj
@@ -32,7 +28,7 @@ from pyjetty.alice_analysis.process.base import common_base
 
 ################################################################
 class ProcessIO(common_base.CommonBase):
-
+  
   #---------------------------------------------------------------
   # Constructor
   #---------------------------------------------------------------
@@ -40,7 +36,7 @@ class ProcessIO(common_base.CommonBase):
                track_tree_name='tree_Particle', event_tree_name='tree_event_char',
                output_dir='', is_pp=True, min_cent=0., max_cent=10.,
                use_ev_id_ext=True, is_jetscape=False, holes=False,
-               event_plane_range=None, skip_event_tree=False, is_jewel=False, **kwargs):
+               event_plane_range=None, skip_event_tree=False, is_ENC=False, is_det_level=False, **kwargs):
     super(ProcessIO, self).__init__(**kwargs)
     self.input_file = input_file
     self.output_dir = output_dir
@@ -52,10 +48,11 @@ class ProcessIO(common_base.CommonBase):
     self.is_pp = is_pp
     self.use_ev_id_ext = use_ev_id_ext
     self.is_jetscape = is_jetscape
-    self.is_jewel = is_jewel
     self.holes = holes
     self.event_plane_range = event_plane_range
     self.skip_event_tree = skip_event_tree
+    self.is_ENC = is_ENC
+    self.is_det_level = is_det_level
     if len(output_dir) and output_dir[-1] != '/':
       self.output_dir += '/'
     self.reset_dataframes()
@@ -63,7 +60,10 @@ class ProcessIO(common_base.CommonBase):
     # Set the combination of fields that give a unique event id
     self.unique_identifier =  ['run_number', 'ev_id']
     if self.use_ev_id_ext:
-      self.unique_identifier += ['ev_id_ext']
+      if self.is_pp:
+        self.unique_identifier += ['ev_id_ext']
+      else:
+        pass # somehow for PbPb there is no 'ev_id_ext'
       
     # Set relevant columns of event tree
     self.event_columns = self.unique_identifier + ['z_vtx_reco', 'is_ev_rej']
@@ -78,8 +78,12 @@ class ProcessIO(common_base.CommonBase):
     self.track_columns = self.unique_identifier + ['ParticlePt', 'ParticleEta', 'ParticlePhi']
     if is_jetscape:
         self.track_columns += ['status']
-    if is_jewel:
-      self.track_columns += ["Status"]
+    if is_ENC:
+        if is_det_level:
+          self.track_columns += ['ParticleMCIndex']
+        else:
+          self.track_columns += ['ParticlePID']
+    
     #print(self)
     
   #---------------------------------------------------------------
@@ -97,70 +101,16 @@ class ProcessIO(common_base.CommonBase):
   #---------------------------------------------------------------
   def load_data(self, m=0.1396, reject_tracks_fraction=0., offset_indices=False,
                 group_by_evid=True, random_mass=False, min_pt=0.):
-
+    
     self.reject_tracks_fraction = reject_tracks_fraction
-    treff_bins, pT_edges = None, None  # Only used when pT-based cut is used
-    try:
-      float(self.reject_tracks_fraction)
-    except ValueError:
-      if self.reject_tracks_fraction != "LHC17pq" and self.reject_tracks_fraction != "LHC18qr":
-        raise ValueError("reject_tracks_fraction = %s not implemented" % \
-                         self.reject_tracks_fraction)
-
-      # For now if doing LHC17pq we are just doing a random 3% cut, so use simpler code
-      if self.reject_tracks_fraction == "LHC17pq":
-        #centrality = "0_100"
-        self.reject_tracks_fraction = 0.03
-
-      else:
-        # Assume Pb-Pb is 0-10% centrality (30-50% also available)
-        centrality = "0_10"
-
-        # Load correct pT array from config file
-        treff_config = None
-        treff_yaml = os.path.join(str(pathlib.Path(__file__).parent.resolve()),
-                                  "TrackEfficiencyConfiguration.yaml")
-        with open(treff_yaml, 'r') as stream:
-          treff_config = yaml.safe_load(stream)
-        treff_bins = treff_config[self.reject_tracks_fraction][centrality]
-        pT_edges = treff_config["ptBinning"]
-
-        # In the case of Pb-Pb, we want to apply an additional 2% track cut to account
-        # for the difference between the pp simulation and the actual Pb-Pb tr. eff.
-
-        # P(A or B) = P(A) +   P(B)    -    P(A and B)
-        #           = 0.02 + (1 - val) - 0.02 * (1 - val) = 1 - 0.98 * val
-        # so 1 - P(A or B) = 1 - (1 - 0.98 * val) = 0.98 * val
-        treff_bins = [ 0.98 * val for val in treff_bins ]
-
     self.reset_dataframes()
 
     print('Convert ROOT trees to pandas dataframes...')
     print('    track_tree_name = {}'.format(self.track_tree_name))
 
     self.track_df = self.load_dataframe()
-
-    if treff_bins != None:
-      # Apply pT-based track cut
-      print("    Removing tracks from %s using pT-based approach" % self.track_tree_name)
-
-      # Get indices to delete
-      #print("    * Generating random numbers array...")
-      np.random.seed()
-      random_array = np.random.rand(len(self.track_df.index))
-      print("    * Calculating correct bin edges and getting probabilities...")
-      probs = self.track_df["ParticlePt"].apply(
-        lambda x: treff_bins[np.searchsorted(pT_edges, x) - 1])
-      print("    * Calculating indices to cut...")
-      indices_to_cut = self.track_df.index[np.greater(random_array, probs).astype(bool)]
-
-      # Delete all tagged indices
-      print("    Removing %i of %i tracks from %s" % \
-            (len(indices_to_cut), len(self.track_df.index), self.track_tree_name))
-      self.track_df.drop(np.array(indices_to_cut), inplace=True)
-
-    elif self.reject_tracks_fraction > 1e-3:
-      # Apply simple track cut
+    
+    if self.reject_tracks_fraction > 1e-3:
       n_remove = int(reject_tracks_fraction * len(self.track_df.index))
       print('    Removing {} of {} tracks from {}'.format(
         n_remove, len(self.track_df.index), self.track_tree_name))
@@ -169,12 +119,12 @@ class ProcessIO(common_base.CommonBase):
       self.track_df.drop(indices_remove, inplace=True)
 
     if random_mass:
-      print('    \033[93mRandomly assigning proton and kaon mass to some tracks.\033[0m')
+      print('    \033[93mRandomly assigning proton and kaon mass to some tracks.\033[0m') 
 
     df_fjparticles = self.group_fjparticles(m, offset_indices, group_by_evid, random_mass, min_pt=min_pt)
 
     return df_fjparticles
-
+  
   #---------------------------------------------------------------
   # Convert ROOT TTree to pandas dataframe
   # Return merged track+event dataframe from a given input file
@@ -230,14 +180,7 @@ class ProcessIO(common_base.CommonBase):
             track_criteria = 'status == 0'
         track_df_orig = track_df_orig.query(track_criteria)
         track_df_orig.reset_index(drop=True)
-
-    # JEWEL remove Status == 3 particles
-    elif self.is_jewel:
-      # Remove thermals (Status == 3) and ghosts (small pT)
-      track_criteria = 'Status != 3 and ParticlePt > 1e-5'
-      track_df_orig = track_df_orig.query(track_criteria)
-      track_df_orig.reset_index(drop=True)
-
+    
     # Check if there are duplicated tracks
     #print(track_df_orig)
     #d = track_df_orig.duplicated(self.track_columns, keep=False)
@@ -252,7 +195,7 @@ class ProcessIO(common_base.CommonBase):
       self.track_df = track_df_orig
     else:
       self.track_df = pandas.merge(track_df_orig, event_df, on=self.unique_identifier)
-
+    
     # Check if there are duplicated tracks in the merge dataframe
     #print(self.track_df)
     #d = self.track_df.duplicated(self.track_columns, keep=False)
@@ -260,7 +203,7 @@ class ProcessIO(common_base.CommonBase):
     n_duplicates = sum(self.track_df.duplicated(self.track_columns))
     if n_duplicates > 0:
       sys.exit('ERROR: There appear to be {} duplicate particles in the merged dataframe'.format(n_duplicates))
-
+      
     return self.track_df
 
   #---------------------------------------------------------------
@@ -268,148 +211,100 @@ class ProcessIO(common_base.CommonBase):
   # with the same formatting and saves to class's output_file.
   # histograms is list of tuples: [ ("title", np.histogram), ... ]
   #---------------------------------------------------------------
-  def save_dataframe(self, filename, df, df_true=False, histograms=[], is_jetscape=False, is_jewel=False):
+  def save_dataframe(self, filename, df, df_true=False, histograms=[], is_jetscape=False, is_ENC=False):
 
     # Create output directory if it does not already exist
     if not os.path.exists(self.output_dir):
       os.makedirs(self.output_dir)
 
     # Open output directory and (re)create rootfile
-    f = ROOT.TFile(self.output_dir + filename, "recreate")
-    f.cd()
+    with uproot.recreate(self.output_dir + filename) as f:
 
-    if df_true:
-      # Create tree with truth particle info
-      title = 'tree_Particle_gen'
-      print("Length of truth track tree: %i" % len(self.track_df))
-      t = ROOT.TTree(title, title)
-
-      # Initialize branches in TTree
-      run_number = None
-      ev_id = array('i', [-1])
-      t.Branch("ev_id", ev_id, "ev_id/I")
-      ParticlePt = array('f', [-1.])
-      t.Branch("ParticlePt", ParticlePt, "ParticlePt/F")
-      ParticleEta = array('f', [-1.])
-      t.Branch("ParticleEta", ParticleEta, "ParticleEta/F")
-      ParticlePhi = array('f', [-1.])
-      t.Branch("ParticlePhi", ParticlePhi, "ParticlePhi/F")
-      status = array('i', [-1])
+      branchdict = {"run_number": int, "ev_id": int, "ParticlePt": float,
+                      "ParticleEta": float, "ParticlePhi": float}
       if is_jetscape:
-        t.Branch("status", status, "status/I")
-      if is_jewel:
-        t.Branch("Status", status, "Status/I")
-        run_number = array('f', [-1])
-        t.Branch("run_number", run_number, "run_number/F")
-      else:
-        run_number = array('i', [-1])
-        t.Branch("run_number", run_number, "run_number/I")
+        branchdict_true["status"] = int
+        branchdict["status"] = int
 
-      for index, row in self.track_df.iterrows():
-        ev_id[0] = int(row["ev_id"])
-        ParticlePt[0] = row["ParticlePt"]
-        ParticleEta[0] = row["ParticleEta"]
-        ParticlePhi[0] = row["ParticlePhi"]
+      if is_ENC:
+        branchdict_true["ParticlePID"] = int
+        branchdict["ParticleMCIndex"] = int
+
+      if df_true:
+        # Create tree with truth particle info
+        title = 'tree_Particle_gen'
+        print("Length of truth track tree: %i" % len(self.track_df))
+        f.mktree(name=title, branch_types=branchdict_true, title=title)
         if is_jetscape:
-          status[0] = int(row["status"])
-        if is_jewel:
-          run_number[0] = row["run_number"]
-          status[0] = int(row["Status"])
+            f[title].extend( { "run_number": self.track_df["run_number"],
+                               "ev_id": self.track_df["ev_id"],
+                               "ParticlePt": self.track_df["ParticlePt"],
+                               "ParticleEta": self.track_df["ParticleEta"],
+                               "ParticlePhi": self.track_df["ParticlePhi"],
+                               "status": self.track_df["status"] } )
+        elif is_ENC:
+          f[title].extend( { "run_number": self.track_df["run_number"],
+                               "ev_id": self.track_df["ev_id"],
+                               "ParticlePt": self.track_df["ParticlePt"],
+                               "ParticleEta": self.track_df["ParticleEta"],
+                               "ParticlePhi": self.track_df["ParticlePhi"],
+                               "ParticlePID": self.track_df["ParticlePID"] } ) # to get charge info
         else:
-          run_number[0] = int(row["run_number"])
-        t.Fill()
-      t.Write()
+            f[title].extend( { "run_number": self.track_df["run_number"],
+                               "ev_id": self.track_df["ev_id"],
+                               "ParticlePt": self.track_df["ParticlePt"],
+                               "ParticleEta": self.track_df["ParticleEta"],
+                               "ParticlePhi": self.track_df["ParticlePhi"] } )
 
-    # Create tree with detector-level particle info
-    title = 'tree_Particle'
-    print("Length of detector-level track tree: %i" % len(df))
-    f.cd()
-    t = ROOT.TTree(title, title)
-
-    # Initialize branches in TTree
-    run_number = None
-    ev_id = array('i', [-1])
-    t.Branch("ev_id", ev_id, "ev_id/I")
-    ParticlePt = array('f', [-1.])
-    t.Branch("ParticlePt", ParticlePt, "ParticlePt/F")
-    ParticleEta = array('f', [-1.])
-    t.Branch("ParticleEta", ParticleEta, "ParticleEta/F")
-    ParticlePhi = array('f', [-1.])
-    t.Branch("ParticlePhi", ParticlePhi, "ParticlePhi/F")
-    status = array('i', [-1])
-    if is_jetscape or is_jewel:
-      t.Branch("status", status, "status/I")
-    if is_jewel:
-      t.Branch("Status", status, "Status/I")
-      run_number = array('f', [-1])
-      t.Branch("run_number", run_number, "run_number/F")
-    else:
-      run_number = array('i', [-1])
-      t.Branch("run_number", run_number, "run_number/I")
-
-    for index, row in df.iterrows():
-      ev_id[0] = int(row["ev_id"])
-      ParticlePt[0] = row["ParticlePt"]
-      ParticleEta[0] = row["ParticleEta"]
-      ParticlePhi[0] = row["ParticlePhi"]
+      # Create tree with detector-level particle info
+      title = 'tree_Particle'
+      print("Length of detector-level track tree: %i" % len(df))
+      f.mktree(name=title, branch_types=branchdict, title=title)
       if is_jetscape:
-        status[0] = int(row["status"])
-      if is_jewel:
-        run_number[0] = row["run_number"]
-        status[0] = int(row["Status"])
+        f[title].extend( { "run_number": df["run_number"],
+                           "ev_id": df["ev_id"],
+                           "ParticlePt": df["ParticlePt"],
+                           "ParticleEta": df["ParticleEta"],
+                           "ParticlePhi": df["ParticlePhi"],
+                           "status": df["status"] } )
+      elif is_ENC:
+        f[title].extend( { "run_number": df["run_number"],
+                               "ev_id": df["ev_id"],
+                               "ParticlePt": df["ParticlePt"],
+                               "ParticleEta": df["ParticleEta"],
+                               "ParticlePhi": df["ParticlePhi"],
+                               "ParticleMCIndex": df["ParticleMCIndex"] } ) # associated MC particle index
       else:
-        run_number[0] = int(row["run_number"])
-      t.Fill()
-    t.Write()
+        f[title].extend( { "run_number": df["run_number"],
+                           "ev_id": df["ev_id"],
+                           "ParticlePt": df["ParticlePt"],
+                           "ParticleEta": df["ParticleEta"],
+                           "ParticlePhi": df["ParticlePhi"] } )
 
-    # Create tree with event char
-    title = self.event_tree_name
-    f.cd()
-    t = ROOT.TTree(title, title)
-
-    # Initialize branches in TTree
-    is_ev_rej = array('i', [-1])
-    t.Branch("is_ev_rej", is_ev_rej, "is_ev_rej/I")
-    run_number = None
-    ev_id = array('i', [-1])
-    t.Branch("ev_id", ev_id, "ev_id/I")
-    z_vtx_reco = array('f', [-1.])
-    t.Branch("z_vtx_reco", z_vtx_reco, "z_vtx_reco/F")
-    event_plane_angle = array('f', [-1.])
-    if is_jetscape:
-      t.Branch("event_plane_angle", event_plane_angle, "event_plane_angle/F")
-    if is_jewel:
-      run_number = array('f', [-1.])
-      t.Branch("run_number", run_number, "run_number/F")
-    else:
-      run_number = array('i', [-1])
-      t.Branch("run_number", run_number, "run_number/I")
-
-    for index, row in self.event_df_orig.iterrows():
-      is_ev_rej[0] = row["is_ev_rej"]
-      run_number[0] = row["run_number"]
-      ev_id[0] = int(row["ev_id"])
-      z_vtx_reco[0] = row["z_vtx_reco"]
+      # Create tree with event char
+      title = self.event_tree_name
+      branchdict = {"is_ev_rej": int, "run_number": int, "ev_id": int, "z_vtx_reco": float}
       if is_jetscape:
-        event_plane_angle[0] = row["event_plane_angle"]
-      if is_jewel:
-        run_number[0] = row["run_number"]
+        branchdict["event_plane_angle"] = float
+      f.mktree(name=title, branch_types=branchdict, title=title)
+      if is_jetscape:
+        f[title].extend( {"is_ev_rej": self.event_df_orig["is_ev_rej"], 
+                        "run_number": self.event_df_orig["run_number"], 
+                        "ev_id": self.event_df_orig["ev_id"],
+                        "z_vtx_reco": self.event_df_orig["z_vtx_reco"],
+                        "event_plane_angle": self.event_df_orig["event_plane_angle"] } )
       else:
-        run_number[0] = int(row["run_number"])
-      t.Fill()
-    t.Write()
+        f[title].extend( {"is_ev_rej": self.event_df_orig["is_ev_rej"], 
+                        "run_number": self.event_df_orig["run_number"], 
+                        "ev_id": self.event_df_orig["ev_id"],
+                        "z_vtx_reco": self.event_df_orig["z_vtx_reco"] } )
+        
+      # Write hNevents histogram: number of accepted events at detector level
+      f["hNevents"] = ( np.array([ 0, df["ev_id"].nunique() ]), np.array([ -0.5, 0.5, 1.5 ]) )
 
-    # Write hNevents histogram: number of accepted events at detector level
-    f.cd()
-    hNevents = ROOT.TH1F("hNevents", "hNevents", 2, array('f', [-0.5, 0.5, 1.5]) )
-    hNevents.Fill(1, df["ev_id"].nunique())
-    hNevents.Write()
-
-    # Write histograms to file too, if any are passed
-    for title, h in histograms:
-      h.Write(title)
-
-    f.Close()
+      # Write histograms to file too, if any are passed
+      for title, h in histograms:
+        f[title] = h
 
   #---------------------------------------------------------------
   # Transform the track dataframe into a SeriesGroupBy object
@@ -417,6 +312,9 @@ class ProcessIO(common_base.CommonBase):
   #---------------------------------------------------------------
   def group_fjparticles(self, m, offset_indices=False, group_by_evid=True, random_mass=False, min_pt=0.):
 
+    print('is_ENC on?',self.is_ENC)
+    print('is_det on?',self.is_det_level)
+    print('debug',self.track_df)
     if group_by_evid:
       print("Transform the track dataframe into a series object of fastjet particles per event...")
 
@@ -424,20 +322,58 @@ class ProcessIO(common_base.CommonBase):
       #     track_df_grouped is a DataFrameGroupBy object with one track dataframe per event
       track_df_grouped = None
       track_df_grouped = self.track_df.groupby(self.unique_identifier)
+      print('debug2',type(track_df_grouped))
+      print('debug2',track_df_grouped.aggregate(np.sum))
+      # print('debug2',track_df_grouped.columns['ParticlePID'].values)
     
       # (ii) Transform the DataFrameGroupBy object to a SeriesGroupBy of fastjet particles
       df_fjparticles = None
-      df_fjparticles = track_df_grouped.apply(
+      
+
+      if self.is_ENC:
+        df_fjparticles_orig = track_df_grouped.apply(
         self.get_fjparticles, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
+        if self.is_det_level:
+          df_fjparticles_aux = track_df_grouped.apply(
+          self.get_particles_mc_index, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
+          print('debug3',df_fjparticles)
+          print('debug3 aux: mcid',df_fjparticles_aux)
+          df_fjparticles = pandas.DataFrame({"fj_particle": df_fjparticles_orig, "ParticleMCIndex": df_fjparticles_aux})
+        else:
+          df_fjparticles_aux = track_df_grouped.apply(
+          self.get_particles_pid, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
+          print('debug3',df_fjparticles)
+          print('debug3 aux: pid',df_fjparticles_aux)
+          df_fjparticles = pandas.DataFrame({"fj_particle": df_fjparticles_orig, "ParticlePID": df_fjparticles_aux})
+      else:
+        df_fjparticles = track_df_grouped.apply(
+        self.get_fjparticles, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
+      
+      print('debug4, combined: ',df_fjparticles)
+      
+      # df_fjparticles = pandas.DataFrame({"fj_particle": track_df_grouped.apply(
+      #   self.get_fjparticles, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt), "ParticleMCIndex": track_df_grouped["ParticleMCIndex"]})
+      
     
     else:
       print("Transform the track dataframe into a dataframe of fastjet particles per track...")
 
       # Transform into a DataFrame of fastjet particles
+      # if it's for energy correlator analysis, add particle id and associated MC info for truth and det level input respectively
       df = self.track_df
-      df_fjparticles = pandas.DataFrame( 
-        {"run_number": df["run_number"], "ev_id": df["ev_id"],
-         "fj_particle": self.get_fjparticles(self.track_df, m, offset_indices, random_mass, min_pt=min_pt)} )
+      if self.is_ENC:
+        if self.is_det_level:
+          df_fjparticles = pandas.DataFrame( 
+            {"run_number": df["run_number"], "ev_id": df["ev_id"],
+            "fj_particle": self.get_fjparticles(self.track_df, m, offset_indices, random_mass, min_pt=  min_pt), "ParticleMCIndex": df["ParticleMCIndex"]} )
+        else:
+          df_fjparticles = pandas.DataFrame( 
+            {"run_number": df["run_number"], "ev_id": df["ev_id"],
+            "fj_particle": self.get_fjparticles(self.track_df, m, offset_indices, random_mass, min_pt=  min_pt), "ParticlePID": df["ParticlePID"]} )
+      else:
+        df_fjparticles = pandas.DataFrame( 
+          {"run_number": df["run_number"], "ev_id": df["ev_id"],
+          "fj_particle": self.get_fjparticles(self.track_df, m, offset_indices, random_mass, min_pt=  min_pt)} )
 
     return df_fjparticles
 
@@ -453,6 +389,8 @@ class ProcessIO(common_base.CommonBase):
         
     # Apply a pt cut
     df_tracks_accepted = df_tracks[df_tracks.ParticlePt > min_pt]
+
+    # print('debug2',df_tracks_accepted)
 
     m_array = np.full((df_tracks_accepted['ParticlePt'].values.size), m)
 
@@ -475,5 +413,46 @@ class ProcessIO(common_base.CommonBase):
     fj_particles = fjext.vectorize_pt_eta_phi_m(
       df_tracks_accepted['ParticlePt'].values, df_tracks_accepted['ParticleEta'].values,
       df_tracks_accepted['ParticlePhi'].values, m_array, user_index_offset)
-    return fj_particles
 
+    return fj_particles
+    # if self.is_ENC:
+    #   if self.is_det_level:
+    #     return fj_particles, df_tracks_accepted['ParticleMCIndex'].values
+    #   else:
+    #     return fj_particles, df_tracks_accepted['ParticlePID'].values
+    # else:
+    #   return fj_particles
+
+  #---------------------------------------------------------------
+  # Return associated mc indices from a given track dataframe
+  #---------------------------------------------------------------
+  def get_particles_mc_index(self, df_tracks, m, offset_indices=False, random_mass=False, min_pt=0.):
+    
+    # If offset_indices is true, then offset the user_index by a large negative value
+    user_index_offset = 0
+    if offset_indices:
+        user_index_offset = int(-1e6)
+        
+    # Apply a pt cut
+    df_tracks_accepted = df_tracks[df_tracks.ParticlePt > min_pt]
+
+    m_array = np.full((df_tracks_accepted['ParticlePt'].values.size), m)
+
+    return df_tracks_accepted['ParticleMCIndex'].values
+
+  #---------------------------------------------------------------
+  # Return particle id from a given track dataframe
+  #---------------------------------------------------------------
+  def get_particles_pid(self, df_tracks, m, offset_indices=False, random_mass=False, min_pt=0.):
+    
+    # If offset_indices is true, then offset the user_index by a large negative value
+    user_index_offset = 0
+    if offset_indices:
+        user_index_offset = int(-1e6)
+        
+    # Apply a pt cut
+    df_tracks_accepted = df_tracks[df_tracks.ParticlePt > min_pt]
+
+    m_array = np.full((df_tracks_accepted['ParticlePt'].values.size), m)
+
+    return df_tracks_accepted['ParticlePID'].values

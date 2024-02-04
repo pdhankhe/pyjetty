@@ -49,6 +49,21 @@ class CommonUtils(common_base.CommonBase):
       return [obs_config_dict[name]['alpha'] for name in obs_subconfig_list]
     elif observable == 'theta_g':
       return [obs_config_dict[name]['SoftDrop'] for name in obs_subconfig_list if 'SoftDrop' in obs_config_dict[name]]
+    ##### new edits below #####
+    elif observable == 'jet_ENC_RL':
+      return [obs_config_dict[name]['trk_thrd'] for name in obs_subconfig_list]
+    elif observable == 'jet_EEC_noweight_RL':
+      return [obs_config_dict[name]['trk_thrd'] for name in obs_subconfig_list]
+    elif observable == 'jet_EEC_weight2_RL':
+      return [obs_config_dict[name]['trk_thrd'] for name in obs_subconfig_list]
+    elif observable == 'jet_pair_dist':
+      return [obs_config_dict[name]['trk_thrd'] for name in obs_subconfig_list]
+    elif observable == 'jet_EEC_detail_RL':
+      return [obs_config_dict[name]['trk_thrd'] for name in obs_subconfig_list]
+    elif observable == 'jet_EEC_detail_noweight_RL':
+      return [obs_config_dict[name]['trk_thrd'] for name in obs_subconfig_list]
+    elif observable == 'jet_pt':
+      return [obs_config_dict[name]['trk_thrd'] for name in obs_subconfig_list]
 
     # Else observable not implemented
     return [None for _ in obs_subconfig_list]

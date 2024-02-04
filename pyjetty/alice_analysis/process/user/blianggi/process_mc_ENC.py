@@ -34,7 +34,7 @@ from pyjetty.alice_analysis.process.base import process_io_emb
 from pyjetty.alice_analysis.process.base import jet_info
 from pyjetty.alice_analysis.process.user.substructure import process_mc_base
 from pyjetty.alice_analysis.process.base import thermal_generator
-from pyjetty.mputils.csubtractor import CEventSubtractor
+from pyjetty.mputils.csubtractor import Cceubtractor
 
 def linbins(xmin, xmax, nbins):
   lspace = np.linspace(xmin, xmax, nbins+1)
@@ -60,8 +60,7 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
     self.observable = self.observable_list[0]
 
     if self.ENC_fastsim:
-    #   print("self.pair_eff_file", self.pair_eff_file)
-      # self.pair_eff_file = ROOT.TFile.Open(self.pair_eff_file,"READ")
+      self.pair_eff_file = ROOT.TFile.Open(self.pair_eff_file,"READ")
       # self.dpbin = 5
       # self.dp_lo = [0, 0.1, 0.2, 0.4, 1]
       # self.dp_hi = [0.1, 0.2, 0.4, 1, 2]
@@ -71,7 +70,7 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
       self.h1d_eff_vs_dR_in_dq_over_p = []
       for idp in range(self.dpbin):
           hname = 'h1d_eff_vs_dR_in_dq_over_p_{}'.format(idp)
-          self.h1d_eff_vs_dR_in_dq_over_p.append( "" ) #ROOT.TH1D(self.pair_eff_file.Get(hname)) )
+          self.h1d_eff_vs_dR_in_dq_over_p.append( ROOT.TH1D(self.pair_eff_file.Get(hname)) )
 
   #---------------------------------------------------------------
   # Determine pair efficiency with the pair
@@ -455,14 +454,14 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
     # NB: currently applying the pair eff weight to both 2 point correlator and higher point correlators. Need to check if the same pair efficiency effect still work well for higher point correlators
     weights_pair = []
     for index in range(corr_builder.correlator(ipoint).rs().size()):
-      part1 = corr_builder.correlator(ipoint).indices1()[index]
-      part2 = corr_builder.correlator(ipoint).indices2()[index]
+      part1 = int(corr_builder.correlator(ipoint).indices1()[index])
+      part2 = int(corr_builder.correlator(ipoint).indices2()[index])
       if part1!=part2: # FIX ME: not sure, but for now only apply pair efficiency for non auto-correlations
         # Need to find the associated truth information for each pair (charge and momentum)
         part1_truth = constituents[part1].python_info().particle_truth
         part2_truth = constituents[part2].python_info().particle_truth
-        q1 = constituents[part1].python_info().charge
-        q2 = constituents[part2].python_info().charge
+        q1 = int(constituents[part1].python_info().charge)
+        q2 = int(constituents[part2].python_info().charge)
         dist = corr_builder.correlator(ipoint).rs()[index] # NB: use reconstructed distance since it's faster and should be equivalent to true distance because there is no angular smearing on the track momentum. To switch back to the true distance, use: self.calculate_distance(part1_truth, part2_truth)
         dq_over_p = q1/part1_truth.pt()-q2/part2_truth.pt()
         # calculate pair efficeincy and apply it as an additional weight
