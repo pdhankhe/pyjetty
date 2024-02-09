@@ -27,6 +27,7 @@ import fastjet as fj
 import fjcontrib
 import fjtools
 import ecorrel
+import othercorrel
 
 # Analysis utilities
 from pyjetty.alice_analysis.process.base import process_io
@@ -34,7 +35,7 @@ from pyjetty.alice_analysis.process.base import process_io_emb
 from pyjetty.alice_analysis.process.base import jet_info
 from pyjetty.alice_analysis.process.user.substructure import process_mc_base
 from pyjetty.alice_analysis.process.base import thermal_generator
-from pyjetty.mputils.csubtractor import Cceubtractor
+from pyjetty.mputils.csubtractor import CEventSubtractor
 
 def linbins(xmin, xmax, nbins):
   lspace = np.linspace(xmin, xmax, nbins+1)
@@ -114,16 +115,20 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
   def initialize_user_output_objects_R(self, jetR):
 
     for observable in self.observable_list:
+      print("HISTOGRAM OBSERVABLE", observable)
 
       for trk_thrd in self.obs_settings[observable]:
+        # print("CP TRK THRD", trk_thrd)
 
         obs_label = self.utils.obs_label(trk_thrd, None) 
+        # print("OBS_LABEL OG", obs_label)
 
         self.pair_type_labels = ['']
         if self.do_rho_subtraction or self.do_constituent_subtraction:
           self.pair_type_labels = ['_bb','_sb','_ss']
 
         # Init ENC histograms (both det and truth level)
+        # print("pair type label", self.pair_type_labels)
         for pair_type_label in self.pair_type_labels:
             if 'ENC' in observable:
               for ipoint in range(2, 3):
@@ -412,6 +417,7 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
               h.GetYaxis().SetTitle('R_{L}')
               setattr(self, name, h)
 
+        '''
         # Residuals and responses (currently not filled or used)
         for trk_thrd in self.obs_settings[observable]:
         
@@ -421,6 +427,13 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
                 self.create_response_histograms(observable, ipoint, jetR, trk_thrd, R_max)          
             else:
               self.create_response_histograms(observable, ipoint, jetR, trk_thrd)
+        '''
+
+        #correlation histograms
+        # self.new_observables = ["deltap", "deltapt", "charge", "unweightedRL"]
+        # print("OBS_LABEL", obs_label)
+        if "corr" in observable:
+          self.create_corr_histograms(observable, ipoint, jetR, obs_label)
           
 
   #---------------------------------------------------------------
@@ -449,6 +462,72 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
     h.GetYaxis().SetTitle('R_{L}')
     h.GetZaxis().SetTitle('#frac{R_{L,det}-R_{L,truth}}{R_{L,truth}}')
     setattr(self, name, h)
+  
+  def create_corr_histograms(self, observable, ipoint, jetR, obs_label):
+  
+    pt_bins = linbins(0,200,200)
+    RL_bins = logbins(1E-4,1,50)
+    ptRL_bins = logbins(1E-3,1E2,60)
+    deltap_bins = linbins(0, 1., 100)
+    charge_bins = linbins(-1.5, 1.5, 3)
+
+    # Create histograms
+    # delta p, truth
+    dim = 3;
+    if (observable == "corr_deltap"):
+      title_truth = ['p_{T,ch jet,truth}', 'R_{L,truth}', '#Deltap_{truth}']
+      title = ['p_{T,ch jet,det}', 'R_{L,det}', '#Deltap_{det}']
+      obs_bins = deltap_bins
+
+    # delta pt, truth
+    if (observable == "corr_deltapt"):
+      title_truth = ['p_{T,ch jet,truth}', 'R_{L,truth}', '#Deltap_{T, truth}']
+      title = ['p_{T,ch jet,det}', 'R_{L,det}', '#Deltap_{T, det}']
+      obs_bins = deltap_bins
+
+    # charge
+    if (observable == "corr_samecharge"):
+      title_truth = ['p_{T,ch jet,truth}', 'R_{L,truth}', 'same charge_{truth}']
+      title = ['p_{T,ch jet,det}', 'R_{L,det}', 'same charge_{det}']
+      obs_bins = charge_bins
+    if (observable == "corr_oppcharge"):
+      title_truth = ['p_{T,ch jet,truth}', 'R_{L,truth}', 'opp charge_{truth}']
+      title = ['p_{T,ch jet,det}', 'R_{L,det}', 'opp charge_{det}']
+      obs_bins = charge_bins
+
+    # unweighted RL
+    if (observable == "corr_unweightedRL"):
+      title_truth = ['p_{T,ch jet,truth}', 'R_{L,truth}', 'unweighted R_{L,truth}']
+      title = ['p_{T,ch jet,det}', 'R_{L,det}', 'unweighted R_{L,det}']
+      obs_bins = RL_bins
+
+    '''# don't do thnsparse anymore
+    name = 'h_{}{}_JetPt_Truth_R{}_{}'.format(observable, ipoint, jetR, obs_label)
+    h = ROOT.TH2D(name, name, 200, pt_bins, len(obs_bins)-1, obs_bins)
+    h.GetXaxis().SetTitle(title_truth[0]) #'p_{T,ch jet}')
+    h.GetYaxis().SetTitle(title_truth[2]) #'R_{L}')
+    setattr(self, name, h)
+
+    name = 'h_{}{}_JetPt_R{}_{}'.format(observable, ipoint, jetR, obs_label)
+    h = ROOT.TH2D(name, name, 200, pt_bins, len(obs_bins)-1, obs_bins)
+    h.GetXaxis().SetTitle(title[0]) #'p_{T,ch jet}')
+    h.GetYaxis().SetTitle(title[2]) #'R_{L}')
+    setattr(self, name, h)
+    '''
+
+    # name = 'h_JetPt_{}{}_R{}_{}'.format(observable, ipoint, jetR, obs_label)
+    name = 'h_{}{}_JetPt_Truth_R{}_{}'.format(observable, ipoint, jetR, obs_label)
+    # print("NAME", name)
+    nbins  = [len(pt_bins)-1, 50, len(obs_bins)-1]
+    min = [pt_bins[0],      RL_bins[0],     obs_bins[0]]
+    max = [pt_bins[-1],     RL_bins[-1],    obs_bins[-1]]
+    self.create_thn(name, title_truth, dim, nbins, min, max)
+
+    name = 'h_{}{}_JetPt_R{}_{}'.format(observable, ipoint, jetR, obs_label)
+    self.create_thn(name, title, dim, nbins, min, max)
+    
+
+
 
   def get_pair_eff_weights(self, corr_builder, ipoint, constituents):
     # NB: currently applying the pair eff weight to both 2 point correlator and higher point correlators. Need to check if the same pair efficiency effect still work well for higher point correlators
@@ -530,6 +609,7 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
 
     new_corr = ecorrel.CorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut)
     for observable in self.observable_list:
+      # print("CP OBSERVABLE", observable)
       if 'ENC' in observable or 'EEC_noweight' in observable or 'EEC_weight2' in observable:
         for ipoint in range(2, 3):
           if self.ENC_fastsim and (not 'Truth' in hname): # NB: only apply pair efficiency effect for fast sim and det level distributions
@@ -600,7 +680,50 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
             getattr(self, hname.format(observable,obs_label)).Fill(jet_pt, new_corr.correlator(ipoint).rs()[index])
           else:
             getattr(self, hname.format(observable,obs_label)).Fill(jet_pt, new_corr.correlator(ipoint).rs()[index], new_corr.correlator(ipoint).weights()[index])
-        
+
+      # correlation histograms 
+      if 'corr' in observable :
+        # print("OBS! HERE!", observable)
+
+        if (observable == "corr_deltap"):
+          # print("what is this name1", hname.format(observable + pair_type_label,obs_label))
+          # getattr(self, hname.format(observable,obs_label)).Fill(jet_pt, ??)
+
+          # ecorrel.CorrelatorBuilder
+          new_obs_corr = othercorrel.OtherCorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "deltap")
+          
+        # delta pt, truth
+        if (observable == "corr_deltapt"):
+          new_obs_corr = othercorrel.OtherCorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "deltapt")
+
+        # # charge
+        # if ("charge" in observable):
+        #   # new_obs_corr = othercorrel.OtherCorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "charge")
+        #   self.is_same_charge(new_corr, ipoint, c_select, index)
+
+        # unweighted RL
+        if (observable == "corr_unweightedRL"): # this is WRONG, but leave for now
+          new_obs_corr = ecorrel.CorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut)
+
+        # assuming the length of new_corr is the same as new_obs_corr
+        fsparsejetlevelJetvalue = array.array( 'd', ( 0, 0, 0 ))
+        fsparsejetlevelJetvalue[0] = jet_pt
+
+        # print("OBS! HERE!", observable)
+        for index in range(new_corr.correlator(ipoint).rs().size()):
+          fsparsejetlevelJetvalue[1] = new_corr.correlator(ipoint).rs()[index]
+          if ("charge" in observable):
+            samecharge_boolean = self.is_same_charge(new_corr, ipoint, c_select, index)
+            fsparsejetlevelJetvalue[2] = 1 if samecharge_boolean else -1
+            if samecharge_boolean and observable == "corr_samecharge":
+              getattr(self, hname.format(observable+str(ipoint),obs_label)).Fill(fsparsejetlevelJetvalue, new_corr.correlator(ipoint).weights()[index])
+            elif not samecharge_boolean and observable == "corr_oppcharge":
+              getattr(self, hname.format(observable+str(ipoint),obs_label)).Fill(fsparsejetlevelJetvalue, new_corr.correlator(ipoint).weights()[index])
+          else:
+            fsparsejetlevelJetvalue[2] = new_obs_corr.correlator(ipoint).rs()[index]
+            getattr(self, hname.format(observable+str(ipoint),obs_label)).Fill(fsparsejetlevelJetvalue, new_corr.correlator(ipoint).weights()[index])
+
+
   #---------------------------------------------------------------
   # This function is called per observable per jet subconfigration 
   # used in fill_matched_jet_histograms

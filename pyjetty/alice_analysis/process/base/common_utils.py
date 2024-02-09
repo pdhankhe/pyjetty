@@ -64,6 +64,17 @@ class CommonUtils(common_base.CommonBase):
       return [obs_config_dict[name]['trk_thrd'] for name in obs_subconfig_list]
     elif observable == 'jet_pt':
       return [obs_config_dict[name]['trk_thrd'] for name in obs_subconfig_list]
+    elif observable == 'corr_deltap':
+      return [obs_config_dict[name]['trk_thrd'] for name in obs_subconfig_list]
+    elif observable == 'corr_deltapt':
+      return [obs_config_dict[name]['trk_thrd'] for name in obs_subconfig_list]
+    elif observable == 'corr_samecharge':
+      return [obs_config_dict[name]['trk_thrd'] for name in obs_subconfig_list]
+    elif observable == 'corr_oppcharge':
+      return [obs_config_dict[name]['trk_thrd'] for name in obs_subconfig_list]
+    elif observable == 'corr_unweightedRL':
+      return [obs_config_dict[name]['trk_thrd'] for name in obs_subconfig_list]
+
 
     # Else observable not implemented
     return [None for _ in obs_subconfig_list]

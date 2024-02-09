@@ -10,7 +10,7 @@
 # The process step is intended to loop over all observables simultaneously
 # The analysis step is intended to run for a single observable block
 
-process_observables: ['jet_ENC_RL', 'jet_EEC_noweight_RL', 'jet_pt', 'jet_EEC_weight2_RL', 'corr_deltap', 'corr_deltapt', 'corr_samecharge', 'corr_oppcharge', 'corr_unweightedRL'] # can add jet_E3C_RL later
+process_observables: ['jet_ENC_RL', 'jet_EEC_noweight_RL', 'jet_pt', 'jet_EEC_weight2_RL'] # can add jet_E3C_RL later
 jetR: [0.4] #, 0.5] only focusing on jet R = 0.4 for now
 jet_matching_distance: 0.6        # Match jets with deltaR < jet_matching_distance*jetR
 reject_tracks_fraction: 0.0
@@ -197,105 +197,3 @@ jet_EEC_weight2_RL:
     obs_bins_truth: [0., 0.02, 0.04, 0.1, 0.3, 0.6, 0.7, 0.77, 0.83, 0.89, 0.95, 1.0]
     obs_bins_det: [0., 0.02, 0.04, 0.1, 0.3, 0.6, 0.7, 0.77, 0.83, 0.89, 0.95, 1.0]
     obs_bins_det_sys_binning: [0., 0.01, 0.02, 0.03, 0.04, 0.06, 0.12, 0.18, 0.24, 0.3, 0.36, 0.42, 0.48, 0.54, 0.6, 0.66, 0.72, 0.8, 0.9, 0.96, 0.98, 0.99, 1.0]
-
-
-# Observable block
-corr_deltap:
-
-  common_settings:
-    xtitle: '#it{R_{L}}'
-    ytitle: '#Deltap'
-    pt_bins_reported: [40, 80, 120]
-    max_reg_param: 10
-    plot_overlay_list:
-      - ['config1', 'config2', 'config3']
-
-  config1:
-    trk_thrd: 0.5
-
-  config2:
-    trk_thrd: 1.0
-
-  config3:
-    trk_thrd: 0.15
-
-
-# Observable block
-corr_deltapt:
-
-  common_settings:
-    xtitle: '#it{R_{L}}'
-    ytitle: '#Deltap_{T}'
-    pt_bins_reported: [40, 80, 120]
-    max_reg_param: 10
-    plot_overlay_list:
-      - ['config1', 'config2', 'config3']
-
-  config1:
-    trk_thrd: 0.5
-
-  config2:
-    trk_thrd: 1.0
-
-  config3:
-    trk_thrd: 0.15
-
-# Observable block
-corr_samecharge:
-
-  common_settings:
-    xtitle: '#it{R_{L}}'
-    ytitle: 'same charge'
-    pt_bins_reported: [40, 80, 120]
-    max_reg_param: 10
-    plot_overlay_list:
-      - ['config1', 'config2', 'config3']
-
-  config1:
-    trk_thrd: 0.5
-
-  config2:
-    trk_thrd: 1.0
-
-  config3:
-    trk_thrd: 0.15
-
-# Observable block
-corr_oppcharge:
-
-  common_settings:
-    xtitle: '#it{R_{L}}'
-    ytitle: 'opp charge'
-    pt_bins_reported: [40, 80, 120]
-    max_reg_param: 10
-    plot_overlay_list:
-      - ['config1', 'config2', 'config3']
-
-  config1:
-    trk_thrd: 0.5
-
-  config2:
-    trk_thrd: 1.0
-
-  config3:
-    trk_thrd: 0.15
-
-# Observable block
-corr_unweightedRL:
-
-  common_settings:
-    xtitle: '#it{R_{L}}'
-    ytitle: 'unweighted #it{R_{L}}'
-    pt_bins_reported: [40, 80, 120]
-    max_reg_param: 10
-    plot_overlay_list:
-      - ['config1', 'config2', 'config3']
-
-  config1:
-    trk_thrd: 0.5
-
-  config2:
-    trk_thrd: 1.0
-
-  config3:
-    trk_thrd: 0.15

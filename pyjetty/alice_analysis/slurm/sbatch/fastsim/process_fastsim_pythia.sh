@@ -41,7 +41,7 @@ module load pyjetty/1.0
 module list
 
 # Run main script
-cd /software/users/james/pyjetty/pyjetty/alice_analysis/process/user/fastsim
+cd /home/software/users/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/process/user/fastsim
 python eff_smear.py -i $INPUT_FILE -o $OUTPUT_DIR
 
 # Move stdout to appropriate folder

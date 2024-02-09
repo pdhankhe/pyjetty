@@ -223,7 +223,7 @@ class ProcessMCBase(process_base.ProcessBase):
     self.nTracks_truth = len(io_truth.track_df.index)
     print('--- {} seconds ---'.format(time.time() - self.start_time))
 
-    print('Input truth Data Frame',df_fjparticles_truth)
+    # print('Input truth Data Frame',df_fjparticles_truth)
     
     # If jetscape, store also the negative status particles (holes)
     if self.jetscape:
