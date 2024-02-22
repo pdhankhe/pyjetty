@@ -141,17 +141,17 @@ namespace OtherCorrelators
                 }
                 double _d12 = 0;
                 
-                cout << "correltype " << correltype << "; " << strcmp(correltype, "deltap") << endl;
+                // cout << "correltype " << correltype << "; " << strcmp(correltype, "deltap") << endl;
 
                 if (strcmp(correltype, "deltap") == 0) {
                     // _d12 = fabs(parts[i].p() - parts[j].p()); //parts[i].delta_R(parts[j]);
                     double p1 = sqrt(parts[i].px()*parts[i].px() + parts[i].py()*parts[i].py() + parts[i].pz()*parts[i].pz()); //parts[i].charge();
                     double p2 = sqrt(parts[j].px()*parts[j].px() + parts[j].py()*parts[j].py() + parts[j].pz()*parts[j].pz());
                     _d12 = fabs(p1 - p2);
-                    cout << "delta p: " << p1 << " - " << p2 << " = " << _d12 << endl;
+                    // cout << "delta p: " << p1 << " - " << p2 << " = " << _d12 << endl;
                 } else if (strcmp(correltype, "deltapt") == 0) {
                     _d12 = fabs(parts[i].pt() - parts[j].pt());
-                    cout << "delta pT: " << parts[i].pt() << " - " << parts[j].pt() << " = " << _d12 << endl;
+                    // cout << "delta pT: " << parts[i].pt() << " - " << parts[j].pt() << " = " << _d12 << endl;
                 } // else if (correltype == "charge") {
                 //     double q1 = parts[i].python_info().charge; //parts[i].charge();
                 //     double q2 = parts[j].python_info().charge; //parts[j].charge();
