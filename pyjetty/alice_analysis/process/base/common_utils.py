@@ -92,6 +92,7 @@ class CommonUtils(common_base.CommonBase):
   #---------------------------------------------------------------
   def obs_label(self, obs_setting, grooming_setting):
 
+    # print(obs_setting, grooming_setting)
     obs_label = ''
     if obs_setting:
       obs_label += '{}'.format(obs_setting)
@@ -99,6 +100,7 @@ class CommonUtils(common_base.CommonBase):
         obs_label += '_'
     if grooming_setting:
       obs_label += '{}'.format(self.grooming_label(grooming_setting))
+      # print("obslabeLELLWLEJQLWE", obs_label)
     return obs_label
   
   #---------------------------------------------------------------
@@ -154,6 +156,35 @@ class CommonUtils(common_base.CommonBase):
       sys.exit('CommonUtils::grooming_label: Unknown grooming type!')
     
     return text
+
+  #---------------------------------------------------------------
+  # Get binning settings from config file
+  #---------------------------------------------------------------
+
+  def binning_settings(self, obs_jetaxes, obs_config_dict):
+  
+    binning_settings = []
+    i = 0
+    for config_key, subconfig in obs_config_dict.items():
+    
+      binning_setting_dict = {}
+
+      jetaxis = obs_jetaxes[i]
+    
+      if config_key == 'common_settings':
+        continue
+      if 'obs_bins' in subconfig:
+        binning_config = obs_config_dict[config_key]['obs_bins']
+        binning_setting_dict[jetaxis] = binning_config
+      
+      if binning_setting_dict:
+        binning_settings.append(binning_setting_dict)
+      else:
+        binning_settings.append(None)
+
+      i+=1
+        
+    return binning_settings
 
   #---------------------------------------------------------------
   # Remove periods from a label

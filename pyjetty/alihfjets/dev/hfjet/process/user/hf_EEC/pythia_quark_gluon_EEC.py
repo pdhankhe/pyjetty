@@ -137,9 +137,9 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			obs_config_dict = config[observable]
 			obs_config_list = [name for name in list(obs_config_dict.keys()) if 'config' in name ]
 
-			obs_subconfig_list = [name for name in list(obs_config_dict.keys()) if 'config' in name ]
-			pinfo("obs_subconfig_list", obs_subconfig_list)
-			self.obs_settings[observable] = self.utils.obs_settings(observable, obs_config_dict, obs_subconfig_list)
+			# obs_subconfig_list = [name for name in list(obs_config_dict.keys()) if 'config' in name ]
+			# pinfo("obs_subconfig_list", obs_subconfig_list)
+			self.obs_settings[observable] = self.utils.obs_settings(observable, obs_config_dict, obs_config_list)
 			pinfo("self.obs_settings[observable]", self.obs_settings[observable])
 			self.obs_grooming_settings[observable] = self.utils.grooming_settings(obs_config_dict)
 			pinfo("self.obs_grooming_settings[observable]", self.obs_grooming_settings[observable])
@@ -877,7 +877,6 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 
 
 
-					#TODO: FIX TO JETS NOT EVENTS (NOWWWWW)
 					# count the number of D0-tagged jets. If the observable is not EEC, might have to change where this is
 					if (D0taggedjet): #D0Kpidecayfound):
 						self.hD0KpiNjets.Fill(0)
