@@ -9,6 +9,7 @@
 #SBATCH --time=12:00:00
 #SBATCH --array=1-280
 #SBATCH --output=/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jetaxis/slurm-%A_%a.out
+#SBATCH --exclude=nid004104
 
 
 # Center of mass energy in GeV
@@ -60,10 +61,10 @@ if $USE_PTHAT_MAX; then
     echo "pipenv run python $SCRIPT -c $CONFIG --output-dir $OUTDIR --user-seed $SEED --py-pthatmin $PTHAT_MIN --py-ecm $ECM --nev $NEV_PER_JOB --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2,PhaseSpace:pTHatMax=$PTHAT_MAX"
     pipenv run python $SCRIPT -c $CONFIG --output-dir $OUTDIR --user-seed $SEED \
         --py-pthatmin $PTHAT_MIN --py-ecm $ECM --nev $NEV_PER_JOB \
-        --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2,PhaseSpace:pTHatMax=$PTHAT_MAX --replaceKP 1 --chinitscat 3 --D0withDstarON 1
+        --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2,PhaseSpace:pTHatMax=$PTHAT_MAX --nocharmdecay 1
 else
     echo "pipenv run python $SCRIPT -c $CONFIG --output-dir $OUTDIR --user-seed $SEED --py-pthatmin $PTHAT_MIN --py-ecm $ECM --nev $NEV_PER_JOB --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2"
     pipenv run python $SCRIPT -c $CONFIG --output-dir $OUTDIR \
         --user-seed $SEED --py-pthatmin $PTHAT_MIN --py-ecm $ECM --nev $NEV_PER_JOB \
-        --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2 --replaceKP 1 --chinitscat 3 --D0withDstarON 1
+        --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2 --nocharmdecay 1
 fi

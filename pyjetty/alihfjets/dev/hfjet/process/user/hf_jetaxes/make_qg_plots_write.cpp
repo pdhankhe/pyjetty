@@ -1,6 +1,8 @@
 // ROOT macro to make quark-gluon jet plots
 // Beatrice Liang-Gilman (beatrice_lg@berkeley.edu)
 
+#include <typeinfo>
+
 void SetStyle(Bool_t graypalette=true) {
   	cout << "Setting style!" << endl;
   
@@ -127,21 +129,37 @@ void make_qg_plots_write() {
     Double_t colors[16] = {kRed, kGreen+2, kBlue, kRed+1, kGreen+1, kBlue+1, kRed+2, kGreen+2, kBlue+2, kRed+3, kGreen+3, kBlue+3, kOrange+1, kViolet+1, kYellow+1, kCyan+1};
 
 
-    // File containing quark vs gluon histograms
-
-     //FOR WHEN WEIGHTED/UNWEIGHTED IN SAME FILE
-    const char infile_D0[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jetaxis/21793247/AnalysisResultsFinal.root";
-    const char infile_charmOFF[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jetaxis/21793593/AnalysisResultsFinal.root"; //perlmutter
-    const char infile_charmON[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jetaxis/21793602/AnalysisResultsFinal.root"; //perlmutter 
-
-
     // int plot_case:
     // 0 = D0 replacement (primordial + from D* D0's)
     // 1 = charm decays DISABLED
     // 2 = charm decays ENABLED
+    // int zcut_case:
+    // 1 = zcut=0.1
+    // 2 = zcut=0.2
 
     //CONTOL VARIABLES HERE
-    int plot_case = 2;
+    int plot_case = 0;
+    int zcut_case = 1;
+
+    // File containing quark vs gluon histograms
+
+     //FOR WHEN WEIGHTED/UNWEIGHTED IN SAME FILE
+    // const char infile_D0[128];
+    // const char infile_charmOFF[128];
+    // const char infile_charmON[128];
+    // static const char * const infile_D0[];
+    // static const char * const infile_charmOFF[];
+    // static const char * const infile_charmON[];
+    //zcut=0.1
+    // if (zcut_case == 1) {
+        const char infile_D0[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jetaxis/22078282/AnalysisResultsFinal.root";
+        const char infile_charmOFF[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jetaxis/22078315/AnalysisResultsFinal.root"; //perlmutter
+        const char infile_charmON[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jetaxis/22078314/AnalysisResultsFinal.root"; //perlmutter 
+    // } else if (zcut_case == 2) { //zcut=0.2
+        // const char infile_D0[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jetaxis/22060892/AnalysisResultsFinal.root";
+        // const char infile_charmOFF[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jetaxis/22060858/AnalysisResultsFinal.root"; //perlmutter
+        // const char infile_charmON[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jetaxis/22060888/AnalysisResultsFinal.root"; //perlmutter 
+    // }
 
     TFile* f;
     TString label1 = "";
@@ -175,8 +193,14 @@ void make_qg_plots_write() {
     for (std::string jetR : jetR_list) {
 
         // Names of histograms in the file (quark, charm, gluon)
-        const std::string jetaxis_names[] = { "SD-D_SD_zcut02_B0", "STD-D",
-            "STD-SD_SD_zcut02_B0", "STD-WTA", "WTA-D", "WTA-SD_SD_zcut02_B0" };
+        // jetaxis_names[6];
+        // if (zcut_case == 1) {
+        // const std::string jetaxis_names[] = { "SD-D_SD_zcut02_B0", "STD-D",
+        //         "STD-SD_SD_zcut02_B0", "STD-WTA", "WTA-D", "WTA-SD_SD_zcut02_B0" };
+        // } else if (zcut_case == 2) {
+        const std::string jetaxis_names[] = { "SD-D_SD_zcut01_B0", "STD-D",
+                "STD-SD_SD_zcut01_B0", "STD-WTA", "WTA-D", "WTA-SD_SD_zcut01_B0" };
+        // }
 
         std::vector<std::string> hc_names;
         std::vector<std::string> hg_names;
@@ -337,9 +361,9 @@ void make_qg_plots_write() {
                 hname = hl_projs[iobs]->GetName();
                 hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
                 hl_projs[iobs]->SetNameTitle(hname.c_str(), hname.c_str());
-                hname = hl_projs[iobs]->GetName();
+                hname = hi_projs[iobs]->GetName();
                 hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
-                hl_projs[iobs]->SetNameTitle(hname.c_str(), hname.c_str());
+                hi_projs[iobs]->SetNameTitle(hname.c_str(), hname.c_str());
                 cout << "iter " << iobs << ", " << hname.c_str() << endl;
             }
 
@@ -366,11 +390,17 @@ void make_qg_plots_write() {
             std::vector<TH1*> hg;
             std::vector<TH1*> hl;
             std::vector<TH1*> hi;
+
             for (int iobs=0; iobs<numjetaxes; iobs++) {
-                hc.push_back( (TH1*) hc_projs[iobs]->Clone((hc_names[iobs] + "rebin").c_str()) );
-                hg.push_back( (TH1*) hg_projs[iobs]->Clone((hg_names[iobs] + "rebin").c_str()) );
-                hl.push_back( (TH1*) hl_projs[iobs]->Clone((hl_names[iobs] + "rebin").c_str()) );
-                hi.push_back( (TH1*) hi_projs[iobs]->Clone((hi_names[iobs] + "rebin").c_str()) );
+                std::string hc_newname = hc_projs[iobs]->GetName();
+                std::string hg_newname = hg_projs[iobs]->GetName();
+                std::string hl_newname = hl_projs[iobs]->GetName();
+                std::string hi_newname = hi_projs[iobs]->GetName();
+
+                hc.push_back( (TH1*) hc_projs[iobs]->Clone( hc_newname.c_str() )); //hc_newname + "rebin").c_str() );
+                hg.push_back( (TH1*) hg_projs[iobs]->Clone( hg_newname.c_str() )); //hg_newname + "rebin").c_str() );
+                hl.push_back( (TH1*) hl_projs[iobs]->Clone( hl_newname.c_str() )); //hl_newname + "rebin").c_str() );
+                hi.push_back( (TH1*) hi_projs[iobs]->Clone( hi_newname.c_str() )); //hi_newname + "rebin").c_str() );
             }
             // TH1* hD0 = (TH1*) hD0_proj->Rebin(n_obs_bins, (hname + "rebin").c_str(), obs_bins);
             cout << "Rebin done" << endl;
@@ -391,6 +421,7 @@ void make_qg_plots_write() {
 
 
             // Set normalization
+            /*
             for (int iobs=0; iobs<numjetaxes; iobs++) {
                 cout << "num charm jets iter " << iobs << "; " << numjets_charm[iobs] << endl;
                 hc[iobs]->Scale(1/numjets_charm[iobs], "width");
@@ -398,6 +429,7 @@ void make_qg_plots_write() {
                 hl[iobs]->Scale(1/numjets_light[iobs], "width");
                 hi[iobs]->Scale(1/numjets_inclusive[iobs], "width");
             }
+            */
 
 
 
