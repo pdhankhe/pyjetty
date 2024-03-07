@@ -34,17 +34,20 @@ echo "Output dir: $OUTPUT_DIR"
 mkdir -p $OUTPUT_DIR
 
 # Load modules
-module use /software/users/james/heppy/modules
-module load heppy/1.0
-module use /software/users/james/pyjetty/modules
-module load pyjetty/1.0
-module list
+# module use /software/users/james/heppy/modules
+# module load heppy/1.0
+# module use /software/users/james/pyjetty/modules
+# module load pyjetty/1.0
+# module list
+source /home/blianggi/activate_pyjetty.sh
+module load herwig_with_deps
 
 # Run main script
-cd /software/users/james/pyjetty/pyjetty/alice_analysis/generation
-python hepmc2antuple_tn.py -i $INPUT_FILE -o $OUTPUT_DIR/AnalysisResultsGen.root -g herwig --no-progress-bar
+cd /software/users/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/generation
+python hepmc2antuple_tn.py -i $INPUT_FILE -o $OUTPUT_DIR/AnalysisResultsGen.root -g herwig --no-progress-bar -d
 
 # Move stdout to appropriate folder
-mv /rstorage/generators/herwig_alice/tree_gen/slurm-${JOB_ID}_${TASK_ID}.out /rstorage/generators/herwig_alice/tree_gen/${JOB_ID}/
+mkdir -p /rstorage/generators/herwig_alice/tree_gen/${JOB_ID}/slurm-output
+mv /rstorage/generators/herwig_alice/tree_gen/slurm-${JOB_ID}_${TASK_ID}.out /rstorage/generators/herwig_alice/tree_gen/${JOB_ID}/slurm-output/
 
 

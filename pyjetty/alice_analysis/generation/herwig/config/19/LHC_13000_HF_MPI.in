@@ -1,0 +1,74 @@
+# -*- ThePEG-repository -*-
+
+##################################################
+# Example generator based on LHC parameters
+# usage: Herwig read LHC.in
+##################################################
+
+read snippets/PPCollider.in
+
+##################################################
+# LHC physics parameters (override defaults here) 
+##################################################
+
+set /Herwig/Generators/EventGenerator:EventHandler:LuminosityFunction:Energy 13000.0
+
+##################################################
+# Matrix Elements for hadron-hadron collisions 
+##################################################
+
+# charm heavy flavor
+set /Herwig/MatrixElements/MEHeavyQuark:QuarkType 4
+insert /Herwig/MatrixElements/SubProcess:MatrixElements[0] /Herwig/MatrixElements/MEHeavyQuark
+
+##################################################
+#  Set cuts
+##################################################
+
+# Cut directly on jet pt
+set /Herwig/Cuts/JetKtCut:MinKT 235.*GeV
+set /Herwig/Cuts/JetKtCut:MaxKT 260.*GeV
+
+# Or, cut on Q^2?
+#set /Herwig/Cuts/Cuts:MHatMin 100.*GeV
+#set /Herwig/Cuts/Cuts:MHatMax 200.*GeV
+
+set /Herwig/Cuts/JetKtCut:MinEta -1.5
+set /Herwig/Cuts/JetKtCut:MaxEta 1.5
+
+# Make particles with c*tau > 10 mm stable:
+set /Herwig/Decays/DecayHandler:MaxLifeTime 10*mm
+set /Herwig/Decays/DecayHandler:LifeTimeOption Average
+
+
+##################################################
+# Additional parameters from Preeti
+##################################################
+set /Herwig/UnderlyingEvent/MPIHandler:IdenticalToUE -1
+#read SoftTune.in
+create ThePEG::LHAPDF /Herwig/Partons/PDFSet ThePEGLHAPDF.so
+set /Herwig/Partons/PDFSet:PDFName CT10nlo.LHgrid
+set /Herwig/Partons/PDFSet:RemnantHandler /Herwig/Partons/HadronRemnants
+set /Herwig/Particles/p+:PDF /Herwig/Partons/PDFSet
+#set /Herwig/Analysis/HepMC:Filename events.hepmc
+
+
+##################################################
+## To turn off MPI and/or hadronization: 
+##################################################
+#cd /Herwig/EventHandlers
+#set EventHandler:CascadeHandler:MPIHandler NULL
+#set EventHandler:HadronizationHandler NULL
+
+##################################################
+## HepMC output
+##################################################
+
+read snippets/HepMC.in
+set /Herwig/Analysis/HepMC:PrintEvent 2000000
+
+##################################################
+# Save run for later usage with 'Herwig run'
+##################################################
+set /Herwig/Generators/EventGenerator:PrintEvent 2000000
+saverun LHC_13000_HF_MPI /Herwig/Generators/EventGenerator

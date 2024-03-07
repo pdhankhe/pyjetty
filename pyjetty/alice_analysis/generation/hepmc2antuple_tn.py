@@ -56,12 +56,30 @@ class HepMC2antuple(hepmc2antuple_base.HepMC2antupleBase):
     self.t_e.Fill(self.run_number, self.ev_id, 0, 0)
 
     for part in event_hepmc.particles:
+
+      # get mother here --> need PID
+      # if not looking at D0s or there is != 1 mother, then set motherPID=0
+      motherPID = 0
+      if self.include_D0:
+        # print("PART", part)
+        # print("PARENTS", part.parents)
+        mothers = part.parents
+        if len(mothers) == 1:
+          # print("PARENTS", part.parents)
+          motherPID = mothers[0].pid
+          # print("motherPID", motherPID) #, self.pdg.GetParticle(motherPID).GetName())
+      
     
       if self.accept_particle(part, part.status, part.end_vertex, part.pid, self.pdg, self.gen):
       
-        self.particles_accepted.add(self.pdg.GetParticle(part.pid).GetName())
-        self.t_p.Fill(self.run_number, self.ev_id, part.momentum.pt(), part.momentum.eta(), part.momentum.phi(), part.pid)
+        self.particles_accepted.add(self.pdg.GetParticle(part.pid).GetName())          
+        self.t_p.Fill(self.run_number, self.ev_id, part.momentum.pt(), part.momentum.eta(), part.momentum.phi(), part.pid, motherPID)
 
+        if self.include_D0:
+          if True: #self.D0toKpidecay(): # TODO: check that D0 goes to Kpi
+            self.t_D.Fill(self.run_number, self.ev_id, part.momentum.pt(), part.momentum.eta(), part.momentum.phi(), 0, part.pid)
+            # print("rapidity", part.momentum.rap())
+      
       elif self.include_parton and self.accept_particle(part, part.status, part.end_vertex, part.pid, self.pdg, self.gen, parton=True):
 
         self.partons_accepted.add(self.pdg.GetParticle(part.pid).GetName())
@@ -80,7 +98,8 @@ if __name__ == '__main__':
   parser.add_argument('-g', '--gen', help='generator type: pythia, herwig, jewel, jetscape, martini, hybrid', default='pythia', type=str, required=True)
   parser.add_argument('--no-progress-bar', help='whether to print progress bar', action='store_true', default=False)
   parser.add_argument('-p', '--include-parton', help='include additional tree of final-state partons', action='store_true', default=False)
+  parser.add_argument('-d', '--include-D0', help='include additional tree of D0 information and mother IDs', action='store_true', default=False)
   args = parser.parse_args()
   
-  converter = HepMC2antuple(input = args.input, output = args.output, as_data = args.as_data, hepmc = args.hepmc, nev = args.nev, gen = args.gen, no_progress_bar = args.no_progress_bar, include_parton = args.include_parton)
+  converter = HepMC2antuple(input = args.input, output = args.output, as_data = args.as_data, hepmc = args.hepmc, nev = args.nev, gen = args.gen, no_progress_bar = args.no_progress_bar, include_parton = args.include_parton, include_D0 = args.include_D0)
   converter.main()

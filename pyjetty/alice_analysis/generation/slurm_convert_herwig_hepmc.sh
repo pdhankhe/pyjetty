@@ -7,7 +7,8 @@
 #SBATCH --array=1-500
 #SBATCH --output=/rstorage/generators/herwig_alice/tree_gen/slurm-%A_%a.out
 
-FILE_PATHS='/rstorage/generators/herwig_alice/hepmc/260023/files.txt'
+# FILE_PATHS='/rstorage/generators/herwig_alice/hepmc/260023/files.txt'
+FILE_PATHS='/software/users/blianggi/analysis/files_HF.txt'
 NFILES=$(wc -l < $FILE_PATHS)
 echo "N files to process: ${NFILES}"
 
@@ -29,5 +30,6 @@ echo "STOP=$STOP"
 for (( JOB_N = $START; JOB_N <= $STOP; JOB_N++ ))
 do
   FILE=$(sed -n "$JOB_N"p $FILE_PATHS)
+  cd /software/users/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/generation/
   srun process_convert_herwig_hepmc.sh $FILE $SLURM_ARRAY_JOB_ID $SLURM_ARRAY_TASK_ID
 done

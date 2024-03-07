@@ -106,7 +106,9 @@ def accept_particle_status(part, status, end_vertex, pid, pdg, parton=False, sta
       #  print(part, status)
       #  print('pid: {} = {}'.format(part.pid, pdg.GetParticle(part.pid).GetName()))
       if not parton and pdg.GetParticle(pid).Charge() == 0:
-        if status not in charged_exception and part.momentum().perp() > pt_exception: # Exceptions for JEWEL in order to keep recoils and dummies
+        # if status not in charged_exception and part.momentum().perp() > pt_exception: # Exceptions for JEWEL in order to keep recoils and dummies
+        #for herwig:
+        if status not in charged_exception and part.momentum.perp() > pt_exception: # Exceptions for JEWEL in order to keep recoils and dummies
           return False
     else:
       return False
