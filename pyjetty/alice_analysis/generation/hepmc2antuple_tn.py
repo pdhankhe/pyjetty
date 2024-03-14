@@ -47,8 +47,10 @@ class HepMC2antuple(hepmc2antuple_base.HepMC2antupleBase):
       self.increment_event()
       if self.nev > 0 and self.ev_id > self.nev:
         break
+      # print("here! checkpoin 1!", self.nev, self.ev_id)
       
     self.finish()
+    print("finish event")
 
   #---------------------------------------------------------------
   def fill_event(self, event_hepmc):
@@ -65,20 +67,20 @@ class HepMC2antuple(hepmc2antuple_base.HepMC2antupleBase):
         # print("PARENTS", part.parents)
         mothers = part.parents
         if len(mothers) == 1:
-          # print("PARENTS", part.parents)
+          mother = mothers[0]
           motherPID = mothers[0].pid
-          # print("motherPID", motherPID) #, self.pdg.GetParticle(motherPID).GetName())
-      
+          if motherPID == 421 or motherPID == -421:
+            # print("motherPID", motherPID) #, self.pdg.GetParticle(motherPID).GetName())
+            
+            if self.isD0toKpidecay(mother): # TODO: check that D0 goes to Kpi
+              self.t_D.Fill(self.run_number, self.ev_id, mother.momentum.pt(), mother.momentum.eta(), mother.momentum.phi(), part.momentum.rap(), mother.pid)
+              # print("rapidity", part.momentum.rap())
+            
     
       if self.accept_particle(part, part.status, part.end_vertex, part.pid, self.pdg, self.gen):
       
         self.particles_accepted.add(self.pdg.GetParticle(part.pid).GetName())          
-        self.t_p.Fill(self.run_number, self.ev_id, part.momentum.pt(), part.momentum.eta(), part.momentum.phi(), part.pid, motherPID)
-
-        if self.include_D0:
-          if True: #self.D0toKpidecay(): # TODO: check that D0 goes to Kpi
-            self.t_D.Fill(self.run_number, self.ev_id, part.momentum.pt(), part.momentum.eta(), part.momentum.phi(), 0, part.pid)
-            # print("rapidity", part.momentum.rap())
+        self.t_p.Fill(self.run_number, self.ev_id, part.momentum.pt(), part.momentum.eta(), part.momentum.phi(), part.pid, motherPID)          
       
       elif self.include_parton and self.accept_particle(part, part.status, part.end_vertex, part.pid, self.pdg, self.gen, parton=True):
 

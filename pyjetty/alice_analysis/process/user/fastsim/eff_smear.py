@@ -131,7 +131,7 @@ class eff_smear:
         # Write data to file
         print(self.df_fjparticles)
         print("Writing fast simulation to ROOT TTree...")
-        self.io.save_dataframe("AnalysisResultsFastSim_test.root", self.df_fjparticles,
+        self.io.save_dataframe("AnalysisResultsFastSim.root", self.df_fjparticles,
                                df_true=True, histograms=self.hist_list, is_jetscape=self.is_jetscape, is_ENC=self.is_ENC)
         print('--- {} seconds ---'.format(time.time() - start_time))
 
@@ -171,7 +171,8 @@ class eff_smear:
     #---------------------------------------------------------------
     def add_mc_index(self, df):
         # associated mc index
-        trk_mc_index_list = np.array([])
+        # trk_mc_index_list = np.array([])
+        trk_mc_index_list = []
 
         pt = df['ParticlePt'].to_numpy()
         ev_id = df['ev_id'].to_numpy()
@@ -181,10 +182,13 @@ class eff_smear:
             if ievt % 100 == 0:
                 print("Processing event ",ievt,"/ [",self.evt_range_lo,"-",self.evt_range_hi,"]",datetime.datetime.now(),flush=True)
             pt_evt = pt[ev_id==ievt]
-            for itrk in range(len(pt_evt)):
-                trk_mc_index_list = np.append(trk_mc_index_list, itrk)
+            for itrk in range(len(pt_evt)): # could improve this function by making linspace of this range and appending to the list...
+                # trk_mc_index_list = np.append(trk_mc_index_list, itrk)
+                trk_mc_index_list.append(itrk)
 
-        # print('size of indices',len(trk_mc_index_list))
+        # print('size of indices',len(trk_mc_index_list), 'comapred with',len(pt))
+        # print("try1", trk_mc_index_list[:200])
+        trk_mc_index_list = np.array(trk_mc_index_list)
         df['ParticleMCIndex'] = trk_mc_index_list
         return df
 

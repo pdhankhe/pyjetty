@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import os
 import tqdm
+import numpy as np
 
 import ROOT
 ROOT.gROOT.SetBatch(True)
@@ -101,8 +102,11 @@ class HepMC2antupleBase(common_base.CommonBase):
   def finish(self):
   
     self.print_particles()
+    print("particles printed")
     self.outf.Write()
+    print("file written")
     self.outf.Close()
+    print("file closed")
   
   #---------------------------------------------------------------
   def print_particles(self):
@@ -120,3 +124,29 @@ class HepMC2antupleBase(common_base.CommonBase):
     for particle in self.particles_accepted:
       if particle not in reference_particles:
         print('WARNING: Extra particles: {} was found in your accepted particles!'.format(particle))
+
+ #---------------------------------------------------------------
+  # given a particle, check that it is a D0. Then check if the daughers are K+- & pi-+. If yes, return True.
+  def isD0toKpidecay(self, part):
+    # print("part id", part.pid)
+    if np.abs(part.pid) == 421: # this is redundant, but do it anyways
+      children = part.children
+      # print("children", children)
+      if len(children) == 2:
+        child1_pid = children[0].pid
+        child2_pid = children[1].pid
+        ch_pion_pid = 211
+        ch_kaon_pid = 321
+        if (child1_pid*child2_pid >= 0): #return if charges of daughters are not opposite
+          return False
+        if (np.abs(child1_pid) == ch_pion_pid and np.abs(child2_pid) == ch_kaon_pid):
+          # print("D0->Kpi decay 1!")
+          return True
+        elif (np.abs(child1_pid) == ch_kaon_pid and np.abs(child2_pid) == ch_pion_pid):
+          # print("D0->Kpi decay 2!")
+          return True
+        else:
+          return False
+    return False
+
+

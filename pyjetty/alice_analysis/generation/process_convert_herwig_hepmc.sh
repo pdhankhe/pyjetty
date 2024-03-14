@@ -28,7 +28,9 @@ fi
 # Define output path from relevant sub-path of input file
 # Note: suffix depends on file structure of input file -- need to edit appropriately for each dataset
 OUTPUT_SUFFIX=$(echo $INPUT_FILE | cut -d/ -f6-8)
+echo "OUTPUT_SUFFIX SUPPOSED TO BE:"
 echo $OUTPUT_SUFFIX
+# OUTPUT_SUFFIX=${TASK_ID}
 OUTPUT_DIR="/rstorage/generators/herwig_alice/tree_gen/$JOB_ID/$OUTPUT_SUFFIX/"
 echo "Output dir: $OUTPUT_DIR"
 mkdir -p $OUTPUT_DIR

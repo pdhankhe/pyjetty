@@ -3,7 +3,7 @@
 #SBATCH --job-name="HerwigHepMC"
 #SBATCH --nodes=1 --ntasks=1 --cpus-per-task=1
 #SBATCH --partition=std
-#SBATCH --time=6:00:00
+#SBATCH --time=12:00:00
 #SBATCH --array=1-2500
 #SBATCH --output=/rstorage/alice/AnalysisResults/blianggi/herwig/slurm-%A_%a.out
 
@@ -55,4 +55,17 @@ rm *.log
 # Move stdout to appropriate folder
 cd /rstorage/generators/herwig_alice/hepmc/${SLURM_ARRAY_JOB_ID}/
 mkdir -p slurm-output
-mv /rstorage/alice/AnalysisResults/blianggi/herwig/slurm-${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}.out slurm-output/
+
+
+# Now convert hepmc to root files and delete hepmc for space reasons
+cd $OUTDIR
+pushd .
+HEPMC_FILE=($(ls -1 *.hepmc))
+cd /software/users/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/generation/
+srun process_convert_herwig_hepmc.sh ${OUTDIR}/$HEPMC_FILE $SLURM_ARRAY_JOB_ID $SLURM_ARRAY_TASK_ID
+
+popd
+rm $HEPMC_FILE
+echo "hepmc file removed"
+
+mv /rstorage/alice/AnalysisResults/blianggi/herwig/slurm-${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}.out /rstorage/generators/herwig_alice/hepmc/${SLURM_ARRAY_JOB_ID}/slurm-output/
