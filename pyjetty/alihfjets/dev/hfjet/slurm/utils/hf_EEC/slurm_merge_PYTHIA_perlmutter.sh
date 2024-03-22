@@ -1,12 +1,13 @@
 #! /bin/bash
 # Script to merge output ROOT files
 
-JOB_ID=21077103
+JOB_ID=23209945
 #1161137 MC run 
 #1162319 Data run
 FILE_DIR="/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/$JOB_ID"
 FILES=$( find "$FILE_DIR" -name "*.root" )
-echo "Number of files: $(wc -l $FILES)"
+echo "Files found"
+# echo "Number of files: $(wc -l $FILES)"
 
 # # check to see how many events in each file
 # for f in ${FILES[@]}

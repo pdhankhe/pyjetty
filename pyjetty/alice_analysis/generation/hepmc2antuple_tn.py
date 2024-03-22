@@ -5,7 +5,8 @@ from __future__ import print_function
 import os
 import argparse
 
-import pyhepmc
+# import pyhepmc
+import pyhepmc_ng
 
 import hepmc2antuple_base
 
@@ -29,28 +30,31 @@ class HepMC2antuple(hepmc2antuple_base.HepMC2antupleBase):
   def main(self):
   
     if self.hepmc == 3:
-      input_hepmc = pyhepmc.io.ReaderAscii(self.input)
+      # input_hepmc = pyhepmc.io.ReaderAscii(self.input)
+      input_hepmc = pyhepmc_ng.ReaderAscii(self.input)
     if self.hepmc == 2:
-      input_hepmc = pyhepmc.io.ReaderAsciiHepMC2(self.input)
+      # input_hepmc = pyhepmc.io.ReaderAsciiHepMC2(self.input)
+      input_hepmc = pyhepmc_ng.ReaderAsciiHepMC2(self.input)
 
     if input_hepmc.failed():
       print ("[error] unable to read from {}".format(self.input))
       sys.exit(1)
 
-    event_hepmc = pyhepmc.GenEvent()
+    # event_hepmc = pyhepmc.GenEvent()
+    event_hepmc = pyhepmc_ng.GenEvent()
 
     while not input_hepmc.failed():
       ev = input_hepmc.read_event(event_hepmc)
+      # print("input_hepmc", self.ev_id, input_hepmc.failed())
       if input_hepmc.failed():
         break
       self.fill_event(event_hepmc)
       self.increment_event()
       if self.nev > 0 and self.ev_id > self.nev:
         break
-      # print("here! checkpoin 1!", self.nev, self.ev_id)
       
     self.finish()
-    print("finish event")
+    # print("finish event")
 
   #---------------------------------------------------------------
   def fill_event(self, event_hepmc):

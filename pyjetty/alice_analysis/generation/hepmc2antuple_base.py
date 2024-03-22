@@ -105,8 +105,12 @@ class HepMC2antupleBase(common_base.CommonBase):
     print("particles printed")
     self.outf.Write()
     print("file written")
-    self.outf.Close()
-    print("file closed")
+    # self.outf.Close()
+    # print("file closed")
+
+    # del self.pdg
+    # print("close pdf thing")
+
   
   #---------------------------------------------------------------
   def print_particles(self):

@@ -178,16 +178,17 @@ class eff_smear:
         ev_id = df['ev_id'].to_numpy()
         ev_id_unique = np.unique(ev_id)
 
+
         for ievt in range(self.evt_range_lo, self.evt_range_hi):
             if ievt % 100 == 0:
                 print("Processing event ",ievt,"/ [",self.evt_range_lo,"-",self.evt_range_hi,"]",datetime.datetime.now(),flush=True)
             pt_evt = pt[ev_id==ievt]
             for itrk in range(len(pt_evt)): # could improve this function by making linspace of this range and appending to the list...
-                # trk_mc_index_list = np.append(trk_mc_index_list, itrk)
                 trk_mc_index_list.append(itrk)
 
+
         # print('size of indices',len(trk_mc_index_list), 'comapred with',len(pt))
-        # print("try1", trk_mc_index_list[:200])
+        # print("try1", trk_mc_index_list[:300])
         trk_mc_index_list = np.array(trk_mc_index_list)
         df['ParticleMCIndex'] = trk_mc_index_list
         return df

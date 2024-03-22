@@ -466,10 +466,21 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
   def create_corr_histograms(self, observable, ipoint, jetR, obs_label):
   
     pt_bins = linbins(0,200,200)
-    RL_bins = logbins(1E-4,1,50)
+    # RL_bins = logbins(1E-4,1,50)
     ptRL_bins = logbins(1E-3,1E2,60)
     deltap_bins = linbins(0, 1., 100)
     charge_bins = linbins(-1.5, 1.5, 3)
+
+    a1 = np.logspace(np.log10(1E-4),np.log10(1E-2),26)
+    arr1 = array.array('f', a1)
+    arr2 = logbins(1E-2,2E-2,5)
+    arr3 = logbins(2E-2,3E-2,5)
+    arr4 = logbins(3E-2,7E-2,5)
+    arr5 = logbins(7E-2,2E-1,5)
+    arr6 = logbins(2E-1,4E-1,5)
+    arr7 = logbins(4E-1,1,5)
+    RL_bins = arr1+arr2+arr3+arr4+arr5+arr6+arr7
+
 
     # Create histograms
     # delta p, truth

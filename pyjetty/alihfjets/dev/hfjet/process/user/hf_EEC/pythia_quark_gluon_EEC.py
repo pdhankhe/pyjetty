@@ -117,7 +117,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 
 		self.min_leading_track_pT = config["min_leading_track_pT"] if "min_leading_track_pT" in config else None
 
-		self.pt_bins = array.array('d', list(range(5, 100, 5)) + list(range(100, 210, 10)))
+		# self.pt_bins = array.array('d', list(range(5, 100, 5)) + list(range(100, 210, 10)))
 #        self.obs_bins_ang = np.concatenate((np.linspace(0, 0.009, 10), np.linspace(0.01, 0.1, 19),
 #                                            np.linspace(0.11, 0.8, 70)))
 #        self.obs_bins_mass = np.concatenate(
@@ -657,10 +657,10 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			# Get the jets at different levels
 			#jets_p  = fj.sorted_by_pt(jet_selector(jet_def(parts_pythia_p  ))) # parton level
 			#jets_h  = fj.sorted_by_pt(jet_selector(jet_def(parts_pythia_h  ))) # full hadron level
-			if (not self.replaceKPpairs and not self.phimeson):
-				jets_ch = fj.sorted_by_pt(jet_selector(jet_def(parts_pythia_hch))) # charged hadron level
-			else:
-				jets_ch = fj.sorted_by_pt(jet_selector(jet_def(track_selector_ch(parts_pythia_hch)))) # charged hadron level
+			# if (not self.replaceKPpairs and not self.phimeson):
+			# 	jets_ch = fj.sorted_by_pt(jet_selector(jet_def(parts_pythia_hch))) # charged hadron level
+			# else:
+			jets_ch = fj.sorted_by_pt(jet_selector(jet_def(track_selector_ch(parts_pythia_hch)))) # charged hadron level
 			# print("!! length of jets_ch", len(jets_ch))
 
 			R_label = str(jetR).replace('.', '') + 'Scaled'
@@ -745,8 +745,8 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 						parton_types += ["beauty"]
 				elif parton_id in self.gluon_pdg_ids:
 					parton_types += ["gluon"]
-				if self.phimeson:
-					parton_types += ["inclusive"]
+				# if self.phimeson:
+				parton_types += ["inclusive"]
 
 				# If parent parton not identified, skip for now
 				if not len(parton_types):

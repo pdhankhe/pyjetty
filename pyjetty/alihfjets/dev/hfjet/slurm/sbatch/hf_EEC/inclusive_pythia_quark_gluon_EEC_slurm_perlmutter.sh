@@ -1,15 +1,19 @@
 #!/bin/bash
-
-#SBATCH --job-name="pythiagen"
-#SBATCH --nodes=1 --ntasks=1 --cpus-per-task=1
-#SBATCH --partition=std
-#SBATCH --time=12:00:00
+#SBATCH --qos=shared
+#SBATCH --constraint=cpu
+#SBATCH --account=alice
+#SBATCH --job-name=pythiagen
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=1
+#SBATCH --time=8:00:00
 #SBATCH --array=1-280
-#SBATCH --output=/rstorage/alice/AnalysisResults/blianggi/EEC/slurm-%A_%a.out
-#SBATCH --exclude=nid004104
+#SBATCH --output=/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/slurm-%A_%a.out
+#SBATCH --exclude=nid004104,nid004160,nid004149
+
 
 # Center of mass energy in GeV
-ECM=13000
+ECM=5020  #13000
 
 # Number of events per pT-hat bin (for statistics)
 NEV_DESIRED=10500000
@@ -41,26 +45,26 @@ fi
 SEED=$(( ($CORE_IN_BIN - 1) * NEV_PER_JOB + 1111 ))
 
 # Do the PYTHIA simulation & matching
-OUTDIR="/rstorage/alice/AnalysisResults/blianggi/EEC/$SLURM_ARRAY_JOB_ID/$BIN/$CORE_IN_BIN"
+OUTDIR="/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/$SLURM_ARRAY_JOB_ID/$BIN/$CORE_IN_BIN"
 mkdir -p $OUTDIR
-BASEDIR="/software/users/blianggi/mypyjetty"
+BASEDIR="/global/cfs/cdirs/alice/blianggi/mypyjetty"
 module use ${BASEDIR}/heppy/modules
 module load heppy/1.0
 module use ${BASEDIR}/pyjetty/modules
 module load pyjetty/1.0
 echo "python is" $(which python)
-cd /software/users/blianggi/analysis_env/
-SCRIPT="${BASEDIR}/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_EEC/pythia_quark_gluon_EEC_trackeff.py"
+cd ${BASEDIR}/pyjettyenv/
+SCRIPT="${BASEDIR}/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_EEC/pythia_quark_gluon_EEC_inclusive.py"
 CONFIG="${BASEDIR}/pyjetty/pyjetty/alihfjets/dev/hfjet/config/hf_EEC/configcuts_ptbin.yaml"
 
 if $USE_PTHAT_MAX; then
     echo "pipenv run python $SCRIPT -c $CONFIG --output-dir $OUTDIR --user-seed $SEED --py-pthatmin $PTHAT_MIN --py-ecm $ECM --nev $NEV_PER_JOB --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2,PhaseSpace:pTHatMax=$PTHAT_MAX"
     pipenv run python $SCRIPT -c $CONFIG --output-dir $OUTDIR --user-seed $SEED \
         --py-pthatmin $PTHAT_MIN --py-ecm $ECM --nev $NEV_PER_JOB \
-        --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2,PhaseSpace:pTHatMax=$PTHAT_MAX --replaceKP 1 --chinitscat 3 --D0withDstarON 1
+        --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2,PhaseSpace:pTHatMax=$PTHAT_MAX
 else
     echo "pipenv run python $SCRIPT -c $CONFIG --output-dir $OUTDIR --user-seed $SEED --py-pthatmin $PTHAT_MIN --py-ecm $ECM --nev $NEV_PER_JOB --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2"
     pipenv run python $SCRIPT -c $CONFIG --output-dir $OUTDIR \
         --user-seed $SEED --py-pthatmin $PTHAT_MIN --py-ecm $ECM --nev $NEV_PER_JOB \
-        --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2 --replaceKP 1 --chinitscat 3 --D0withDstarON 1
+        --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2
 fi

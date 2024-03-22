@@ -3,7 +3,8 @@
 from __future__ import print_function
 
 import os
-import pyhepmc
+# import pyhepmc
+import pyhepmc_ng
 
 import ROOT
 ROOT.gROOT.SetBatch(True)

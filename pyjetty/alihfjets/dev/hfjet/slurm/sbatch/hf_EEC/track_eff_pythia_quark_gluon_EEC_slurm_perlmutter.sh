@@ -9,6 +9,7 @@
 #SBATCH --time=4:00:00
 #SBATCH --array=35-280
 #SBATCH --output=/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/slurm-%A_%a.out
+#SBATCH --exclude=nid004104
 
 
 # Center of mass energy in GeV
