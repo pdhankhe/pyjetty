@@ -17,7 +17,7 @@ import pandas as pd
 #https://github.com/reynier0611/pyjetty/tree/master/pyjetty/alice_analysis/process/user/rey
 
 #command for test job:
-#./process_mc_RMmultitrackjets.py -c ../../../config/hf_jetaxes/configcutsRMpreeti_ptbin.yaml -f /rstorage/alice/data/LHC18b8/569/LHC18b8_fast/20/282306/0003/AnalysisResults.root
+#./process_mc_RMalltrackjets.py -c ../../../config/hf_jetaxes/configcutsRMpreeti_ptbin.yaml -f /rstorage/alice/data/LHC18b8/569/LHC18b8_fast/20/282306/0003/AnalysisResults.root
 
 from pyjetty.alice_analysis.process.base import process_io, process_utils, jet_info, process_base
 import pyjetty.alihfjets.dev.hfjet.process.user.hf_jetaxes.process_io_mc_hf as hfdio
@@ -42,6 +42,8 @@ class HFAnalysisInvMass(hfdio.HFAnalysis, process_base.ProcessBase):
         super(HFAnalysisInvMass, self).__init__(**kwargs)
         self.initialize_config()
         print(self.config_file)
+        self.overflow_gen = False #check
+        self.overflow_det = False #check
 
     def HFAnalysis(self):
     
@@ -134,7 +136,7 @@ class HFAnalysisInvMass(hfdio.HFAnalysis, process_base.ProcessBase):
         #below is wrong!
         #delta_R = np.linspace(0, 0.8, 161)
         #below is correct!
-        delta_Rbins = np.linspace(-0.05, 0.8, 171) #for bins of 0.005
+        delta_Rbins = np.linspace(-0.1, 0.8, 181) #for bins of 0.005
         #delta_Rbins = np.linspace(-0.05, 1.5, 311)
         #below is for STD-WTA, WTA-SD, STD-D, SD-D and WTA-D (from Rey's AN)
         #delta_R = np.array([-0.02,0.,0.01,0.02,0.03,0.04,0.06,0.08,0.12,0.2])
@@ -145,12 +147,16 @@ class HFAnalysisInvMass(hfdio.HFAnalysis, process_base.ProcessBase):
         print(delta_Rbins)
         #print("delta_Rog ==")
         #print(delta_Rog)
+
+        #originally at linspace(0,60,61)
         pt_bins_jet = np.linspace(0, 60, 61)
         pt_bins_dmeson = np.linspace(0, 60, 61)
+        print("pt_bins_jet ==")
+        print(pt_bins_jet)
         dmeson_mass_bin = np.linspace(1.7, 2.07, 371)
         
         
-        nbins  = [len(pt_bins_jet)-1, len(pt_bins_jet)-1, len(pt_bins_dmeson)-1, len(pt_bins_dmeson)-1, 160, 160]
+        nbins  = [len(pt_bins_jet)-1, len(pt_bins_jet)-1, len(pt_bins_dmeson)-1, len(pt_bins_dmeson)-1, len(delta_Rbins)-1, len(delta_Rbins)-1]
         min_li = [pt_bins_jet[0], pt_bins_jet[0],  pt_bins_dmeson[0], pt_bins_dmeson[0], delta_Rbins[0], delta_Rbins[0]]
         max_li = [pt_bins_jet[-1],  pt_bins_jet[0],   pt_bins_dmeson[-1], pt_bins_dmeson[-1], delta_Rbins[-1], delta_Rbins[-1]]
 
@@ -169,7 +175,7 @@ class HFAnalysisInvMass(hfdio.HFAnalysis, process_base.ProcessBase):
             name = 'hsparse_R{}_{}'.format(self.jetR_list[0], observable)
             h = ROOT.THnSparseD( name, name, dim,  nbins_array, xmin_array, xmax_array)
             h.Sumw2()
-        
+          
             for axis in range(0,dim):
                 h.GetAxis(axis).SetTitle(title[axis])
                 if axis == 0 or axis == 1:
@@ -182,26 +188,30 @@ class HFAnalysisInvMass(hfdio.HFAnalysis, process_base.ProcessBase):
             setattr(self, name, h)
             
             name2 = 'hdeltaR_fd_gen_{}_{}'.format(self.jetR_list[0], observable)
-            h2 = ROOT.TH1F(name2, name2, 170, delta_Rbins)
+            h2 = ROOT.TH1F(name2, name2, len(delta_Rbins)-1, delta_Rbins)
             h2.Sumw2()
-
+            h2.AddBinContent(0)
+            
             setattr(self, name2, h2) 
 
             name3 = 'hdeltaR_fd_det_{}_{}'.format(self.jetR_list[0], observable)
-            h3 = ROOT.TH1F(name3, name3, 170, delta_Rbins)
+            h3 = ROOT.TH1F(name3, name3, len(delta_Rbins)-1, delta_Rbins)
             h3.Sumw2()
+            h3.AddBinContent(0)
 
             setattr(self, name3, h3)
 
             name4 = 'hdeltaR_prompt_gen_{}_{}'.format(self.jetR_list[0], observable)
-            h4 = ROOT.TH1F(name4, name4, 170, delta_Rbins)
+            h4 = ROOT.TH1F(name4, name4, len(delta_Rbins)-1, delta_Rbins)
             h4.Sumw2()
+            h4.AddBinContent(0)
 
             setattr(self, name4, h4)
 
             name5 = 'hdeltaR_prompt_det_{}_{}'.format(self.jetR_list[0], observable)
-            h5 = ROOT.TH1F(name5, name5, 170, delta_Rbins)
+            h5 = ROOT.TH1F(name5, name5, len(delta_Rbins)-1, delta_Rbins)
             h5.Sumw2()
+            h5.AddBinContent(0)
 
             setattr(self, name5, h5)
         
@@ -270,20 +280,21 @@ class HFAnalysisInvMass(hfdio.HFAnalysis, process_base.ProcessBase):
     
         fj.ClusterSequence.print_banner()
         print()
-        
-
+                
         for jetR in self.jetR_list:
             print("radius of jet", jetR)
             #jet_def for Djets
             jet_def = jet_analysis.JetAnalysis(jet_R = jetR,  jet_RecombinationScheme=fj.E_scheme, particle_eta_max=self.eta_max, jet_pt_min=0.0, explicit_ghosts=False)
             #need to seperate out the single track jets from the multi-track jets (so new RMs for each)  
+            
             if len(self.df_fj_particles_gen)>0:
                 # Fill information all generated jets
                 for fj_particles_truth, Isfd, Isprompt in \
                     zip(self.df_fj_particles_gen['fj_D0_particles_gen'], self.df_fj_particles_gen['ismcfd_gen'], self.df_fj_particles_gen['ismcprompt_gen']):
-                    
-                    jets_truth = self.analyze_jets(fj_particles_truth, jet_def, False, False, False, jetR)
-                    Dcand_truth = self.analyze_jets(fj_particles_truth, jet_def, True, False, False, jetR)
+                    self.overflow_gen = False
+                    self.overflow_det = False
+                    jets_truth = self.analyze_jets(fj_particles_truth, jet_def, False, False, False, jetR, True)
+                    Dcand_truth = self.analyze_jets(fj_particles_truth, jet_def, True, False, False, jetR, True)
                     
                     if jets_truth:
                         if Isfd:
@@ -317,27 +328,37 @@ class HFAnalysisInvMass(hfdio.HFAnalysis, process_base.ProcessBase):
                 zip(self.df_fj_merge_particles['fj_D0_particles_gen'], self.df_fj_merge_particles['ismcfd_gen'], self.df_fj_merge_particles['ismcprompt_gen'], self.df_fj_merge_particles['fj_D0_particles'], self.df_fj_merge_particles['ismcfd'], self.df_fj_merge_particles['ismcprompt'],  self.df_fj_merge_particles['ismcrefl']):
                     #need to seperate single track jets from multitrack jets 
                     #>1 is multitrack and =1 is singletrack
-                    jets_det = self.analyze_jets(fj_particles_det, jet_def, False, False, False, jetR)
-                    jets_truth = self.analyze_jets(fj_particles_truth, jet_def, False, False, False, jetR)
+                    self.overflow_gen = False
+                    self.overflow_det = False
+                    #initially set the overflow to false
+                    jets_det = self.analyze_jets(fj_particles_det, jet_def, False, False, False, jetR, False)
+                    jets_truth = self.analyze_jets(fj_particles_truth, jet_def, False, False, False, jetR, True)
                     
-                    Dcand_det = self.analyze_jets(fj_particles_det, jet_def, True, False, False, jetR)
-                    Dcand_truth = self.analyze_jets(fj_particles_truth, jet_def, True, False, False, jetR)
+                    Dcand_det = self.analyze_jets(fj_particles_det, jet_def, True, False, False, jetR, False)
+                    Dcand_truth = self.analyze_jets(fj_particles_truth, jet_def, True, False, False, jetR, True)
                     
-                    jets_WTA_det = self.analyze_jets(fj_particles_det, jet_def, False, True, False, jetR)
-                    jets_WTA_truth = self.analyze_jets(fj_particles_truth, jet_def, False, True, False, jetR)
+                    jets_WTA_det = self.analyze_jets(fj_particles_det, jet_def, False, True, False, jetR, False)
+                    jets_WTA_truth = self.analyze_jets(fj_particles_truth, jet_def, False, True, False, jetR, True)
                     
-                    jets_SD_det = self.analyze_jets(fj_particles_det, jet_def, False, False, True, jetR)
-                    jets_SD_truth = self.analyze_jets(fj_particles_truth, jet_def, False, False, True, jetR)
+                    #print('checkpoint, what is oveflow? ', self.overflow)
+                    jets_SD_det = self.analyze_jets(fj_particles_det, jet_def, False, False, True, jetR, False)
+                    
+                    jets_SD_truth = self.analyze_jets(fj_particles_truth, jet_def, False, False, True, jetR, True)
                     
                     #now do jet matching and then fill histograms!
 
                     STD_D_matching = self.jet_matching(jets_truth,Dcand_truth,jets_det,Dcand_det,jetR,True,False)
+                    
                     WTA_D_matching = self.jet_matching(jets_WTA_truth,Dcand_truth,jets_WTA_det,Dcand_det,jetR,True,False)
+                    
                     SD_D_matching = self.jet_matching(jets_SD_truth,Dcand_truth,jets_SD_det,Dcand_det,jetR,True,False)
-
+                    
                     STD_WTA_matching = self.jet_matching(jets_truth,jets_WTA_truth,jets_det,jets_WTA_det,jetR,False,True)
+                    
                     STD_SD_matching = self.jet_matching(jets_truth,jets_SD_truth,jets_det,jets_SD_det,jetR,False,True)
+                    
                     WTA_SD_matching = self.jet_matching(jets_WTA_truth,jets_SD_truth,jets_WTA_det,jets_SD_det,jetR,False,True)
+                    
                     
                     if STD_D_matching == True:
                         print("matched")
@@ -348,8 +369,10 @@ class HFAnalysisInvMass(hfdio.HFAnalysis, process_base.ProcessBase):
                             self.hjetvsDptvsm_refl_STD_D.Fill(jets_det.pt(), Dcand_det.pt(), Dcand_det.m()) #info used to create reflection templates
 
                         elif Isfd:
-                            print("matched candidate is feeddown")
+                            print("STD_D matched candidate is feeddown")
                             #reconstructed info used to calculate reconstruction efficiency of fd
+                            print('overflow? ', self.overflow_gen, ', ', self.overflow_det)
+                            print('STD_D fd deltaR = ', jets_truth.delta_R(Dcand_truth))
                             self.hjetvsDpt_fd_det_STD_D.Fill(jets_det.pt(), Dcand_det.pt())
                             #self.hjetvsDpt_fd_gen_STD_D.Fill(jets_truth.pt(), Dcand_truth.pt())
                             #STD-D0
@@ -359,8 +382,9 @@ class HFAnalysisInvMass(hfdio.HFAnalysis, process_base.ProcessBase):
                             getattr(self, 'hdeltaR_fd_det_{}_{}'.format(jetR, self.observable_list[1])).Fill(jets_det.delta_R(Dcand_det))    
          
                         elif Isprompt:
-                            print("matched candidate is prompt")
+                            print("STD_D matched candidate is prompt")
                             #reconstructed info used to calculate reconstruction efficiency of prompt
+                            print('overflow? ', self.overflow_gen, ', ', self.overflow_det)
                             self.hjetvsDpt_prompt_det_STD_D.Fill(jets_det.pt(), Dcand_det.pt())
                             #self.hjetvsDpt_prompt_gen_STD_D.Fill(jets_truth.pt(), Dcand_truth.pt())
                             #STD-D0
@@ -372,14 +396,16 @@ class HFAnalysisInvMass(hfdio.HFAnalysis, process_base.ProcessBase):
                     if WTA_D_matching == True:
                         print("matched") 
                         if Isrefl:
-                            print("matched candidate is reflection")
+                            print("WTA_D matched candidate is reflection")
                             #self.hjetvsDptvsm_refl_WTA_D.Fill(jets_WTA_det.pt(), Dcand_det.pt(), Dcand_det.m()) #info used to create reflection templates
                         elif Isfd:
-                            print("matched candidate is feeddown")
+                            print("WTA_D matched candidate is feeddown")
                             #reconstructed info used to calculate reconstruction efficiency of fd
                             #self.hjetvsDpt_fd_det_WTA_D.Fill(jets_WTA_det.pt(), Dcand_det.pt())
                             #self.hjetvsDpt_fd_gen_WTA_D.Fill(jets_WTA_truth.pt(), Dcand_truth.pt())
                             #WTA-D0
+                            
+                            print('WTA_D fd deltaR = ', jets_WTA_truth.delta_R(Dcand_truth))
                             x_array = array( 'd', ( jets_det.pt(), jets_truth.pt(), Dcand_det.pt(), Dcand_truth.pt(), jets_WTA_det.delta_R(Dcand_det), jets_WTA_truth.delta_R(Dcand_truth)))
                             getattr(self, 'hsparse_R{}_{}'.format(jetR, self.observable_list[3])).Fill(x_array)
                             getattr(self, 'hdeltaR_fd_gen_{}_{}'.format(jetR, self.observable_list[3])).Fill(jets_WTA_truth.delta_R(Dcand_truth))
@@ -398,28 +424,50 @@ class HFAnalysisInvMass(hfdio.HFAnalysis, process_base.ProcessBase):
                     if SD_D_matching == True:
                         print("matched")
                         if Isrefl:
-                            print("matched candidate is reflection")
+                            print("SD_D matched candidate is reflection")
                             #self.hjetvsDptvsm_refl_SD_D.Fill(jets_SD_det.pt(), Dcand_det.pt(), Dcand_det.m()) #info used to create reflection templates
                         elif Isfd:
-                            print("matched candidate is feeddown")
+                            print("SD_D matched candidate is feeddown")
                             #reconstructed info used to calculate reconstruction efficiency of fd
                             #self.hjetvsDpt_fd_det_SD_D.Fill(jets_SD_det.pt(), Dcand_det.pt())
                             #self.hjetvsDpt_fd_gen_SD_D.Fill(jets_SD_truth.pt(), Dcand_truth.pt())
                             #SD-D0
-                            x_array = array( 'd', ( jets_det.pt(), jets_truth.pt(), Dcand_det.pt(), Dcand_truth.pt(), jets_SD_det.delta_R(Dcand_det), jets_SD_truth.delta_R(Dcand_truth)))
+
+                            deltaR_SD_D_gen = jets_SD_truth.delta_R(Dcand_truth)
+                            deltaR_SD_D_det = jets_SD_det.delta_R(Dcand_det)
+                            print('overflow? ', self.overflow_gen, ', ', self.overflow_det)
+                            if self.overflow_gen==True:
+                                deltaR_SD_D_gen = -0.1
+                            if self.overflow_det==True:
+                                deltaR_SD_D_det = -0.1
+                            
+                            print("deltaR_SD_D_gen = ",deltaR_SD_D_gen)
+                            print("deltaR_SD_D_det = ",deltaR_SD_D_det)
+
+                            x_array = array( 'd', ( jets_det.pt(), jets_truth.pt(), Dcand_det.pt(), Dcand_truth.pt(), deltaR_SD_D_det, deltaR_SD_D_gen))
                             getattr(self, 'hsparse_R{}_{}'.format(jetR, self.observable_list[5])).Fill(x_array)
-                            getattr(self, 'hdeltaR_fd_gen_{}_{}'.format(jetR, self.observable_list[5])).Fill(jets_SD_truth.delta_R(Dcand_truth))
-                            getattr(self, 'hdeltaR_fd_det_{}_{}'.format(jetR, self.observable_list[5])).Fill(jets_SD_det.delta_R(Dcand_det))
+                            getattr(self, 'hdeltaR_fd_gen_{}_{}'.format(jetR, self.observable_list[5])).Fill(deltaR_SD_D_gen)
+                            getattr(self, 'hdeltaR_fd_det_{}_{}'.format(jetR, self.observable_list[5])).Fill(deltaR_SD_D_det)
                         elif Isprompt:
-                            print("matched candidate is prompt")
+                            print("SD_D matched candidate is prompt")
                             #reconstructed info used to calculate reconstruction efficiency of prompt
                             #self.hjetvsDpt_prompt_det_SD_D.Fill(jets_SD_det.pt(), Dcand_det.pt())
                             #self.hjetvsDpt_prompt_gen_SD_D.Fill(jets_SD_truth.pt(), Dcand_truth.pt())
                             #SD-D0
-                            x_array = array( 'd', ( jets_det.pt(), jets_truth.pt(), Dcand_det.pt(), Dcand_truth.pt(), jets_SD_det.delta_R(Dcand_det), jets_SD_truth.delta_R(Dcand_truth)))
+                            deltaR_SD_D_gen = jets_SD_truth.delta_R(Dcand_truth)
+                            deltaR_SD_D_det = jets_SD_det.delta_R(Dcand_det)
+                            print('overflow? ', self.overflow_gen, ', ', self.overflow_det)
+                            if self.overflow_gen==True:
+                                deltaR_SD_D_gen = -0.1
+                            if self.overflow_det==True:
+                                deltaR_SD_D_det = -0.1
+                            
+                            print("deltaR_SD_D_gen = ",deltaR_SD_D_gen)
+                            print("deltaR_SD_D_det = ",deltaR_SD_D_det)
+                            x_array = array( 'd', ( jets_det.pt(), jets_truth.pt(), Dcand_det.pt(), Dcand_truth.pt(), deltaR_SD_D_det, deltaR_SD_D_gen))
                             getattr(self, 'hsparse_R{}_{}'.format(jetR, self.observable_list[4])).Fill(x_array)
-                            getattr(self, 'hdeltaR_prompt_gen_{}_{}'.format(jetR, self.observable_list[5])).Fill(jets_SD_truth.delta_R(Dcand_truth))
-                            getattr(self, 'hdeltaR_prompt_det_{}_{}'.format(jetR, self.observable_list[5])).Fill(jets_SD_det.delta_R(Dcand_det))
+                            getattr(self, 'hdeltaR_prompt_gen_{}_{}'.format(jetR, self.observable_list[5])).Fill(deltaR_SD_D_gen)
+                            getattr(self, 'hdeltaR_prompt_det_{}_{}'.format(jetR, self.observable_list[5])).Fill(deltaR_SD_D_det)
 
                     if STD_WTA_matching == True:
                         print("matched")
@@ -432,6 +480,7 @@ class HFAnalysisInvMass(hfdio.HFAnalysis, process_base.ProcessBase):
                             #self.hjetvsDpt_fd_det_STD_WTA.Fill(jets_WTA_det.pt(), Dcand_det.pt())
                             #self.hjetvsDpt_fd_gen_STD_WTA.Fill(jets_WTA_truth.pt(), Dcand_truth.pt())
                             #STD-WTA
+                            print('STD_WTA fd deltaR = ', jets_truth.delta_R(jets_WTA_truth))
                             x_array = array( 'd', ( jets_det.pt(), jets_truth.pt(), Dcand_det.pt(), Dcand_truth.pt(), jets_det.delta_R(jets_WTA_det), jets_truth.delta_R(jets_WTA_truth)))
                             getattr(self, 'hsparse_R{}_{}'.format(jetR, self.observable_list[7])).Fill(x_array)
                             getattr(self, 'hdeltaR_fd_gen_{}_{}'.format(jetR, self.observable_list[7])).Fill(jets_truth.delta_R(jets_WTA_truth))
@@ -450,54 +499,91 @@ class HFAnalysisInvMass(hfdio.HFAnalysis, process_base.ProcessBase):
                     if STD_SD_matching == True:
                         print("matched")
                         if Isrefl:
-                            print("matched candidate is reflection")
+                            print("STD_SD matched candidate is reflection")
                             #self.hjetvsDptvsm_refl_STD_SD.Fill(jets_WTA_det.pt(), Dcand_det.pt(), Dcand_det.m()) #info used to create reflection templates
                         elif Isfd:
-                            print("matched candidate is feeddown")
+                            print("STD_SD matched candidate is feeddown")
                             #reconstructed info used to calculate reconstruction efficiency of fd
                             #self.hjetvsDpt_fd_det_STD_SD.Fill(jets_WTA_det.pt(), Dcand_det.pt())
                             #self.hjetvsDpt_fd_gen_STD_SD.Fill(jets_WTA_truth.pt(), Dcand_truth.pt())
                             #STD-SD
-                            x_array = array( 'd', ( jets_det.pt(), jets_truth.pt(), Dcand_det.pt(), Dcand_truth.pt(), jets_det.delta_R(jets_SD_det), jets_truth.delta_R(jets_SD_truth)))
+                            deltaR_STD_SD_gen = jets_truth.delta_R(jets_SD_truth)
+                            deltaR_STD_SD_det = jets_det.delta_R(jets_SD_det)
+                            print('overflow? ', self.overflow_gen, ', ', self.overflow_det)
+                            if self.overflow_gen==True:
+                                deltaR_STD_SD_gen = -0.1
+                            if self.overflow_det==True:
+                                deltaR_STD_SD_det = -0.1
+                            print("deltaR_STD_SD_gen = ",deltaR_STD_SD_gen)
+                            print("deltaR_STD_SD_det = ",deltaR_STD_SD_det)
+                            x_array = array( 'd', ( jets_det.pt(), jets_truth.pt(), Dcand_det.pt(), Dcand_truth.pt(), deltaR_STD_SD_det, deltaR_STD_SD_gen))
                             getattr(self, 'hsparse_R{}_{}'.format(jetR, self.observable_list[9])).Fill(x_array)
-                            getattr(self, 'hdeltaR_fd_gen_{}_{}'.format(jetR, self.observable_list[9])).Fill(jets_truth.delta_R(jets_SD_truth))
-                            getattr(self, 'hdeltaR_fd_det_{}_{}'.format(jetR, self.observable_list[9])).Fill(jets_det.delta_R(jets_SD_det))
+                            getattr(self, 'hdeltaR_fd_gen_{}_{}'.format(jetR, self.observable_list[9])).Fill(deltaR_STD_SD_gen)
+                            getattr(self, 'hdeltaR_fd_det_{}_{}'.format(jetR, self.observable_list[9])).Fill(deltaR_STD_SD_det)
                         elif Isprompt:
-                            print("matched candidate is prompt")
+                            print("STD_SD matched candidate is prompt")
                             #reconstructed info used to calculate reconstruction efficiency of prompt
                             #self.hjetvsDpt_prompt_det_STD_SD.Fill(jets_WTA_det.pt(), Dcand_det.pt())
                             #self.hjetvsDpt_prompt_gen_STD_SD.Fill(jets_WTA_truth.pt(), Dcand_truth.pt())
                             #STD-SD
-                            x_array = array( 'd', ( jets_det.pt(), jets_truth.pt(), Dcand_det.pt(), Dcand_truth.pt(), jets_det.delta_R(jets_SD_det), jets_truth.delta_R(jets_SD_truth)))
+                            deltaR_STD_SD_gen = jets_truth.delta_R(jets_SD_truth)
+                            deltaR_STD_SD_det = jets_det.delta_R(jets_SD_det)
+                            print('overflow? ', self.overflow_gen, ', ', self.overflow_det)
+                            if self.overflow_gen==True:
+                                deltaR_STD_SD_gen = -0.1
+                            if self.overflow_det==True:
+                                deltaR_STD_SD_det = -0.1
+                            print("deltaR_STD_SD_gen = ",deltaR_STD_SD_gen)
+                            print("deltaR_STD_SD_det = ",deltaR_STD_SD_det)
+                            x_array = array( 'd', ( jets_det.pt(), jets_truth.pt(), Dcand_det.pt(), Dcand_truth.pt(), deltaR_STD_SD_det, deltaR_STD_SD_gen))
                             getattr(self, 'hsparse_R{}_{}'.format(jetR, self.observable_list[8])).Fill(x_array)
-                            getattr(self, 'hdeltaR_prompt_gen_{}_{}'.format(jetR, self.observable_list[9])).Fill(jets_truth.delta_R(jets_SD_truth))
-                            getattr(self, 'hdeltaR_prompt_det_{}_{}'.format(jetR, self.observable_list[9])).Fill(jets_det.delta_R(jets_SD_det))
+                            getattr(self, 'hdeltaR_prompt_gen_{}_{}'.format(jetR, self.observable_list[9])).Fill(deltaR_STD_SD_gen)
+                            getattr(self, 'hdeltaR_prompt_det_{}_{}'.format(jetR, self.observable_list[9])).Fill(deltaR_STD_SD_det)
 
                     if WTA_SD_matching == True:
                         print("matched")
                         if Isrefl:
-                            print("matched candidate is reflection")
+                            print("WTA_SD matched candidate is reflection")
                             #self.hjetvsDptvsm_refl_WTA_SD.Fill(jets_WTA_det.pt(), Dcand_det.pt(), Dcand_det.m()) #info used to create reflection templates
                         elif Isfd:
-                            print("matched candidate is feeddown")
+                            print("WTA_SD matched candidate is feeddown")
                             #reconstructed info used to calculate reconstruction efficiency of fd
                             #self.hjetvsDpt_fd_det_WTA_SD.Fill(jets_WTA_det.pt(), Dcand_det.pt())
                             #self.hjetvsDpt_fd_gen_WTA_SD.Fill(jets_WTA_truth.pt(), Dcand_truth.pt())
                             #WTA-SD
-                            x_array = array( 'd', ( jets_det.pt(), jets_truth.pt(), Dcand_det.pt(), Dcand_truth.pt(), jets_WTA_det.delta_R(jets_SD_det), jets_WTA_truth.delta_R(jets_SD_truth)))
+                            deltaR_WTA_SD_gen = jets_WTA_truth.delta_R(jets_SD_truth)
+                            deltaR_WTA_SD_det = jets_WTA_det.delta_R(jets_SD_det)
+                            print('overflow? ', self.overflow_gen, ', ', self.overflow_det)
+                            if self.overflow_gen==True:
+                                deltaR_WTA_SD_gen = -0.1
+                            if self.overflow_det==True:
+                                deltaR_WTA_SD_det = -0.1
+                            print('WTA_SD fd deltaR gen = ', deltaR_WTA_SD_gen)
+                            print("deltaR_WTA_SD_det = ",deltaR_WTA_SD_det)
+                            x_array = array( 'd', ( jets_det.pt(), jets_truth.pt(), Dcand_det.pt(), Dcand_truth.pt(), deltaR_WTA_SD_det, deltaR_WTA_SD_gen))
                             getattr(self, 'hsparse_R{}_{}'.format(jetR, self.observable_list[11])).Fill(x_array)
-                            getattr(self, 'hdeltaR_fd_gen_{}_{}'.format(jetR, self.observable_list[11])).Fill(jets_WTA_truth.delta_R(jets_SD_truth))
-                            getattr(self, 'hdeltaR_fd_det_{}_{}'.format(jetR, self.observable_list[11])).Fill(jets_WTA_det.delta_R(jets_SD_det))
+                            getattr(self, 'hdeltaR_fd_gen_{}_{}'.format(jetR, self.observable_list[11])).Fill(deltaR_WTA_SD_gen)
+                            getattr(self, 'hdeltaR_fd_det_{}_{}'.format(jetR, self.observable_list[11])).Fill(deltaR_WTA_SD_det)
                         elif Isprompt:
-                            print("matched candidate is prompt")
+                            print("WTA_SD matched candidate is prompt")
                             #reconstructed info used to calculate reconstruction efficiency of prompt
                             #self.hjetvsDpt_prompt_det_WTA_SD.Fill(jets_WTA_det.pt(), Dcand_det.pt())
                             #self.hjetvsDpt_prompt_gen_WTA_SD.Fill(jets_WTA_truth.pt(), Dcand_truth.pt())
                             #WTA-SD
-                            x_array = array( 'd', ( jets_det.pt(), jets_truth.pt(), Dcand_det.pt(), Dcand_truth.pt(), jets_WTA_det.delta_R(jets_SD_det), jets_WTA_truth.delta_R(jets_SD_truth)))
+                            deltaR_WTA_SD_gen = jets_WTA_truth.delta_R(jets_SD_truth)
+                            deltaR_WTA_SD_det = jets_WTA_det.delta_R(jets_SD_det)
+                            print('overflow? ', self.overflow_gen, ', ', self.overflow_det)
+                            if self.overflow_gen==True:
+                                deltaR_WTA_SD_gen = -0.1
+                            if self.overflow_det==True:
+                                deltaR_WTA_SD_det = -0.1
+                            
+                            print("deltaR_WTA_SD_gen = ",deltaR_WTA_SD_gen)
+                            print("deltaR_WTA_SD_det = ",deltaR_WTA_SD_det)
+                            x_array = array( 'd', ( jets_det.pt(), jets_truth.pt(), Dcand_det.pt(), Dcand_truth.pt(), deltaR_WTA_SD_det, deltaR_WTA_SD_gen))
                             getattr(self, 'hsparse_R{}_{}'.format(jetR, self.observable_list[10])).Fill(x_array)
-                            getattr(self, 'hdeltaR_prompt_gen_{}_{}'.format(jetR, self.observable_list[11])).Fill(jets_WTA_truth.delta_R(jets_SD_truth))
-                            getattr(self, 'hdeltaR_prompt_det_{}_{}'.format(jetR, self.observable_list[11])).Fill(jets_WTA_det.delta_R(jets_SD_det))
+                            getattr(self, 'hdeltaR_prompt_gen_{}_{}'.format(jetR, self.observable_list[11])).Fill(deltaR_WTA_SD_gen)
+                            getattr(self, 'hdeltaR_prompt_det_{}_{}'.format(jetR, self.observable_list[11])).Fill(deltaR_WTA_SD_det)
 
     def jet_matching(self,jet1truth,jet2truth,jet1det,jet2det,jetR,IsDcand,IsJet):
         #note that jet1 is always a jet, but jet2 could be a jet or Dmeson. KEEP THIS ORDER!!!
@@ -506,11 +592,11 @@ class HFAnalysisInvMass(hfdio.HFAnalysis, process_base.ProcessBase):
             if jet1truth.delta_R(jet1det) < (0.6*jetR):
                 #check for Dmeson matching if IsDcand is True
                 if IsDcand and jet2truth and jet2det:
-                    if jet2truth.delta_R(jet2det) < (0.1):
+                    if jet2truth.delta_R(jet2det) < (0.1): #this should be 0.6*jetR - nevermind
                         return True
                     else:
                         return False
-                #check for jet matching if IsJet is True
+                #check for jet matching if IsJet is True - #check that i did this b4
                 elif IsJet and jet2truth and jet2det:
                     if jet2truth.delta_R(jet2det) < (0.6*jetR):
                         return True
@@ -520,7 +606,7 @@ class HFAnalysisInvMass(hfdio.HFAnalysis, process_base.ProcessBase):
             return False
 
 
-    def analyze_jets(self, fj_D0_particles, jet_def, IsDzero, IsWTA, IsSD, jetR):
+    def analyze_jets(self, fj_D0_particles, jet_def, IsDzero, IsWTA, IsSD, jetR, isTruth):
         # perform Djet reconstruction
         djmm = fjtools.DJetMatchMaker()
         _parts_and_ds = fj_D0_particles
@@ -534,28 +620,31 @@ class HFAnalysisInvMass(hfdio.HFAnalysis, process_base.ProcessBase):
         
         djets = djmm.filter_D0_jets(jets)
 
-        
+        #initialize overflow
+        #self.overflow_gen = False #check
+        #self.overflow_det = False
+
         if len(djets) > 0:
             j = djets[0]
             dcand = djmm.get_Dcand_in_jet(j)
             if len(j.constituents()) > 0:
-                print("number of jet constituents = ", len(j.constituents()))
+                #print("number of jet constituents = ", len(j.constituents()))
                 if IsDzero:
                     print("Dzero candidate!")
                     return dcand[0]
                 
                 elif IsWTA:
-                    print("################################ IS WTA #######################################")                
+                    #print("################################ IS WTA #######################################")                
                     #jets with the winner take all axis################################
-                    print("##############is wta")
+                    #print("##############is wta")
                     jet_def_wta = fj.JetDefinition(fj.cambridge_algorithm, 2*jetR)#originally 2*self.jetR_list[0])
-                    print("##############cambridge-achean applied")
+                    #print("##############cambridge-achean applied")
                     jet_def_wta.set_recombination_scheme(fj.WTA_pt_scheme)
-                    print("##############recombination scheme applied")
+                    #print("##############recombination scheme applied")
                     reclusterer_wta =  fjcontrib.Recluster(jet_def_wta)
-                    print("##############reclustered")
+                    #print("##############reclustered")
                     jet_wta = reclusterer_wta.result(j)
-                    ################################
+                    #################################
                     print("Winner Take All with jet = ",jet_wta)
                     return jet_wta
                 elif IsSD:
@@ -567,9 +656,20 @@ class HFAnalysisInvMass(hfdio.HFAnalysis, process_base.ProcessBase):
                     jet_groomed = jet_groomed_lund.pair()
                     if jet_groomed_lund.Delta() < 0:
                         print("no groomed jet was returned :( ")
-                        return False
+                        if isTruth == True:
+                            self.overflow_gen = True
+                        elif isTruth == False:
+                            self.overflow_det = True
+                        print('overflow (inside analyze_jets)= ', self.overflow_gen, ', ', self.overflow_det)
+                        print('GROOMED AWAY JET INFO ****************************************')
+                        #print('jet_groomed.constituents() = ', jet_groomed.constituents())
+                        print('is Truth? ', isTruth)
+
+                        return jet_groomed
                     else:
                         print("groomed jet returned :) ")
+                        print("jet_groomed = ", jet_groomed)
+                        #print('self.overflow = ', self.overflow)
                         return jet_groomed
                 
                 else:
