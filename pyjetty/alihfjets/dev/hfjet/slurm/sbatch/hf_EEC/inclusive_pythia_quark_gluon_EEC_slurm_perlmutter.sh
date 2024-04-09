@@ -13,7 +13,7 @@
 
 
 # Center of mass energy in GeV
-ECM=5020  #13000
+ECM=13000 #5020  #13000
 
 # Number of events per pT-hat bin (for statistics)
 NEV_DESIRED=10500000
@@ -61,10 +61,10 @@ if $USE_PTHAT_MAX; then
     echo "pipenv run python $SCRIPT -c $CONFIG --output-dir $OUTDIR --user-seed $SEED --py-pthatmin $PTHAT_MIN --py-ecm $ECM --nev $NEV_PER_JOB --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2,PhaseSpace:pTHatMax=$PTHAT_MAX"
     pipenv run python $SCRIPT -c $CONFIG --output-dir $OUTDIR --user-seed $SEED \
         --py-pthatmin $PTHAT_MIN --py-ecm $ECM --nev $NEV_PER_JOB \
-        --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2,PhaseSpace:pTHatMax=$PTHAT_MAX
+        --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2,PhaseSpace:pTHatMax=$PTHAT_MAX --weightON 0
 else
     echo "pipenv run python $SCRIPT -c $CONFIG --output-dir $OUTDIR --user-seed $SEED --py-pthatmin $PTHAT_MIN --py-ecm $ECM --nev $NEV_PER_JOB --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2"
     pipenv run python $SCRIPT -c $CONFIG --output-dir $OUTDIR \
         --user-seed $SEED --py-pthatmin $PTHAT_MIN --py-ecm $ECM --nev $NEV_PER_JOB \
-        --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2
+        --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2 --weightON 0
 fi

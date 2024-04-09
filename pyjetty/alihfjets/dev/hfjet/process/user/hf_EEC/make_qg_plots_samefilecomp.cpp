@@ -140,13 +140,13 @@ void make_qg_plots_samefilecomp() {
     const char infile_charmON[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/14680822/AnalysisResultsFinal.root"; //perlmutter 
     const char infile_replaceKPON[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/13777236/AnalysisResultsFinal.root";
     const char infile_D0_fromPreeti[] = "/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_EEC/D0jet_EEC_15_30_ForBeatrice.root";
-    const char infile_D0[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/16298816/AnalysisResultsFinal.root"; //this is using thnsparse
+    const char infile_D0[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/18063568/AnalysisResultsFinal.root"; //this is using thnsparse (16298816 doesn't have cuts on jet level hist - 1D)
     
-    bool include_gluon = true; //true = draw gluon, false = do not draw gluon
+    bool include_gluon = false; //true; //true = draw gluon, false = do not draw gluon
     bool unweighted = false; //true = draw unweighted, false = do not draw unweighted
-    bool inclusive = true; //true = access and draw only inclusive, false = do not draw
+    bool inclusive = true; //false; //true; //true = access and draw only inclusive, false = do not draw
     bool selffoundD0 = true; // true = use the D0 reconstruction I did, false = use Preeti's
-    bool switchON = false; //true = charm ON, false = charm OFF
+    bool switchON = true; //false; //true = charm ON, false = charm OFF
     bool replaceKPON = false; //true = D0 reconstruction implemented
     TFile* f;
     TFile* f2;
@@ -156,8 +156,8 @@ void make_qg_plots_samefilecomp() {
     std::string unweightedstring = unweighted ? "_samefilecomp" : "";
     std::string logstring = "_log"; //not currently using this or have a bool
     // TString ptbin = inclusive ? "15 #leq #it{p}_{T}^{ch. jet} < 30 GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5" : "15 #leq #it{p}_{T}^{ch. jet} < 30 GeV/#it{c}";
-    TString ptbin = "15 #leq #it{p}_{T}^{ch. jet} < 30 GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5";
-    TString ptD = "5 #leq #it{p}_{T}^{D^{0}} < 30 GeV/#it{c}, #font[122]{|}#it{y}_{D^{0}}#font[122]{|} #leq 0.8";
+    // TString ptbin = "15 #leq #it{p}_{T}^{ch. jet} < 30 GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5";
+    // TString ptD = "5 #leq #it{p}_{T}^{D^{0}} < 30 GeV/#it{c}, #font[122]{|}#it{y}_{D^{0}}#font[122]{|} #leq 0.8";
                 
     if (inclusive) { 
         f = new TFile(infile_charmOFF, "READ");
@@ -187,7 +187,7 @@ void make_qg_plots_samefilecomp() {
 
     // Output directory
     //std::string outdir = "/rstorage/alice/AnalysisResults/ang/1224559/plots/";
-    std::string outdir = "plots/";
+    std::string outdir = "plots/remake_for_aps/";
     // Output file for binned results
     std::string outfile = outdir + "AnalysisResultsFinal_afteranalysis.root";
     //std::string outfile = outdir + "AnalysisResultsFinal_test.root";
@@ -219,12 +219,16 @@ void make_qg_plots_samefilecomp() {
 
 
         //const int pt_bins[] = { 10, 20, 40, 60, 80, 100, 150 };
-        const int pt_bins[] = { 15, 30 }; //{ 10, 20, 40 };
-        const int n_bins = 1; //2;
+        const int pt_bins[] = { 10, 15, 30 }; //{ 10, 20, 40 };
+        const int n_bins = 2; //2;
         for (int i = 0; i < n_bins; i++) {
             cout << "in pt bin" << i << endl;
             int pt_min = pt_bins[i];
             int pt_max = pt_bins[i+1];
+
+            TString ptbin = TString::Format("%d #leq #it{p}_{T}^{ch. jet} < %d GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5", pt_min, pt_max);
+            TString ptD = TString::Format("5 #leq #it{p}_{T}^{D^{0}} < %d GeV/#it{c}, #font[122]{|}#it{y}_{D^{0}}#font[122]{|} #leq 0.8", pt_max);
+
 
             // make a canvas for each pt range
             TCanvas* c = new TCanvas();
@@ -260,9 +264,13 @@ void make_qg_plots_samefilecomp() {
                 TH2* hi2D = (TH2*) f->Get(hi_name.c_str());
                 TH1* hi1D_jet = (TH1*) f->Get(hi_jet_name.c_str()); 
                 TH1* hD0;
+
                 if (!selffoundD0) {
                     hD0 = (TH1*) f2->Get(D0_jet_name.c_str());
-                }
+                    std::cout << "hello? " << std::endl;
+                } 
+
+                std::cout << "here?" << std::endl;
 
                 // get jet pT range
                 hi2D->GetXaxis()->SetRangeUser(pt_min, pt_max);
@@ -271,6 +279,8 @@ void make_qg_plots_samefilecomp() {
                 // Project onto observable axis
                 TH1* hi = (TH1*) hi2D->ProjectionY();
 
+                std::cout << "here 2?" << std::endl;
+
                 // Set to appropriate name
                 std::string hname = hi->GetName();
                 hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
@@ -278,28 +288,51 @@ void make_qg_plots_samefilecomp() {
 
                 // find D0 reconstruction through charm
                 if (selffoundD0) {
-                    TH2* hc2D = (TH2*) f2->Get(hc_name.c_str());
-                    TH1* hc1D_jet = (TH1*) f2->Get(hc_jet_name.c_str()); 
+                    THnSparse* hsparsejet_c = (THnSparse*) f2->Get(hc_name.c_str());
+                    THnSparse* hsparsejet_c_jetlevel = (THnSparse*) f2->Get(hc_jet_name.c_str());
 
+                    std::cout << "here 3?" << std::endl;
+
+                    THnSparse *hsparsejet_c_clone = (THnSparse *) hsparsejet_c->Clone("hsparsejet_c_clone");
+                    THnSparse *hsparsejet_c_jetlevel_clone = (THnSparse *) hsparsejet_c_jetlevel->Clone("hsparsejet_c_jetlevel_clone");
+                    
                     // get jet pT range
-                    hc2D->GetXaxis()->SetRangeUser(pt_min, pt_max);
-                    hc1D_jet->GetXaxis()->SetRangeUser(pt_min, pt_max);
-
+                    std::cout<<"adding here" << std::endl;
+                    std::cout << "entries " << hsparsejet_c_jetlevel_clone->GetEntries() << std::endl;
+                    std::cout << "hc jet " << hc_jet_name.c_str() << std::endl;
+                    hsparsejet_c_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max); // apply cut on jet pt
+                    hsparsejet_c_clone->GetAxis(1)->SetRangeUser(5., pt_max); // apply cut on Dmeson pt
+                    hsparsejet_c_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8); // apply cut on Dmeson rapidity
+                    
+                    hsparsejet_c_jetlevel_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max); // apply cut on jet pt
+                    hsparsejet_c_jetlevel_clone->GetAxis(1)->SetRangeUser(5., pt_max); // apply cut on Dmeson pt
+                    hsparsejet_c_jetlevel_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8); // apply cut on Dmeson rapidity
+                    std::cout << "here 3a?" << std::endl;
                     // Project onto observable axis
-                    hD0 = (TH1*) hc2D->ProjectionY();
+                    hD0 = hsparsejet_c_clone->Projection(3); //CALL THESE TH1*????
+                    TH1D *hc1D_jet = hsparsejet_c_jetlevel_clone->Projection(0); //project onto jet pt axis??
+
+                    
+                    std::cout << "here 3b?" << std::endl;
 
                     // Set to appropriate name
                     std::string hname = hD0->GetName();
                     hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
                     hD0->SetNameTitle(hname.c_str(), hname.c_str());
 
+                    std::cout << "here 3c?" << std::endl;
+
                     // Find normalization factor
                     double numjets_charm = hc1D_jet->Integral();
+
+                    std::cout << "here 4?" << std::endl;
 
                     // Set normalization
                     hD0->Scale(1/numjets_charm, "width");
 
                 }
+
+                std::cout << "here 5?" << std::endl;
 
                 // Rebin
                 int n_obs_bins = 50; //-1;
@@ -323,17 +356,27 @@ void make_qg_plots_samefilecomp() {
                 // Set normalization
                 hi->Scale(1/numjets_inclusive, "width");
 
+                std::cout << "here 6?" << std::endl;
+
                 // Find maximum
                 maxy = hi->GetMaximum() * 1.1;
                 hi->SetMaximum(maxy); 
 
+                std::cout << "here 6a?" << std::endl;
+
                 // Format histograms for plotting (this order needed to keep legend in order and graphs lookin good)
                 hi->GetXaxis()->SetTitle("#it{R}_{L}");
                 hi->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
+                std::cout << "here 6b?" << std::endl;
                 FormatHist(l, hD0, "D^{0}-tagged jets", kRed+1, kFullSquare);
+                std::cout << "here 6aa?" << std::endl;
                 FormatHist(l, hi, "Inclusive jets", kViolet+1, 29);
+                std::cout << "here 6c?" << std::endl;
                 hi->Draw("L same");
+                std::cout << "here 6d?" << std::endl;
                 hD0->Draw("L same");
+
+                std::cout << "here 7?" << std::endl;
 
                 
 
@@ -355,6 +398,8 @@ void make_qg_plots_samefilecomp() {
                 // leg->SetBorderSize(0);
                 // leg->Draw("same");
                 l->AddEntry("NULL","          Charm decay off","h");
+
+                std::cout << "here 9?" << std::endl;
                 
 
             } else {

@@ -529,7 +529,7 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
     # name = 'h_JetPt_{}{}_R{}_{}'.format(observable, ipoint, jetR, obs_label)
     name = 'h_{}{}_JetPt_Truth_R{}_{}'.format(observable, ipoint, jetR, obs_label)
     # print("NAME", name)
-    nbins  = [len(pt_bins)-1, 50, len(obs_bins)-1]
+    nbins  = [len(pt_bins)-1, len(RL_bins)-1, len(obs_bins)-1]
     min = [pt_bins[0],      RL_bins[0],     obs_bins[0]]
     max = [pt_bins[-1],     RL_bins[-1],    obs_bins[-1]]
     self.create_thn(name, title_truth, dim, nbins, min, max)

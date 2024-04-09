@@ -262,6 +262,11 @@ void make_qg_plots_inclusive() {
         TH1D *hi2_jet = hsparsejet_i2_jet->Projection(0);
         TH1D *hi3_jet = hsparsejet_i3_jet->Projection(0);
 
+        hi1_jet->SetName("jet_pt_13TeV_old");
+        hi2_jet->SetName("jet_pt_13TeV_new");
+        hi3_jet->SetName("jet_pt_5TeV_new");
+        hi4_jet->SetName("jet_pt_13TeV_old_unknowntrackcuts");
+
         // FormatHist(l, hi1_jet, label1, markercolor1, markerstyle1, 0.5);
         // FormatHist(l, hi2_jet, label2, markercolor2, markerstyle2, 0.5);
         // FormatHist(l, hi3_jet, label3, markercolor3, markerstyle3, 0.6);
@@ -275,6 +280,12 @@ void make_qg_plots_inclusive() {
         hi2_jet->Draw("C same");
         hi3_jet->Draw("C same");
         hi4_jet->Draw("C same");
+
+        f_out->cd();
+        hi1_jet->Write("jet_pt_13TeV_old", TObject::kWriteDelete);
+        hi2_jet->Write("jet_pt_13TeV_new", TObject::kWriteDelete);
+        hi3_jet->Write("jet_pt_5TeV_new", TObject::kWriteDelete);
+        hi4_jet->Write("jet_pt_13TeV_old_unknowntrackcuts", TObject::kWriteDelete);
 
         std::string fnamejetpt = outdir + "QG_comp_jetptspectrum" + "_R" + jetR + add_name + ".pdf";
         const char* fnamejetptc = fnamejetpt.c_str();

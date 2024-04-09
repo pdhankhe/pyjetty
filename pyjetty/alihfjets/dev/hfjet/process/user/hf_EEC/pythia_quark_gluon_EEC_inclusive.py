@@ -75,6 +75,17 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 		self.noMPI = (bool)(1-args.MPIon)
 		self.noISR = (bool)(1-args.ISRon)
 
+		# self defined variables
+		self.weighted = (bool)(args.weightON) #weightON=True(F) means turn weights on(off)
+
+		# PDG ID values for quarks and gluons
+		self.quark_pdg_ids = [1, 2, 3, 4, 5, 6, 7, 8, -1, -2, -3, -4, -5, -6, -7, -8]
+		self.down_pdg_ids = [1, -1]
+		self.up_pdg_ids = [2, -2]
+		self.strange_pdg_ids = [3, -3]
+		self.gluon_pdg_ids = [9, 21] 
+		
+
 
 		# hadron level - ALICE tracking restriction
 		self.max_eta_hadron = 0.9
@@ -199,7 +210,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 				self.fsparsepartonJetvalue = array.array( 'd', ( 0, 0, 0 ,0 ))
 				self.fsparsejetlevelJetvalue = array.array( 'd', ( 0, 0, 0 ))
 		
-				partontypeslist = ["inclusive"] #["charm", "light", "gluon", "inclusive"] #got rid of quark
+				partontypeslist = ["light", "gluon", "inclusive"] #["charm", "light", "gluon", "inclusive"] #got rid of quark
 
 				for parton_type in partontypeslist:
 
@@ -288,6 +299,9 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			fs_parton_6 = fj.PseudoJet(pythia.event[6].px(), pythia.event[6].py(), pythia.event[6].pz(), pythia.event[6].e())
 			self.parents = [fs_parton_5, fs_parton_6] # parent partons in dijet
 
+			# Save PDG code of the parent partons
+			self.parent_ids = [pythia.event[5].id(), pythia.event[6].id()]
+
 
 			# parton level
 			#parts_pythia_p = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal], 0, True)
@@ -372,7 +386,17 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 
 				# One unique match
 				# Identify the histograms which need to be filled
-				parton_types = ["inclusive"]
+				parton_id = self.parent_ids[i_parent]
+				# print("parton_id is ", parton_id)
+				parton_types = []
+				if parton_id in self.quark_pdg_ids:
+					# parton_types += ["quark"]
+					if parton_id in self.up_pdg_ids or parton_id in self.down_pdg_ids or parton_id in self.strange_pdg_ids:
+						parton_types += ["light"]
+						print("in here!")
+				elif parton_id in self.gluon_pdg_ids:
+					parton_types += ["gluon"]
+				parton_types += ["inclusive"]
 
 				# If parent parton not identified, skip for now
 				if not len(parton_types):
@@ -414,9 +438,13 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 							self.fsparsepartonJetvalue[1] = -1
 							self.fsparsepartonJetvalue[2] = -99
 
-							getattr(self, ('h_%s_JetPt_%s_R%s_%s' % (observable, parton_type, jetR, obs_label)) if \
-								len(obs_label) else ('h_%s_JetPt_%s_R%s' % (observable, parton_type, jetR))).Fill(self.fsparsepartonJetvalue, obs.correlator(2).weights()[index])
-
+							if self.weighted:
+								getattr(self, ('h_%s_JetPt_%s_R%s_%s' % (observable, parton_type, jetR, obs_label)) if \
+									len(obs_label) else ('h_%s_JetPt_%s_R%s' % (observable, parton_type, jetR))).Fill(self.fsparsepartonJetvalue, obs.correlator(2).weights()[index])
+							else:
+								getattr(self, ('h_%s_JetPt_%s_R%s_%s' % (observable, parton_type, jetR, obs_label)) if \
+									len(obs_label) else ('h_%s_JetPt_%s_R%s' % (observable, parton_type, jetR))).Fill(self.fsparsepartonJetvalue)
+							
 			setattr(self, "count1_R%s" % jetR_str, count1)
 			setattr(self, "count2_R%s" % jetR_str, count2)
 
@@ -486,6 +514,8 @@ if __name__ == '__main__':
 						help="ISR on or off")
 	parser.add_argument('-cf', '--config_file', action='store', type=str, default='config/angularity.yaml',
 						help="Path of config file for observable configurations")
+	parser.add_argument('--weightON', action='store', type=int, default=1, help="'1' turns weights on, '0' turns them off")
+	
 	
 
 	args = parser.parse_args()

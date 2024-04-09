@@ -142,9 +142,9 @@ void make_qg_plots_comparePreetiself() {
     const char infile_D0_fromPreeti[] = "/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_EEC/D0jet_EEC_15_30_ForBeatrice.root";
     const char infile_D0[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17243052/AnalysisResultsFinal.root"; //this is using thnsparse
     
-    bool include_gluon = true; //true = draw gluon, false = do not draw gluon
+    bool include_gluon = false; // true; //true = draw gluon, false = do not draw gluon
     bool unweighted = false; //true = draw unweighted, false = do not draw unweighted
-    bool compareD0 = true; //true = compare the D0 reconstruction between me and Preeti - SET THIS TO TRUE IT IS THE PURPOSE OF THIS FILE
+    bool compareD0 = false; //true; //true = compare the D0 reconstruction between me and Preeti - SET THIS TO TRUE IT IS THE PURPOSE OF THIS FILE
     bool selffoundD0 = true; // true = use the D0 reconstruction I did, false = use Preeti's
     bool switchON = false; //true = charm ON, false = charm OFF
     bool replaceKPON = false; //true = D0 reconstruction implemented
@@ -155,8 +155,8 @@ void make_qg_plots_comparePreetiself() {
     std::string quarkstring = include_gluon ? "" : "_justquarks";
     std::string unweightedstring = unweighted ? "_samefilecomp" : "";
     std::string logstring = "_log"; //not currently using this or have a bool
-    TString ptbin = compareD0 ? "15 #leq #it{p}_{T}^{ch. jet} < 30 GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5" : "15 #leq #it{p}_{T}^{ch. jet} < 30 GeV/#it{c}";
-    TString ptD = "5 #leq #it{p}_{T}^{D^{0}} < 30 GeV/#it{c}, #font[122]{|}#it{y}_{D^{0}}#font[122]{|} #leq 0.8";
+    //TString ptbin = compareD0 ? "15 #leq #it{p}_{T}^{ch. jet} < 30 GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5" : "15 #leq #it{p}_{T}^{ch. jet} < 30 GeV/#it{c}";
+    //TString ptD = "5 #leq #it{p}_{T}^{D^{0}} < 30 GeV/#it{c}, #font[122]{|}#it{y}_{D^{0}}#font[122]{|} #leq 0.8";
                 
     if (compareD0) { 
         f = new TFile(infile_D0, "READ");
@@ -220,12 +220,17 @@ void make_qg_plots_comparePreetiself() {
 
 
         //const int pt_bins[] = { 10, 20, 40, 60, 80, 100, 150 };
-        const int pt_bins[] = { 15, 30 }; //{ 10, 20, 40 };
-        const int n_bins = 1; //2;
+        const int pt_bins[] = { 10, 15, 30 }; //{ 10, 20, 40 };
+        const int n_bins = 2; //2;
         for (int i = 0; i < n_bins; i++) {
             cout << "in pt bin" << i << endl;
             int pt_min = pt_bins[i];
             int pt_max = pt_bins[i+1];
+
+            TString opt1 = TString::Format("%d #leq #it{p}_{T}^{ch. jet} < %d GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5", pt_min, pt_max);
+            TString opt2 = TString::Format("%d #leq #it{p}_{T}^{ch. jet} < %d GeV/#it{c}", pt_min, pt_max);
+            TString ptbin = compareD0 ? opt1 : opt2;
+            TString ptD = TString::Format("5 #leq #it{p}_{T}^{D^{0}} < %d GeV/#it{c}, #font[122]{|}#it{y}_{D^{0}}#font[122]{|} #leq 0.8", pt_max);
 
             // make a canvas for each pt range
             TCanvas* c = new TCanvas();
@@ -257,19 +262,24 @@ void make_qg_plots_comparePreetiself() {
             l->SetTextSize(0.037);
             l->SetBorderSize(0);
             // l->Draw("same");
+            std::cout << "checkpoint0" << std::endl;
 
             THnSparse* hsparsejet_i = (THnSparse*) f->Get(hi_name.c_str());
             THnSparse* hsparsejet_i_jetlevel = (THnSparse*) f->Get(hi_jet_name.c_str());
             // TH1* hi1D_jet = (TH1*) f->Get(hi_jet_name.c_str()); 
             TH1* hD0KpiNjets = (TH1*) f->Get(hD0KpiNjets_name.c_str());
-            TH1* hD0 = (TH1*) f2->Get(D0_jet_name.c_str());
+            TH1* hD0;
+            if (compareD0) {
+                hD0 = (TH1*) f2->Get(D0_jet_name.c_str());
+            }
             
+            std::cout << "checkpoint" << std::endl;
     
             // for THnSparse: make clone to work with, make cuts, get projection
             THnSparse *hsparsejet_i_clone = (THnSparse *) hsparsejet_i->Clone("hsparsejet_i_clone");
             THnSparse *hsparsejet_i_jetlevel_clone = (THnSparse *) hsparsejet_i_jetlevel->Clone("hsparsejet_i_jetlevel_clone");
             
-            
+            std::cout << "checkpoint2" << std::endl;
 
             // get jet pT range
             hsparsejet_i_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max); // apply cut on jet pt
@@ -280,15 +290,21 @@ void make_qg_plots_comparePreetiself() {
             hsparsejet_i_jetlevel_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8); // apply cut on Dmeson rapidity
             // hi1D_jet->GetXaxis()->SetRangeUser(pt_min, pt_max);
 
+            std::cout << "checkpoint3" << std::endl;
+
             // Project onto observable axis
             // TH1* hi = (TH1*) hi2D->ProjectionY();
             TH1D *hi = hsparsejet_i_clone->Projection(3); //CALL THESE TH1*????
             TH1D *hi1D_jet = hsparsejet_i_jetlevel_clone->Projection(0); //project onto jet pt axis??
 
+            std::cout << "checkpoint4" << std::endl;
+
             // Set to appropriate name
             std::string hname = hi->GetName();
             hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
             hi->SetNameTitle(hname.c_str(), hname.c_str());
+
+            std::cout << "checkpoint5" << std::endl;
 
             //-------------------------------------------------//
             // find D0 reconstruction through charm
@@ -300,6 +316,7 @@ void make_qg_plots_comparePreetiself() {
             THnSparse *hsparsejet_c_clone = (THnSparse *) hsparsejet_c->Clone("hsparsejet_c_clone");
             THnSparse *hsparsejet_c_jetlevel_clone = (THnSparse *) hsparsejet_c_jetlevel->Clone("hsparsejet_c_jetlevel_clone");
 
+            std::cout << "checkpoint6" << std::endl;
             // get jet pT range
             hsparsejet_c_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max); // apply cut on jet pt
             hsparsejet_c_clone->GetAxis(1)->SetRangeUser(5., pt_max); // apply cut on Dmeson pt
@@ -309,6 +326,8 @@ void make_qg_plots_comparePreetiself() {
             hsparsejet_c_jetlevel_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8); // apply cut on Dmeson rapidity
             // hc2D->GetXaxis()->SetRangeUser(pt_min, pt_max);
             // hc1D_jet->GetXaxis()->SetRangeUser(pt_min, pt_max);
+
+            std::cout << "checkpoint7" << std::endl;
 
             // Project onto observable axis
             TH1D *hc = hsparsejet_c_clone->Projection(3); //CALL THESE TH1*????
@@ -320,6 +339,8 @@ void make_qg_plots_comparePreetiself() {
             hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
             hc->SetNameTitle(hname.c_str(), hname.c_str());
 
+            std::cout << "checkpoint8" << std::endl;
+
             // Find normalization factor
             double numjets_charm = hc1D_jet->Integral();
             double numDtaggedjets = hD0KpiNjets->GetEntries();
@@ -328,7 +349,7 @@ void make_qg_plots_comparePreetiself() {
             hc->Scale(1/numjets_charm, "width");
             // hc->Scale(numDtaggedjets, "width"); // this is wrong - maybe bc EEC is scaled when saved to root file
 
-            
+            std::cout << "checkpoint9" << std::endl;
 
             // Rebin
             int n_obs_bins = 50; //-1;
@@ -349,6 +370,8 @@ void make_qg_plots_comparePreetiself() {
             // Find normalization factor
             double numjets_inclusive = hi1D_jet->Integral();
 
+            std::cout << "checkpoint10" << std::endl;
+
             // Set normalization
             hi->Scale(1/numjets_inclusive, "width");
 
@@ -362,9 +385,15 @@ void make_qg_plots_comparePreetiself() {
             cout << "about to format Beatrice" << endl;
             FormatHist(l, hc, "D^{0}-tagged from charm-init jets (Beatrice)", kRed-7, 29);
             cout << "about to format Preeti" << endl;
-            FormatHist(l, hD0, "D^{0}-tagged jets (Preeti)", kMagenta+3, kFullSquare);
             hc->Draw("L same");
-            hD0->Draw("L same");
+            if (compareD0) {
+                FormatHist(l, hD0, "D^{0}-tagged jets (Preeti)", kMagenta+3, kFullSquare);
+                hD0->Draw("L same");
+            }
+
+            std::cout << "checkpoint11" << std::endl;
+            
+            
 
             
 
@@ -372,9 +401,11 @@ void make_qg_plots_comparePreetiself() {
             // drawVertLine(hc->GetBinCenter(hc_top_binpos), 0, hc->GetBinContent(hc_top_binpos), kRed-7, 1)->Draw();
             double hc_top_binpos = findTopOfCurve(hc);
             drawVertLine(hc->GetBinCenter(hc_top_binpos), 0, hc->GetBinContent(hc_top_binpos), kRed-7, 1)->Draw();
-            double hD0_top_binpos = findTopOfCurve(hD0);
-            drawVertLine(hD0->GetBinCenter(hD0_top_binpos), 0, hD0->GetBinContent(hD0_top_binpos), kMagenta+3, 1)->Draw();
-            
+            if (compareD0) {
+                double hD0_top_binpos = findTopOfCurve(hD0);
+                drawVertLine(hD0->GetBinCenter(hD0_top_binpos), 0, hD0->GetBinContent(hD0_top_binpos), kMagenta+3, 1)->Draw();
+            }
+
             // Add legend about D0 info
             
             // TLegend *leg = new TLegend(0.1797168,0.5390741,0.4562155,0.8885185,"");

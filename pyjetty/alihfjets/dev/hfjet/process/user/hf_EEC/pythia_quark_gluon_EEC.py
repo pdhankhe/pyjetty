@@ -942,9 +942,13 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 								self.fsparsepartonJetvalue[1] = -1
 								self.fsparsepartonJetvalue[2] = -99
 
-							getattr(self, ('h_%s_JetPt_%s_R%s_%s' % (observable, parton_type, jetR, obs_label)) if \
-								len(obs_label) else ('h_%s_JetPt_%s_R%s' % (observable, parton_type, jetR))).Fill(self.fsparsepartonJetvalue, obs.correlator(2).weights()[index])
-
+							if self.weighted:
+								getattr(self, ('h_%s_JetPt_%s_R%s_%s' % (observable, parton_type, jetR, obs_label)) if \
+									len(obs_label) else ('h_%s_JetPt_%s_R%s' % (observable, parton_type, jetR))).Fill(self.fsparsepartonJetvalue, obs.correlator(2).weights()[index])
+							else:
+								getattr(self, ('h_%s_JetPt_%s_R%s_%s' % (observable, parton_type, jetR, obs_label)) if \
+									len(obs_label) else ('h_%s_JetPt_%s_R%s' % (observable, parton_type, jetR))).Fill(self.fsparsepartonJetvalue)
+							
 			setattr(self, "count1_R%s" % jetR_str, count1)
 			setattr(self, "count2_R%s" % jetR_str, count2)
 
@@ -1263,7 +1267,7 @@ if __name__ == '__main__':
 	parser.add_argument('-cf', '--config_file', action='store', type=str, default='config/angularity.yaml',
 						help="Path of config file for observable configurations")
 	parser.add_argument('--nocharmdecay', action='store', type=int, default=0, help="'1' turns charm decays off")
-	parser.add_argument('--weightON', action='store', type=int, default=0, help="'1' turns weights on")
+	parser.add_argument('--weightON', action='store', type=int, default=1, help="'1' turns weights on, '0' turns them off")
 	parser.add_argument('--leadingptcut', action='store', type=float, default=0, help="leading track pt cut")
 	parser.add_argument('--replaceKP', action='store', type=int, default=0, help="'1' replaces the K/pi pairs with D0")
 	parser.add_argument('--onlygg2ccbar', action='store', type=int, default=0, help="'1' runs only gg->ccbar events, '0' runs all events")
