@@ -187,7 +187,8 @@ void make_qg_plots_write_all() {
     const char infile_D0_weighted[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/18063568/AnalysisResultsFinal.root"; // OR 17651853? //this is using thnsparse
     const char infile_D0_unweighted[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/23581878/AnalysisResultsFinal.root"; //this is using thnsparse
     const char infile_incl_weighted[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/23581930/AnalysisResultsFinal.root";
-    const char infile_incl_unweighted[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/23535185/AnalysisResultsFinal.root"; //24182467
+    const char infile_incl_unweighted[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/24182467/AnalysisResultsFinal.root"; //
+    // const char infile_incl_unweighted[] = "/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_EEC/AnalysisResults_weightON0.root";
     
     // int plot_case:
     // 0 
@@ -237,8 +238,8 @@ void make_qg_plots_write_all() {
 
 
 
-        const int pt_bins[] = { 10, 15, 30 }; //{ 10, 20, 40 }; // CHANGE HERE!!
-        const int n_bins = 2; 
+        const int pt_bins[] = { 7, 10, 15, 30 }; //{ 10, 20, 40 }; // CHANGE HERE!!
+        const int n_bins = 3; 
         for (int i = 0; i < n_bins; i++) {
             cout << "in pt bin" << i << endl;
             int pt_min = pt_bins[i];
@@ -260,6 +261,8 @@ void make_qg_plots_write_all() {
             
 
             TLegend* l; // = new TLegend(0.17, 0.65, 0.5, 0.85);
+            TLegend* l2;
+            TLegend* l3;
 
             double maxy = 0;
 
@@ -267,18 +270,47 @@ void make_qg_plots_write_all() {
             // Open histograms
 
 
-            l = new TLegend(0.1797168,0.400741,0.4562155,0.8885185,""); //(0.17, 0.4, 0.5, 0.53);
-            l->SetTextSize(0.045);
-            // TLegend *leg = new TLegend(0.1797168,0.5390741,0.4562155,0.8885185,"");
-            l->AddEntry("NULL","PYTHIA 8 Monash 2013","h");
-            l->AddEntry("NULL","pp, #sqrt{#it{s}} = 13 TeV","h");
-            l->AddEntry("NULL","D^{0} #rightarrow K^{#minus} #pi^{+} and charge conj.","h");
-            l->AddEntry("NULL","in charged jets, anti-#it{k}_{T}, #it{R} = 0.4","h");
-            l->AddEntry("NULL",ptbin,"h");
-            l->AddEntry("NULL",ptD,"h");
-            l->SetTextSize(0.037);
-            l->SetBorderSize(0);
-            // l->Draw("same");
+            if (logstring == false) {
+                l = new TLegend(0.1797168,0.400741,0.4562155,0.8885185,""); //(0.17, 0.4, 0.5, 0.53);
+                l->SetTextSize(0.045);
+                // TLegend *leg = new TLegend(0.1797168,0.5390741,0.4562155,0.8885185,"");
+                l->AddEntry("NULL","PYTHIA 8 Monash 2013","h");
+                l->AddEntry("NULL","pp, #sqrt{#it{s}} = 13 TeV","h");
+                l->AddEntry("NULL","D^{0} #rightarrow K^{#minus} #pi^{+} and charge conj.","h");
+                l->AddEntry("NULL","in charged jets, anti-#it{k}_{T}, #it{R} = 0.4","h");
+                l->AddEntry("NULL",ptbin,"h");
+                l->AddEntry("NULL",ptD,"h");
+                l->SetTextSize(0.037);
+                l->SetBorderSize(0);
+                // l->Draw("same");
+            } else {
+                 if (pt_min == 15) { //15 < jet pt < 30
+                    l = new TLegend(0.1797168,0.710741,0.3062155,0.8685185,""); // dif colors
+                    l2 = new TLegend(0.4797168,0.170741,0.7962155,0.5385185,""); //text
+                    l3 = new TLegend(0.2297168,0.170741,0.3562155,0.2885185,""); //weighted/unweighted
+                    l->SetTextSize(0.037);
+                } else {
+                    l2 = new TLegend(0.1797168,0.580741,0.3062155,0.8785185,""); //the text box
+                    l = new TLegend(0.5297168,0.220741,0.8462155,0.4285185,"");  // dif colors
+                    l3 = new TLegend(0.5297168,0.170741,0.8462155,0.220741,"");  //weighted/uw
+                    l->SetTextSize(0.03);
+                    l2->SetTextSize(0.03);
+                    l3->SetTextSize(0.025);
+                }
+
+                l->SetBorderSize(0);
+
+                l2->AddEntry("NULL","PYTHIA 8 Monash 2013","h");
+                l2->AddEntry("NULL","pp, #sqrt{#it{s}} = 13 TeV","h");
+                l2->AddEntry("NULL","D^{0} #rightarrow K^{#minus} #pi^{+} and charge conj.","h");
+                l2->AddEntry("NULL","in charged jets, anti-#it{k}_{T}, #it{R} = 0.4","h");
+                l2->AddEntry("NULL",ptbin,"h");
+                l2->AddEntry("NULL",ptD,"h");
+                l2->SetBorderSize(0);
+
+                l3->SetTextSize(0.037);
+                l3->SetBorderSize(0);
+            }
 
             TLegend* l_fake = new TLegend(0.,0.,0.1,0.1,"");
 
@@ -319,19 +351,21 @@ void make_qg_plots_write_all() {
             THnSparse *hsparsejet_c_uw_clone = (THnSparse *) hsparsejet_c_uw->Clone("hsparsejet_c_uw_clone");
             THnSparse *hsparsejet_c_uw_jetlevel_clone = (THnSparse *) hsparsejet_c_uw_jetlevel->Clone("hsparsejet_c_uw_jetlevel_clone");
 
+            cout << "num x bins" << hsparsejet_g->GetAxis(3)->GetNbins() << endl;
+            cout << "num x bins" << hsparsejet_g_uw->GetAxis(3)->GetNbins() << endl;
             THnSparse *hsparsejet_g_clone = (THnSparse *) hsparsejet_g->Clone("hsparsejet_g_clone");
             THnSparse *hsparsejet_g_jetlevel_clone = (THnSparse *) hsparsejet_g_jetlevel->Clone("hsparsejet_g_jetlevel_clone");
-            THnSparse *hsparsejet_g_uw_clone = (THnSparse *) hsparsejet_g->Clone("hsparsejet_g_uw_clone");
+            THnSparse *hsparsejet_g_uw_clone = (THnSparse *) hsparsejet_g_uw->Clone("hsparsejet_g_uw_clone");
             THnSparse *hsparsejet_g_uw_jetlevel_clone = (THnSparse *) hsparsejet_g_uw_jetlevel->Clone("hsparsejet_g_uw_jetlevel_clone");
 
             THnSparse *hsparsejet_l_clone = (THnSparse *) hsparsejet_l->Clone("hsparsejet_l_clone");
             THnSparse *hsparsejet_l_jetlevel_clone = (THnSparse *) hsparsejet_l_jetlevel->Clone("hsparsejet_l_jetlevel_clone");
-            THnSparse *hsparsejet_l_uw_clone = (THnSparse *) hsparsejet_l->Clone("hsparsejet_l_uw_clone");
+            THnSparse *hsparsejet_l_uw_clone = (THnSparse *) hsparsejet_l_uw->Clone("hsparsejet_l_uw_clone");
             THnSparse *hsparsejet_l_uw_jetlevel_clone = (THnSparse *) hsparsejet_l_uw_jetlevel->Clone("hsparsejet_l_uw_jetlevel_clone");
             
             THnSparse *hsparsejet_i_clone = (THnSparse *) hsparsejet_i->Clone("hsparsejet_i_clone");
             THnSparse *hsparsejet_i_jetlevel_clone = (THnSparse *) hsparsejet_i_jetlevel->Clone("hsparsejet_i_jetlevel_clone");
-            THnSparse *hsparsejet_i_uw_clone = (THnSparse *) hsparsejet_i->Clone("hsparsejet_i_uw_clone");
+            THnSparse *hsparsejet_i_uw_clone = (THnSparse *) hsparsejet_i_uw->Clone("hsparsejet_i_uw_clone");
             THnSparse *hsparsejet_i_uw_jetlevel_clone = (THnSparse *) hsparsejet_i_uw_jetlevel->Clone("hsparsejet_i_uw_jetlevel_clone");
             
             // get jet pT range
@@ -342,6 +376,10 @@ void make_qg_plots_write_all() {
             
             hsparsejet_c_clone->GetAxis(1)->SetRangeUser(5., pt_max); // apply cut on Dmeson pt
             hsparsejet_c_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8); // apply cut on Dmeson rapidity
+            hsparsejet_c_jetlevel_clone->GetAxis(1)->SetRangeUser(5., pt_max);
+            hsparsejet_c_jetlevel_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8);
+            hsparsejet_c_uw_clone->GetAxis(1)->SetRangeUser(5., pt_max);
+            hsparsejet_c_uw_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8);
             hsparsejet_c_uw_jetlevel_clone->GetAxis(1)->SetRangeUser(5., pt_max); // apply cut on Dmeson pt
             hsparsejet_c_uw_jetlevel_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8); // apply cut on Dmeson rapidity
 
@@ -382,34 +420,43 @@ void make_qg_plots_write_all() {
             TH1D *hi_uw_proj = hsparsejet_i_uw_clone->Projection(3); 
             TH1D *hi1D_uw_jet = hsparsejet_i_uw_jetlevel_clone->Projection(0);
 
+
             // Set to appropriate name
             std::string hname = hD0_proj->GetName();
             hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
             hD0_proj->SetNameTitle(hname.c_str(), hname.c_str());
+            cout << "name " << hname << endl;
             hname = hD0_uw_proj->GetName();
             hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
             hD0_uw_proj->SetNameTitle(hname.c_str(), hname.c_str());
+            cout << "name " << hname << endl;
 
             hname = hg_proj->GetName();
             hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
             hg_proj->SetNameTitle(hname.c_str(), hname.c_str());
+            cout << "name " << hname << endl;
             hname = hg_uw_proj->GetName();
             hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
             hg_uw_proj->SetNameTitle(hname.c_str(), hname.c_str());
+            cout << "name " << hname << endl;
 
             hname = hl_proj->GetName();
             hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
             hl_proj->SetNameTitle(hname.c_str(), hname.c_str());
+            cout << "name " << hname << endl;
             hname = hl_uw_proj->GetName();
             hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
             hl_uw_proj->SetNameTitle(hname.c_str(), hname.c_str());
+            cout << "name " << hname << endl;
 
             hname = hi_proj->GetName();
             hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
             hi_proj->SetNameTitle(hname.c_str(), hname.c_str());
+            cout << "name " << hname << endl;
             hname = hi_uw_proj->GetName();
             hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
             hi_uw_proj->SetNameTitle(hname.c_str(), hname.c_str());
+            cout << "name " << hname << endl;
 
             // Find normalization factor
             double numjets_charm = hc1D_jet->Integral();
@@ -486,7 +533,7 @@ void make_qg_plots_write_all() {
             label1 = "D0-tagged, charm-init jets";
             TString label2 = "gluon-init jets";
             TString label3 = "light-init jets";
-            TString label4 = "inclsuive jets";
+            TString label4 = "inclusive jets";
 
             
 
@@ -494,29 +541,56 @@ void make_qg_plots_write_all() {
             hc->GetXaxis()->SetTitle("#it{R}_{L}");
             hc->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
             cout << "about to format D0" << endl;
+            
+            
             FormatHist(l, hc, label1, markercolor1, markerstyle1, 0.60); //FormatHist(l, hD0, "D^{0}-tagged, c-init jets", kMagenta+3, kOpenSquare);
-            FormatHist(l_fake, hc_uw, label1, markercolor1, markerstyle1_uw);
-            l->AddEntry("NULL","          D* decays off","h");
-            
+            l->AddEntry("NULL","            D* decays off","h");
             FormatHist(l, hg, label2, markercolor2, markerstyle2, 0.60);
-            FormatHist(l_fake, hg_uw, label2, markercolor2, markerstyle2_uw);
             FormatHist(l, hl, label3, markercolor3, markerstyle3, 0.60);
-            FormatHist(l_fake, hl_uw, label3, markercolor3, markerstyle3_uw);
             FormatHist(l, hi, label4, markercolor4, markerstyle4, 0.60);
-            FormatHist(l_fake, hi_uw, label4, markercolor4, markerstyle4_uw);
-            
-            hc_uw->Draw("L same");
+            if (logstring) {
+                TH1* hdummy = (TH1*) hc->Clone( "" );
+                TH1* hdummy_uw = (TH1*) hc_uw->Clone( "" );
+                FormatHist(l_fake, hdummy, "", kBlack, markerstyle1);
+                FormatHist(l_fake, hdummy_uw, "", kBlack, markerstyle1_uw);
+                l3->AddEntry(hdummy,"weighted EEC","P");
+                l3->AddEntry(hdummy_uw,"unweighted EEC","P");
+            }
+                
 
+            // } else {
+            //     FormatHist(l2, hc, label1, markercolor1, markerstyle1, 0.60); //FormatHist(l, hD0, "D^{0}-tagged, c-init jets", kMagenta+3, kOpenSquare);
+            //     l2->AddEntry("NULL","            D* decays off","h");
+            //     FormatHist(l2, hg, label2, markercolor2, markerstyle2, 0.60);
+            //     FormatHist(l2, hl, label3, markercolor3, markerstyle3, 0.60);
+            //     FormatHist(l2, hi, label4, markercolor4, markerstyle4, 0.60);
+            // }
+            FormatHist(l_fake, hc_uw, label1, markercolor1, markerstyle1_uw);
+            FormatHist(l_fake, hg_uw, label2, markercolor2, markerstyle2_uw);
+            FormatHist(l_fake, hl_uw, label3, markercolor3, markerstyle3_uw);
+            FormatHist(l_fake, hi_uw, label4, markercolor4, markerstyle4_uw);
+
+            
+
+            hg_uw->Draw("L same");
+            hg->Draw("L same");
+            
             hl_uw->Draw("L same");
             hl->Draw("L same");
             
             hc->Draw("L same");
-            // hc_uw->Draw("L same");
-            hg->Draw("L same");
-            hg_uw->Draw("L same");
+            hc_uw->Draw("L same");
             
             hi->Draw("L same");
             hi_uw->Draw("L same");
+
+
+            // draw legend
+            if (logstring) {
+                l3->Draw("same");
+                l2->Draw("same");
+            }
+            l->Draw("same");
             
             
             // double hc_top_binpos = findTopOfCurve(hc);
@@ -527,10 +601,6 @@ void make_qg_plots_write_all() {
             // vector<double> fullwidth_vec = findWidthOfCurve(hD0,  hD0_top_binpos);
             // drawHoriLine(fullwidth_vec[1], fullwidth_vec[2], fullwidth_vec[0], kMagenta+3, 1)->Draw();
             
-            
-
-            // draw legend
-            l->Draw("same");
 
 
 

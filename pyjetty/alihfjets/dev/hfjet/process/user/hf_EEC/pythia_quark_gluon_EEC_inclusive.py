@@ -439,9 +439,11 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 							self.fsparsepartonJetvalue[2] = -99
 
 							if self.weighted:
+								print("weighted!")
 								getattr(self, ('h_%s_JetPt_%s_R%s_%s' % (observable, parton_type, jetR, obs_label)) if \
 									len(obs_label) else ('h_%s_JetPt_%s_R%s' % (observable, parton_type, jetR))).Fill(self.fsparsepartonJetvalue, obs.correlator(2).weights()[index])
 							else:
+								print("unweighted!")
 								getattr(self, ('h_%s_JetPt_%s_R%s_%s' % (observable, parton_type, jetR, obs_label)) if \
 									len(obs_label) else ('h_%s_JetPt_%s_R%s' % (observable, parton_type, jetR))).Fill(self.fsparsepartonJetvalue)
 							
