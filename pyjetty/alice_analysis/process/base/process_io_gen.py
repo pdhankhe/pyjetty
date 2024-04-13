@@ -33,9 +33,9 @@ class ProcessIO(common_base.CommonBase):
   # Constructor
   #---------------------------------------------------------------
   def __init__(self, input_file='', tree_dir='PWGHF_TreeCreator',
-               track_tree_name='tree_Particle', event_tree_name='tree_event_char',
+               track_tree_name='tree_Particle', event_tree_name='tree_event_char', D0_tree_name='tree_D0_gen',
                output_dir='', is_pp=True, min_cent=0., max_cent=10.,
-               use_ev_id_ext=True, is_jetscape=False, is_ENC=False, holes=False,
+               use_ev_id_ext=True, use_D0_info=False, is_jetscape=False, is_ENC=False, holes=False,
                event_plane_range=None, skip_event_tree=False, **kwargs):
     super(ProcessIO, self).__init__(**kwargs)
     self.input_file = input_file
@@ -45,8 +45,10 @@ class ProcessIO(common_base.CommonBase):
       self.tree_dir += '/'
     self.track_tree_name = track_tree_name
     self.event_tree_name = event_tree_name
+    self.D0_tree_name = D0_tree_name
     self.is_pp = is_pp
     self.use_ev_id_ext = use_ev_id_ext
+    self.use_D0_info = use_D0_info
     self.is_jetscape = is_jetscape
     self.is_ENC = is_ENC
     self.holes = holes
@@ -73,9 +75,14 @@ class ProcessIO(common_base.CommonBase):
     # Set relevant columns of track tree
     self.track_columns = self.unique_identifier + ['ParticlePt', 'ParticleEta', 'ParticlePhi', 'ParticlePID']
     if is_jetscape:
-        self.track_columns += ['status']
+      self.track_columns += ['status']
+    if self.use_D0_info:
+      self.track_columns += ['MotherPID']
     # if is_ENC:
     #     self.track_columns += ['ParticleMCIndex']
+
+    # Set relevant columns of D0 tree
+    self.D0_columns = self.unique_identifier + ['ParticlePt', 'ParticleEta', 'ParticlePhi', 'ParticleRapidity', 'ParticlePID']
     
     #print(self)
     
@@ -85,6 +92,7 @@ class ProcessIO(common_base.CommonBase):
   def reset_dataframes(self):
     self.event_df_orig = None
     self.track_df = None
+    self.D0_df = None
   
   #---------------------------------------------------------------
   # Convert ROOT TTree to SeriesGroupBy object of fastjet particles per event.
@@ -164,6 +172,17 @@ class ProcessIO(common_base.CommonBase):
       if not track_tree:
         raise ValueError("Tree %s not found in file %s" % (track_tree_name, self.input_file))
       track_df_orig = uproot.concatenate(track_tree, self.track_columns, library="pd")
+
+    # Load D0 tree into datadrame
+    D0_tree = None
+    D0_df_orig = None
+    D0_tree_name = self.tree_dir + self.D0_tree_name
+    if self.use_D0_info:
+      with uproot.open(self.input_file)[D0_tree_name] as D0_tree:
+        if not D0_tree:
+          raise ValueError("Tree %s not found in file %s" % (D0_tree_name, self.input_file))
+        D0_df_orig = uproot.concatenate(D0_tree, self.D0_columns, library="pd")
+
     
     # Apply hole selection, in case of jetscape
     if self.is_jetscape:
@@ -188,6 +207,13 @@ class ProcessIO(common_base.CommonBase):
       self.track_df = track_df_orig
     else:
       self.track_df = pandas.merge(track_df_orig, event_df, on=self.unique_identifier)
+    # merge event info into track tree for D0s
+    if self.use_D0_info:
+      if self.skip_event_tree:
+        self.D0_df = D0_df_orig
+      else:
+        self.D0_df = pandas.merge(D0_df_orig, event_df, on=self.unique_identifier)
+
     
     # Check if there are duplicated tracks in the merge dataframe
     #print(self.track_df)
@@ -200,7 +226,9 @@ class ProcessIO(common_base.CommonBase):
     if stop > start:
       self.track_df = self.track_df[(self.track_df["ev_id"]<stop) & (self.track_df["ev_id"]>=start)]
       self.event_df_orig = self.event_df_orig[(self.event_df_orig["ev_id"]<stop) & (self.event_df_orig["ev_id"]>=start)]
-      
+      if self.use_D0_info:
+        self.D0_df = self.D0_df[(self.D0_df["ev_id"]<stop) & (self.D0_df["ev_id"]>=start)]
+
     return self.track_df
 
   #---------------------------------------------------------------
@@ -208,7 +236,7 @@ class ProcessIO(common_base.CommonBase):
   # with the same formatting and saves to class's output_file.
   # histograms is list of tuples: [ ("title", np.histogram), ... ]
   #---------------------------------------------------------------
-  def save_dataframe(self, filename, df, df_true=False, histograms=[], is_jetscape=False, is_ENC=False):
+  def save_dataframe(self, filename, df, df_true=False, histograms=[], is_jetscape=False, is_ENC=False, using_D0=False):
 
     # Create output directory if it does not already exist
     if not os.path.exists(self.output_dir):
@@ -229,57 +257,105 @@ class ProcessIO(common_base.CommonBase):
       if is_ENC:
         branchdict_true["ParticlePID"] = int
         branchdict["ParticleMCIndex"] = int
+      
+      if using_D0:
+        branchdict_true["MotherPID"] = int
+        branchdict["ParticlePID"] = int
+        branchdict["MotherPID"] = int
+        branchdict_D0 = {"run_number": int, "ev_id": int, "ParticlePt": float,
+                      "ParticleEta": float, "ParticlePhi": float, "ParticleRapidity": float, "ParticlePID": float}
 
       if df_true:
         # Create tree with truth particle info (track_df)
         title = 'tree_Particle_gen'
         print("Length of truth track tree: %i" % len(self.track_df))
         f.mktree(name=title, branch_types=branchdict_true, title=title)
-        if is_jetscape:
+
+        # add mother information if looking at D0
+        if using_D0:
           f[title].extend( { "run_number": self.track_df["run_number"],
                                "ev_id": self.track_df["ev_id"],
                                "ParticlePt": self.track_df["ParticlePt"],
                                "ParticleEta": self.track_df["ParticleEta"],
                                "ParticlePhi": self.track_df["ParticlePhi"],
-                               "status": self.track_df["status"] } )
-        elif is_ENC:
-          f[title].extend( { "run_number": self.track_df["run_number"],
-                               "ev_id": self.track_df["ev_id"],
-                               "ParticlePt": self.track_df["ParticlePt"],
-                               "ParticleEta": self.track_df["ParticleEta"],
-                               "ParticlePhi": self.track_df["ParticlePhi"],
-                               "ParticlePID": self.track_df["ParticlePID"] } ) # used charge info
+                               "ParticlePID": self.track_df["ParticlePID"],
+                               "MotherPID": self.track_df["MotherPID"] } )
         else:
-          f[title].extend( { "run_number": self.track_df["run_number"],
-                               "ev_id": self.track_df["ev_id"],
-                               "ParticlePt": self.track_df["ParticlePt"],
-                               "ParticleEta": self.track_df["ParticleEta"],
-                               "ParticlePhi": self.track_df["ParticlePhi"] } )
+          if is_jetscape:
+            f[title].extend( { "run_number": self.track_df["run_number"],
+                                "ev_id": self.track_df["ev_id"],
+                                "ParticlePt": self.track_df["ParticlePt"],
+                                "ParticleEta": self.track_df["ParticleEta"],
+                                "ParticlePhi": self.track_df["ParticlePhi"],
+                                "status": self.track_df["status"] } )
+          elif is_ENC:
+            f[title].extend( { "run_number": self.track_df["run_number"],
+                                "ev_id": self.track_df["ev_id"],
+                                "ParticlePt": self.track_df["ParticlePt"],
+                                "ParticleEta": self.track_df["ParticleEta"],
+                                "ParticlePhi": self.track_df["ParticlePhi"],
+                                "ParticlePID": self.track_df["ParticlePID"] } ) # used charge info
+          else:
+            f[title].extend( { "run_number": self.track_df["run_number"],
+                                "ev_id": self.track_df["ev_id"],
+                                "ParticlePt": self.track_df["ParticlePt"],
+                                "ParticleEta": self.track_df["ParticleEta"],
+                                "ParticlePhi": self.track_df["ParticlePhi"] } )
+      
+      
+      # Create tree with truth D0 info (D0_df)
+      if using_D0:
+        D0_title = 'tree_D0_gen'
+        print("Length of truth D0 tree: %i" % len(self.D0_df))
+        f.mktree(name=D0_title, branch_types=branchdict_D0, title=D0_title)
+        f[D0_title].extend( { "run_number": self.D0_df["run_number"],
+                              "ev_id": self.D0_df["ev_id"],
+                              "ParticlePt": self.D0_df["ParticlePt"],
+                              "ParticleEta": self.D0_df["ParticleEta"],
+                              "ParticlePhi": self.D0_df["ParticlePhi"],
+                              "ParticleRapidity": self.D0_df["ParticleRapidity"],
+                              "ParticlePID": self.D0_df["ParticlePID"] } )
+
 
       # Create tree with detector-level particle info (df)
       title = 'tree_Particle'
       print("Length of detector-level track tree: %i" % len(df))
       f.mktree(name=title, branch_types=branchdict, title=title)
-      if is_jetscape:
+      if using_D0:
+        # print("df")
+        # print(df.columns)
+        # print("----------------------------")
+        # print("ev id", df["ev_id"])
+        # print("pid", df["ParticlePID"])
         f[title].extend( { "run_number": df["run_number"],
                            "ev_id": df["ev_id"],
                            "ParticlePt": df["ParticlePt"],
                            "ParticleEta": df["ParticleEta"],
                            "ParticlePhi": df["ParticlePhi"],
-                           "status": df["status"] } )
-      elif is_ENC:
-        f[title].extend( { "run_number": df["run_number"],
-                               "ev_id": df["ev_id"],
-                               "ParticlePt": df["ParticlePt"],
-                               "ParticleEta": df["ParticleEta"],
-                               "ParticlePhi": df["ParticlePhi"],
-                               "ParticleMCIndex": df["ParticleMCIndex"] } ) # associated MC particle index
+                           "ParticlePID": df["ParticlePID"],
+                           "MotherPID": df["MotherPID"],
+                           "ParticleMCIndex": df["ParticleMCIndex"] } )
       else:
-        f[title].extend( { "run_number": df["run_number"],
-                           "ev_id": df["ev_id"],
-                           "ParticlePt": df["ParticlePt"],
-                           "ParticleEta": df["ParticleEta"],
-                           "ParticlePhi": df["ParticlePhi"] } )
+        if is_jetscape:
+          f[title].extend( { "run_number": df["run_number"],
+                            "ev_id": df["ev_id"],
+                            "ParticlePt": df["ParticlePt"],
+                            "ParticleEta": df["ParticleEta"],
+                            "ParticlePhi": df["ParticlePhi"],
+                            "status": df["status"] } )
+        elif is_ENC:
+          f[title].extend( { "run_number": df["run_number"],
+                                "ev_id": df["ev_id"],
+                                "ParticlePt": df["ParticlePt"],
+                                "ParticleEta": df["ParticleEta"],
+                                "ParticlePhi": df["ParticlePhi"],
+                                "ParticleMCIndex": df["ParticleMCIndex"] } ) # associated MC particle index
+        else:
+          f[title].extend( { "run_number": df["run_number"],
+                            "ev_id": df["ev_id"],
+                            "ParticlePt": df["ParticlePt"],
+                            "ParticleEta": df["ParticleEta"],
+                            "ParticlePhi": df["ParticlePhi"] } )
 
       # Create tree with event char
       title = self.event_tree_name
