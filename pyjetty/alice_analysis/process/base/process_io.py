@@ -33,9 +33,9 @@ class ProcessIO(common_base.CommonBase):
   # Constructor
   #---------------------------------------------------------------
   def __init__(self, input_file='', tree_dir='PWGHF_TreeCreator',
-               track_tree_name='tree_Particle', event_tree_name='tree_event_char',
+               track_tree_name='tree_Particle', event_tree_name='tree_event_char', #D0_tree_name='tree_D0_gen',
                output_dir='', is_pp=True, min_cent=0., max_cent=10.,
-               use_ev_id_ext=True, is_jetscape=False, holes=False,
+               use_ev_id_ext=True, use_D0_info=False, is_jetscape=False, holes=False,
                event_plane_range=None, skip_event_tree=False, is_ENC=False, is_det_level=False, **kwargs):
     super(ProcessIO, self).__init__(**kwargs)
     self.input_file = input_file
@@ -45,8 +45,10 @@ class ProcessIO(common_base.CommonBase):
       self.tree_dir += '/'
     self.track_tree_name = track_tree_name
     self.event_tree_name = event_tree_name
+    # self.D0_tree_name = D0_tree_name
     self.is_pp = is_pp
     self.use_ev_id_ext = use_ev_id_ext
+    self.use_D0_info = use_D0_info
     self.is_jetscape = is_jetscape
     self.holes = holes
     self.event_plane_range = event_plane_range
@@ -83,6 +85,13 @@ class ProcessIO(common_base.CommonBase):
           self.track_columns += ['ParticleMCIndex']
         else:
           self.track_columns += ['ParticlePID']
+    if self.use_D0_info:
+      self.track_columns += ['MotherPID']
+      # self.track_columns += ['ParticleRapidity']
+
+    # Set relevant columns of D0 tree
+    self.D0_columns = self.unique_identifier + ['ParticlePt', 'ParticleEta', 'ParticlePhi', 'ParticleRapidity', 'ParticlePID']
+    
     
     #print(self)
     
@@ -105,6 +114,7 @@ class ProcessIO(common_base.CommonBase):
     self.reject_tracks_fraction = reject_tracks_fraction
     self.reset_dataframes()
 
+
     print('Convert ROOT trees to pandas dataframes...')
     print('    track_tree_name = {}'.format(self.track_tree_name))
 
@@ -121,6 +131,10 @@ class ProcessIO(common_base.CommonBase):
     if random_mass:
       print('    \033[93mRandomly assigning proton and kaon mass to some tracks.\033[0m') 
 
+    # if self.track_tree_name == "tree_D0_gen": # if looking at D0 tree, make new boolean. #do not group particles.
+    #   self.D0_tree_in_use = True
+    #   # return df_fjparticles
+
     df_fjparticles = self.group_fjparticles(m, offset_indices, group_by_evid, random_mass, min_pt=min_pt)
 
     return df_fjparticles
@@ -132,6 +146,10 @@ class ProcessIO(common_base.CommonBase):
   #     run_number, ev_id, ParticlePt, ParticleEta, ParticlePhi
   #---------------------------------------------------------------
   def load_dataframe(self):
+
+    print("IN LOAD DATAFRAMEEEEE")
+    print("OPTIONS", "treedir", self.tree_dir, "tracktree", self.track_tree_name, "eventtree", self.event_tree_name) #, "d0tree", self.D0_tree_name)
+    print("OPTIONS", "useD0", self.use_D0_info, "isENC", self.is_ENC, "isDetlevel", self.is_det_level)
 
     # Load event tree into dataframe
     if not self.skip_event_tree:
@@ -163,29 +181,48 @@ class ProcessIO(common_base.CommonBase):
       event_df = self.event_df_orig.query(event_criteria)
       event_df.reset_index(drop=True)
 
-    # Load track tree into dataframe
-    track_tree = None
-    track_df_orig = None
-    track_tree_name = self.tree_dir + self.track_tree_name
-    with uproot.open(self.input_file)[track_tree_name] as track_tree:
-      if not track_tree:
-        raise ValueError("Tree %s not found in file %s" % (track_tree_name, self.input_file))
-      track_df_orig = uproot.concatenate(track_tree, self.track_columns, library="pd")
-    
-    # Apply hole selection, in case of jetscape
-    if self.is_jetscape:
-        if self.holes:
-            track_criteria = 'status == -1'
-        else:
-            track_criteria = 'status == 0'
-        track_df_orig = track_df_orig.query(track_criteria)
-        track_df_orig.reset_index(drop=True)
+    # Load D0 tree into datadrame
+    if (self.track_tree_name == "tree_D0_gen"):
+      track_tree = None
+      track_df_orig = None
+      track_tree_name = self.tree_dir + self.track_tree_name
+      with uproot.open(self.input_file)[track_tree_name] as track_tree:
+        if not track_tree:
+          raise ValueError("Tree %s not found in file %s" % (track_tree_name, self.input_file))
+        track_df_orig = uproot.concatenate(track_tree, self.D0_columns, library="pd")
+      # print("D0 DF ORIG", D0_df_orig)
+
+      n_duplicates = sum(track_df_orig.duplicated(self.D0_columns))
+
+    else:
+
+      # Load track tree into dataframe
+      track_tree = None
+      track_df_orig = None
+      track_tree_name = self.tree_dir + self.track_tree_name
+      with uproot.open(self.input_file)[track_tree_name] as track_tree:
+        if not track_tree:
+          raise ValueError("Tree %s not found in file %s" % (track_tree_name, self.input_file))
+        track_df_orig = uproot.concatenate(track_tree, self.track_columns, library="pd")
+
+      
+      
+      # Apply hole selection, in case of jetscape
+      if self.is_jetscape:
+          if self.holes:
+              track_criteria = 'status == -1'
+          else:
+              track_criteria = 'status == 0'
+          track_df_orig = track_df_orig.query(track_criteria)
+          track_df_orig.reset_index(drop=True)
+
+      n_duplicates = sum(track_df_orig.duplicated(self.track_columns))
     
     # Check if there are duplicated tracks
     #print(track_df_orig)
     #d = track_df_orig.duplicated(self.track_columns, keep=False)
     #print(track_df_orig[d])
-    n_duplicates = sum(track_df_orig.duplicated(self.track_columns))
+
     if n_duplicates > 0:
       raise ValueError(
         "There appear to be %i duplicate particles in the track dataframe" % n_duplicates)
@@ -200,9 +237,14 @@ class ProcessIO(common_base.CommonBase):
     #print(self.track_df)
     #d = self.track_df.duplicated(self.track_columns, keep=False)
     #print(self.track_df[d])
-    n_duplicates = sum(self.track_df.duplicated(self.track_columns))
+    if (self.track_tree_name == "tree_D0_gen"):
+      n_duplicates = sum(self.track_df.duplicated(self.D0_columns))
+    else:
+      n_duplicates = sum(self.track_df.duplicated(self.track_columns))
     if n_duplicates > 0:
       sys.exit('ERROR: There appear to be {} duplicate particles in the merged dataframe'.format(n_duplicates))
+
+    print("CHECK RESULTS", self.track_df)
       
     return self.track_df
 
@@ -322,12 +364,33 @@ class ProcessIO(common_base.CommonBase):
       #     track_df_grouped is a DataFrameGroupBy object with one track dataframe per event
       track_df_grouped = None
       track_df_grouped = self.track_df.groupby(self.unique_identifier)
-      print('debug2',type(track_df_grouped))
+      print('debug2',self.track_df) #type(track_df_grouped))
       print('debug2',track_df_grouped.aggregate(np.sum))
       # print('debug2',track_df_grouped.columns['ParticlePID'].values)
     
       # (ii) Transform the DataFrameGroupBy object to a SeriesGroupBy of fastjet particles
       df_fjparticles = None
+
+      #take care of D0s separately
+      if self.track_tree_name == "tree_D0_gen":
+        df_fjparticles_orig = track_df_grouped.apply(
+        self.get_fjparticles, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
+          
+        df_fjparticles_evid = track_df_grouped.apply(
+        self.get_particles_evid, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
+        df_fjparticles_rap = track_df_grouped.apply(
+        self.get_particles_rap, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt, notD0=False)
+        df_fjparticles_pid = track_df_grouped.apply(
+        self.get_particles_pid, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
+
+        print('debug d0',df_fjparticles_orig)
+        print('debug d0 aux: evid',df_fjparticles_evid)
+        print('debug d0 aux: rap',df_fjparticles_rap)
+        print('debug d0 aux: pid',df_fjparticles_pid)
+        df_fjparticles = pandas.DataFrame({"fj_particle": df_fjparticles_orig, "ev_id": df_fjparticles_evid, "ParticleRapidity": df_fjparticles_rap, "ParticlePID": df_fjparticles_pid})
+        print('debug d0 : evid',df_fjparticles)
+
+        return df_fjparticles
       
 
       if self.is_ENC:
@@ -344,7 +407,15 @@ class ProcessIO(common_base.CommonBase):
           self.get_particles_pid, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
           print('debug3',df_fjparticles)
           print('debug3 aux: pid',df_fjparticles_aux)
-          df_fjparticles = pandas.DataFrame({"fj_particle": df_fjparticles_orig, "ParticlePID": df_fjparticles_aux})
+          if self.use_D0_info:
+            print('debug3a', track_df_grouped)
+            df_fjparticles_aux2 = track_df_grouped.apply(
+            self.get_particles_mother_id, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
+            df_fjparticles_aux3 = track_df_grouped.apply(
+            self.get_particles_rap, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt, notD0=True)
+            df_fjparticles = pandas.DataFrame({"fj_particle": df_fjparticles_orig, "ParticlePID": df_fjparticles_aux, "MotherPID": df_fjparticles_aux2, "ParticleRapidity": df_fjparticles_aux3})
+          else:
+            df_fjparticles = pandas.DataFrame({"fj_particle": df_fjparticles_orig, "ParticlePID": df_fjparticles_aux})
       else:
         df_fjparticles = track_df_grouped.apply(
         self.get_fjparticles, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
@@ -414,6 +485,7 @@ class ProcessIO(common_base.CommonBase):
       df_tracks_accepted['ParticlePt'].values, df_tracks_accepted['ParticleEta'].values,
       df_tracks_accepted['ParticlePhi'].values, m_array, user_index_offset)
 
+
     return fj_particles
     # if self.is_ENC:
     #   if self.is_det_level:
@@ -456,3 +528,56 @@ class ProcessIO(common_base.CommonBase):
     m_array = np.full((df_tracks_accepted['ParticlePt'].values.size), m)
 
     return df_tracks_accepted['ParticlePID'].values
+
+
+  #---------------------------------------------------------------
+  # Return particle's rapidity or event id or mother's id from a given track dataframe
+  #---------------------------------------------------------------
+  def get_particles_rap(self, df_tracks, m, offset_indices=False, random_mass=False, min_pt=0., notD0=True):
+    
+    # If offset_indices is true, then offset the user_index by a large negative value
+    user_index_offset = 0
+    if offset_indices:
+        user_index_offset = int(-1e6)
+        
+    # Apply a pt cut
+    df_tracks_accepted = df_tracks[df_tracks.ParticlePt > min_pt]
+
+    m_array = np.full((df_tracks_accepted['ParticlePt'].values.size), m)
+
+    #if not D0s, make dummy array of fake rapidities bc that value not saved
+    if notD0:
+      dummy_rap_array = df_tracks_accepted['ParticlePID'].values
+      rap_array = [9999. for x in dummy_rap_array]
+    else:
+      rap_array = df_tracks_accepted['ParticleRapidity'].values
+
+    return rap_array
+
+  def get_particles_evid(self, df_tracks, m, offset_indices=False, random_mass=False, min_pt=0.):
+    
+    # If offset_indices is true, then offset the user_index by a large negative value
+    user_index_offset = 0
+    if offset_indices:
+        user_index_offset = int(-1e6)
+        
+    # Apply a pt cut
+    df_tracks_accepted = df_tracks[df_tracks.ParticlePt > min_pt]
+
+    m_array = np.full((df_tracks_accepted['ParticlePt'].values.size), m)
+
+    return df_tracks_accepted['ev_id'].values
+
+  def get_particles_mother_id(self, df_tracks, m, offset_indices=False, random_mass=False, min_pt=0.):
+    
+    # If offset_indices is true, then offset the user_index by a large negative value
+    user_index_offset = 0
+    if offset_indices:
+        user_index_offset = int(-1e6)
+        
+    # Apply a pt cut
+    df_tracks_accepted = df_tracks[df_tracks.ParticlePt > min_pt]
+
+    m_array = np.full((df_tracks_accepted['ParticlePt'].values.size), m)
+
+    return df_tracks_accepted['MotherPID'].values

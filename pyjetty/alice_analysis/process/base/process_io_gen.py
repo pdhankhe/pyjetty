@@ -182,6 +182,7 @@ class ProcessIO(common_base.CommonBase):
         if not D0_tree:
           raise ValueError("Tree %s not found in file %s" % (D0_tree_name, self.input_file))
         D0_df_orig = uproot.concatenate(D0_tree, self.D0_columns, library="pd")
+    print("D0 DF ORIG", D0_df_orig)
 
     
     # Apply hole selection, in case of jetscape

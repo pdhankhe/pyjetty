@@ -29,6 +29,8 @@ import fjtools
 import ecorrel
 import othercorrel
 
+import pythiafjext
+
 # Analysis utilities
 from pyjetty.alice_analysis.process.base import process_io
 from pyjetty.alice_analysis.process.base import process_io_emb
@@ -48,7 +50,7 @@ def logbins(xmin, xmax, nbins):
   return arr
 
 ################################################################
-class ProcessMC_ENC(process_mc_base.ProcessMCBase):
+class ProcessMC_ENC_HF(process_mc_base.ProcessMCBase):
 
   #---------------------------------------------------------------
   # Constructor
@@ -56,7 +58,7 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
   def __init__(self, input_file='', config_file='', output_dir='', debug_level=0, **kwargs):
   
     # Initialize base class
-    super(ProcessMC_ENC, self).__init__(input_file, config_file, output_dir, debug_level, **kwargs)
+    super(ProcessMC_ENC_HF, self).__init__(input_file, config_file, output_dir, debug_level, **kwargs)
     
     self.observable = self.observable_list[0]
 
@@ -124,12 +126,61 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
         # print("OBS_LABEL OG", obs_label)
 
         self.pair_type_labels = ['']
-        # if self.do_rho_subtraction or self.do_constituent_subtraction:
-        #   self.pair_type_labels = ['_bb','_sb','_ss']
+        if self.do_rho_subtraction or self.do_constituent_subtraction:
+          self.pair_type_labels = ['_bb','_sb','_ss']
 
         # Init ENC histograms (both det and truth level)
         # print("pair type label", self.pair_type_labels)
+        for pair_type_label in self.pair_type_labels:
+            if 'ENC' in observable:
+              for ipoint in range(2, 3):
+                
+                dim = 4
+                pt_bins = linbins(0,200,200)
+                ptRL_bins = logbins(1E-3,1E2,60)
+                rapi_bins = np.linspace(-5,5,201)
+                RL_bins = logbins(1E-4,1,50)
 
+                # Truth histograms
+                name = 'h_{}{}{}_JetPt_Truth_R{}_{}'.format(observable, ipoint, pair_type_label, jetR, obs_label) #pair_type_label is blank for me
+                title_truth = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'D^{0} y', '#it{R}_{L}' ]
+                binnings = [pt_bins, rapi_bins, RL_bins]
+                self.create_thn(name, title_truth, dim, binnings, obs='rl')
+
+                name = 'h_{}{}{}Pt_JetPt_Truth_R{}_{}'.format(observable, ipoint, pair_type_label, jetR, obs_label) # pt scaled histograms (currently only for unmatched jets)
+                title = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'D^{0} y', '#it{p}_{T}#it{R}_{L}' ]
+                binnings = (pt_bins, rapi_bins, ptRL_bins)
+                self.create_thn(name, title_truth, dim, binnings, obs='ptrl') 
+                
+            if 'EEC_noweight' in observable or 'EEC_weight2' in observable:
+              
+              dim = 4
+              pt_bins = linbins(0,200,200)
+              rapi_bins = np.linspace(-5,5,201)
+              RL_bins = logbins(1E-4,1,50)
+
+              # Truth histograms
+              name = 'h_{}{}_JetPt_Truth_R{}_{}'.format(observable, pair_type_label, jetR, obs_label)
+              title = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'D^{0} y', '#it{R}_{L}' ]
+              binnings = (pt_bins, rapi_bins, RL_bins)
+              self.create_thn(name, title_truth, dim, binnings, obs='rl') # this will need to be fixed later! - add more dimensions to also include jet pt?
+
+        
+        if 'jet_pt' in observable:
+
+          dim = 3
+          pt_bins = linbins(0,200,200)
+          rapi_bins = np.linspace(-5,5,201)
+
+          # Truth histograms
+          name = 'h_{}_JetPt_Truth_R{}_{}'.format(observable, jetR, obs_label)
+          title = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'D^{0} y' ]
+          binnings = (pt_bins, rapi_bins)
+          self.create_thn(name, title_truth, dim, binnings) # this will need to be fixed later! - add more dimensions to also include jet pt?
+
+        #Make some blank arrays to be filled if thnsparse
+        self.fsparsepartonJetvalue = array.array( 'd', ( 0, 0, 0 ,0 ))
+        self.fsparsejetlevelJetvalue = array.array( 'd', ( 0, 0, 0 ))
 
         # Init pair distance histograms (both det and truth level)
         # average track pt bins
@@ -138,12 +189,49 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
         # track pt asymmetry bins: (pt_trk1-pt_trk2)/(pt_trk1+pt_trk2)
         self.trk_alpha_lo = [0, 0.2, 0.4, 0.6, 0.8]
         self.trk_alpha_hi = [0.2, 0.4, 0.6, 0.8, 1]
+        if 'EEC_detail' in observable: # not currently being used
+          # inclusive
+          name = 'h_{}_JetPt_R{}_{}'.format(observable, jetR, obs_label)
+          pt_bins = linbins(0,200,200)
+          RL_bins = logbins(1E-4,1,50)
+          h = ROOT.TH2D(name, name, 50, pt_bins, 50, RL_bins)
+          h.GetXaxis().SetTitle('p_{T,ch jet}')
+          h.GetYaxis().SetTitle('R_{L}')
+          setattr(self, name, h)
+
+          name = 'h_{}_JetPt_Truth_R{}_{}'.format(observable, jetR, obs_label)
+          pt_bins = linbins(0,200,200)
+          RL_bins = logbins(1E-4,1,50)
+          h = ROOT.TH2D(name, name, 50, pt_bins, 50, RL_bins)
+          h.GetXaxis().SetTitle('p_{T,ch jet}')
+          h.GetYaxis().SetTitle('R_{L}')
+          setattr(self, name, h)
+
+          # fine bins
+          for ipt in range( len(self.trk_pt_lo) ):
+            for ialpha in range( len(self.trk_alpha_lo) ):
+              name = 'h_{}{}{}_{:.1f}{:.1f}_JetPt_R{}_{}'.format(observable, self.trk_pt_lo[ipt], self.trk_pt_hi[ipt], self.trk_alpha_lo[ialpha], self.trk_alpha_hi[ialpha], jetR, obs_label)
+              pt_bins = linbins(0,200,200)
+              RL_bins = logbins(1E-4,1,50)
+              h = ROOT.TH2D(name, name, 50, pt_bins, 50, RL_bins)
+              h.GetXaxis().SetTitle('p_{T,ch jet}')
+              h.GetYaxis().SetTitle('R_{L}')
+              setattr(self, name, h)
+
+              name = 'h_{}{}{}_{:.1f}{:.1f}_JetPt_Truth_R{}_{}'.format(observable, self.trk_pt_lo[ipt], self.trk_pt_hi[ipt], self.trk_alpha_lo[ialpha], self.trk_alpha_hi[ialpha], jetR, obs_label)
+              pt_bins = linbins(0,200,200)
+              RL_bins = logbins(1E-4,1,50)
+              h = ROOT.TH2D(name, name, 50, pt_bins, 50, RL_bins)
+              h.GetXaxis().SetTitle('p_{T,ch jet}')
+              h.GetYaxis().SetTitle('R_{L}')
+              setattr(self, name, h)
+
 
 
         #correlation histograms
         # self.new_observables = ["deltap", "deltapt", "charge", "unweightedRL"]
         # print("OBS_LABEL", obs_label)
-        if "corr" in observable:
+        if "corr" in observable: # not being used in herwig d0 analysis
           self.create_corr_histograms(observable, ipoint, jetR, obs_label)
           
 
@@ -151,29 +239,6 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
   # This function is called once for each jet subconfiguration
   # Fill 2D histogram of (pt, obs)
   #---------------------------------------------------------------
-  def create_response_histograms(self, observable, ipoint, jetR, trk_thrd, R_max = None):
-  
-    if R_max:
-      suffix = '_Rmax{}'.format(R_max)
-    else:
-      suffix = ''
-
-    # Create THn of response for ENC
-    dim = 4;
-    title = ['p_{T,det}', 'p_{T,truth}', 'R_{L,det}', 'R_{L,truth}']
-    nbins = [30, 20, 100, 100]
-    min = [0., 0., 0., 0.]
-    max = [150., 200., 1., 1.]
-    name = 'hResponse_JetPt_{}{}_R{}_{}{}'.format(observable, ipoint, jetR, trk_thrd, suffix)
-    self.create_thn(name, title, dim, nbins, min, max)
-    
-    name = 'hResidual_JetPt_{}{}_R{}_{}{}'.format(observable, ipoint, jetR, trk_thrd, suffix)
-    h = ROOT.TH3F(name, name, 20, 0, 200, 100, 0., 1., 200, -2., 2.)
-    h.GetXaxis().SetTitle('p_{T,truth}')
-    h.GetYaxis().SetTitle('R_{L}')
-    h.GetZaxis().SetTitle('#frac{R_{L,det}-R_{L,truth}}{R_{L,truth}}')
-    setattr(self, name, h)
-  
   def create_corr_histograms(self, observable, ipoint, jetR, obs_label):
   
     pt_bins = linbins(0,200,200)
@@ -223,19 +288,6 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
       title = ['p_{T,ch jet,det}', 'R_{L,det}', 'unweighted R_{L,det}']
       obs_bins = RL_bins
 
-    '''# don't do thnsparse anymore
-    name = 'h_{}{}_JetPt_Truth_R{}_{}'.format(observable, ipoint, jetR, obs_label)
-    h = ROOT.TH2D(name, name, 200, pt_bins, len(obs_bins)-1, obs_bins)
-    h.GetXaxis().SetTitle(title_truth[0]) #'p_{T,ch jet}')
-    h.GetYaxis().SetTitle(title_truth[2]) #'R_{L}')
-    setattr(self, name, h)
-
-    name = 'h_{}{}_JetPt_R{}_{}'.format(observable, ipoint, jetR, obs_label)
-    h = ROOT.TH2D(name, name, 200, pt_bins, len(obs_bins)-1, obs_bins)
-    h.GetXaxis().SetTitle(title[0]) #'p_{T,ch jet}')
-    h.GetYaxis().SetTitle(title[2]) #'R_{L}')
-    setattr(self, name, h)
-    '''
 
     # name = 'h_JetPt_{}{}_R{}_{}'.format(observable, ipoint, jetR, obs_label)
     name = 'h_{}{}_JetPt_Truth_R{}_{}'.format(observable, ipoint, jetR, obs_label)
@@ -330,8 +382,108 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
       jet_pt = jet.perp()
 
     new_corr = ecorrel.CorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut)
+
+    # save jet level information to thnsparse arrays
+    self.fsparsejetlevelJetvalue[0] = jet_pt
+    self.fsparsepartonJetvalue[0] = jet_pt
+    
+    # find the D0's - assuming one D0 per jet
+    for part in c_select:
+      if self.findD0(part): # if self.D0particleinfo != None:
+        D0_px = self.D0particleinfo.px()
+        D0_py = self.D0particleinfo.py()
+        self.fsparsejetlevelJetvalue[1] = math.sqrt(D0_px*D0_px + D0_py*D0_py)
+        self.fsparsepartonJetvalue[1] = math.sqrt(D0_px*D0_px + D0_py*D0_py)
+        self.fsparsejetlevelJetvalue[2] = self.D0particleinfo.python_info().particle_rap #self.D0particleinfo.rap()
+        self.fsparsepartonJetvalue[2] = self.D0particleinfo.python_info().particle_rap #self.D0particleinfo.rap()
+        if self.firsttimejet:
+          print('event {}'.format(self.event_number))
+          print("D0 pt is ", math.sqrt(D0_px*D0_px + D0_py*D0_py), "and D0 rapidity is", self.D0particleinfo.python_info().particle_rap) #self.D0particleinfo.rap())
+          self.d0counter+=1          
+        break # break after one D0 found in a jet
+
     for observable in self.observable_list:
       # print("CP OBSERVABLE", observable)
+      if 'ENC' in observable or 'EEC_noweight' in observable or 'EEC_weight2' in observable:
+        for ipoint in range(2, 3):
+          if self.ENC_fastsim and (not 'Truth' in hname): # NB: only apply pair efficiency effect for fast sim and det level distributions
+            weights_pair = self.get_pair_eff_weights(new_corr, ipoint, c_select)
+
+          for index in range(new_corr.correlator(ipoint).rs().size()):
+
+            # processing only like-sign pairs when self.ENC_pair_like is on
+            if self.ENC_pair_like and (not self.is_same_charge(new_corr, ipoint, c_select, index)):
+              continue
+
+            # processing only unlike-sign pairs when self.ENC_pair_unlike is on
+            if self.ENC_pair_unlike and self.is_same_charge(new_corr, ipoint, c_select, index):
+              continue
+            
+            # separate out sig-sig, sig-bkg, bkg-bkg correlations for EEC pairs
+            pair_type_label = ''
+            if self.do_rho_subtraction or self.do_constituent_subtraction:
+              pair_type = self.check_pair_type(new_corr, ipoint, c_select, index)
+              pair_type_label = self.pair_type_labels[pair_type]
+
+            if 'ENC' in observable:
+              if self.ENC_fastsim and (not 'Truth' in hname):
+                getattr(self, hname.format(observable + str(ipoint) + pair_type_label,obs_label)).Fill(jet_pt, new_corr.correlator(ipoint).rs()[index], new_corr.correlator(ipoint).weights()[index]*weights_pair[index])
+                getattr(self, hname.format(observable + str(ipoint) + pair_type_label + 'Pt',obs_label)).Fill(jet_pt, jet_pt*new_corr.correlator(ipoint).rs()[index], new_corr.correlator(ipoint).weights()[index]*weights_pair[index]) # NB: fill pt*RL
+
+              else:
+                # only change truth level hists to thnsparse
+                # save in thnsparse
+                self.fsparsepartonJetvalue[3] = new_corr.correlator(ipoint).rs()[index]
+                getattr(self, hname.format(observable + str(ipoint) + pair_type_label,obs_label)).Fill(self.fsparsepartonJetvalue, new_corr.correlator(ipoint).weights()[index])
+                
+                self.fsparsepartonJetvalue[3] = jet_pt*new_corr.correlator(ipoint).rs()[index]
+                getattr(self, hname.format(observable + str(ipoint) + pair_type_label + 'Pt',obs_label)).Fill(self.fsparsepartonJetvalue, new_corr.correlator(ipoint).weights()[index])
+
+                # getattr(self, hname.format(observable + str(ipoint) + pair_type_label,obs_label)).Fill(jet_pt, new_corr.correlator(ipoint).rs()[index], new_corr.correlator(ipoint).weights()[index])
+                # getattr(self, hname.format(observable + str(ipoint) + pair_type_label + 'Pt',obs_label)).Fill(jet_pt, jet_pt*new_corr.correlator(ipoint).rs()[index], new_corr.correlator(ipoint).weights()[index])
+
+            if ipoint==2 and 'EEC_noweight' in observable:
+              if self.ENC_fastsim and (not 'Truth' in hname):
+                getattr(self, hname.format(observable + pair_type_label,obs_label)).Fill(jet_pt, new_corr.correlator(ipoint).rs()[index], weights_pair[index])
+              else:
+                #change truth level hists to thnsparse
+                self.fsparsepartonJetvalue[3] = new_corr.correlator(ipoint).rs()[index]
+                getattr(self, hname.format(observable + pair_type_label,obs_label)).Fill(self.fsparsepartonJetvalue)
+
+            if ipoint==2 and 'EEC_weight2' in observable:
+              if self.ENC_fastsim and (not 'Truth' in hname):
+                getattr(self, hname.format(observable + pair_type_label,obs_label)).Fill(jet_pt, new_corr.correlator(ipoint).rs()[index], pow(new_corr.correlator(ipoint).weights()[index]*weights_pair[index],2))
+              else:
+                getattr(self, hname.format(observable + pair_type_label,obs_label)).Fill(jet_pt, new_corr.correlator(ipoint).rs()[index], pow(new_corr.correlator(ipoint).weights()[index],2))
+
+      if 'jet_pt' in observable:
+        getattr(self, hname.format(observable,obs_label)).Fill(self.fsparsejetlevelJetvalue)
+      
+      # NB: for now, only perform this check on data and full sim
+      if 'EEC_detail' in observable and self.ENC_fastsim==False: 
+        ipoint = 2 # EEC is 2 point correlator
+        for index in range(new_corr.correlator(ipoint).rs().size()):
+          part1 = new_corr.correlator(ipoint).indices1()[index]
+          part2 = new_corr.correlator(ipoint).indices2()[index]
+          pt1 = c_select[part1].perp()
+          pt2 = c_select[part2].perp()
+          pt_avg = (pt1+pt2)/2
+          alpha = math.fabs(pt1-pt2)
+          
+          for _, (pt_lo, pt_hi) in enumerate(zip(self.trk_pt_lo,self.trk_pt_hi)):
+            for _, (alpha_lo, alpha_hi) in enumerate(zip(self.trk_alpha_lo,self.trk_alpha_hi)):
+              if pt_avg >= pt_lo and pt_avg < pt_hi and alpha >= alpha_lo and alpha < alpha_hi:
+                if 'noweight' in observable:
+                  getattr(self, hname.format(observable + str(pt_lo) + str(pt_hi) + '_' + '{:.1f}'.format(alpha_lo) + '{:.1f}'.format(alpha_hi),obs_label)).Fill(jet_pt, new_corr.correlator(ipoint).rs()[index])
+                else:
+                  getattr(self, hname.format(observable + str(pt_lo) + str(pt_hi) + '_' + '{:.1f}'.format(alpha_lo) + '{:.1f}'.format(alpha_hi),obs_label)).Fill(jet_pt, new_corr.correlator(ipoint).rs()[index], new_corr.correlator(ipoint).weights()[index])
+                break
+
+          # fill inclusively
+          if 'noweight' in observable:
+            getattr(self, hname.format(observable,obs_label)).Fill(jet_pt, new_corr.correlator(ipoint).rs()[index])
+          else:
+            getattr(self, hname.format(observable,obs_label)).Fill(jet_pt, new_corr.correlator(ipoint).rs()[index], new_corr.correlator(ipoint).weights()[index])
 
       # correlation histograms 
       if 'corr' in observable :
@@ -447,188 +599,21 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
     if 'jet_pt' in observable:
       getattr(self, hname.format(observable,obs_label)).Fill(jet_pt)
 
-  #---------------------------------------------------------------
-  # This function is called per jet subconfigration 
-  # Fill matched jet histograms
-  #---------------------------------------------------------------
-  def fill_matched_jet_histograms(self, jet_det, jet_det_groomed_lund, jet_truth,
-                                  jet_truth_groomed_lund, jet_pp_det, jetR,
-                                  obs_setting, grooming_setting, obs_label,
-                                  jet_pt_det_ungroomed, jet_pt_truth_ungroomed, R_max, suffix, **kwargs):
-    # If jetscape, we will need to correct substructure observable for holes (pt is corrected in base class)
-    # For ENC in PbPb, jet_pt_det_ungroomed stores the corrected jet pT
-    if self.jetscape:
-      holes_in_det_jet = kwargs['holes_in_det_jet']
-      holes_in_truth_jet = kwargs['holes_in_truth_jet']
-
-    cone_parts_in_det_jet = kwargs['cone_parts_in_det_jet']
-    cone_parts_in_truth_jet = kwargs['cone_parts_in_truth_jet']
-    cone_R = kwargs['cone_R']
-
-    # Todo: add additonal weight for jet pT spectrum
-    # if self.rewight_pt:
-    #   w_pt = 1+pow(jet_truth,0.2)
-    # else:
-    #   w_pt = 1
-    
-    if self.do_rho_subtraction:
-      # print('evt #',self.event_number)
-      jet_pt_det = jet_pt_det_ungroomed
-      # print('Det: pT',jet_det.perp(),'(',jet_pt_det,')','phi',jet_det.phi(),'eta',jet_det.eta())
-      # print('Truth: pT',jet_truth.perp(),'phi',jet_truth.phi(),'eta',jet_truth.eta())
-      # print('Difference pT (truth-det)',jet_truth.perp()-jet_pt_det_ungroomed)
+  
+ #---------------------------------------------------------------
+  # function to find D0's
+  def findD0(self, particle):
+    # print("user index", particle.user_index()) #idk what this number is
+    # print("user info", particle.python_info()) # this is super useful! is of the form "JetInfo" from jetinfo.py
+    part_info = particle.python_info()
+    if abs(part_info.particle_pid) == 421:
+      print("D0 in jet!", part_info.particle_pid)
+      self.D0particleinfo = particle
+      return True
     else:
-      jet_pt_det = jet_det.perp()
-
-    for observable in self.observable_list:
-      
-      if cone_R == 0: # fill for jet constituents
-        hname = 'h_matched_{{}}_JetPt_R{}_{{}}'.format(jetR)
-        self.fill_matched_observable_histograms(hname, observable, jet_det, jet_det_groomed_lund, jetR, obs_setting, grooming_setting, obs_label, jet_pt_det, jet_pt_det)
-
-        hname = 'h_matched_{{}}_JetPt_Truth_R{}_{{}}'.format(jetR)
-        self.fill_matched_observable_histograms(hname, observable, jet_truth, jet_truth_groomed_lund, jetR, obs_setting, grooming_setting, obs_label, jet_pt_det, jet_truth.pt())
-
-        # fill RL vs matched truth jet pT for det jets (only fill these extra histograms for ENC or pair distributions)
-        if 'ENC' in observable or 'EEC_noweight' in observable or 'EEC_weight2' in observable:
-          hname = 'h_matched_extra_{{}}_JetPt_R{}_{{}}'.format(jetR)
-          self.fill_matched_observable_histograms(hname, observable, jet_det, jet_det_groomed_lund, jetR, obs_setting, grooming_setting, obs_label, jet_pt_det, jet_truth.pt()) # NB: use the truth jet pt so the reco jets histograms are comparable to matched truth jets. However this also means that two identical histograms will be filled fot jet_pt observable
-
-        # Fill correlation between matched det and truth jets
-        if 'jet_pt' in observable:
-          hname = 'h_matched_{}_JetPt_Truth_vs_Det_R{}_{}'.format(observable, jetR, obs_label)
-          getattr(self, hname).Fill(jet_pt_det, jet_truth.pt())
-
-      else: # fill for cone parts around jet
-        if 'ENC' in observable or 'EEC_noweight' in observable or 'EEC_weight2' in observable:
-          hname = 'h_jetcone{}_matched_{{}}_JetPt_R{}_{{}}'.format(cone_R, jetR)
-          self.fill_matched_observable_histograms(hname, observable, jet_det, jet_det_groomed_lund, jetR, obs_setting, grooming_setting, obs_label, jet_pt_det, jet_pt_det, cone_parts_in_det_jet)
-
-          hname = 'h_jetcone{}_matched_{{}}_JetPt_Truth_R{}_{{}}'.format(cone_R, jetR)
-          self.fill_matched_observable_histograms(hname, observable, jet_truth, jet_truth_groomed_lund, jetR, obs_setting, grooming_setting, obs_label, jet_pt_det, jet_truth.pt(), cone_parts_in_truth_jet)
-
-          hname = 'h_jetcone{}_matched_extra_{{}}_JetPt_R{}_{{}}'.format(cone_R, jetR)
-          self.fill_matched_observable_histograms(hname, observable, jet_det, jet_det_groomed_lund, jetR, obs_setting, grooming_setting, obs_label, jet_pt_det, jet_truth.pt(), cone_parts_in_det_jet)          
-
-
-    # # Find all subjets
-    # trk_thrd = obs_setting
-    # cs_subjet_det = fj.ClusterSequence(jet_det.constituents(), self.subjet_def[trk_thrd])
-    # subjets_det = fj.sorted_by_pt(cs_subjet_det.inclusive_jets())
-
-    # cs_subjet_truth = fj.ClusterSequence(jet_truth.constituents(), self.subjet_def[trk_thrd])
-    # subjets_truth = fj.sorted_by_pt(cs_subjet_truth.inclusive_jets())
-    
-    # if not self.is_pp:
-    #   cs_subjet_det_pp = fj.ClusterSequence(jet_pp_det.constituents(), self.subjet_def[trk_thrd])
-    #   subjets_det_pp = fj.sorted_by_pt(cs_subjet_det_pp.inclusive_jets())
-
-    # # Loop through subjets and set subjet matching candidates for each subjet in user_info
-    # if self.is_pp:
-    #     [[self.set_matching_candidates(subjet_det, subjet_truth, subjetR, 'hDeltaR_ppdet_pptrue_ENC_R{}_{}'.format(jetR, subjetR)) for subjet_truth in subjets_truth] for subjet_det in subjets_det]
-    # else:
-    #     # First fill the combined-to-pp matches, then the pp-to-pp matches
-    #     [[self.set_matching_candidates(subjet_det_combined, subjet_det_pp, subjetR, 'hDeltaR_combined_ppdet_ENC_R{}_{}_Rmax{}'.format(jetR, subjetR, R_max), fill_jet1_matches_only=True) for subjet_det_pp in subjets_det_pp] for subjet_det_combined in subjets_det]
-    #     [[self.set_matching_candidates(subjet_det_pp, subjet_truth, subjetR, 'hDeltaR_ppdet_pptrue_ENC_R{}_{}_Rmax{}'.format(jetR, subjetR, R_max)) for subjet_truth in subjets_truth] for subjet_det_pp in subjets_det_pp]
-      
-    # # Loop through subjets and set accepted matches
-    # if self.is_pp:
-    #     [self.set_matches_pp(subjet_det, 'hSubjetMatchingQA_R{}_{}'.format(jetR, subjetR)) for subjet_det in subjets_det]
-    # else:
-    #     [self.set_matches_AA(subjet_det_combined, subjetR, 'hSubjetMatchingQA_R{}_{}'.format(jetR, subjetR)) for subjet_det_combined in subjets_det]
-
-    # # Loop through matches and fill histograms
-    # for observable in self.observable_list:
-    
-    #   # Fill inclusive subjets
-    #   if 'inclusive' in observable:
-
-    #     for subjet_det in subjets_det:
-        
-    #       z_det = subjet_det.pt() / jet_det.pt()
-          
-    #       # If z=1, it will be default be placed in overflow bin -- prevent this
-    #       if np.isclose(z_det, 1.):
-    #         z_det = 0.999
-          
-    #       successful_match = False
-
-    #       if subjet_det.has_user_info():
-    #         subjet_truth = subjet_det.python_info().match
-          
-    #         if subjet_truth:
-            
-    #           successful_match = True
-
-    #           # For subjet matching radius systematic, check distance between subjets
-    #           if self.matching_systematic:
-    #             if subjet_det.delta_R(subjet_truth) > 0.5 * self.jet_matching_distance * subjetR:
-    #               continue
-              
-    #           z_truth = subjet_truth.pt() / jet_truth.pt()
-              
-    #           # If z=1, it will be default be placed in overflow bin -- prevent this
-    #           if np.isclose(z_truth, 1.):
-    #             z_truth = 0.999
-              
-    #           # In Pb-Pb case, fill matched pt fraction
-    #           if not self.is_pp:
-    #             self.fill_subjet_matched_pt_histograms(observable,
-    #                                                    subjet_det, subjet_truth,
-    #                                                    z_det, z_truth,
-    #                                                    jet_truth.pt(), jetR, subjetR, R_max)
-              
-    #           # Fill histograms
-    #           # Note that we don't fill 'matched' histograms here, since that is only
-    #           # meaningful for leading subjets
-    #           self.fill_response(observable, jetR, jet_pt_det_ungroomed, jet_pt_truth_ungroomed,
-    #                              z_det, z_truth, obs_label, R_max, prong_match=False)
-                                 
-    #       # Fill number of subjets with/without unique match, as a function of zr
-    #       if self.is_pp:
-    #         name = 'h_match_fraction_{}_R{}_{}'.format(observable, jetR, subjetR)
-    #         getattr(self, name).Fill(jet_truth.pt(), z_det, successful_match)
-                               
-    #   # Get leading subjet and fill histograms
-    #   if 'leading' in observable:
-      
-    #     leading_subjet_det = self.utils.leading_jet(subjets_det)
-    #     leading_subjet_truth = self.utils.leading_jet(subjets_truth)
-        
-    #     # Note that we don't want to check whether they are geometrical matches
-    #     # We rather want to correct the measured leading subjet to the true leading subjet
-    #     if leading_subjet_det and leading_subjet_truth:
-          
-    #       z_leading_det = leading_subjet_det.pt() / jet_det.pt()
-    #       z_leading_truth = leading_subjet_truth.pt() / jet_truth.pt()
-          
-    #       # If z=1, it will be default be placed in overflow bin -- prevent this
-    #       if np.isclose(z_leading_det, 1.):
-    #         z_leading_det = 0.999
-    #       if np.isclose(z_leading_truth, 1.):
-    #         z_leading_truth = 0.999
-          
-    #       # In Pb-Pb case, fill matched pt fraction
-    #       if not self.is_pp:
-    #         match = self.fill_subjet_matched_pt_histograms(observable,
-    #                                                        leading_subjet_det, leading_subjet_truth,
-    #                                                        z_leading_det, z_leading_truth,
-    #                                                        jet_truth.pt(), jetR, subjetR, R_max)
-    #       else:
-    #         match = False
-          
-    #       # Fill histograms
-    #       self.fill_response(observable, jetR, jet_pt_det_ungroomed, jet_pt_truth_ungroomed,
-    #                          z_leading_det, z_leading_truth, obs_label, R_max, prong_match=match)
-          
-    #       # Plot deltaR distribution between the detector and truth leading subjets
-    #       # (since they are not matched geometrically, the true leading may not be the measured leading
-    #       deltaR = leading_subjet_det.delta_R(leading_subjet_truth)
-    #       name = 'hDeltaR_det_truth_{}_R{}_{}'.format(observable, jetR, subjetR)
-    #       if not self.is_pp:
-    #         name += '_Rmax{}'.format(R_max)
-    #       getattr(self, name).Fill(jet_truth.pt(), z_leading_truth, deltaR)
-        
+      self.D0particleinfo = None
+      return False
+  #---------------------------------------------------------------
 
 ##################################################################
 if __name__ == '__main__':
@@ -665,5 +650,6 @@ if __name__ == '__main__':
     print('File \"{0}\" does not exist! Exiting!'.format(args.configFile))
     sys.exit(0)
 
-  analysis = ProcessMC_ENC(input_file=args.inputFile, config_file=args.configFile, output_dir=args.outputDir)
+  analysis = ProcessMC_ENC_HF(input_file=args.inputFile, config_file=args.configFile, output_dir=args.outputDir)
   analysis.process_mc()
+

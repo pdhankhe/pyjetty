@@ -65,7 +65,7 @@ class HepMC2antuple(hepmc2antuple_base.HepMC2antupleBase):
 
       # get mother here --> need PID
       # if not looking at D0s or there is != 1 mother, then set motherPID=0
-      motherPID = 0
+      motherPID = -1
       if self.include_D0:
         # print("PART", part)
         # print("PARENTS", part.parents)
@@ -76,9 +76,13 @@ class HepMC2antuple(hepmc2antuple_base.HepMC2antupleBase):
           if motherPID == 421 or motherPID == -421:
             # print("motherPID", motherPID) #, self.pdg.GetParticle(motherPID).GetName())
             
-            if self.isD0toKpidecay(mother): # TODO: check that D0 goes to Kpi
-              self.t_D.Fill(self.run_number, self.ev_id, mother.momentum.pt(), mother.momentum.eta(), mother.momentum.phi(), part.momentum.rap(), mother.pid)
+            if self.isD0toKpidecay(mother) and abs(part.pid)==321: # TODO: check that D0 goes to Kpi, and only add the D0 if the daughter is a kaon
+              self.t_D.Fill(self.run_number, self.ev_id, mother.momentum.pt(), mother.momentum.eta(), mother.momentum.phi(), mother.momentum.rap(), mother.pid)
               # print("rapidity", part.momentum.rap())
+            elif self.isD0toKpidecay(mother) == False: # closing if D0->kpi
+              motherPID = -1
+          else: # closing if motherpid = 421
+            motherPID = -1
             
     
       if self.accept_particle(part, part.status, part.end_vertex, part.pid, self.pdg, self.gen):

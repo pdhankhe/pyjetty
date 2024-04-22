@@ -117,17 +117,60 @@ class ProcessBase(common_base.CommonBase):
   # Create thn and set as class attribute from name, dim
   #   and lists of nbins, xmin, xmax.
   #---------------------------------------------------------------
-  def create_thn(self, name, title, dim, nbins, xmin, xmax):
+  def create_thn(self, name, title, dim, binnings=[], obs=''): # note: binnings should be given as (ptbins, rapi bins, obs bins)
 
+    pt_bins = binnings[0]
+    rapi_bins = binnings[1]
+
+    # print("binnings", binnings)
+    # print("pt bins", pt_bins)
+    # print("rapi bins", rapi_bins)
+
+    # not sure why bin edges can't be set with above code, so hard coding some things in:
+    pt_bins_og = array('d', list(range(0, 201, 1)))
+    rapi_bins_og = np.linspace(-5,5,201)
+    rl_bins_og = np.logspace(np.log10(1E-4), np.log10(1), 51)
+    ptrl_bins_og = np.logspace(np.log10(1E-3), np.log10(100), 61)
+
+    # print("pt bins", pt_bins)
+    # print("pt bins og", pt_bins_og)
+    # print("pt bins type should be", type(pt_bins_og))
+    # print("rapi bins type should be", type(rapi_bins_og))
+
+    # print("pt bins type is be", type(pt_bins))
+    # print("rapi bins type is be", type(rapi_bins))
+
+    
+    nbins  = [len(pt_bins)-1, len(pt_bins)-1, len(rapi_bins)-1  ]
+    xmin =   [pt_bins[0],     pt_bins[0],     rapi_bins[0]      ]
+    xmax =   [pt_bins[-1],    pt_bins[-1],    rapi_bins[-1]     ]
+    if dim == 4:
+      obs_bins = binnings[2]
+      nbins.append(len(obs_bins)-1)
+      xmin.append(obs_bins[0])
+      xmax.append(obs_bins[-1])
+                
     nbins_arr = (nbins)
     xmin_arr = (min)
     xmax_arr = (max)
     nbins_array = array('i', nbins)
     xmin_array = array('d', xmin)
     xmax_array = array('d', xmax)
-    h = ROOT.THnF(name, name, dim, nbins_array, xmin_array, xmax_array)
+    # h = ROOT.THnF(name, name, dim, nbins_array, xmin_array, xmax_array)
+    h = ROOT.THnSparseD(name, name, dim, nbins_array, xmin_array, xmax_array)
+    h.Sumw2()
     for i in range(0, dim):
       h.GetAxis(i).SetTitle(title[i])
+      if i == 0 or i == 1:
+        h.SetBinEdges(i, pt_bins_og)
+      if i == 2:
+        h.SetBinEdges(i, rapi_bins_og)
+      if i == 3:
+        if obs=='rl':
+          h.SetBinEdges(i, rl_bins_og)
+        elif obs=='ptrl':
+          h.SetBinEdges(i, ptrl_bins_og)
+
     setattr(self, name, h)
 
   #---------------------------------------------------------------
