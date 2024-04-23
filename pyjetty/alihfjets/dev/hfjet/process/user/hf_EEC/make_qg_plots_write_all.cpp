@@ -1,4 +1,6 @@
 // ROOT macro to make quark-gluon jet plots
+// this plots all  curves (D, g, l, i) for the weighted and unweighted cases
+// note the charm curve is not plotted here
 // Beatrice Liang-Gilman (beatrice_lg@berkeley.edu)
 
 void SetStyle(Bool_t graypalette=true) {
@@ -184,7 +186,8 @@ void make_qg_plots_write_all() {
     // File containing quark vs gluon histograms
 
      //FOR WHEN WEIGHTED/UNWEIGHTED IN SAME FILE
-    const char infile_D0_weighted[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/18063568/AnalysisResultsFinal.root"; // OR 17651853? //this is using thnsparse
+    const char infile_D0_weighted[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17651853/AnalysisResultsFinal.root"; // OR 17651853? //this is using thnsparse
+    const char infile_D02_weighted[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/18063568/AnalysisResultsFinal.root"; // OR 17651853? //this is using thnsparse
     const char infile_D0_unweighted[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/23581878/AnalysisResultsFinal.root"; //this is using thnsparse
     const char infile_incl_weighted[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/23581930/AnalysisResultsFinal.root";
     const char infile_incl_unweighted[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/24182467/AnalysisResultsFinal.root"; //
@@ -195,12 +198,12 @@ void make_qg_plots_write_all() {
 
     //CONTOL VARIABLES HERE
     int plot_case = 0;
-    bool logstring = true;
+    bool logstring = false;
 
     TFile* f;
     TString label1 = "";
 
-    TFile* f_D0_w = new TFile(infile_D0_weighted, "READ");
+    TFile* f_D0_w = new TFile(infile_D0_weighted, "READ"); //new TFile(infile_D02_weighted, "READ");
     TFile* f_D0_uw = new TFile(infile_D0_unweighted, "READ");
     TFile* f_incl_w = new TFile(infile_incl_weighted, "READ");
     TFile* f_incl_uw = new TFile(infile_incl_unweighted, "READ");
@@ -239,6 +242,7 @@ void make_qg_plots_write_all() {
 
 
         const int pt_bins[] = { 7, 10, 15, 30 }; //{ 10, 20, 40 }; // CHANGE HERE!!
+        const int d0_pt_cuts[] = { 3, 5, 5 };
         const int n_bins = 3; 
         for (int i = 0; i < n_bins; i++) {
             cout << "in pt bin" << i << endl;
@@ -247,7 +251,7 @@ void make_qg_plots_write_all() {
 
             // define pt related variables
             TString ptbin = TString::Format("%d #leq #it{p}_{T}^{ch. jet} < %d GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5", pt_min, pt_max);
-            TString ptD = TString::Format("5 #leq #it{p}_{T}^{D^{0}} < %d GeV/#it{c}, #font[122]{|}#it{y}_{D^{0}}#font[122]{|} #leq 0.8", pt_max);
+            TString ptD = TString::Format("%d #leq #it{p}_{T}^{D^{0}} < %d GeV/#it{c}, #font[122]{|}#it{y}_{D^{0}}#font[122]{|} #leq 0.8", d0_pt_cuts[i], pt_max);
 
 
             // make a canvas for each pt range
@@ -608,6 +612,22 @@ void make_qg_plots_write_all() {
             const char* fnamec = fname.c_str();
             c->SaveAs(fnamec);
             delete c;
+
+            // Get the integration values under the curve
+            double hc_int = hc->Integral(0, hc->GetNbinsX(), "width"); //the parameters are in bin numbers, if we want to use values on the x axis, do hc->FindFixBin(x)
+            double hc_uw_int = hc_uw->Integral(0, hc_uw->GetNbinsX(), "width");
+            double hg_int = hg->Integral(0, hg->GetNbinsX(), "width");
+            double hg_uw_int = hg_uw->Integral(0, hg_uw->GetNbinsX(), "width");
+            double hl_int = hl->Integral(0, hl->GetNbinsX(), "width");
+            double hl_uw_int = hl_uw->Integral(0, hl_uw->GetNbinsX(), "width");
+            double hi_int = hi->Integral(0, hi->GetNbinsX(), "width");
+            double hi_uw_int = hi_uw->Integral(0, hi_uw->GetNbinsX(), "width");
+
+            cout << " the integrations values are " << endl;
+            cout << "charm " << hc_int << " charm uw " << hc_uw_int << endl;
+            cout << "gluon " << hg_int << " gluon uw " << hg_uw_int << endl;
+            cout << "light " << hl_int << " light uw " << hl_uw_int << endl;
+            cout << "inclusive " << hi_int << " inclusive uw " << hi_uw_int << endl;
 
             // if (pt_min == 10) { //} && grooming == "") {
                 // Write rebinned histograms to root file
