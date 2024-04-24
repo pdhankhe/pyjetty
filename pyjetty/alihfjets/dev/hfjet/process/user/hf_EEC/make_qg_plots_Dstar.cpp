@@ -223,7 +223,7 @@ void make_qg_plots_Dstar() {
     // 8 = compare D0 (norm with D0) with the D0 feeddown
 
     //CONTOL VARIABLES HERE
-    int plot_case = 7;
+    int plot_case = 3;
     bool unnormalized = false; //default = false
 
     TFile* f;
@@ -233,8 +233,8 @@ void make_qg_plots_Dstar() {
     std::string quarkstring = include_gluon ? "" : "_justquarks";
     std::string unweightedstring = unweighted ? "_samefilecomp" : "";
     std::string logstring = "_log"; //not currently using this or have a bool
-    TString ptbin = compareD0 ? "15 #leq #it{p}_{T}^{ch. jet} < 30 GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5" : "15 #leq #it{p}_{T}^{ch. jet} < 30 GeV/#it{c}";
-    TString ptD = "5 #leq #it{p}_{T}^{D^{0}} < 30 GeV/#it{c}, #font[122]{|}#it{y}_{D^{0}}#font[122]{|} #leq 0.8";
+    // TString ptbin = compareD0 ? "15 #leq #it{p}_{T}^{ch. jet} < 30 GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5" : "15 #leq #it{p}_{T}^{ch. jet} < 30 GeV/#it{c}";
+    // TString ptD = "5 #leq #it{p}_{T}^{D^{0}} < 30 GeV/#it{c}, #font[122]{|}#it{y}_{D^{0}}#font[122]{|} #leq 0.8";
 
     TString label1 = "";
     TString label2 = "";  
@@ -285,15 +285,16 @@ void make_qg_plots_Dstar() {
     } else if (plot_case == 8) {
         f = new TFile(infile_D0, "READ");
         f2 = new TFile(infile_D0_feeddown, "READ");
-        add_name = "_Dstar_plot_case8.pdf"
+        add_name = "_Dstar_plot_case8.pdf";
     }
     cout << "output name will be " << add_name << endl;
 
     // Output directory
     //std::string outdir = "/rstorage/alice/AnalysisResults/ang/1224559/plots/";
     std::string outdir = "plots/final/15-30/";//"plots/test/";
+    std::string outdir_root = "plots/final/";
     // Output file for binned results
-    std::string outfile = outdir + "AnalysisResultsFinal_afteranalysis.root";
+    std::string outfile = outdir_root + "AnalysisResultsFinal_afteranalysis_Dstar_plotcase" + std::to_string(plot_case) + ".root";
     //std::string outfile = outdir + "AnalysisResultsFinal_test.root";
     TFile* f_out = new TFile(outfile.c_str(), "RECREATE");
 
@@ -328,12 +329,18 @@ void make_qg_plots_Dstar() {
 
 
         //const int pt_bins[] = { 10, 20, 40, 60, 80, 100, 150 };
-        const int pt_bins[] = { 15, 30 }; //{ 10, 20, 40 };
-        const int n_bins = 1; //2;
+        const int pt_bins[] = { 7, 10, 15, 30 }; //{ 10, 20, 40 };
+        const int d0_pt_cuts[] = { 3, 5, 5 };
+        const int n_bins = 3; //2;
         for (int i = 0; i < n_bins; i++) {
             cout << "in pt bin" << i << endl;
             int pt_min = pt_bins[i];
             int pt_max = pt_bins[i+1];
+
+            // define pt related variables
+            TString ptbin = TString::Format("%d #leq #it{p}_{T}^{ch. jet} < %d GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5", pt_min, pt_max);
+            TString ptD = TString::Format("%d #leq #it{p}_{T}^{D^{0}} < %d GeV/#it{c}, #font[122]{|}#it{y}_{D^{0}}#font[122]{|} #leq 0.8", d0_pt_cuts[i], pt_max);
+
 
             // make a canvas for each pt range
             TCanvas* c = new TCanvas();
@@ -465,10 +472,10 @@ void make_qg_plots_Dstar() {
 
                 // get jet pT range
                 hsparsejet_c_Dstar_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max); // apply cut on jet pt
-                hsparsejet_c_Dstar_clone->GetAxis(1)->SetRangeUser(5., pt_max); // apply cut on Dmeson pt
+                hsparsejet_c_Dstar_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max); // apply cut on Dmeson pt
                 hsparsejet_c_Dstar_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8); // apply cut on Dmeson rapidity
                 hsparsejet_c_Dstar_jetlevel_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max); // apply cut on jet pt
-                hsparsejet_c_Dstar_jetlevel_clone->GetAxis(1)->SetRangeUser(5., pt_max); // apply cut on Dmeson pt
+                hsparsejet_c_Dstar_jetlevel_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max); // apply cut on Dmeson pt
                 hsparsejet_c_Dstar_jetlevel_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8); // apply cut on Dmeson rapidity
                 // hc2D->GetXaxis()->SetRangeUser(pt_min, pt_max);
                 // hc1D_jet->GetXaxis()->SetRangeUser(pt_min, pt_max);
@@ -681,14 +688,14 @@ void make_qg_plots_Dstar() {
             delete c;
             delete t;
 
-            if (pt_min == 10) { //} && grooming == "") {
+            // if (pt_min == 10) { //} && grooming == "") {
                 // Write rebinned histograms to root file
                 f_out->cd();
                 // if (!inclusive) {
-                //     hl->Write();
-                //     hg->Write();
+                hD0->Write();
+                hDstar->Write();
                 // }
-            }
+            // }
              
         } // pT bins loop
 //            } // grooming loop

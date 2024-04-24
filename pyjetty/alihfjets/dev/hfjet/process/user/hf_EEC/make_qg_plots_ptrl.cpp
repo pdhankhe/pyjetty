@@ -56,10 +56,10 @@ void ProcessCanvas(TCanvas *Canvas) {
  	Canvas->SetFrameBorderMode(1);
 }
 
-void FormatHist(TLegend *l, TH1 *hist, TString text, int markercolor=1, int markerstyle=8) 
+void FormatHist(TLegend *l, TH1 *hist, TString text, int markercolor=1, int markerstyle=8, double markeralpha=1) 
 {
     hist->SetLineColor(markercolor);
-    hist->SetMarkerColor(markercolor);
+    hist->SetMarkerColorAlpha(markercolor, markeralpha);
     hist->SetMarkerStyle(markerstyle);
     hist->SetMarkerSize(1.5);
     l->AddEntry(hist, text, "pl");
@@ -78,6 +78,35 @@ void FormatHist(TLegend *l, TH1 *hist, TString text, int markercolor=1, int mark
 	hist->GetXaxis()->SetTitleSize(0.06); //(0.042);
 	hist->GetXaxis()->SetLabelSize(0.05); //(0.042);
 
+
+    return;
+}
+
+void FormatHistwithLine(TLegend *l, TH1 *hist, TString text, int linecolor=1, int linestyle=1, double linealpha=1) 
+{
+    hist->SetMarkerStyle(20);
+    hist->SetMarkerColorAlpha(linecolor, 0);
+
+    hist->SetFillStyle(0);
+    hist->SetLineColorAlpha(linecolor, linealpha);
+    hist->SetFillColor(linecolor);
+    // hist->SetLineStyle(linestyle);
+    hist->SetLineWidth(3);
+    l->AddEntry(hist, text, "pl");
+
+	//gPad->SetTickx(); 
+	//gPad->SetTicky(); 
+	// h->SetLineWidth(2);
+	hist->GetYaxis()->SetTitleOffset(1.05); 
+	hist->GetYaxis()->SetTitleSize(0.06); //(0.042);
+	hist->GetYaxis()->SetLabelSize(0.05); //(0.042);
+	hist->GetYaxis()->SetLabelFont(42);
+	hist->GetXaxis()->SetLabelFont(42);
+	hist->GetYaxis()->SetTitleFont(42);
+	hist->GetXaxis()->SetTitleFont(42);
+	hist->GetXaxis()->SetTitleOffset(1.0);
+	hist->GetXaxis()->SetTitleSize(0.06); //(0.042);
+	hist->GetXaxis()->SetLabelSize(0.05); //(0.042);
 
     return;
 }
@@ -193,8 +222,8 @@ void make_qg_plots_ptrl() {
     // so we need two files: the one with ptrl for dif parton-initiated jets, and one with D-jet ptrl info
 
      //FOR WHEN WEIGHTED/UNWEIGHTED IN SAME FILE
-    const char infile_ptrl_charmdecaysON[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/20780159/AnalysisResultsFinal.root";
-    const char infile_ptrl_D0[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/20780184/AnalysisResultsFinal.root"; 
+    const char infile_ptrl_charmdecaysON[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/24691538/AnalysisResultsFinal.root";
+    const char infile_ptrl_D0[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/24690700/AnalysisResultsFinal.root"; 
     
 
     TFile* f_parton = new TFile(infile_ptrl_charmdecaysON, "READ");
@@ -229,11 +258,22 @@ void make_qg_plots_ptrl() {
 
         // set up variables across pts
         vector<TH1D*> hD0_vec;
-        Double_t pt_D0_colors[] = { kRed, kRed-7, kRed-9 };
+        Double_t pt_D0_colors[] = { kRed+2, kRed, kRed-9 };
         // const TString pt_labels[] = {}
         TCanvas* c_D0_allpt = new TCanvas();
         ProcessCanvas(c_D0_allpt);
         gPad->SetLogx();
+
+        TLegend* l_2 = new TLegend(0.1797168,0.400741,0.4562155,0.8885185,"");
+        l_2->SetTextSize(0.045);
+        l_2->AddEntry("NULL","PYTHIA 8 Monash 2013","h");
+        l_2->AddEntry("NULL","pp, #sqrt{#it{s}} = 13 TeV","h");
+        l_2->AddEntry("NULL","D^{0} #rightarrow K^{#minus} #pi^{+} and charge conj.","h");
+        l_2->AddEntry("NULL","in charged jets, anti-#it{k}_{T}, #it{R} = 0.4","h");
+        // l_2->AddEntry("NULL",ptbin,"h");
+        // l_2->AddEntry("NULL",ptD,"h");
+        l_2->SetTextSize(0.037);
+        l_2->SetBorderSize(0);
 
 
         //const int pt_bins[] = { 10, 20, 40, 60, 80, 100, 150 };
@@ -258,7 +298,7 @@ void make_qg_plots_ptrl() {
             // gPad->SetLogy();
 
             TLegend* l; // = new TLegend(0.17, 0.65, 0.5, 0.85);
-            TLegend* ldummy = new TLegend(0.1797168,0.400741,0.4562155,0.8885185,"");
+            
 
             double maxy = 0;
 
@@ -288,8 +328,9 @@ void make_qg_plots_ptrl() {
             THnSparse* hsparsejet_g_jetlevel = (THnSparse*) f_parton->Get(hg_jet_name.c_str());
             THnSparse* hsparsejet_l = (THnSparse*) f_parton->Get(hl_name.c_str());
             THnSparse* hsparsejet_l_jetlevel = (THnSparse*) f_parton->Get(hl_jet_name.c_str());
-            THnSparse* hsparsejet_i = (THnSparse*) f_parton->Get(hl_name.c_str());
-            THnSparse* hsparsejet_i_jetlevel = (THnSparse*) f_parton->Get(hl_jet_name.c_str());
+            THnSparse* hsparsejet_i = (THnSparse*) f_parton->Get(hi_name.c_str());
+            THnSparse* hsparsejet_i_jetlevel = (THnSparse*) f_parton->Get(hi_jet_name.c_str());
+            
 
 
             // testing - look at # jets before cuts
@@ -427,6 +468,8 @@ void make_qg_plots_ptrl() {
             FormatHist(l, hl, label3, markercolor3, markerstyle3);
             FormatHist(l, hi, label4, markercolor4, markerstyle4);
             
+            hg->SetMaximum(hg->GetMaximum()*1.2);
+
             hg->Draw("L same");
             hl->Draw("L same");
             hi->Draw("L same");
@@ -436,16 +479,17 @@ void make_qg_plots_ptrl() {
             l->Draw("same");
                         
 
-            double hD0_top_binpos = findTopOfCurve(hD0, ptrl);
+            
+            double hD0_top_binpos = findTopOfCurve(hD0, true);
             cout << "hD0 top bincenter" << hD0->GetBinCenter(hD0_top_binpos) << "hD0 top binpos" << hD0->GetBinContent(hD0_top_binpos) << endl;
-            drawVertLine(hc->GetBinCenter(hc_top_binpos), 0, hc->GetBinContent(hc_top_binpos), markercolor1, 1)->Draw();
-            double hg_top_binpos = findTopOfCurve(hg, ptrl);
+            drawVertLine(hD0->GetBinCenter(hD0_top_binpos), 0, hD0->GetBinContent(hD0_top_binpos), markercolor1, 1)->Draw();
+            double hg_top_binpos = findTopOfCurve(hg, true);
             cout << "hg top bincenter" << hg->GetBinCenter(hg_top_binpos) << "hg top binpos" << hg->GetBinContent(hg_top_binpos) << endl;
             drawVertLine(hg->GetBinCenter(hg_top_binpos), 0, hg->GetBinContent(hg_top_binpos), markercolor2, 1)->Draw();
-            double hl_top_binpos = findTopOfCurve(hl, ptrl);
+            double hl_top_binpos = findTopOfCurve(hl, true);
             cout << "hl top bincenter" << hl->GetBinCenter(hl_top_binpos) << "hl top binpos" << hl->GetBinContent(hl_top_binpos) << endl;
             drawVertLine(hl->GetBinCenter(hl_top_binpos), 0, hl->GetBinContent(hl_top_binpos), markercolor3, 1)->Draw();
-            double hi_top_binpos = findTopOfCurve(hi, ptrl);
+            double hi_top_binpos = findTopOfCurve(hi, true);
             cout << "hi top bincenter" << hi->GetBinCenter(hi_top_binpos) << "hi top binpos" << hi->GetBinContent(hi_top_binpos) << endl;
             drawVertLine(hi->GetBinCenter(hi_top_binpos), 0, hi->GetBinContent(hi_top_binpos), markercolor4, 1)->Draw();
 
@@ -473,12 +517,19 @@ void make_qg_plots_ptrl() {
 
 
             // now save to D0 pt comparison plot
-            hD0_vec.push_back((TH1D*) hD0->Clone( hD0->GetName() ));
-            TString D0_label = pt_min + "-" pt_max;
-            FormatHist(ldummy, hD0_vec[i], D0_label, pt_D0_colors[i], markerstyle1);
+            TString D0_label = std::to_string(pt_min) + " #leq #it{p}_{T}^{ch. jet} < " + std::to_string(pt_max);
+            hD0_vec.push_back( (TH1D*) hD0->Clone( hD0->GetName() ) );
+            std::cout << "adding to legend" << D0_label << endl;
+            for (int j=0; j < hD0_vec[i]->GetNbinsX();j++){
+                hD0_vec[i]->SetBinError(j+1, 0);
+            }
+            FormatHistwithLine(l_2, hD0_vec[i], D0_label, pt_D0_colors[i], markerstyle1, 0.60);
             c_D0_allpt->cd();
-            hD0_vec[i]->Draw("L same");
-            ldummy->Draw();
+            hD0_vec[i]->Draw("L, same");
+            if (i==2) {
+                l_2->Draw();
+            }
+            
 
 
             f_out->cd();
