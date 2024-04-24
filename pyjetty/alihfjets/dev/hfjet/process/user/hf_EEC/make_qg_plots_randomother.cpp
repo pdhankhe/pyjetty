@@ -188,8 +188,10 @@ void make_qg_plots_randomother() {
 
      //FOR WHEN WEIGHTED/UNWEIGHTED IN SAME FILE
     const char infile_D0_Preeti[] = "/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_EEC/D0jet_EEC_15_30_ForBeatrice.root";
-    const char infile_D0[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17651853/AnalysisResultsFinal.root"; //this is using thnsparse
-    const char infile_D0_2[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/18063568/AnalysisResultsFinal.root"; //this is using thnsparse
+    const char infile_D0_1[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17651853/AnalysisResultsFinal.root"; //this is using thnsparse - the original version
+    const char infile_D0_2[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/18063568/AnalysisResultsFinal.root"; //this is using thnsparse - the second iteration
+    const char infile_D0_3[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/24722441/AnalysisResultsFinal.root"; //this is using thnsparse - the third iteration
+    const char infile_D0[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/24737979/AnalysisResultsFinal.root"; //this is using thnsparse - latest generation - USE THIS (it matches with #3)
     const char infile_Dstar[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/18008705/AnalysisResultsFinal.root"; //this is using thnsparse
     
     const char infile_D0_difNorm[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17652140/AnalysisResultsFinal.root";
@@ -202,6 +204,7 @@ void make_qg_plots_randomother() {
 
     const char infile_noD0replacement_charmdecaysOFF[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/14680819/AnalysisResultsFinal.root"; //not thnsparse
     const char infile_noD0replacement_charmdecaysON[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/14680822/AnalysisResultsFinal.root";
+    const char infile_noD0replacement_charmdecaysOFF_thnsparse_higherstats[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/24735947/AnalysisResultsFinal.root";
     const char infile_D0_feeddown[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/21046102/AnalysisResultsFinal.root";
     const char infile_phi[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/21077103/AnalysisResultsFinal.root";
     const char infile_D0_feeddown_ptrl[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/21078054/AnalysisResultsFinal.root";
@@ -209,24 +212,30 @@ void make_qg_plots_randomother() {
 
     // int plot_case:
     // 0 = D0 vs c-init, charm decays off
+    // 1 = D0 vs c-init, charm decays off, with multiple iterations of the jobs
         // also tryna figure out the difference bw the two D0 files
 
     //CONTOL VARIABLES HERE
-    int plot_case = 0;
+    int plot_case = 1;
 
-    TString label1 = "";
-    TString label2 = "";
-    TString label3 = "";
+    TString label_D0 = "";
+    TString label_D01 = "";
+    TString label_D02 = "";
+    TString label_D03 = "";
+    TString label_c_nothnsparse = "";
+    TString label_c = "";
 
     // const char file_list[4][] = {infile_D0, infile_D0_feeddown, infile_phi, infile_D0_feeddown_ptrl};
     TFile* f_D0 = new TFile(infile_D0, "READ");
+    TFile* f_D01 = new TFile(infile_D0_1, "READ");
     TFile* f_D02 = new TFile(infile_D0_2, "READ");
-    TFile* f_charmdecaysOFF = new TFile(infile_noD0replacement_charmdecaysOFF, "READ");
+    TFile* f_D03 = new TFile(infile_D0_3, "READ");
+    TFile* f_charmdecaysOFF_nothnsparse = new TFile(infile_noD0replacement_charmdecaysOFF, "READ");
+    TFile* f_charmdecaysOFF = new TFile(infile_noD0replacement_charmdecaysOFF_thnsparse_higherstats, "READ");
+    // TFile* f_charmdecaysOFF = new TFile(infile_noD0replacement_charmdecaysOFF, "READ");
+    
     // std::string add_name = std::string(file_list[plot_case]).substr(6);
-    std::string add_name;
-    if (plot_case == 0) {
-        add_name = "_D0_charmNOdecays_comparison";
-    }
+    std::string add_name = "_D0_charmNOdecays_comparison";
 
     cout << "output name will be " << add_name << endl;
 
@@ -296,68 +305,110 @@ void make_qg_plots_randomother() {
             // l->Draw("same");
             
 
+            
             //-------------------------------------------------//
             // find D0 reconstruction through charm
-            THnSparse* hsparsejet_D0;
-            THnSparse* hsparsejet_D0_jetlevel;
-            THnSparse* hsparsejet_D02;
-            THnSparse* hsparsejet_D02_jetlevel;
-            TH2F* hcharm;
-            TH1F* hcharm_jetlevel;
-            if (plot_case == 0){ //look at D0 vs charm case
-                hsparsejet_D0 = (THnSparse*) f_D0->Get(hc_name.c_str());
-                hsparsejet_D0_jetlevel = (THnSparse*) f_D0->Get(hc_jet_name.c_str());
-                hsparsejet_D02 = (THnSparse*) f_D02->Get(hc_name.c_str());
-                hsparsejet_D02_jetlevel = (THnSparse*) f_D02->Get(hc_jet_name.c_str());
+            
+            THnSparse* hsparsejet_D0 = (THnSparse*) f_D0->Get(hc_name.c_str());
+            THnSparse* hsparsejet_D0_jetlevel = (THnSparse*) f_D0->Get(hc_jet_name.c_str());
+            THnSparse* hsparsejet_D01 = (THnSparse*) f_D01->Get(hc_name.c_str());
+            THnSparse* hsparsejet_D01_jetlevel = (THnSparse*) f_D01->Get(hc_jet_name.c_str());
+            THnSparse* hsparsejet_D02 = (THnSparse*) f_D02->Get(hc_name.c_str());
+            THnSparse* hsparsejet_D02_jetlevel = (THnSparse*) f_D02->Get(hc_jet_name.c_str());
+            THnSparse* hsparsejet_D03 = (THnSparse*) f_D03->Get(hc_name.c_str());
+            THnSparse* hsparsejet_D03_jetlevel = (THnSparse*) f_D03->Get(hc_jet_name.c_str());
 
-                hcharm = (TH2F*) f_charmdecaysOFF->Get(hc_name.c_str());
-                hcharm_jetlevel = (TH1F*) f_charmdecaysOFF->Get(hc_jet_name.c_str());
-            }
+            TH2F* hcharm_nothnsparse = (TH2F*) f_charmdecaysOFF_nothnsparse->Get(hc_name.c_str());
+            TH1F* hcharm_nothnsparse_jetlevel = (TH1F*) f_charmdecaysOFF_nothnsparse->Get(hc_jet_name.c_str());
+
+            THnSparse* hsparsejet_charm = (THnSparse*) f_charmdecaysOFF->Get(hc_name.c_str());
+            THnSparse* hsparsejet_charm_jetlevel = (THnSparse*) f_charmdecaysOFF->Get(hc_jet_name.c_str());
 
             // for THnSparse: make clone to work with, make cuts, get projection
             THnSparse *hsparsejet_D0_clone = (THnSparse *) hsparsejet_D0->Clone("hsparsejet_D0_clone");
             THnSparse *hsparsejet_D0_jetlevel_clone = (THnSparse *) hsparsejet_D0_jetlevel->Clone("hsparsejet_D0_jetlevel_clone");
+            THnSparse *hsparsejet_D01_clone = (THnSparse *) hsparsejet_D01->Clone("hsparsejet_D01_clone");
+            THnSparse *hsparsejet_D01_jetlevel_clone = (THnSparse *) hsparsejet_D01_jetlevel->Clone("hsparsejet_D01_jetlevel_clone");
             THnSparse *hsparsejet_D02_clone = (THnSparse *) hsparsejet_D02->Clone("hsparsejet_D02_clone");
             THnSparse *hsparsejet_D02_jetlevel_clone = (THnSparse *) hsparsejet_D02_jetlevel->Clone("hsparsejet_D02_jetlevel_clone");
+            THnSparse *hsparsejet_D03_clone = (THnSparse *) hsparsejet_D03->Clone("hsparsejet_D03_clone");
+            THnSparse *hsparsejet_D03_jetlevel_clone = (THnSparse *) hsparsejet_D03_jetlevel->Clone("hsparsejet_D03_jetlevel_clone");
+            THnSparse *hsparsejet_charm_clone = (THnSparse *) hsparsejet_charm->Clone("hsparsejet_charm_clone");
+            THnSparse *hsparsejet_charm_jetlevel_clone = (THnSparse *) hsparsejet_charm_jetlevel->Clone("hsparsejet_charm_jetlevel_clone");
+
 
             // get jet pT range
             hsparsejet_D0_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max); // apply cut on jet pt
             hsparsejet_D0_jetlevel_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max); // apply cut on jet pt
+            hsparsejet_D01_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max); 
+            hsparsejet_D01_jetlevel_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max);
             hsparsejet_D02_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max); 
             hsparsejet_D02_jetlevel_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max);
-            hcharm->GetXaxis()->SetRangeUser(pt_min, pt_max);
-            hcharm_jetlevel->GetXaxis()->SetRangeUser(pt_min, pt_max);
+            hsparsejet_D03_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max); 
+            hsparsejet_D03_jetlevel_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max);
+
+            hsparsejet_charm_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max);
+            hsparsejet_charm_jetlevel_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max);
+            hcharm_nothnsparse->GetXaxis()->SetRangeUser(pt_min, pt_max);
+            hcharm_nothnsparse_jetlevel->GetXaxis()->SetRangeUser(pt_min, pt_max);
                 
             // D meson cuts
             hsparsejet_D0_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max); // apply cut on Dmeson pt
             hsparsejet_D0_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8); // apply cut on Dmeson rapidity
             hsparsejet_D0_jetlevel_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max);
             hsparsejet_D0_jetlevel_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8);
+            hsparsejet_D01_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max);
+            hsparsejet_D01_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8);
+            hsparsejet_D01_jetlevel_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max);
+            hsparsejet_D01_jetlevel_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8);
             hsparsejet_D02_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max);
             hsparsejet_D02_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8);
             hsparsejet_D02_jetlevel_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max);
             hsparsejet_D02_jetlevel_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8);
+            hsparsejet_D03_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max);
+            hsparsejet_D03_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8);
+            hsparsejet_D03_jetlevel_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max);
+            hsparsejet_D03_jetlevel_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8);
 
 
             // Project onto observable axis
             TH1D *hD0_proj = hsparsejet_D0_clone->Projection(3); //CALL THESE TH1*????
             TH1D *hc1D_jet = hsparsejet_D0_jetlevel_clone->Projection(0);
+            TH1D *hD01_proj = hsparsejet_D01_clone->Projection(3); 
+            TH1D *hc1D1_jet = hsparsejet_D01_jetlevel_clone->Projection(0);
             TH1D *hD02_proj = hsparsejet_D02_clone->Projection(3); 
             TH1D *hc1D2_jet = hsparsejet_D02_jetlevel_clone->Projection(0);
-            TH1* hc_proj = (TH1*) hcharm->ProjectionY();
+            TH1D *hD03_proj = hsparsejet_D03_clone->Projection(3); 
+            TH1D *hc1D3_jet = hsparsejet_D03_jetlevel_clone->Projection(0);
+
+            TH1D *hcharm_proj = hsparsejet_charm_clone->Projection(3); 
+            TH1D *hcharm_jet = hsparsejet_charm_jetlevel_clone->Projection(0);
+            TH1* hc_nothnsparse_proj = (TH1*) hcharm_nothnsparse->ProjectionY();
 
             // Set to appropriate name
             std::string hname = hD0_proj->GetName();
             hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
             hD0_proj->SetNameTitle(hname.c_str(), hname.c_str());
 
+            hname = hD01_proj->GetName();
+            hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
+            hD01_proj->SetNameTitle(hname.c_str(), hname.c_str());
+
             hname = hD02_proj->GetName();
             hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
             hD02_proj->SetNameTitle(hname.c_str(), hname.c_str());
 
-            hname = hc_proj->GetName();
+            hname = hD03_proj->GetName();
             hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
-            hc_proj->SetNameTitle(hname.c_str(), hname.c_str());
+            hD03_proj->SetNameTitle(hname.c_str(), hname.c_str());
+
+            hname = hcharm_proj->GetName();
+            hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
+            hcharm_proj->SetNameTitle(hname.c_str(), hname.c_str());
+
+            hname = hc_nothnsparse_proj->GetName();
+            hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
+            hc_nothnsparse_proj->SetNameTitle(hname.c_str(), hname.c_str());
 
 
             // Rebin
@@ -369,62 +420,105 @@ void make_qg_plots_randomother() {
             cout << "About to rebin" << endl;
             // TH1* hD0 = (TH1*) hD0_proj->Rebin(n_obs_bins, (hname + "rebin").c_str(), obs_bins);
             TH1* hD0 = (TH1*) hD0_proj->Clone( hD0_proj->GetName() );
+            TH1* hD01 = (TH1*) hD01_proj->Clone( hD01_proj->GetName() );
             TH1* hD02 = (TH1*) hD02_proj->Clone( hD02_proj->GetName() );
-            TH1* hc = (TH1*) hc_proj->Clone( hc_proj->GetName() );
+            TH1* hD03 = (TH1*) hD03_proj->Clone( hD03_proj->GetName() );
+            TH1* hc = (TH1*) hcharm_proj->Clone( hcharm_proj->GetName() );
+            TH1* hc_nothnsparse = (TH1*) hc_nothnsparse_proj->Clone( hc_nothnsparse_proj->GetName() );
             cout << "Rebin done" << endl;
 
             // Find normalization factor
             double numjets_D0 = hc1D_jet->Integral();
+            double numjets_D01 = hc1D1_jet->Integral();
             double numjets_D02 = hc1D2_jet->Integral();
-            double numjets_charm = hcharm_jetlevel->Integral();
+            double numjets_D03 = hc1D3_jet->Integral();
+            double numjets_charm = hcharm_jet->Integral();
+            double numjets_charm_nothnsparse = hcharm_nothnsparse_jetlevel->Integral();
             hD0->Scale(1/numjets_D0, "width");
+            hD01->Scale(1/numjets_D01, "width");
             hD02->Scale(1/numjets_D02, "width");
+            hD03->Scale(1/numjets_D03, "width");
             hc->Scale(1/numjets_charm, "width");
+            hc_nothnsparse->Scale(1/numjets_charm_nothnsparse, "width");
 
 
 
 
             //Format color and style
-            int markercolor1 = kGreen-5; //D0
+            int markercolor0 = kGreen-5; //D0
+            int markerstyle0 = kFullCircle;
+            int markercolor1 = kGreen-7; //D01
             int markerstyle1 = kFullCircle;
-            int markercolor2 = kGreen-7; //D02
+            int markercolor2 = kGreen+2; //D02
             int markerstyle2 = kOpenCircle;
-            int markercolor3 = kRed; //charm
-            int markerstyle3 = kFullCircle;
-            if (plot_case == 0) {
-                label1 = "D^{0}-tagged, c-init jets";
-                label2 = "D^{0}-tagged [2], c-init jets";
-                label3 = "c-init jets, charm decays off";
-            }
+            int markercolor3 = kTeal; //D03
+            int markerstyle3 = kOpenCircle;
+            int markercolor4 = kRed; //charm
+            int markerstyle4 = kFullCircle;
+            int markercolor5 = kRed-9; //charm - no thnsparse
+            int markerstyle5 = kOpenCircle;
+            
+            label_D0 = "D^{0}-tagged, c-init jets";
+            label_D01 = "D^{0}-tagged [1], c-init jets";
+            label_D02 = "D^{0}-tagged [2], c-init jets";
+            label_D03 = "D^{0}-tagged [3], c-init jets";
+            label_c = "c-init jets, charm decays off";
+            label_c_nothnsparse = "c-init jets [lower stats], charm decays off";
 
             
 
             // Format histograms for plotting (this order needed to keep legend in order and graphs lookin good)
             hD0->GetXaxis()->SetTitle("#it{R}_{L}");
+            hD01->GetXaxis()->SetTitle("#it{R}_{L}");
             hD02->GetXaxis()->SetTitle("#it{R}_{L}");
+            hD03->GetXaxis()->SetTitle("#it{R}_{L}");
             hc->GetXaxis()->SetTitle("#it{R}_{L}");
+            hc_nothnsparse->GetXaxis()->SetTitle("#it{R}_{L}");
             hD0->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
+            hD01->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
             hD02->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
-            hc->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
+            hD03->GetXaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
+            hc->GetXaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
+            hc_nothnsparse->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
 
             cout << "about to format D0" << endl;
-            FormatHist(l, hD0, label1, markercolor1, markerstyle1); //FormatHist(l, hD0, "D^{0}-tagged, c-init jets", kMagenta+3, kOpenSquare);
-            // FormatHist(l, hD02, label2, markercolor2, markerstyle2);
-            FormatHist(l, hc, label3, markercolor3, markerstyle3);
+            FormatHist(l, hD0, label_D0, markercolor0, markerstyle0); //FormatHist(l, hD0, "D^{0}-tagged, c-init jets", kMagenta+3, kOpenSquare);
+            if ( plot_case == 1 ) {
+                FormatHist(l, hD01, label_D01, markercolor1, markerstyle1);
+                FormatHist(l, hD02, label_D02, markercolor2, markerstyle2);
+                FormatHist(l, hD03, label_D03, markercolor3, markerstyle3);
+                FormatHist(l, hc_nothnsparse, label_c_nothnsparse, markercolor5, markerstyle5);
+            }
+            FormatHist(l, hc, label_c, markercolor4, markerstyle4);
             if (plot_case == 0){
                 l->AddEntry("NULL","          D* decays off","h");
             } 
+            hD0->SetMaximum(hD0->GetMaximum()*1.5);
             hD0->Draw("L same");
-            // hD02->Draw("L same");
+            if ( plot_case == 1 ) {
+                hD01->Draw("L same");
+                hD02->Draw("L same");
+                hD03->Draw("L same");
+                hc_nothnsparse->Draw("L same");
+            }
             hc->Draw("L same");
+
             
             
             double hD0_top_binpos = findTopOfCurve(hD0);
             drawVertLine(hD0->GetBinCenter(hD0_top_binpos), 0, hD0->GetBinContent(hD0_top_binpos), markercolor1, 1)->Draw();
-            // double hD02_top_binpos = findTopOfCurve(hD02);
-            // drawVertLine(hD02->GetBinCenter(hD02_top_binpos), 0, hD02->GetBinContent(hD02_top_binpos), markercolor2, 1)->Draw();
+            if ( plot_case == 1 ) {
+                double hD01_top_binpos = findTopOfCurve(hD01);
+                drawVertLine(hD01->GetBinCenter(hD01_top_binpos), 0, hD01->GetBinContent(hD01_top_binpos), markercolor2, 1)->Draw();
+                double hD02_top_binpos = findTopOfCurve(hD02);
+                drawVertLine(hD02->GetBinCenter(hD02_top_binpos), 0, hD02->GetBinContent(hD02_top_binpos), markercolor2, 1)->Draw();
+                double hD03_top_binpos = findTopOfCurve(hD03);
+                drawVertLine(hD03->GetBinCenter(hD03_top_binpos), 0, hD03->GetBinContent(hD03_top_binpos), markercolor3, 1)->Draw();
+                double hc_nothnsparse_top_binpos = findTopOfCurve(hc_nothnsparse);
+                drawVertLine(hc_nothnsparse->GetBinCenter(hc_nothnsparse_top_binpos), 0, hc_nothnsparse->GetBinContent(hc_nothnsparse_top_binpos), markercolor5, 1)->Draw();
+            }
             double hc_top_binpos = findTopOfCurve(hc);
-            drawVertLine(hc->GetBinCenter(hc_top_binpos), 0, hc->GetBinContent(hc_top_binpos), markercolor3, 1)->Draw();
+            drawVertLine(hc->GetBinCenter(hc_top_binpos), 0, hc->GetBinContent(hc_top_binpos), markercolor4, 1)->Draw();
             
 
             
@@ -438,7 +532,7 @@ void make_qg_plots_randomother() {
 
 
 
-            std::string fname = outdir + "QG_comp_pt" + std::to_string(pt_min) + '-' + std::to_string(pt_max) + "_R" + jetR + add_name + ".pdf";
+            std::string fname = outdir + "QG_comp_pt" + std::to_string(pt_min) + '-' + std::to_string(pt_max) + "_R" + jetR + add_name + "_plotcase" + std::to_string(plot_case) + ".pdf";
             const char* fnamec = fname.c_str();
             c->SaveAs(fnamec);
             delete c;
@@ -447,7 +541,10 @@ void make_qg_plots_randomother() {
                 // Write rebinned histograms to root file
             f_out->cd();
             hD0->Write();
+            hD01->Write();
             hD02->Write();
+            hD03->Write();
+            hc_nothnsparse->Write();
             hc->Write();
             // }
              
@@ -456,10 +553,16 @@ void make_qg_plots_randomother() {
 
     f_D0->Close();
     delete f_D0;
+    f_D01->Close();
+    delete f_D01;
     f_D02->Close();
     delete f_D02;
+    f_D03->Close();
+    delete f_D03;
     f_charmdecaysOFF->Close();
     delete f_charmdecaysOFF;
+    f_charmdecaysOFF_nothnsparse->Close();
+    delete f_charmdecaysOFF_nothnsparse;
 
     return;
 }

@@ -623,6 +623,7 @@ void make_qg_plots_write_all() {
             double hi_int = hi->Integral(0, hi->GetNbinsX(), "width");
             double hi_uw_int = hi_uw->Integral(0, hi_uw->GetNbinsX(), "width");
 
+            cout << hc->GetNbinsX() << " " << hc_uw->GetNbinsX() << " " << hg->GetNbinsX() << " " << hg_uw->GetNbinsX() << " " << hl->GetNbinsX() << " " << hl_uw->GetNbinsX() << " " << hi->GetNbinsX() << " " << hi_uw->GetNbinsX() << endl;
             cout << " the integrations values are " << endl;
             cout << "charm " << hc_int << " charm uw " << hc_uw_int << endl;
             cout << "gluon " << hg_int << " gluon uw " << hg_uw_int << endl;

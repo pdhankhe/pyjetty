@@ -297,6 +297,8 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 		self.hDstarNjets = ROOT.TH1I("hDstarNjets", "Number of D* jets (unscaled)", 2, -0.5, 1.5)
 		self.hsoftpionpT = ROOT.TH1D("hsoftpionpT", "pT of soft pion from D*", 50, 0, 50)
 		self.hDeltaR = ROOT.TH1F("hDeltaR", 'Delta R between jet and each parent', 40, 0, 0.4)
+		self.hnumconst = ROOT.TH1I("hnumconst", "Number of constituents per jet (unscaled)", 50, 0, 50)
+		self.hnumconstwTrackcut = ROOT.TH1I("hnumconstwTrackcut", "Number of constituents per jet with the track cut (unscaled)", 50, 0, 50)
 
 		if self.phimeson:
 			self.hphiNevents = ROOT.TH1I("hphiNevents", "Total Number of phi events (unscaled)", 2, -0.5, 1.5)
@@ -745,8 +747,8 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 						parton_types += ["beauty"]
 				elif parton_id in self.gluon_pdg_ids:
 					parton_types += ["gluon"]
-				# if self.phimeson:
-				parton_types += ["inclusive"]
+				if not self.replaceKPpairs:
+					parton_types += ["inclusive"]
 
 				# If parent parton not identified, skip for now
 				if not len(parton_types):
@@ -887,19 +889,19 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 
 					# print("filling jet level thnsparse")
 					for parton_type in parton_types:
-							# fill jet pt histogram to give the normalization
-							self.fsparsejetlevelJetvalue[0] = jet.pt()
-							if ( self.replaceKPpairs or self.phimeson): # phimeson has bad naming convention but is properly filled here
-								D0_px = self.D0particleinfo.px()
-								D0_py = self.D0particleinfo.py()
-								# print("momentum confirmed", D0_px, D0_py)
-								self.fsparsejetlevelJetvalue[1] = math.sqrt(D0_px*D0_px + D0_py*D0_py)
-								self.fsparsejetlevelJetvalue[2] = self.D0particleinfo.y()
-							else:
-								self.fsparsejetlevelJetvalue[1] = -1
-								self.fsparsejetlevelJetvalue[2] = -99
-							getattr(self, ('h_JetPt_%s_R%s_%s_jetlevel' % (parton_type, jetR, obs_label)) if \
-								len(obs_label) else ('h_JetPt_%s_R%s_jetlevel' % (parton_type, jetR))).Fill(self.fsparsejetlevelJetvalue)
+						# fill jet pt histogram to give the normalization
+						self.fsparsejetlevelJetvalue[0] = jet.pt()
+						if ( self.replaceKPpairs or self.phimeson): # phimeson has bad naming convention but is properly filled here
+							D0_px = self.D0particleinfo.px()
+							D0_py = self.D0particleinfo.py()
+							# print("momentum confirmed", D0_px, D0_py)
+							self.fsparsejetlevelJetvalue[1] = math.sqrt(D0_px*D0_px + D0_py*D0_py)
+							self.fsparsejetlevelJetvalue[2] = self.D0particleinfo.y()
+						else:
+							self.fsparsejetlevelJetvalue[1] = -1
+							self.fsparsejetlevelJetvalue[2] = -99
+						getattr(self, ('h_JetPt_%s_R%s_%s_jetlevel' % (parton_type, jetR, obs_label)) if \
+							len(obs_label) else ('h_JetPt_%s_R%s_jetlevel' % (parton_type, jetR))).Fill(self.fsparsejetlevelJetvalue)
 					
 
 					# skip filling the pair level information if necessary 
@@ -914,6 +916,9 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 					if (self.softpion_action >= 2 and Dstartaggedjet):
 						if (softpion_index == -1): #skip because soft pion is not in the jet! 
 							continue
+
+					# Fill number of constituents per jet
+					self.hnumconst.Fill(len(jet.constituents()))
 
 
 #                    obs = self.calculate_observable(
@@ -983,6 +988,9 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 				
 			dphi_cut = -9999
 			deta_cut = -9999
+
+			# Fill num const after track cut
+			self.hnumconstwTrackcut.Fill(len(c_select))
 			
 			# print("The jet constit being sent in are ")
 			# for c_sel in c_select:
@@ -993,7 +1001,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			elif (self.softpion_action == 3):
 				new_corr = ecorrel.CorrelatorBuilder(self.D0particleinfo_psjet, self.softpion_particleinfo_psjet, jet.perp(), 2, 1, dphi_cut, deta_cut, True)
 			elif (self.softpion_action == 4):
-                # this later can be combined w softpion_action=2
+				# this later can be combined w softpion_action=2
 				new_corr = ecorrel.CorrelatorBuilder(c_select, self.D0particleinfo_psjet, self.softpion_particleinfo_psjet, jet.perp(), 2, 1, dphi_cut, deta_cut, True)
 			else:
 				new_corr = ecorrel.CorrelatorBuilder(c_select, jet.perp(), 2, 1, dphi_cut, deta_cut)
@@ -1244,6 +1252,8 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 		self.hD0KpiNevents.SetBinError(1, 0)
 		self.hD0KpiNjets.SetBinError(1, 0)
 		self.hDstarNjets.SetBinError(1, 0)
+		self.hnumconst.SetBinError(1, 0)
+		self.hnumconstwTrackcut.SetBinError(1, 0)
 
 		if self.phimeson:
 			self.hphiNevents.SetBinError(1, 0)
@@ -1278,8 +1288,8 @@ if __name__ == '__main__':
 	parser.add_argument('--D0withDstarON', action='store', type=int, default=0, help="'1' looks at EEC for D0 and D0 from D*")
 	parser.add_argument('--difNorm', action='store', type=int, default=0, help="'1' normalizes D* with (D0+D*)")
 	parser.add_argument('--softpion', action='store', type=int, default=0, help="'1' removes the soft pion from D* distribution, \
-                        '2' gets only pairs of soft pion w other charged particles,'3' gets only the pair of soft pion with D0, \
-                        '4' gives soft pion with everything")
+						'2' gets only pairs of soft pion w other charged particles,'3' gets only the pair of soft pion with D0, \
+						'4' gives soft pion with everything")
 	parser.add_argument('--giveptRL', action='store', type=int, default=0, help="'1' changes THnSparse to calculate pT*RL (instead of RL)")
 	parser.add_argument('--runphi', action='store', type=int, default=0, help="'1' looks at the phi meson (not allowed to decay)")
 
