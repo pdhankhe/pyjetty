@@ -401,6 +401,8 @@ class ProcessMC_ENC_HF(process_mc_base.ProcessMCBase):
           print("D0 pt is ", math.sqrt(D0_px*D0_px + D0_py*D0_py), "and D0 rapidity is", self.D0particleinfo.python_info().particle_rap) #self.D0particleinfo.rap())
           self.d0counter+=1          
         break # break after one D0 found in a jet
+      else:
+        return # don't want to look at jets that don't have a D0
 
     for observable in self.observable_list:
       # print("CP OBSERVABLE", observable)

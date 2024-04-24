@@ -1,0 +1,25 @@
+# -*- ThePEG-repository -*-
+
+#cd /Herwig/Particles
+#ls
+
+
+cd /Herwig/Particles/c:PrintDecayModes
+ls
+
+do /Herwig/Particles/D0:PrintDecayModes
+
+do /Herwig/Particles/D0:SelectDecayModes 
+#^this turns these decay modes off
+do /Herwig/Particles/D0:PrintDecayModes
+do /Herwig/Particles/D*+:PrintDecayModes
+
+do /Herwig/Particles/D0:SelectDecayModes D0->pi+,K-;
+do /Herwig/Particles/D0:SelectDecayModes D0->K+,pi-;
+do /Herwig/Particles/D0:PrintDecayModes
+
+do /Herwig/Particles/h0:SelectDecayModes h0->gamma,gamma;
+
+#D*+
+#D*-
+#D*0

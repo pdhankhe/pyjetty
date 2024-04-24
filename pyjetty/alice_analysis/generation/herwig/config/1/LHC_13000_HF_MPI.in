@@ -21,6 +21,13 @@ set /Herwig/Generators/EventGenerator:EventHandler:LuminosityFunction:Energy 130
 set /Herwig/MatrixElements/MEHeavyQuark:QuarkType 4
 insert /Herwig/MatrixElements/SubProcess:MatrixElements[0] /Herwig/MatrixElements/MEHeavyQuark
 
+########### beatrice parameters maybe ###########
+
+# ty to boost charm production - also need to change Factor:OrderInAlpha and Scale??
+#do Factory:Process p p -> t tbar
+
+##################################################
+
 ##################################################
 #  Set cuts
 ##################################################

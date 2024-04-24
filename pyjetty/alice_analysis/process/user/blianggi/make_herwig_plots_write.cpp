@@ -184,7 +184,7 @@ void make_herwig_plots_write() {
     // File containing quark vs gluon histograms
 
      //FOR WHEN WEIGHTED/UNWEIGHTED IN SAME FILE
-    const char infile_D0[] = "/rstorage/generators/herwig_alice/histograms/248462/216486/AnalysisResultsFinal.root"; //this is using thnsparse
+    const char infile_D0[] = "/rstorage/generators/herwig_alice/histograms/249612/216486/AnalysisResultsFinal.root"; //this is using thnsparse
 
     // int plot_case:
     // 0 = plot everything in a separate file
@@ -311,15 +311,15 @@ void make_herwig_plots_write() {
 
                 // Set to appropriate name
                 std::string hname = hD0_EEC_proj->GetName();
-                hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
+                hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_trkthrd" + trkthrd;
                 hD0_EEC_proj->SetNameTitle(hname.c_str(), hname.c_str());
 
                 hname = hD0_EEC_ptrl_proj->GetName();
-                hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
+                hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_trkthrd" + trkthrd;
                 hD0_EEC_ptrl_proj->SetNameTitle(hname.c_str(), hname.c_str());
 
                 hname = hD0_EEC_noweight_proj->GetName();
-                hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
+                hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_trkthrd" + trkthrd;
                 hD0_EEC_noweight_proj->SetNameTitle(hname.c_str(), hname.c_str());
 
 
