@@ -216,7 +216,7 @@ void make_qg_plots_randomother() {
         // also tryna figure out the difference bw the two D0 files
 
     //CONTOL VARIABLES HERE
-    int plot_case = 1;
+    int plot_case = 0;
 
     TString label_D0 = "";
     TString label_D01 = "";
@@ -506,10 +506,10 @@ void make_qg_plots_randomother() {
             
             
             double hD0_top_binpos = findTopOfCurve(hD0);
-            drawVertLine(hD0->GetBinCenter(hD0_top_binpos), 0, hD0->GetBinContent(hD0_top_binpos), markercolor1, 1)->Draw();
+            drawVertLine(hD0->GetBinCenter(hD0_top_binpos), 0, hD0->GetBinContent(hD0_top_binpos), markercolor0, 1)->Draw();
             if ( plot_case == 1 ) {
                 double hD01_top_binpos = findTopOfCurve(hD01);
-                drawVertLine(hD01->GetBinCenter(hD01_top_binpos), 0, hD01->GetBinContent(hD01_top_binpos), markercolor2, 1)->Draw();
+                drawVertLine(hD01->GetBinCenter(hD01_top_binpos), 0, hD01->GetBinContent(hD01_top_binpos), markercolor1, 1)->Draw();
                 double hD02_top_binpos = findTopOfCurve(hD02);
                 drawVertLine(hD02->GetBinCenter(hD02_top_binpos), 0, hD02->GetBinContent(hD02_top_binpos), markercolor2, 1)->Draw();
                 double hD03_top_binpos = findTopOfCurve(hD03);

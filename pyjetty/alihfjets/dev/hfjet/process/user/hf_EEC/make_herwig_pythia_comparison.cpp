@@ -83,11 +83,11 @@ void FormatHist(TLegend *l, TH1 *hist, TString text, int markercolor=1, int mark
 }
 
 //checkExtra is how many point-to-point slopes after finding a decreasing slope I want to check
-int findTopOfCurve(TH1* hist, int checkExtra=1) {
+int findTopOfCurve(TH1* hist, int checkExtra=1, double startsearch=0.01) {
     
     //for each point, find the slope from the 
     int numbins = hist->GetNbinsX();
-    int binstart = hist->FindBin(0.01);
+    int binstart = hist->FindBin(startsearch);
     bool falsealarm = false;
 
     for (int i=binstart; i<numbins; i++) {
@@ -184,22 +184,22 @@ void make_herwig_pythia_comparison() {
 
     // note: these two files include both weighted and unweighted EECs. herwig includes ptrl, pythia does not.
      //FOR WHEN WEIGHTED/UNWEIGHTED IN SAME FILE
-    const char infile_herwig_D0[] = "/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_EEC/herwig/AnalysisResultsFinal_herwig.root";
+    const char infile_herwig_D0_all[] = "/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_EEC/herwig/AnalysisResultsFinal_herwig.root";
     const char infile_pythia_D0[] = "/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_EEC/plots/final/AnalysisResultsFinalcomparison_all.root";
     const char infile_pythia_D0wDstar[] = "/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_EEC/plots/final/AnalysisResultsFinal_afteranalysis_Dstar_plotcase3.root";
 
     //plot cases~
-    // 0 = herwig D0wDstar vs pythia D0
-    // 1 = herwig D0wDstar vs pythia D0 vs pythia D0wDstar
+    // 0 = herwig D0 vs pythia D0
+    // 1 = herwig D0 vs herwig D0wDstar vs pythia D0 vs pythia D0wDstar
     
     //CONTOL VARIABLES HERE
-    int plot_case = 0;
+    int plot_case = 1;
     bool logstring = false;
 
     TString label1 = "";
 
-    TFile* f_herwig = new TFile(infile_herwig_D0, "READ"); 
-    TFile* f_pythia = new TFile(infile_pythia_D0, "READ");
+    TFile* f_herwig = new TFile(infile_herwig_D0_all, "READ"); 
+    TFile* f_pythia_D0 = new TFile(infile_pythia_D0, "READ");
     TFile* f_pythia_D0wDstar = new TFile(infile_pythia_D0wDstar, "READ");
 
 
@@ -230,14 +230,18 @@ void make_herwig_pythia_comparison() {
 
         // Names of histograms in the file
         const std::string pythia_Djet_EEC_name = "hsparsejet_c_clone_proj_3_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
+        const std::string pythia_DjetwithDstar_EEC_name = "hsparsejet_c_Dstar_clone_proj_3_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
         // const std::string pythia_Djet_EEC_noweight_name = "hsparsejet_c_uw_clone_proj_3_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
         
-        const std::string herwig_EEC_name = "hsparse_EEC_clone_proj_3_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_trkthrd1.0";
-        // const std::string herwig_EEC_ptrl_name = "hsparse_EEC_ptrl_clone_proj_3_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_trkthrd1.0";
+        // const std::string herwig_Djet_EEC_name = "hsparse_EEC_clone_proj_3_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_trkthrd1.0";
+        // const std::string herwig_DjetwithDstar_EEC_name = "hsparse_EEC_clone_proj_3_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_trkthrd1.0";
+        // // const std::string herwig_EEC_ptrl_name = "hsparse_EEC_ptrl_clone_proj_3_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_trkthrd1.0";
         // const std::string herwig_EEC_noweight_name = "hsparse_EEC_noweight_clone_proj_3_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_trkthrd1.0";
 
-        const std::string pythia_DjetwithDstar_EEC_name = "hsparsejet_c_Dstar_clone_proj_3_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
-
+        const std::string herwig_Djet_EEC_name = "D0_noDstar_EEC_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_R0.4_trkthrd1.0";
+        const std::string herwig_DjetwithDstar_EEC_name = "D0_EEC_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_R0.4_trkthrd1.0";
+        
+        
         // make a canvas for each pt range
         TCanvas* c = new TCanvas();
         ProcessCanvas(c);
@@ -274,39 +278,47 @@ void make_herwig_pythia_comparison() {
         TLegend* l_fake = new TLegend(0.,0.,0.1,0.1,"");
 
 
-        TH1D* hD0_pythia = (TH1D*) f_pythia->Get(pythia_Djet_EEC_name.c_str());
-        TH1D* hD0_herwig = (TH1D*) f_herwig->Get(herwig_EEC_name.c_str());
+        TH1D* hD0_pythia = (TH1D*) f_pythia_D0->Get(pythia_Djet_EEC_name.c_str());
         TH1D* hD0wDstar_pythia = (TH1D*) f_pythia_D0wDstar->Get(pythia_DjetwithDstar_EEC_name.c_str());
+        TH1D* hD0_herwig = (TH1D*) f_herwig->Get(herwig_Djet_EEC_name.c_str());
+        TH1D* hD0wDstar_herwig = (TH1D*) f_herwig->Get(herwig_DjetwithDstar_EEC_name.c_str());
    
 
 
         //Format color and style
         int markercolor1 = kCyan-3; //pythia
         int markerstyle1 = kFullCircle;
-        int markercolor2 = kBlue-4; //herwig
-        int markerstyle2 = kFullCircle;
-        int markercolor3 = kAzure-5; //pythia D0 with Dstar
-        int markerstyle3 = kFullCircle;
-        label1 = "PYTHIA primordial D0-tagged, c-init jets";
-        TString label2 = "Herwig D0-tagged, c-init jets";
-        TString label3 = "PYTHIA all D0-tagged, c-init jets";
+        int markercolor2 = kCyan+2;//kAzure-5; //pythia D0 with Dstar
+        int markerstyle2 = kOpenCircle;
+        int markercolor3 = kAzure-4;//kBlue-4; //herwig
+        int markerstyle3 = kFullDiamond;
+        int markercolor4 = kAzure-5; //herwig D0 with Dstar
+        int markerstyle4 = kOpenDiamond;
+        label1 = "PYTHIA primordial D0-tagged"; //, c-init jets";
+        TString label2 = "PYTHIA all D0-tagged"; //, c-init jets";
+        TString label3 = "Herwig primordial D0-tagged"; //, c-init jets";
+        TString label4 = "Herwig all D0-tagged"; //, c-init jets";
 
         
 
         // Format histograms for plotting (this order needed to keep legend in order and graphs lookin good)
         hD0_pythia->GetXaxis()->SetTitle("#it{R}_{L}");
         hD0_pythia->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
-        hD0_herwig->GetXaxis()->SetTitle("#it{R}_{L}");
-        hD0_herwig->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
         hD0wDstar_pythia->GetXaxis()->SetTitle("#it{R}_{L}");
         hD0wDstar_pythia->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
+        hD0_herwig->GetXaxis()->SetTitle("#it{R}_{L}");
+        hD0_herwig->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
+        hD0wDstar_herwig->GetXaxis()->SetTitle("#it{R}_{L}");
+        hD0wDstar_herwig->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
+
         cout << "about to format D0" << endl;
         
         
-        FormatHist(l, hD0_pythia, label1, markercolor1, markerstyle1, 0.60); //FormatHist(l, hD0, "D^{0}-tagged, c-init jets", kMagenta+3, kOpenSquare);
-        FormatHist(l, hD0_herwig, label2, markercolor2, markerstyle2, 0.60);
+        FormatHist(l, hD0_pythia, label1, markercolor1, markerstyle1, 0.80); //FormatHist(l, hD0, "D^{0}-tagged, c-init jets", kMagenta+3, kOpenSquare);
+        FormatHist(l, hD0_herwig, label3, markercolor3, markerstyle3, 0.80);
         if (plot_case == 1) {
-            FormatHist(l, hD0wDstar_pythia, label3, markercolor3, markerstyle3, 0.60);
+            FormatHist(l, hD0wDstar_pythia, label2, markercolor2, markerstyle2, 0.80);
+            FormatHist(l, hD0wDstar_herwig, label4, markercolor4, markerstyle4, 0.80);
         }
 
          
@@ -317,19 +329,30 @@ void make_herwig_pythia_comparison() {
         hD0_herwig->Draw("L same");
         if (plot_case == 1) {
             hD0wDstar_pythia->Draw("L same");
+            hD0wDstar_herwig->Draw("L same");
         }
         
 
         l->Draw("same");
         
         
-        double hD0_pythia_top_binpos = findTopOfCurve(hD0_pythia);
+        double hD0_pythia_top_binpos = findTopOfCurve(hD0_pythia, 1, 0.08);
         drawVertLine(hD0_pythia->GetBinCenter(hD0_pythia_top_binpos), 0, hD0_pythia->GetBinContent(hD0_pythia_top_binpos), markercolor1, 1)->Draw();
-        double hD0_herwig_top_binpos = findTopOfCurve(hD0_herwig);
-        drawVertLine(hD0_herwig->GetBinCenter(hD0_herwig_top_binpos), 0, hD0_herwig->GetBinContent(hD0_herwig_top_binpos), markercolor2, 1)->Draw();
+        double hD0_herwig_top_binpos = findTopOfCurve(hD0_herwig, 1, 0.08);
+        drawVertLine(hD0_herwig->GetBinCenter(hD0_herwig_top_binpos), 0, hD0_herwig->GetBinContent(hD0_herwig_top_binpos), markercolor3, 1)->Draw();
         if (plot_case == 1) {
-            double hD0wDstar_pythia_top_binpos = findTopOfCurve(hD0wDstar_pythia);
-            drawVertLine(hD0wDstar_pythia->GetBinCenter(hD0wDstar_pythia_top_binpos), 0, hD0wDstar_pythia->GetBinContent(hD0wDstar_pythia_top_binpos), markercolor3, 1)->Draw();
+            double hD0wDstar_pythia_top_binpos = findTopOfCurve(hD0wDstar_pythia, 1, 0.08);
+            drawVertLine(hD0wDstar_pythia->GetBinCenter(hD0wDstar_pythia_top_binpos), 0, hD0wDstar_pythia->GetBinContent(hD0wDstar_pythia_top_binpos), markercolor2, 1)->Draw();
+            double hD0wDstar_herwig_top_binpos = findTopOfCurve(hD0wDstar_herwig, 1, 0.08);
+            drawVertLine(hD0wDstar_herwig->GetBinCenter(hD0wDstar_herwig_top_binpos), 0, hD0wDstar_herwig->GetBinContent(hD0wDstar_herwig_top_binpos), markercolor4, 1)->Draw();
+        
+            // plot line for D* too
+            // if (pt_min == 15)
+            hD0wDstar_pythia_top_binpos = findTopOfCurve(hD0wDstar_pythia);
+            drawVertLine(hD0wDstar_pythia->GetBinCenter(hD0wDstar_pythia_top_binpos), 0, hD0wDstar_pythia->GetBinContent(hD0wDstar_pythia_top_binpos), markercolor2, 1)->Draw();
+            hD0wDstar_herwig_top_binpos = findTopOfCurve(hD0wDstar_herwig);
+            drawVertLine(hD0wDstar_herwig->GetBinCenter(hD0wDstar_herwig_top_binpos), 0, hD0wDstar_herwig->GetBinContent(hD0wDstar_herwig_top_binpos), markercolor4, 1)->Draw();
+        
         }
 
         // vector<double> fullwidth_vec = findWidthOfCurve(hD0,  hD0_top_binpos);
@@ -346,17 +369,18 @@ void make_herwig_pythia_comparison() {
 
         f_out->cd();
         hD0_pythia->Write();
-        hD0_herwig->Write();
         hD0wDstar_pythia->Write();
+        hD0_herwig->Write();
+        hD0wDstar_herwig->Write();
             
     } // pT bins loop
 
-    f_pythia->Close();
-    delete f_pythia;
-    f_herwig->Close();
-    delete f_herwig;
+    f_pythia_D0->Close();
+    delete f_pythia_D0;
     f_pythia_D0wDstar->Close();
     delete f_pythia_D0wDstar;
+    f_herwig->Close();
+    delete f_herwig;
 
     return;
 }

@@ -172,6 +172,12 @@ TLine * drawHoriLine(double x1, double x2, double y1, int color, int linestyle=2
 
 }
 
+double printBin(TH1* hist, int bin) {
+    double bincontent = hist->GetBinContent(bin);
+    // cout << bincontent << " ";
+    return bincontent;
+}
+
 
 void make_qg_plots_write_all() {
 
@@ -629,6 +635,14 @@ void make_qg_plots_write_all() {
             cout << "gluon " << hg_int << " gluon uw " << hg_uw_int << endl;
             cout << "light " << hl_int << " light uw " << hl_uw_int << endl;
             cout << "inclusive " << hi_int << " inclusive uw " << hi_uw_int << endl;
+
+            // look at the under and overflow bins
+            cout << "Looking at the underflow bin" << endl;
+            // printBin(hc,0);
+            cout << "charm " << printBin(hc,0) << "charm uc " << printBin(hc_uw,0) << endl;
+            cout << "gluon " << printBin(hg,0) << "gluon uc " << printBin(hg_uw,0) << endl;
+            cout << "light " << printBin(hl,0) << "light uc " << printBin(hl_uw,0) << endl;
+            cout << "inclusive " << printBin(hi,0) << "inclusive uc " << printBin(hi_uw,0) << endl;
 
             // if (pt_min == 10) { //} && grooming == "") {
                 // Write rebinned histograms to root file

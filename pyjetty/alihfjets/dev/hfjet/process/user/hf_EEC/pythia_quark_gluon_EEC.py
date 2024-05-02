@@ -680,22 +680,10 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			# Require that the match is within some small angle, and that it is unique
 			jet_matching_distance = 0.6  # Match jets with deltaR < jet_matching_distance*jetR
 			self.parent0match, self.parent1match = None, None
-			# print("LOOPING OVER JETS")
 			for i_jch, jch in enumerate(jets_ch):
-				# print(i_jch)
-				# Do constituent pT cut
-#                pinfo("self.min_leading_track_pT", self.min_leading_track_pT)
-#                 if self.min_leading_track_pT and not \
-#                     self.utils.is_truth_jet_accepted(jch):
-# #                   self.utils.is_truth_jet_accepted(jch, self.min_leading_track_pT):
-#                     continue
-				# print("PARENTS:",self.parents)
 				for i_parent, parent in enumerate(self.parents):
 					anothacounter+=1
 					parentmatch_name = "parent%imatch" % i_parent
-					# print("CHECKING PARENT", i_parent)
-					# print("DELTA R TO JET:", jch.delta_R(parent))
-					#plot 
 					self.hDeltaR.Fill(jch.delta_R(parent))
 					if jch.delta_R(parent) < jet_matching_distance * jetR:
 						match = getattr(self, parentmatch_name)
@@ -709,8 +697,6 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 							setattr(self, parentmatch_name, 0)
 					# print(i_jch, "anothacounter", anothacounter)
 
-			# print("event num", iev)
-			# print("Cehckpoint 1")
 
 			# If we have matches, fill histograms
 			for i_parent, parent in enumerate(self.parents):
