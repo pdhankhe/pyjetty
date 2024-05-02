@@ -184,18 +184,18 @@ void make_herwig_plots_write() {
     // File containing quark vs gluon histograms
 
      //FOR WHEN WEIGHTED/UNWEIGHTED IN SAME FILE
-    const char infile_D0[] = "/rstorage/generators/herwig_alice/histograms/249612/216486/AnalysisResultsFinal.root"; //this is using thnsparse
+    // const char infile_D0_noDstar[] = "/rstorage/generators/herwig_alice/histograms/249612/216486/AnalysisResultsFinal.root"; //this is using thnsparse
+    // const char infile_D0[] = "/rstorage/generators/herwig_alice/histograms/277508/271758/AnalysisResultsFinal.root"; //this is using thnsparse
+    std::string infile_D0 = "/rstorage/generators/herwig_alice/histograms/249612/216486/AnalysisResultsFinal.root"; //this is using thnsparse
+    std::string infile_D0_noDstar = "/rstorage/generators/herwig_alice/histograms/277508/271758/AnalysisResultsFinal.root"; //this is using thnsparse
+
 
     // int plot_case:
-    // 0 = plot everything in a separate file
+    // 0 = plot everything in a separate file, currently not set yet
 
     //CONTOL VARIABLES HERE
     int plot_case = 0;
 
-    TFile* f;
-    TString label1 = "";
-
-    f = new TFile(infile_D0, "READ");
 
     // Output directory
     std::string outdir = "plots/";
@@ -203,224 +203,247 @@ void make_herwig_plots_write() {
     std::string outfile = outdir + "AnalysisResultsFinal_herwig" + ".root"; 
     TFile* f_out = new TFile(outfile.c_str(), "RECREATE");
 
-    // Jet R value
-    std::string jetR_list[] = { "0.4" };
-    for (std::string jetR : jetR_list) {
+    int ifile = 0;
+    std::string file_list[] = { infile_D0, infile_D0_noDstar };
+    std::string dname_list[] = { "D0", "D0_noDstar" };
+    for (std::string file : file_list) {
         
-        // different track threshold values
-        std::string trkthrd_list[] = { "0.15", "0.5", "1.0" };
-        int itrkthrd = 0;
-        for (std::string trkthrd : trkthrd_list) {
-            const std::string EEC_name = "h_jet_ENC_RL2_JetPt_Truth_R" + jetR + "_" + trkthrd;
-            const std::string EEC_ptrl_name = "h_jet_ENC_RL2Pt_JetPt_Truth_R" + jetR + "_" + trkthrd;
-            const std::string EEC_noweight_name = "h_jet_EEC_noweight_RL_JetPt_Truth_R" + jetR + "_" + trkthrd;
-            const std::string jetinfo_name = "h_jet_pt_JetPt_Truth_R" + jetR + "_" + trkthrd;
-
-            // pt bins
-            const int pt_bins[] = { 7, 10, 15, 30 }; //{ 10, 20, 40 }; // CHANGE HERE!!
-            const int d0_pt_cuts[] = { 3, 5, 5 };
-            const int n_bins = 3; 
-            for (int i = 0; i < n_bins; i++) {
-                cout << "in pt bin" << i << endl;
-                int pt_min = pt_bins[i];
-                int pt_max = pt_bins[i+1];
-
-                // define pt related variables
-                TString ptbin = TString::Format("%d #leq #it{p}_{T}^{ch. jet} < %d GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5", pt_min, pt_max);
-                TString ptD = TString::Format("%d #leq #it{p}_{T}^{D^{0}} < %d GeV/#it{c}, #font[122]{|}#it{y}_{D^{0}}#font[122]{|} #leq 0.8", d0_pt_cuts[i], pt_max);
+        TFile* f = new TFile(file.c_str(), "READ");
+        std::string dname = dname_list[ifile];
+        TString label1 = "";
 
 
-                // make a canvas for each pt range
-                TCanvas* c_EEC = new TCanvas();
-                ProcessCanvas(c_EEC);
-                // c_EEC->cd();
-                gPad->SetLogx();
-                // gPad->SetLogy();
+        // Jet R value
+        std::string jetR_list[] = { "0.4" };
+        for (std::string jetR : jetR_list) {
+            
+            // different track threshold values
+            std::string trkthrd_list[] = { "0.15", "0.5", "1.0" };
+            int itrkthrd = 0;
+            for (std::string trkthrd : trkthrd_list) {
+                const std::string EEC_name = "h_jet_ENC_RL2_JetPt_Truth_R" + jetR + "_" + trkthrd;
+                const std::string EEC_ptrl_name = "h_jet_ENC_RL2Pt_JetPt_Truth_R" + jetR + "_" + trkthrd;
+                const std::string EEC_noweight_name = "h_jet_EEC_noweight_RL_JetPt_Truth_R" + jetR + "_" + trkthrd;
+                const std::string jetinfo_name = "h_jet_pt_JetPt_Truth_R" + jetR + "_" + trkthrd;
 
-                TCanvas* c_EEC_ptrl = new TCanvas();
-                ProcessCanvas(c_EEC_ptrl);
-                gPad->SetLogx();
+                // pt bins
+                const int pt_bins[] = { 7, 10, 15, 30 }; //{ 10, 20, 40 }; // CHANGE HERE!!
+                const int d0_pt_cuts[] = { 3, 5, 5 };
+                const int n_bins = 3; 
+                for (int i = 0; i < n_bins; i++) {
+                    cout << "in pt bin" << i << endl;
+                    int pt_min = pt_bins[i];
+                    int pt_max = pt_bins[i+1];
 
-                TCanvas* c_EEC_noweight = new TCanvas();
-                ProcessCanvas(c_EEC_noweight);
-                gPad->SetLogx();
-
-
-                TLegend* l; // = new TLegend(0.17, 0.65, 0.5, 0.85);
-                TLegend* ldummy = new TLegend(0.1797168,0.400741,0.4562155,0.8885185,"");
-
-                double maxy = 0;
-
-
-                // Open histograms
-
-
-                l = new TLegend(0.1797168,0.400741,0.4562155,0.8885185,""); //(0.17, 0.4, 0.5, 0.53);
-                l->SetTextSize(0.045);
-                // TLegend *leg = new TLegend(0.1797168,0.5390741,0.4562155,0.8885185,"");
-                l->AddEntry("NULL","Herwig"); //"PYTHIA 8 Monash 2013","h");
-                l->AddEntry("NULL","pp, #sqrt{#it{s}} = 13 TeV","h");
-                l->AddEntry("NULL","D^{0} #rightarrow K^{#minus} #pi^{+} and charge conj.","h");
-                l->AddEntry("NULL","in charged jets, anti-#it{k}_{T}, #it{R} = 0.4","h");
-                l->AddEntry("NULL",ptbin,"h");
-                l->AddEntry("NULL",ptD,"h");
-                l->SetTextSize(0.037);
-                l->SetBorderSize(0);
-                // l->Draw("same");
-
-                
-
-                //-------------------------------------------------//
-                // find D0 reconstruction through charm
-                THnSparse* hsparse_EEC = (THnSparse*) f->Get(EEC_name.c_str());
-                THnSparse* hsparse_EEC_ptrl = (THnSparse*) f->Get(EEC_ptrl_name.c_str());
-                THnSparse* hsparse_EEC_noweight = (THnSparse*) f->Get(EEC_noweight_name.c_str());
-                THnSparse* hsparse_jetinfo = (THnSparse*) f->Get(jetinfo_name.c_str());
-                cout << "jet info name " << jetinfo_name.c_str() << endl;
-
-                // testing - look at # jets before cuts
-                cout << "numDtaggedjets from hist before cuts " << hsparse_jetinfo->Projection(0)->GetEntries() << endl;
-
-                // for THnSparse: make clone to work with, make cuts, get projection
-                THnSparse *hsparse_EEC_clone = (THnSparse *) hsparse_EEC->Clone("hsparse_EEC_clone");
-                THnSparse *hsparse_EEC_ptrl_clone = (THnSparse *) hsparse_EEC_ptrl->Clone("hsparse_EEC_ptrl_clone");
-                THnSparse *hsparse_EEC_noweight_clone = (THnSparse *) hsparse_EEC_noweight->Clone("hsparse_EEC_noweight_clone");
-                THnSparse *hsparse_jetinfo_clone = (THnSparse *) hsparse_jetinfo->Clone("hsparse_jetinfo_clone");
-
-                // get jet pT range
-                hsparse_EEC_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max); // apply cut on jet pt
-                hsparse_EEC_ptrl_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max);
-                hsparse_EEC_noweight_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max);
-                hsparse_jetinfo_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max);
-
-                hsparse_EEC_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max); // apply cut on Dmeson pt
-                hsparse_EEC_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8); // apply cut on Dmeson rapidity
-                hsparse_EEC_ptrl_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max);
-                hsparse_EEC_ptrl_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8);
-                hsparse_EEC_noweight_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max);
-                hsparse_EEC_noweight_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8);
-                hsparse_jetinfo_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max);
-                hsparse_jetinfo_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8);
+                    // define pt related variables
+                    TString ptbin = TString::Format("%d #leq #it{p}_{T}^{ch. jet} < %d GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5", pt_min, pt_max);
+                    TString ptD = TString::Format("%d #leq #it{p}_{T}^{D^{0}} < %d GeV/#it{c}, #font[122]{|}#it{y}_{D^{0}}#font[122]{|} #leq 0.8", d0_pt_cuts[i], pt_max);
 
 
-                // Project onto observable axis
-                TH1D *hD0_EEC_proj = hsparse_EEC_clone->Projection(3); //CALL THESE TH1*????
-                TH1D *hD0_EEC_ptrl_proj = hsparse_EEC_ptrl_clone->Projection(3);
-                TH1D *hD0_EEC_noweight_proj = hsparse_EEC_noweight_clone->Projection(3);
-                TH1D *hjetpt = hsparse_jetinfo_clone->Projection(0);
+                    // make a canvas for each pt range
+                    TCanvas* c_EEC = new TCanvas();
+                    ProcessCanvas(c_EEC);
+                    // c_EEC->cd();
+                    gPad->SetLogx();
+                    // gPad->SetLogy();
 
-                // Set to appropriate name
-                std::string hname = hD0_EEC_proj->GetName();
-                hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_trkthrd" + trkthrd;
-                hD0_EEC_proj->SetNameTitle(hname.c_str(), hname.c_str());
+                    TCanvas* c_EEC_ptrl = new TCanvas();
+                    ProcessCanvas(c_EEC_ptrl);
+                    gPad->SetLogx();
 
-                hname = hD0_EEC_ptrl_proj->GetName();
-                hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_trkthrd" + trkthrd;
-                hD0_EEC_ptrl_proj->SetNameTitle(hname.c_str(), hname.c_str());
-
-                hname = hD0_EEC_noweight_proj->GetName();
-                hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_trkthrd" + trkthrd;
-                hD0_EEC_noweight_proj->SetNameTitle(hname.c_str(), hname.c_str());
+                    TCanvas* c_EEC_noweight = new TCanvas();
+                    ProcessCanvas(c_EEC_noweight);
+                    gPad->SetLogx();
 
 
-                // Rebin or clone
-                int n_obs_bins = 13; //-1;
-                double obs_bins[14] = {0.0001, 0.00020892961308540387, 0.0004365158322401661, 0.0009120108393559096, 
-                        0.0019054607179632482, 0.005754399373371567, 0.017378008287493762, 0.03630780547701014, 
-                        0.07585775750291836, 0.15848931924611143, 0.3311311214825911, 0.47863009232263853, 0.6918309709189363, 1.0};
+                    TLegend* l; // = new TLegend(0.17, 0.65, 0.5, 0.85);
+                    TLegend* ldummy = new TLegend(0.1797168,0.400741,0.4562155,0.8885185,"");
 
-                cout << "About to rebin" << endl;
-                // TH1* hD0 = (TH1*) hD0_proj->Rebin(n_obs_bins, (hname + "rebin").c_str(), obs_bins);
-                TH1* hD0_EEC = (TH1*) hD0_EEC_proj->Clone( hD0_EEC_proj->GetName() );
-                TH1* hD0_EEC_ptrl = (TH1*) hD0_EEC_ptrl_proj->Clone( hD0_EEC_ptrl_proj->GetName() );
-                TH1* hD0_EEC_noweight = (TH1*) hD0_EEC_noweight_proj->Clone( hD0_EEC_noweight_proj->GetName() );
-                cout << "Rebin done" << endl;
-
-                // Find normalization factor and set normalization
-                double numjets_D0 = hjetpt->Integral();
-                hD0_EEC->Scale(1/numjets_D0, "width");
-                hD0_EEC_ptrl->Scale(1/numjets_D0, "width");
-                hD0_EEC_noweight->Scale(1/numjets_D0, "width");
+                    double maxy = 0;
 
 
-                //Format color and style
-                int markercolor1 = marker_color[itrkthrd]; // kMagenta; //D0, me
-                int markerstyle1 = kFullCircle;
-                label1 = "D^{0}-tagged, c-init jets";
-                
-
-                // Format histograms for plotting (this order needed to keep legend in order and graphs lookin good)
-                // if (plot_case != 3) {
-                //     hD0->GetXaxis()->SetTitle("#it{R}_{L}");
-                // } else {
-                //     hD0->GetXaxis()->SetTitle("p_{T}#it{R}_{L}");
-                // }
-                hD0_EEC->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
-                hD0_EEC_ptrl->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
-                hD0_EEC_noweight->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
-                cout << "about to format D0" << endl;
-                FormatHist(l, hD0_EEC, label1, markercolor1, markerstyle1); //FormatHist(l, hD0, "D^{0}-tagged, c-init jets", kMagenta+3, kOpenSquare);
-                cout << "about to format 1" << endl;
-                FormatHist(ldummy, hD0_EEC_ptrl, label1, markercolor1, markerstyle1);
-                cout << "about to format 2" << endl;
-                FormatHist(ldummy, hD0_EEC_noweight, label1, markercolor1, markerstyle1);
-                // l->AddEntry("NULL","          D* decays off","h");
-
-                c_EEC->cd();
-                hD0_EEC->Draw("L same");
-                
-                double hD0_EEC_top_binpos = findTopOfCurve(hD0_EEC);
-                drawVertLine(hD0_EEC->GetBinCenter(hD0_EEC_top_binpos), 0, hD0_EEC->GetBinContent(hD0_EEC_top_binpos), markercolor1, 1)->Draw();
-                // vector<double> fullwidth_vec = findWidthOfCurve(hD0,  hD0_top_binpos);
-                // drawHoriLine(fullwidth_vec[1], fullwidth_vec[2], fullwidth_vec[0], kMagenta+3, 1)->Draw();
-
-                // draw legend
-                l->Draw("same");
-
-                c_EEC_ptrl->cd();
-                hD0_EEC_ptrl->Draw("L same");
-                l->Draw("same");
-
-                
-                c_EEC_noweight->cd();
-                hD0_EEC_noweight->Draw("L same");
-                l->Draw("same");
-     
+                    // Open histograms
 
 
+                    l = new TLegend(0.1797168,0.400741,0.4562155,0.8885185,""); //(0.17, 0.4, 0.5, 0.53);
+                    l->SetTextSize(0.045);
+                    // TLegend *leg = new TLegend(0.1797168,0.5390741,0.4562155,0.8885185,"");
+                    l->AddEntry("NULL","Herwig"); //"PYTHIA 8 Monash 2013","h");
+                    l->AddEntry("NULL","pp, #sqrt{#it{s}} = 13 TeV","h");
+                    l->AddEntry("NULL","D^{0} #rightarrow K^{#minus} #pi^{+} and charge conj.","h");
+                    l->AddEntry("NULL","in charged jets, anti-#it{k}_{T}, #it{R} = 0.4","h");
+                    l->AddEntry("NULL",ptbin,"h");
+                    l->AddEntry("NULL",ptD,"h");
+                    l->SetTextSize(0.037);
+                    l->SetBorderSize(0);
+                    // l->Draw("same");
 
-                std::string fname_EEC = outdir + "D0_EEC_pt" + std::to_string(pt_min) + '-' + std::to_string(pt_max) + "_R" + jetR + "_trkthrd" + trkthrd + ".pdf";
-                std::string fname_EECptrl = outdir + "D0_EECptrl_pt" + std::to_string(pt_min) + '-' + std::to_string(pt_max) + "_R" + jetR + "_trkthrd" + trkthrd + ".pdf";
-                std::string fname_EECnoweight = outdir + "D0_EECnoweight_pt" + std::to_string(pt_min) + '-' + std::to_string(pt_max) + "_R" + jetR + "_trkthrd" + trkthrd + ".pdf";
-                const char* fnamec_EEC = fname_EEC.c_str();
-                const char* fnamec_EECptrl = fname_EECptrl.c_str();
-                const char* fnamec_EECnoweight = fname_EECnoweight.c_str();
+                    
 
-                c_EEC->SaveAs(fnamec_EEC);
-                delete c_EEC;
-                c_EEC_ptrl->SaveAs(fnamec_EECptrl);
-                delete c_EEC_ptrl;
-                c_EEC_noweight->SaveAs(fnamec_EECnoweight);
-                delete c_EEC_noweight;
+                    //-------------------------------------------------//
+                    // find D0 reconstruction through charm
+                    THnSparse* hsparse_EEC = (THnSparse*) f->Get(EEC_name.c_str());
+                    THnSparse* hsparse_EEC_ptrl = (THnSparse*) f->Get(EEC_ptrl_name.c_str());
+                    THnSparse* hsparse_EEC_noweight = (THnSparse*) f->Get(EEC_noweight_name.c_str());
+                    THnSparse* hsparse_jetinfo = (THnSparse*) f->Get(jetinfo_name.c_str());
+                    cout << "jet info name " << jetinfo_name.c_str() << endl;
 
-                // if (pt_min == 10) { //} && grooming == "") {
-                    // Write rebinned histograms to root file
-                f_out->cd();
-                hD0_EEC->Write();
-                hD0_EEC_ptrl->Write();
-                hD0_EEC_noweight->Write();
-                // }
-                
-            } // pT bins loop
+                    // testing - look at # jets before cuts
+                    cout << "numDtaggedjets from hist before cuts " << hsparse_jetinfo->Projection(0)->GetEntries() << endl;
 
-            itrkthrd++;
+                    // for THnSparse: make clone to work with, make cuts, get projection
+                    THnSparse *hsparse_EEC_clone = (THnSparse *) hsparse_EEC->Clone("hsparse_EEC_clone");
+                    THnSparse *hsparse_EEC_ptrl_clone = (THnSparse *) hsparse_EEC_ptrl->Clone("hsparse_EEC_ptrl_clone");
+                    THnSparse *hsparse_EEC_noweight_clone = (THnSparse *) hsparse_EEC_noweight->Clone("hsparse_EEC_noweight_clone");
+                    THnSparse *hsparse_jetinfo_clone = (THnSparse *) hsparse_jetinfo->Clone("hsparse_jetinfo_clone");
 
-        } // end track threshold loop
-    
-    } // jetR loop
+                    // get jet pT range
+                    hsparse_EEC_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max); // apply cut on jet pt
+                    hsparse_EEC_ptrl_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max);
+                    hsparse_EEC_noweight_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max);
+                    hsparse_jetinfo_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max);
 
-    f->Close();
-    delete f;
+                    hsparse_EEC_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max); // apply cut on Dmeson pt
+                    hsparse_EEC_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8); // apply cut on Dmeson rapidity
+                    hsparse_EEC_ptrl_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max);
+                    hsparse_EEC_ptrl_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8);
+                    hsparse_EEC_noweight_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max);
+                    hsparse_EEC_noweight_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8);
+                    hsparse_jetinfo_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max);
+                    hsparse_jetinfo_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8);
+
+
+                    // Project onto observable axis
+                    TH1D *hD0_EEC_proj = hsparse_EEC_clone->Projection(3); //CALL THESE TH1*????
+                    TH1D *hD0_EEC_ptrl_proj = hsparse_EEC_ptrl_clone->Projection(3);
+                    TH1D *hD0_EEC_noweight_proj = hsparse_EEC_noweight_clone->Projection(3);
+                    TH1D *hjetpt = hsparse_jetinfo_clone->Projection(0);
+
+                    // Set to appropriate name
+                    std::string hname = hD0_EEC_proj->GetName();
+                    hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_trkthrd" + trkthrd;
+                    hD0_EEC_proj->SetNameTitle(hname.c_str(), hname.c_str());
+
+                    hname = hD0_EEC_ptrl_proj->GetName();
+                    hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_trkthrd" + trkthrd;
+                    hD0_EEC_ptrl_proj->SetNameTitle(hname.c_str(), hname.c_str());
+
+                    hname = hD0_EEC_noweight_proj->GetName();
+                    hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_trkthrd" + trkthrd;
+                    hD0_EEC_noweight_proj->SetNameTitle(hname.c_str(), hname.c_str());
+
+
+                    // Rebin or clone
+                    int n_obs_bins = 13; //-1;
+                    double obs_bins[14] = {0.0001, 0.00020892961308540387, 0.0004365158322401661, 0.0009120108393559096, 
+                            0.0019054607179632482, 0.005754399373371567, 0.017378008287493762, 0.03630780547701014, 
+                            0.07585775750291836, 0.15848931924611143, 0.3311311214825911, 0.47863009232263853, 0.6918309709189363, 1.0};
+
+                    cout << "About to rebin" << endl;
+
+                    std::string EEC_subname = dname + "_EEC_pt" + std::to_string(pt_min) + '-' + std::to_string(pt_max) + "_R" + jetR + "_trkthrd" + trkthrd;
+                    std::string EECptrl_subname = dname + "_EECptrl_pt" + std::to_string(pt_min) + '-' + std::to_string(pt_max) + "_R" + jetR + "_trkthrd" + trkthrd;
+                    std::string EECnoweight_subname = dname + "_EECnoweight_pt" + std::to_string(pt_min) + '-' + std::to_string(pt_max) + "_R" + jetR + "_trkthrd" + trkthrd;
+                    
+
+                    // TH1* hD0 = (TH1*) hD0_proj->Rebin(n_obs_bins, (hname + "rebin").c_str(), obs_bins);
+                    TH1* hD0_EEC = (TH1*) hD0_EEC_proj->Clone( (EEC_subname).c_str() );
+                    TH1* hD0_EEC_ptrl = (TH1*) hD0_EEC_ptrl_proj->Clone( (EECptrl_subname).c_str() );
+                    TH1* hD0_EEC_noweight = (TH1*) hD0_EEC_noweight_proj->Clone( (EECnoweight_subname).c_str() );
+                    cout << "Rebin done" << endl;
+
+                    // Find normalization factor and set normalization
+                    double numjets_D0 = hjetpt->Integral();
+                    hD0_EEC->Scale(1/numjets_D0, "width");
+                    hD0_EEC_ptrl->Scale(1/numjets_D0, "width");
+                    hD0_EEC_noweight->Scale(1/numjets_D0, "width");
+
+
+                    //Format color and style
+                    int markercolor1 = marker_color[itrkthrd]; // kMagenta; //D0, me
+                    int markerstyle1 = kFullCircle;
+                    label1 = "D^{0}-tagged, c-init jets";
+                    
+
+                    // Format histograms for plotting (this order needed to keep legend in order and graphs lookin good)
+                    // if (plot_case != 3) {
+                    //     hD0->GetXaxis()->SetTitle("#it{R}_{L}");
+                    // } else {
+                    //     hD0->GetXaxis()->SetTitle("p_{T}#it{R}_{L}");
+                    // }
+                    hD0_EEC->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
+                    hD0_EEC_ptrl->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
+                    hD0_EEC_noweight->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
+                    
+                    hD0_EEC_ptrl->GetXaxis()->SetTitle("p_{T}#it{R}_{L}");
+                    
+                    cout << "about to format D0" << endl;
+                    FormatHist(l, hD0_EEC, label1, markercolor1, markerstyle1); //FormatHist(l, hD0, "D^{0}-tagged, c-init jets", kMagenta+3, kOpenSquare);
+                    cout << "about to format 1" << endl;
+                    FormatHist(ldummy, hD0_EEC_ptrl, label1, markercolor1, markerstyle1);
+                    cout << "about to format 2" << endl;
+                    FormatHist(ldummy, hD0_EEC_noweight, label1, markercolor1, markerstyle1);
+                    // l->AddEntry("NULL","          D* decays off","h");
+
+                    c_EEC->cd();
+                    hD0_EEC->Draw("L same");
+                    
+                    double hD0_EEC_top_binpos = findTopOfCurve(hD0_EEC);
+                    drawVertLine(hD0_EEC->GetBinCenter(hD0_EEC_top_binpos), 0, hD0_EEC->GetBinContent(hD0_EEC_top_binpos), markercolor1, 1)->Draw();
+                    // vector<double> fullwidth_vec = findWidthOfCurve(hD0,  hD0_top_binpos);
+                    // drawHoriLine(fullwidth_vec[1], fullwidth_vec[2], fullwidth_vec[0], kMagenta+3, 1)->Draw();
+
+                    // draw legend
+                    l->Draw("same");
+
+                    c_EEC_ptrl->cd();
+                    hD0_EEC_ptrl->Draw("L same");
+                    l->Draw("same");
+
+                    
+                    c_EEC_noweight->cd();
+                    hD0_EEC_noweight->Draw("L same");
+                    l->Draw("same");
+        
+
+
+
+                    std::string fname_EEC = outdir + EEC_subname + ".pdf";
+                    std::string fname_EECptrl = outdir + EECptrl_subname + ".pdf";
+                    std::string fname_EECnoweight = outdir + EECnoweight_subname + ".pdf";
+                    const char* fnamec_EEC = fname_EEC.c_str();
+                    const char* fnamec_EECptrl = fname_EECptrl.c_str();
+                    const char* fnamec_EECnoweight = fname_EECnoweight.c_str();
+
+                    c_EEC->SaveAs(fnamec_EEC);
+                    delete c_EEC;
+                    c_EEC_ptrl->SaveAs(fnamec_EECptrl);
+                    delete c_EEC_ptrl;
+                    c_EEC_noweight->SaveAs(fnamec_EECnoweight);
+                    delete c_EEC_noweight;
+
+                    // if (pt_min == 10) { //} && grooming == "") {
+                        // Write rebinned histograms to root file
+                    f_out->cd();
+                    hD0_EEC->Write();
+                    hD0_EEC_ptrl->Write();
+                    hD0_EEC_noweight->Write();
+                    // }
+                    
+                } // pT bins loop
+
+                itrkthrd++;
+
+            } // end track threshold loop
+        
+        } // jetR loop
+
+        f->Close();
+        delete f;
+
+        ifile++;
+
+    } // file loop
 
     return;
 }

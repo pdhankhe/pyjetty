@@ -82,7 +82,7 @@ class ProcessIO(common_base.CommonBase):
     #     self.track_columns += ['ParticleMCIndex']
 
     # Set relevant columns of D0 tree
-    self.D0_columns = self.unique_identifier + ['ParticlePt', 'ParticleEta', 'ParticlePhi', 'ParticleRapidity', 'ParticlePID']
+    self.D0_columns = self.unique_identifier + ['ParticlePt', 'ParticleEta', 'ParticlePhi', 'ParticleRapidity', 'ParticlePID', 'MotherPID']
     
     #print(self)
     
@@ -264,7 +264,7 @@ class ProcessIO(common_base.CommonBase):
         branchdict["ParticlePID"] = int
         branchdict["MotherPID"] = int
         branchdict_D0 = {"run_number": int, "ev_id": int, "ParticlePt": float,
-                      "ParticleEta": float, "ParticlePhi": float, "ParticleRapidity": float, "ParticlePID": float}
+                      "ParticleEta": float, "ParticlePhi": float, "ParticleRapidity": float, "ParticlePID": float, "MotherPID": float}
 
       if df_true:
         # Create tree with truth particle info (track_df)
@@ -315,7 +315,8 @@ class ProcessIO(common_base.CommonBase):
                               "ParticleEta": self.D0_df["ParticleEta"],
                               "ParticlePhi": self.D0_df["ParticlePhi"],
                               "ParticleRapidity": self.D0_df["ParticleRapidity"],
-                              "ParticlePID": self.D0_df["ParticlePID"] } )
+                              "ParticlePID": self.D0_df["ParticlePID"],
+                              "MotherPID": self.D0_df["MotherPID"] } )
 
 
       # Create tree with detector-level particle info (df)

@@ -262,17 +262,19 @@ class ProcessMCBase(process_base.ProcessBase):
     print("LOOK HERE", df_fjparticles_truth.columns)
     print("length", len(df_fjparticles_truth))
     print("AND HERE", df_fjparticles_truth[20:30])#fj_particles_det[11].python_info())
-    print("HIII", df_fjparticles_truth['MotherPID'].values[21])#[21:22].values[12:100])
+    # print("HIII", df_fjparticles_truth['MotherPID'].values[21])#[21:22].values[12:100])
     print("keep for debug, len of entry 21 with a D0", len(df_fjparticles_truth['MotherPID'].values[21]))
     
     mother_pids = df_fjparticles_truth['MotherPID'].values
     d0_pids = df_D0particles_truth['ParticlePID'].values
+    d0_mids = df_D0particles_truth['MotherPID'].values
     d0_evids = df_D0particles_truth['ev_id'].values
     d0_4vec = df_D0particles_truth['fj_particle'].values
     d0_rap = df_D0particles_truth['ParticleRapidity'].values
     d0_event_counter = 0
     num_d0s_in_event = 0
-    self.d0counter = 0
+    self.alld0counter = 0
+    self.d0nodstar_counter = 0
 
     # print("type part", type(df_fjparticles_truth))
     # print("Type d0", type(df_D0particles_truth))
@@ -337,7 +339,9 @@ class ProcessMCBase(process_base.ProcessBase):
                                                                             dau_inds[0], d0_pids[d0_event_counter][i_d0])
             elif col == 'MotherPID':
               # print("inserting -1 into", col)
-              df_fjparticles_truth.loc[((run_num, ievent))][col] = np.insert(df_fjparticles_truth.loc[((run_num, ievent))][col], dau_inds[0], -1)
+              df_fjparticles_truth.loc[((run_num, ievent))][col] = np.insert(df_fjparticles_truth.loc[((run_num, ievent))][col], 
+                                                                              dau_inds[0], d0_mids[d0_event_counter][i_d0]) #-1)
+              # print("CHECK HEREEEE 3", df_fjparticles_truth.loc[((run_num, ievent))][col])
             
             elif col == 'ParticleRapidity':
               # print("inserting", type(d0_rap[d0_event_counter][i_d0]), d0_rap[d0_event_counter][i_d0], "of", d0_rap[d0_event_counter], "into", col)
@@ -406,7 +410,8 @@ class ProcessMCBase(process_base.ProcessBase):
     print('Find jets...')
     self.analyze_events()
 
-    print("There were", self.d0counter, "D0's")
+    print("There were", self.alld0counter, "D0's")
+    print("There were", self.d0nodstar_counter, "D0's that did not come from charged D*")
     
     # Plot histograms
     print('Save histograms...')
@@ -514,7 +519,7 @@ class ProcessMCBase(process_base.ProcessBase):
         result = [self.analyze_event(fj_particles_det, fj_particles_truth, fj_particles_det_holes, fj_particles_truth_holes) for fj_particles_det, fj_particles_truth, fj_particles_det_holes, fj_particles_truth_holes in zip(self.df_fjparticles['fj_particles_det'], self.df_fjparticles['fj_particles_truth'], self.df_fjparticles['fj_particles_det_holes'], self.df_fjparticles['fj_particles_truth_holes'])]
     elif self.ENC_fastsim:
         if self.use_D0_info:
-          result = [self.analyze_event_nodet(fj_particles_truth=fj_particles_truth, particles_pid_truth=particles_pid_truth, particles_rap_truth=particles_rap_truth) for fj_particles_truth, particles_pid_truth, particles_mid_truth, particles_rap_truth in zip(self.df_fjparticles['fj_particles_truth'], self.df_fjparticles['ParticlePID'], self.df_fjparticles['MotherPID'],self.df_fjparticles['ParticleRapidity'])]
+          result = [self.analyze_event_nodet(fj_particles_truth=fj_particles_truth, particles_pid_truth=particles_pid_truth, particles_rap_truth=particles_rap_truth, particles_mid_truth=particles_mid_truth) for fj_particles_truth, particles_pid_truth, particles_mid_truth, particles_rap_truth in zip(self.df_fjparticles['fj_particles_truth'], self.df_fjparticles['ParticlePID'], self.df_fjparticles['MotherPID'],self.df_fjparticles['ParticleRapidity'])]
         else:
           result = [self.analyze_event(fj_particles_det=fj_particles_det, fj_particles_truth=fj_particles_truth, particles_mcid_det=particles_mcid_det, particles_pid_truth=particles_pid_truth) for fj_particles_det, fj_particles_truth, particles_mcid_det, particles_pid_truth in zip(self.df_fjparticles['fj_particles_det'], self.df_fjparticles['fj_particles_truth'], self.df_fjparticles['ParticleMCIndex'], self.df_fjparticles['ParticlePID'])]
     else:
@@ -546,7 +551,7 @@ class ProcessMCBase(process_base.ProcessBase):
   # Analyze jets of a given event.
   # fj_particles is the list of fastjet pseudojets for a single fixed event.
   #---------------------------------------------------------------
-  def analyze_event_nodet(self, fj_particles_truth, particles_pid_truth=None, particles_rap_truth=None):
+  def analyze_event_nodet(self, fj_particles_truth, particles_pid_truth=None, particles_rap_truth=None, particles_mid_truth=None):
   
     self.event_number += 1
     if self.event_number > self.event_number_max:
@@ -622,6 +627,7 @@ class ProcessMCBase(process_base.ProcessBase):
           ecorr_user_info.charge = particles_charge_truth[index]
           ecorr_user_info.particle_pid = particles_pid_truth[index]
           ecorr_user_info.particle_rap = particles_rap_truth[index]
+          ecorr_user_info.particle_mid = particles_mid_truth[index]
           # if abs(particles_pid_truth[index]) == 421:
             # print("CROSS CHECKING", particles_rap_truth)
             # print("Analyzing event and found a D0 in event", self.event_number, "with pid", particles_pid_truth[index], "and rapidity", particles_rap_truth[index])

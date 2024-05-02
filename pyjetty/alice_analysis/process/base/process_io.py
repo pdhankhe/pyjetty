@@ -90,7 +90,7 @@ class ProcessIO(common_base.CommonBase):
       # self.track_columns += ['ParticleRapidity']
 
     # Set relevant columns of D0 tree
-    self.D0_columns = self.unique_identifier + ['ParticlePt', 'ParticleEta', 'ParticlePhi', 'ParticleRapidity', 'ParticlePID']
+    self.D0_columns = self.unique_identifier + ['ParticlePt', 'ParticleEta', 'ParticlePhi', 'ParticleRapidity', 'ParticlePID', 'MotherPID']
     
     
     #print(self)
@@ -382,12 +382,14 @@ class ProcessIO(common_base.CommonBase):
         self.get_particles_rap, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt, notD0=False)
         df_fjparticles_pid = track_df_grouped.apply(
         self.get_particles_pid, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
+        df_fjparticles_mid = track_df_grouped.apply(
+        self.get_particles_mother_id, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
 
         print('debug d0',df_fjparticles_orig)
         print('debug d0 aux: evid',df_fjparticles_evid)
         print('debug d0 aux: rap',df_fjparticles_rap)
         print('debug d0 aux: pid',df_fjparticles_pid)
-        df_fjparticles = pandas.DataFrame({"fj_particle": df_fjparticles_orig, "ev_id": df_fjparticles_evid, "ParticleRapidity": df_fjparticles_rap, "ParticlePID": df_fjparticles_pid})
+        df_fjparticles = pandas.DataFrame({"fj_particle": df_fjparticles_orig, "ev_id": df_fjparticles_evid, "ParticleRapidity": df_fjparticles_rap, "ParticlePID": df_fjparticles_pid, "MotherPID": df_fjparticles_mid})
         print('debug d0 : evid',df_fjparticles)
 
         return df_fjparticles

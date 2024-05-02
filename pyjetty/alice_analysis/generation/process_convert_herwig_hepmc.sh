@@ -49,7 +49,7 @@ cd /software/users/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/generation
 python hepmc2antuple_tn.py -i $INPUT_FILE -o $OUTPUT_DIR/AnalysisResultsGen.root -g herwig --no-progress-bar -d
 
 # Move stdout to appropriate folder
-mkdir -p /rstorage/generators/herwig_alice/tree_gen/${JOB_ID}/slurm-output
-mv /rstorage/generators/herwig_alice/tree_gen/slurm-${JOB_ID}_${TASK_ID}.out /rstorage/generators/herwig_alice/tree_gen/${JOB_ID}/slurm-output/
+# mkdir -p /rstorage/generators/herwig_alice/tree_gen/${JOB_ID}/slurm-output
+# mv /rstorage/generators/herwig_alice/tree_gen/slurm-${JOB_ID}_${TASK_ID}.out /rstorage/generators/herwig_alice/tree_gen/${JOB_ID}/slurm-output/
 
 

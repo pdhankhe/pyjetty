@@ -399,10 +399,20 @@ class ProcessMC_ENC_HF(process_mc_base.ProcessMCBase):
         if self.firsttimejet:
           print('event {}'.format(self.event_number))
           print("D0 pt is ", math.sqrt(D0_px*D0_px + D0_py*D0_py), "and D0 rapidity is", self.D0particleinfo.python_info().particle_rap) #self.D0particleinfo.rap())
-          self.d0counter+=1          
+          self.alld0counter+=1          
         break # break after one D0 found in a jet
       else:
         return # don't want to look at jets that don't have a D0
+
+    # now check if the D0 comes from a D*. if yes, skip. if no, move on
+    if self.firsttimejet:
+      print("D0 mother is", self.D0particleinfo.python_info().particle_mid)
+    if abs(self.D0particleinfo.python_info().particle_mid) == 413: # D*
+      return
+
+    if self.firsttimejet:
+      self.d0nodstar_counter+=1    
+      print("------- saving to hists -------")
 
     for observable in self.observable_list:
       # print("CP OBSERVABLE", observable)
@@ -609,7 +619,8 @@ class ProcessMC_ENC_HF(process_mc_base.ProcessMCBase):
     # print("user info", particle.python_info()) # this is super useful! is of the form "JetInfo" from jetinfo.py
     part_info = particle.python_info()
     if abs(part_info.particle_pid) == 421:
-      print("D0 in jet!", part_info.particle_pid)
+      if self.firsttimejet:
+        print("D0 in jet!", part_info.particle_pid)
       self.D0particleinfo = particle
       return True
     else:
