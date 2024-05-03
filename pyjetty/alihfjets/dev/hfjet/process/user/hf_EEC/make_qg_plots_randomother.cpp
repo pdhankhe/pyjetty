@@ -279,9 +279,12 @@ void make_qg_plots_randomother() {
             // make a canvas for each pt range
             TCanvas* c = new TCanvas();
             ProcessCanvas(c);
-            c->cd();
             gPad->SetLogx();
             // gPad->SetLogy();
+
+            TCanvas* c_chargeratio = new TCanvas();
+            ProcessCanvas(c_chargeratio);
+            gPad->SetLogx();
 
             TLegend* l; // = new TLegend(0.17, 0.65, 0.5, 0.85);
 
@@ -494,6 +497,7 @@ void make_qg_plots_randomother() {
                 l->AddEntry("NULL","          D* decays off","h");
             } 
             hD0->SetMaximum(hD0->GetMaximum()*1.5);
+            c->cd();
             hD0->Draw("L same");
             if ( plot_case == 1 ) {
                 hD01->Draw("L same");
@@ -519,12 +523,10 @@ void make_qg_plots_randomother() {
             }
             double hc_top_binpos = findTopOfCurve(hc);
             drawVertLine(hc->GetBinCenter(hc_top_binpos), 0, hc->GetBinContent(hc_top_binpos), markercolor4, 1)->Draw();
-            
 
             
             // vector<double> fullwidth_vec = findWidthOfCurve(hD0,  hD0_top_binpos);
             // drawHoriLine(fullwidth_vec[1], fullwidth_vec[2], fullwidth_vec[0], kMagenta+3, 1)->Draw();
-            
             
 
             // draw legend
@@ -532,10 +534,34 @@ void make_qg_plots_randomother() {
 
 
 
+            //plot the ratio of the D-tagged to charm jets
+            if (plot_case == 0) {
+                
+                // std::string ratio_name = "hratio_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_R" + jetR + add_name;
+                // TH1D* hratio = (TH1D*) hD0->Clone(ratio_name.c_str());
+                // hratio->Divide(hc);
+                // FormatHist(l2, hratio, label[j], colors[j], markers[2]);
+
+                // c_chargeratio->cd();
+                // hratio->Draw();
+
+
+                auto rp = new TRatioPlot(hD0, hc);
+                c->SetTicks(0, 1);
+                rp->Draw();
+                rp->GetLowYaxis()->SetNdivisions(505);
+                rp->GetLowerRefGraph()->SetMinimum(0);
+                rp->GetLowerRefGraph()->SetMaximum(3);
+                c->Update();
+                
+
+            }
+            
             std::string fname = outdir + "QG_comp_pt" + std::to_string(pt_min) + '-' + std::to_string(pt_max) + "_R" + jetR + add_name + "_plotcase" + std::to_string(plot_case) + ".pdf";
             const char* fnamec = fname.c_str();
             c->SaveAs(fnamec);
             delete c;
+
 
             // if (pt_min == 10) { //} && grooming == "") {
                 // Write rebinned histograms to root file
