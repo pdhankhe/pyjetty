@@ -58,6 +58,7 @@ class HepMC2antuple(hepmc2antuple_base.HepMC2antupleBase):
 
   #---------------------------------------------------------------
   def fill_event(self, event_hepmc):
+    # print("in fill event!!")
 
     self.t_e.Fill(self.run_number, self.ev_id, 0, 0)
 
@@ -78,6 +79,7 @@ class HepMC2antuple(hepmc2antuple_base.HepMC2antupleBase):
             
             if self.isD0toKpidecay(mother) and abs(part.pid)==321: # TODO: check that D0 goes to Kpi, and only add the D0 if the daughter is a kaon
               mothers_of_D0 = mother.parents
+              # print("D0 MOTHERS", [mod.pid for mod in mothers_of_D0])
               if (len(mothers_of_D0) == 1):
                 mother_of_D0 = mothers_of_D0[0]
                 mother_of_D0_PID = mother_of_D0.pid
@@ -91,7 +93,14 @@ class HepMC2antuple(hepmc2antuple_base.HepMC2antupleBase):
             motherPID = 0
             
     
+      '''
+      #if status == 1, then end_vertex is None
+      if not (part.status == 1 and part.end_vertex == None):
+        print("checking; PART:", part, "STATUS:", part.status, "END VTX:", part.end_vertex, "PID:", part.pid, "PDG:") #, self.pdg, "GEN:", self.gen)
+      '''
+
       if self.accept_particle(part, part.status, part.end_vertex, part.pid, self.pdg, self.gen):
+        # print("in here!")
       
         self.particles_accepted.add(self.pdg.GetParticle(part.pid).GetName())          
         self.t_p.Fill(self.run_number, self.ev_id, part.momentum.pt(), part.momentum.eta(), part.momentum.phi(), part.pid, motherPID)          
@@ -100,7 +109,7 @@ class HepMC2antuple(hepmc2antuple_base.HepMC2antupleBase):
 
         self.partons_accepted.add(self.pdg.GetParticle(part.pid).GetName())
         self.t_pp.Fill(self.run_number, self.ev_id, part.momentum.pt(), part.momentum.eta(), part.momentum.phi(), part.pid)
-        
+      
         
 #---------------------------------------------------------------
 if __name__ == '__main__':

@@ -85,7 +85,16 @@ def accept_particle_hybrid(part, pdg, parton):
     raise NotImplementedError('Parton tree not implemented yet for hybrid') 
   
   return accept_particle_status(part, status, end_vertex, pid, pdg, status_accepted = [1, 6, 7])
+
+#---------------------------------------------------------------
+def accept_particle_sherpa(part, status, end_vertex, pid, pdg, parton=False):
   
+  if parton:
+    raise NotImplementedError('Parton tree not implemented yet for Sherpa')
+
+  # is this right?
+  return accept_particle_status(part, status, end_vertex, pid, pdg, status_accepted = [1])
+
 #---------------------------------------------------------------
 def accept_particle_status(part, status, end_vertex, pid, pdg, parton=False, status_accepted = [1], select_charged=True, charged_exception=[], pt_exception=0.):
   

@@ -85,6 +85,8 @@ class HepMC2antupleBase(common_base.CommonBase):
       return select_particles.accept_particle_martini(part, status, end_vertex, pid, pdg, parton)
     elif gen == 'hybrid':
       return select_particles.accept_particle_hybrid(part, status, end_vertex, pid, pdg, parton)
+    elif gen == 'sherpa':
+      return select_particles.accept_particle_sherpa(part, status, end_vertex, pid, pdg, parton)
 
     sys.exit('Generator type unknown: {}'.format(gen))
 
