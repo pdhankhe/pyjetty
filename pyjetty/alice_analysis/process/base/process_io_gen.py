@@ -198,12 +198,14 @@ class ProcessIO(common_base.CommonBase):
     #print(track_df_orig)
     #d = track_df_orig.duplicated(self.track_columns, keep=False)
     #print(track_df_orig[d])
+    print("Checking if there are duplicated tracks")
     n_duplicates = sum(track_df_orig.duplicated(self.track_columns))
     if n_duplicates > 0:
       raise ValueError(
         "There appear to be %i duplicate particles in the track dataframe" % n_duplicates)
 
     # Merge event info into track tree
+    print("Merging event info into track tree")
     if self.skip_event_tree:
       self.track_df = track_df_orig
     else:
@@ -217,6 +219,7 @@ class ProcessIO(common_base.CommonBase):
 
     
     # Check if there are duplicated tracks in the merge dataframe
+    print("Checking for duplicated tracks in merged dataframe")
     #print(self.track_df)
     #d = self.track_df.duplicated(self.track_columns, keep=False)
     #print(self.track_df[d])
@@ -224,11 +227,14 @@ class ProcessIO(common_base.CommonBase):
     if n_duplicates > 0:
       sys.exit('ERROR: There appear to be {} duplicate particles in the merged dataframe'.format(n_duplicates))
 
+    print("only looking events in a given range")
     if stop > start:
       self.track_df = self.track_df[(self.track_df["ev_id"]<stop) & (self.track_df["ev_id"]>=start)]
       self.event_df_orig = self.event_df_orig[(self.event_df_orig["ev_id"]<stop) & (self.event_df_orig["ev_id"]>=start)]
       if self.use_D0_info:
         self.D0_df = self.D0_df[(self.D0_df["ev_id"]<stop) & (self.D0_df["ev_id"]>=start)]
+
+    print("returning from load_dataframe()")
 
     return self.track_df
 

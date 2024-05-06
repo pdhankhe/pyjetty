@@ -41,7 +41,7 @@ source /home/blianggi/activate_pyjetty.sh
 
 # Run main script
 cd /software/users/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/generation
-python hepmc2antuple_tn.py -i $INPUT_FILE -o $OUTPUT_DIR/AnalysisResultsGen.root -g sherpa --no-progress-bar -d
+python hepmc2antuple_tn.py -i $INPUT_FILE -o $OUTPUT_DIR/AnalysisResultsGen.root -g sherpa --no-progress-bar -d -hepmc 3
 
 # Move stdout to appropriate folder
 # mkdir -p /rstorage/generators/herwig_alice/tree_gen/${JOB_ID}/slurm-output
