@@ -58,7 +58,13 @@ void ProcessCanvas(TCanvas *Canvas) {
  	Canvas->SetFrameBorderMode(1);
 }
 
-void FormatHist(TLegend *l, TH1 *hist, TString text, int markercolor=1, int markerstyle=8) 
+void FormatPad(TPad *pad) {
+    // pad->SetLeftMargin(0.165);
+}
+
+void FormatHist(TLegend *l, TH1 *hist, TString text, int markercolor=1, int markerstyle=8, 
+                double xtitlesize=0.04, double xlabelsize=0.04, double xoffset=1.2,
+                double ytitlesize=0.04, double ylabelsize=0.04, double yoffset=1.0) 
 {
     hist->SetLineColor(markercolor);
     hist->SetMarkerColor(markercolor);
@@ -69,16 +75,16 @@ void FormatHist(TLegend *l, TH1 *hist, TString text, int markercolor=1, int mark
 	//gPad->SetTickx(); 
 	//gPad->SetTicky(); 
 	// h->SetLineWidth(2);
-	hist->GetYaxis()->SetTitleOffset(1.05); 
-	hist->GetYaxis()->SetTitleSize(0.06); //(0.042);
-	hist->GetYaxis()->SetLabelSize(0.05); //(0.042);
+	hist->GetYaxis()->SetTitleOffset(yoffset); //(1.05); 
+	hist->GetYaxis()->SetTitleSize(ytitlesize); //(0.042); //the axis number labels
+	hist->GetYaxis()->SetLabelSize(ylabelsize); //(0.042);
 	hist->GetYaxis()->SetLabelFont(42);
 	hist->GetXaxis()->SetLabelFont(42);
 	hist->GetYaxis()->SetTitleFont(42);
 	hist->GetXaxis()->SetTitleFont(42);
-	hist->GetXaxis()->SetTitleOffset(1.0);
-	hist->GetXaxis()->SetTitleSize(0.06); //(0.042);
-	hist->GetXaxis()->SetLabelSize(0.05); //(0.042);
+	hist->GetXaxis()->SetTitleOffset(xoffset);
+	hist->GetXaxis()->SetTitleSize(xtitlesize); //(0.042);
+	hist->GetXaxis()->SetLabelSize(xlabelsize); //(0.042);
 
 
     return;
@@ -282,11 +288,18 @@ void make_qg_plots_randomother() {
             gPad->SetLogx();
             // gPad->SetLogy();
 
-            TCanvas* c_chargeratio = new TCanvas();
-            ProcessCanvas(c_chargeratio);
-            gPad->SetLogx();
+            TPad *pad1 = new TPad("pad1","pad1",0.,0.,1.,1.);
+            pad1->SetLogx();
+            pad1->SetBottomMargin(0.31);
+            pad1->Draw();
+            // pad1->cd();
+
+            // TCanvas* c_chargeratio = new TCanvas();
+            // ProcessCanvas(c_chargeratio);
+            // gPad->SetLogx();
 
             TLegend* l; // = new TLegend(0.17, 0.65, 0.5, 0.85);
+            TLegend *l2 = new TLegend(0,0,0,0,"");
 
             double maxy = 0;
 
@@ -294,7 +307,7 @@ void make_qg_plots_randomother() {
             // Open histograms
 
 
-            l = new TLegend(0.1797168,0.400741,0.4562155,0.8885185,""); //(0.17, 0.4, 0.5, 0.53);
+            l = new TLegend(0.1797168,0.450741,0.4562155,0.8885185,""); //(0.17, 0.4, 0.5, 0.53);
             l->SetTextSize(0.045);
             // TLegend *leg = new TLegend(0.1797168,0.5390741,0.4562155,0.8885185,"");
             l->AddEntry("NULL","PYTHIA 8 Monash 2013","h");
@@ -484,8 +497,9 @@ void make_qg_plots_randomother() {
             hc->GetXaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
             hc_nothnsparse->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
 
+
             cout << "about to format D0" << endl;
-            FormatHist(l, hD0, label_D0, markercolor0, markerstyle0); //FormatHist(l, hD0, "D^{0}-tagged, c-init jets", kMagenta+3, kOpenSquare);
+            FormatHist(l, hD0, label_D0, markercolor0, markerstyle0, 0.04, 0.04, 1., 0.04, 0.04, 1.5); //FormatHist(l, hD0, "D^{0}-tagged, c-init jets", kMagenta+3, kOpenSquare);
             if ( plot_case == 1 ) {
                 FormatHist(l, hD01, label_D01, markercolor1, markerstyle1);
                 FormatHist(l, hD02, label_D02, markercolor2, markerstyle2);
@@ -498,6 +512,7 @@ void make_qg_plots_randomother() {
             } 
             hD0->SetMaximum(hD0->GetMaximum()*1.5);
             c->cd();
+            pad1->cd(); 
             hD0->Draw("L same");
             if ( plot_case == 1 ) {
                 hD01->Draw("L same");
@@ -536,23 +551,49 @@ void make_qg_plots_randomother() {
 
             //plot the ratio of the D-tagged to charm jets
             if (plot_case == 0) {
+
+                hD0->GetXaxis()->SetLabelSize(0);
+                // hD0->GetYaxis()->SetWmin(0.1);
+                // hc->GetXaxis()->SetLabelSize(0);
                 
-                // std::string ratio_name = "hratio_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_R" + jetR + add_name;
-                // TH1D* hratio = (TH1D*) hD0->Clone(ratio_name.c_str());
-                // hratio->Divide(hc);
-                // FormatHist(l2, hratio, label[j], colors[j], markers[2]);
+                TPad *pad2 = new TPad("pad1","",0.,0.,1.,1.);
+                pad2->SetTopMargin(0.71);
+                pad2->SetFillColor(0);
+                pad2->SetFillStyle(0);
+                pad2->Draw();
+                pad2->SetLogx();
 
-                // c_chargeratio->cd();
-                // hratio->Draw();
+                FormatPad(pad2);
+                pad2->cd();
+                
+                
+                std::string ratio_name = "hratio_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_R" + jetR + add_name;
+                TH1D* hratio = (TH1D*) hD0->Clone(ratio_name.c_str());
+                hratio->Divide(hc);
+                hratio->SetMinimum(0.5);
+                hratio->SetMaximum(1.5);
 
 
-                auto rp = new TRatioPlot(hD0, hc);
-                c->SetTicks(0, 1);
-                rp->Draw();
-                rp->GetLowYaxis()->SetNdivisions(505);
-                rp->GetLowerRefGraph()->SetMinimum(0);
-                rp->GetLowerRefGraph()->SetMaximum(3);
-                c->Update();
+                FormatHist(l2, hratio, "ratio", kBlack, markers[2], 0.05, 0.04, 1.2, 0.035, 0.03, 1.5);
+                hratio->GetYaxis()->SetTitle("#frac{D^{0}-tagged jets}{charm-init jets}");
+                hratio->GetYaxis()->SetNdivisions(5);
+
+                hratio->Draw();
+
+                // draw line at 1
+                drawHoriLine(1e-4, 1., 1., kGray+2, 1)->Draw();
+                drawHoriLine(1e-4, 1., 0.9, kGray+2, 6)->Draw();
+                drawHoriLine(1e-4, 1., 1.1, kGray+2, 6)->Draw();
+                
+
+                // TH1* hD0_clone = (TH1*) hD0->Clone("ratio plot");
+                // auto rp = new TRatioPlot(hD0_clone, hc);
+                // // c->SetTicks(0, 1);
+                // rp->Draw();
+                // // rp->GetLowYaxis()->SetNdivisions(505);
+                // rp->GetLowerRefGraph()->SetMinimum(0);
+                // rp->GetLowerRefGraph()->SetMaximum(3);
+                // // c->Update();
                 
 
             }
