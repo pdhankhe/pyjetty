@@ -194,6 +194,14 @@ class ProcessIO(common_base.CommonBase):
         track_df_orig = track_df_orig.query(track_criteria)
         track_df_orig.reset_index(drop=True)
     
+    
+    print("start by only looking at events in a given range")
+    if stop > start:
+      track_df_orig = track_df_orig[(track_df_orig["ev_id"]<stop) & (track_df_orig["ev_id"]>=start)]
+      event_df = event_df[(event_df["ev_id"]<stop) & (event_df["ev_id"]>=start)]
+      if self.use_D0_info:
+        D0_df_orig = D0_df_orig[(D0_df_orig["ev_id"]<stop) & (D0_df_orig["ev_id"]>=start)]
+
     # Check if there are duplicated tracks
     #print(track_df_orig)
     #d = track_df_orig.duplicated(self.track_columns, keep=False)
@@ -226,7 +234,7 @@ class ProcessIO(common_base.CommonBase):
     n_duplicates = sum(self.track_df.duplicated(self.track_columns))
     if n_duplicates > 0:
       sys.exit('ERROR: There appear to be {} duplicate particles in the merged dataframe'.format(n_duplicates))
-
+    
     print("only looking events in a given range")
     if stop > start:
       self.track_df = self.track_df[(self.track_df["ev_id"]<stop) & (self.track_df["ev_id"]>=start)]

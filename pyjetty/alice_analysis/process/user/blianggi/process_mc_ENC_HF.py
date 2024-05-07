@@ -55,10 +55,10 @@ class ProcessMC_ENC_HF(process_mc_base.ProcessMCBase):
   #---------------------------------------------------------------
   # Constructor
   #---------------------------------------------------------------
-  def __init__(self, input_file='', config_file='', output_dir='', debug_level=0, **kwargs):
+  def __init__(self, input_file='', config_file='', output_dir='', event_start_offset=0, debug_level=0, **kwargs):
   
     # Initialize base class
-    super(ProcessMC_ENC_HF, self).__init__(input_file, config_file, output_dir, debug_level, **kwargs)
+    super(ProcessMC_ENC_HF, self).__init__(input_file, config_file, output_dir, event_start_offset, debug_level, **kwargs)
     
     self.observable = self.observable_list[0]
 
@@ -388,8 +388,10 @@ class ProcessMC_ENC_HF(process_mc_base.ProcessMCBase):
     self.fsparsepartonJetvalue[0] = jet_pt
     
     # find the D0's - assuming one D0 per jet
+    d0injetfound_bool = False
     for part in c_select:
       if self.findD0(part): # if self.D0particleinfo != None:
+        d0injetfound_bool = True
         D0_px = self.D0particleinfo.px()
         D0_py = self.D0particleinfo.py()
         self.fsparsejetlevelJetvalue[1] = math.sqrt(D0_px*D0_px + D0_py*D0_py)
@@ -401,12 +403,15 @@ class ProcessMC_ENC_HF(process_mc_base.ProcessMCBase):
           print("D0 pt is ", math.sqrt(D0_px*D0_px + D0_py*D0_py), "and D0 rapidity is", self.D0particleinfo.python_info().particle_rap) #self.D0particleinfo.rap())
           self.alld0counter+=1          
         break # break after one D0 found in a jet
-      else:
-        return # don't want to look at jets that don't have a D0
+    if d0injetfound_bool == False:
+      # print("in else NOT a D0 jet IS THIS WRONG")
+      return # don't want to look at jets that don't have a D0
 
     # now check if the D0 comes from a D*. if yes, skip. if no, move on
+    # print("checking D*")
     if self.firsttimejet:
       print("D0 mother is", self.D0particleinfo.python_info().particle_mid)
+    # print("here", hname)
     if abs(self.D0particleinfo.python_info().particle_mid) == 413: # D*
       return
 
@@ -644,6 +649,10 @@ if __name__ == '__main__':
                       type=str, metavar='outputDir',
                       default='./TestOutput',
                       help='Output directory for output to be written to')
+  parser.add_argument('-e', '--eventStartOffset', action='store',
+                      type=int, metavar='eventStartOffset',
+                      default=0,
+                      help='If input file does not start with event 1, offset it by this amount')
   
   # Parse the arguments
   args = parser.parse_args()
@@ -652,6 +661,7 @@ if __name__ == '__main__':
   print('inputFile: \'{0}\''.format(args.inputFile))
   print('configFile: \'{0}\''.format(args.configFile))
   print('ouputDir: \'{0}\"'.format(args.outputDir))
+  print('eventOffset: \'{0}\"'.format(args.eventStartOffset))
 
   # If invalid inputFile is given, exit
   if not os.path.exists(args.inputFile):
@@ -663,6 +673,6 @@ if __name__ == '__main__':
     print('File \"{0}\" does not exist! Exiting!'.format(args.configFile))
     sys.exit(0)
 
-  analysis = ProcessMC_ENC_HF(input_file=args.inputFile, config_file=args.configFile, output_dir=args.outputDir)
+  analysis = ProcessMC_ENC_HF(input_file=args.inputFile, config_file=args.configFile, output_dir=args.outputDir, event_start_offset=args.eventStartOffset)
   analysis.process_mc()
 
