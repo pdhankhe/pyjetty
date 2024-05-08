@@ -171,7 +171,7 @@ TLine * drawHoriLine(double x1, double x2, double y1, int color, int linestyle=2
 }
 
 
-void make_herwig_plots_write() {
+void make_sherpa_plots_write() {
 
 //    gROOT->SetBatch(); //prevents plots from showing up
     gStyle->SetOptStat(0);
@@ -184,10 +184,10 @@ void make_herwig_plots_write() {
     // File containing quark vs gluon histograms
 
      //FOR WHEN WEIGHTED/UNWEIGHTED IN SAME FILE
-    // const char infile_D0_noDstar[] = "/rstorage/generators/herwig_alice/histograms/249612/216486/AnalysisResultsFinal.root"; //this is using thnsparse
-    // const char infile_D0[] = "/rstorage/generators/herwig_alice/histograms/277508/271758/AnalysisResultsFinal.root"; //this is using thnsparse
-    std::string infile_D0 = "/rstorage/generators/herwig_alice/scaling/249612/216486/AnalysisResultsFinal.root"; //this is using thnsparse
-    std::string infile_D0_noDstar = "/rstorage/generators/herwig_alice/scaling/277508/271758/AnalysisResultsFinal.root"; //this is using thnsparse
+    std::string infile_charm_jetpt10 = "/rstorage/blianggi/sherpagen/charm_jetpt10/histograms/AnalysisResultsFinal.root"; //this is using thnsparse
+    std::string infile_charm_jetpt10_lund = "/rstorage/blianggi/sherpagen/charm_jetpt10_lund/histograms/AnalysisResultsFinal.root"; //this is using thnsparse
+    std::string infile_charm_jetpt15 = "/rstorage/blianggi/sherpagen/charm_jetpt15/histograms/AnalysisResultsFinal.root"; //this is using thnsparse
+    std::string infile_charm_jetpt15_lund = "/rstorage/blianggi/sherpagen/charm_jetpt15_lund/histograms/AnalysisResultsFinal.root"; //this is using thnsparse
 
 
     // int plot_case:
@@ -198,14 +198,14 @@ void make_herwig_plots_write() {
 
 
     // Output directory
-    std::string outdir = "plots/herwig/";
+    std::string outdir = "plots/sherpa/";
     // Output file for binned results
-    std::string outfile = outdir + "AnalysisResultsFinal_herwig" + ".root"; 
+    std::string outfile = outdir + "AnalysisResultsFinal_sherpa" + ".root"; 
     TFile* f_out = new TFile(outfile.c_str(), "RECREATE");
 
     int ifile = 0;
-    std::string file_list[] = { infile_D0, infile_D0_noDstar };
-    std::string dname_list[] = { "D0", "D0_noDstar" };
+    std::string file_list[] = { infile_charm_jetpt10, infile_charm_jetpt10_lund, infile_charm_jetpt15, infile_charm_jetpt15_lund };
+    std::string dname_list[] = { "c_jetpt10", "c_jetpt10_lund", "c_jetpt15", "c_jetpt15_lund"};
     for (std::string file : file_list) {
         
         TFile* f = new TFile(file.c_str(), "READ");
@@ -221,10 +221,10 @@ void make_herwig_plots_write() {
             std::string trkthrd_list[] = { "0.15", "0.5", "1.0" };
             int itrkthrd = 0;
             for (std::string trkthrd : trkthrd_list) {
-                const std::string EEC_name = "h_jet_ENC_RL2_JetPt_Truth_R" + jetR + "_" + trkthrd + "Scaled";
-                const std::string EEC_ptrl_name = "h_jet_ENC_RL2Pt_JetPt_Truth_R" + jetR + "_" + trkthrd + "Scaled";
-                const std::string EEC_noweight_name = "h_jet_EEC_noweight_RL_JetPt_Truth_R" + jetR + "_" + trkthrd + "Scaled";
-                const std::string jetinfo_name = "h_jet_pt_JetPt_Truth_R" + jetR + "_" + trkthrd + "Scaled";
+                const std::string EEC_name = "h_jet_ENC_RL2_JetPt_Truth_R" + jetR + "_" + trkthrd;
+                const std::string EEC_ptrl_name = "h_jet_ENC_RL2Pt_JetPt_Truth_R" + jetR + "_" + trkthrd;
+                const std::string EEC_noweight_name = "h_jet_EEC_noweight_RL_JetPt_Truth_R" + jetR + "_" + trkthrd;
+                const std::string jetinfo_name = "h_jet_pt_JetPt_Truth_R" + jetR + "_" + trkthrd;
 
                 //-------------------------------------------------//
                 // find D0 reconstruction through charm
@@ -286,7 +286,7 @@ void make_herwig_plots_write() {
                     l = new TLegend(0.1797168,0.400741,0.4562155,0.8885185,""); //(0.17, 0.4, 0.5, 0.53);
                     l->SetTextSize(0.045);
                     // TLegend *leg = new TLegend(0.1797168,0.5390741,0.4562155,0.8885185,"");
-                    l->AddEntry("NULL","Herwig"); //"PYTHIA 8 Monash 2013","h");
+                    l->AddEntry("NULL","Sherpa"); //"PYTHIA 8 Monash 2013","h");
                     l->AddEntry("NULL","pp, #sqrt{#it{s}} = 13 TeV","h");
                     l->AddEntry("NULL","D^{0} #rightarrow K^{#minus} #pi^{+} and charge conj.","h");
                     l->AddEntry("NULL","in charged jets, anti-#it{k}_{T}, #it{R} = 0.4","h");

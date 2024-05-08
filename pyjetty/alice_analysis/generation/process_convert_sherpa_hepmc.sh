@@ -11,40 +11,24 @@ else
   echo "Wrong command line arguments"
 fi
 
-if [ "$2" != "" ]; then
-  JOB_ID=$2
-  echo "Job ID: $JOB_ID"
-else
-  echo "Wrong command line arguments"
-fi
+# if [ "$2" != "" ]; then
+#   JOB_ID=$2
+#   echo "Job ID: $JOB_ID"
+# else
+#   echo "Wrong command line arguments"
+# fi
 
-if [ "$3" != "" ]; then
-  TASK_ID=$3
-  echo "Task ID: $TASK_ID"
-else
-  echo "Wrong command line arguments"
-fi
+# if [ "$3" != "" ]; then
+#   TASK_ID=$3
+#   echo "Task ID: $TASK_ID"
+# else
+#   echo "Wrong command line arguments"
+# fi
 
-# Define output path from relevant sub-path of input file
-# Note: suffix depends on file structure of input file -- need to edit appropriately for each dataset
-OUTPUT_SUFFIX=$(echo $INPUT_FILE | cut -d/ -f6-8)
-echo "OUTPUT_SUFFIX SUPPOSED TO BE:"
-echo $OUTPUT_SUFFIX
-# OUTPUT_SUFFIX=${TASK_ID}
-OUTPUT_DIR="/rstorage/generators/sherpa_alice/tree_gen/$JOB_ID/$OUTPUT_SUFFIX/"
-echo "Output dir: $OUTPUT_DIR"
-mkdir -p $OUTPUT_DIR
 
 # Load modules
 source /home/blianggi/activate_pyjetty.sh
-# module load herwig_with_deps
 
 # Run main script
-cd /software/users/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/generation
-python hepmc2antuple_tn.py -i $INPUT_FILE -o $OUTPUT_DIR/AnalysisResultsGen.root -g sherpa --no-progress-bar -d -hepmc 3
-
-# Move stdout to appropriate folder
-# mkdir -p /rstorage/generators/herwig_alice/tree_gen/${JOB_ID}/slurm-output
-# mv /rstorage/generators/herwig_alice/tree_gen/slurm-${JOB_ID}_${TASK_ID}.out /rstorage/generators/herwig_alice/tree_gen/${JOB_ID}/slurm-output/
-
-
+ALICEANALYSIS_DIR=/software/users/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis
+python $ALICEANALYSIS_DIR/generation/hepmc2antuple_tn.py -i $INPUT_FILE -o ./AnalysisResultsGen.root -g sherpa --no-progress-bar -d --hepmc 3
