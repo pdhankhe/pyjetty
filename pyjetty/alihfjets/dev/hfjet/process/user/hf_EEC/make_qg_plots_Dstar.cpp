@@ -303,8 +303,8 @@ void make_qg_plots_Dstar() {
 //    std::string grooming_list[] = { "", "_SD_zcut02_B0" };
     std::string jetR_list[] = { "0.4" };
     for (std::string jetR : jetR_list) {
-//        for (std::string alpha : alpha_list) {
-//            for (std::string grooming : grooming_list) {
+        //        for (std::string alpha : alpha_list) {
+        //            for (std::string grooming : grooming_list) {
 
         // Names of histograms in the file (quark, charm, gluon)
         const std::string hi_name = "h_EEC_JetPt_inclusive_R" + jetR;
@@ -326,6 +326,21 @@ void make_qg_plots_Dstar() {
         const std::string hD0KpiNjets_name = "hD0KpiNjets"; //TODO later: = "hD0KpiNehD0KpiNjetsvents" for run 16729583
 
         const std::string D0_jet_name = "D0jet_EEC_15_30";
+
+        // find D0 reconstruction through charm
+        THnSparse* hsparsejet_c = (THnSparse*) f->Get(hc_name.c_str());
+        THnSparse* hsparsejet_c_jetlevel = (THnSparse*) f->Get(hc_jet_name.c_str());
+        // TH1* hc1D_jet = (TH1*) f->Get(hc_jet_name.c_str()); 
+
+        // testing - look at # jets before cuts
+        cout << "numDtaggedjets from hist before cuts " << hsparsejet_c_jetlevel->Projection(0)->GetEntries() << endl;
+
+        
+        // save D0 pt spectrum
+        TH1D *hD0_pT = hsparsejet_c_jetlevel->Projection(1); //use jet level
+        hD0_pT->SetNameTitle("hD0_pt", "hD0_pt");
+
+
 
 
         //const int pt_bins[] = { 10, 20, 40, 60, 80, 100, 150 };
@@ -406,13 +421,6 @@ void make_qg_plots_Dstar() {
             // hi->SetNameTitle(hname.c_str(), hname.c_str());
 
             //-------------------------------------------------//
-            // find D0 reconstruction through charm
-            THnSparse* hsparsejet_c = (THnSparse*) f->Get(hc_name.c_str());
-            THnSparse* hsparsejet_c_jetlevel = (THnSparse*) f->Get(hc_jet_name.c_str());
-            // TH1* hc1D_jet = (TH1*) f->Get(hc_jet_name.c_str()); 
-
-            // testing - look at # jets before cuts
-            cout << "numDtaggedjets from hist before cuts " << hsparsejet_c_jetlevel->Projection(0)->GetEntries() << endl;
 
             // for THnSparse: make clone to work with, make cuts, get projection
             THnSparse *hsparsejet_c_clone = (THnSparse *) hsparsejet_c->Clone("hsparsejet_c_clone");
@@ -698,6 +706,8 @@ void make_qg_plots_Dstar() {
             // }
              
         } // pT bins loop
+
+        hD0_pT->Write();
 //            } // grooming loop
 //        } // alpha loop
     } // jetR loop

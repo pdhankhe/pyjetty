@@ -102,6 +102,8 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 		self.softpion_action = args.softpion #1 = remove soft pion from D*, 2 = only pair soft pion with charged particles, 3 = only pair soft pion with D0, 4 = pair soft pion w everything
 		self.use_ptRL = (bool)(args.giveptRL) #1=True=replace RL in THnSparse with pT*RL
 		self.phimeson = (bool)(args.runphi) #1=don't let phi meson decay and look at its EEC
+		self.use_fulljets = (bool)(args.fulljets) #0 = use charged jets, 1 = use full jets
+		self.glu_spli = (bool)(args.gluspli) #0 = do not save gluon splitting info, 1 = do save gluon splitting info
 
 		# PDG ID values for quarks and gluons
 		self.quark_pdg_ids = [1, 2, 3, 4, 5, 6, 7, 8, -1, -2, -3, -4, -5, -6, -7, -8]
@@ -299,6 +301,12 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 		self.hDeltaR = ROOT.TH1F("hDeltaR", 'Delta R between jet and each parent', 40, 0, 0.4)
 		self.hnumconst = ROOT.TH1I("hnumconst", "Number of constituents per jet (unscaled)", 50, 0, 50)
 		self.hnumconstwTrackcut = ROOT.TH1I("hnumconstwTrackcut", "Number of constituents per jet with the track cut (unscaled)", 50, 0, 50)
+		self.hD0pT = ROOT.TH1F("hD0pT", 'pt of D0', 200, 0., 200.)
+		self.hD0z = ROOT.TH2F("hD0z", 'z of D0;D0 z;jet pT', 100, 0., 1.01, 200, 0., 200.)
+		self.hNgluonsplitjets = ROOT.TH1I("hNgluonsplitjets", "Number of jets that come from gg->ccbar (unscaled)", 2, -0.5, 1.5)
+		self.hD0pT_gluonsplit = ROOT.TH1F("hD0pT_gluonsplit", 'pt of D0s that come from gluon splitting', 200, 0., 200.)
+		self.hD0z_gluonsplit = ROOT.TH2F("hD0z_gluonsplit", 'z of D0s that come from gluon splitting;D0 z;jet pT', 100, 0., 1.01, 200, 0., 200.)
+
 
 		if self.phimeson:
 			self.hphiNevents = ROOT.TH1I("hphiNevents", "Total Number of phi events (unscaled)", 2, -0.5, 1.5)
@@ -322,12 +330,13 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 				# Use more finely binned pT bins for TH2s than for the RMs
 				pt_bins = array.array('d', list(range(0, 201, 1)))
 				rapi_bins = np.linspace(-5,5,201)
+				z_bins = np.linspace(0, 1.01, 102)
 
 
 				dim = 4
-				nbins  = [len(pt_bins)-1, len(pt_bins)-1, len(rapi_bins)-1, 50]
-				min_li = [pt_bins[0],     pt_bins[0],      rapi_bins[0],      obs_bins[0]]
-				max_li = [pt_bins[-1],    pt_bins[-1],     rapi_bins[-1],     obs_bins[-1]]
+				nbins  = [len(pt_bins)-1, len(pt_bins)-1, len(rapi_bins)-1, len(z_bins)-1, 50]
+				min_li = [pt_bins[0],     pt_bins[0],      rapi_bins[0],      obs_bins[0],      z_bins[0]]
+				max_li = [pt_bins[-1],    pt_bins[-1],     rapi_bins[-1],     obs_bins[-1],     z_bins[-1]]
 
 				nbins = (nbins)
 				xmin = (min_li)
@@ -355,10 +364,10 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 				# hsparse_D0.Sumw2()
 				# setattr(self, name, hsparse_D0)
 				# getattr(self, hist_list_name).append(hsparse_D0)
-				self.fsparsepartonJetvalue = array.array( 'd', ( 0, 0, 0 ,0 ))
-				self.fsparsejetlevelJetvalue = array.array( 'd', ( 0, 0, 0 ))
+				self.fsparsepartonJetvalue = array.array( 'd', ( 0, 0, 0, 0, 0 ))
+				self.fsparsejetlevelJetvalue = array.array( 'd', ( 0, 0, 0, 0 ))
 		
-				partontypeslist = ["charm", "light", "gluon", "inclusive"] #got rid of quark
+				partontypeslist = ["charm", "light", "gluon", "inclusive", "c_gluonsplit", "c_nogluonsplit"] #got rid of quark
 				if (self.initscat == 4):
 					partontypeslist.append("beauty")
 
@@ -366,12 +375,12 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 
 					# title = [ '#it{p}_{T}^{ch jet}', '#it{R}_{L}', 'y', '#it{p}_{T}^{D^{0}}']
 					if (self.use_ptRL):
-						title = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'y', '#it{p}_{T}#it{R}_{L}' ]
+						title = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'y', 'z', '#it{p}_{T}#it{R}_{L}' ]
 					else:
 						if (not self.phimeson):
-							title = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'y', '#it{R}_{L}' ]
+							title = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'y', 'z', '#it{R}_{L}' ]
 						else:
-							title = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{#phi}', 'y', '#it{R}_{L}' ]
+							title = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{#phi}', 'y', 'z', '#it{R}_{L}' ]
 
 					# make THnSparse for parton EECs
 					name = ('hsparse_%s_JetPt_%s_R%s_%s' % (observable, parton_type, jetR, obs_label)) if \
@@ -387,6 +396,8 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 						if i == 2:
 							hsparse.SetBinEdges(i, rapi_bins)
 						if i == 3:
+							hsparse.SetBinEdges(i, z_bins)
+						if i == 4:
 							hsparse.SetBinEdges(i, obs_bins)
 					setattr(self, name, hsparse)
 					getattr(self, hist_list_name).append(hsparse)
@@ -406,8 +417,11 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 							hsparse_jetpt.SetBinEdges(i, pt_bins)
 						if i == 2:
 							hsparse_jetpt.SetBinEdges(i, rapi_bins)
+						if i == 3:
+							hsparse_jetpt.SetBinEdges(i, z_bins)
 					setattr(self, name_jetpt, hsparse_jetpt)
 					getattr(self, hist_list_name).append(hsparse_jetpt)
+
 
 	#---------------------------------------------------------------
 	# Initiate jet defs, selectors, and sd (if required)
@@ -463,6 +477,12 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			# Save PDG code of the parent partons
 			self.parent_ids = [pythia.event[5].id(), pythia.event[6].id()]
 
+			#loop for gluons splitting
+			fs_parton_3 = fj.PseudoJet(pythia.event[3].px(), pythia.event[3].py(), pythia.event[3].pz(), pythia.event[3].e())
+			fs_parton_4 = fj.PseudoJet(pythia.event[4].px(), pythia.event[4].py(), pythia.event[4].pz(), pythia.event[4].e())
+			self.scatteringpartons = [fs_parton_3, fs_parton_4]
+			self.scatteringpartons_ids = [pythia.event[3].id(), pythia.event[4].id()]
+
 			# Print out some information
 			# print("NEW EVENT", iev)
 			# print("pythia.event size is ", pythia.event.size())
@@ -491,7 +511,10 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 				continue
 
 			# full-hadron level
-			#parts_pythia_h = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal], 0, True)
+			if self.use_fulljets:
+				parts_pythia_h = pythiafjext.vectorize_select_replaceD0(pythia, [pythiafjext.kFinal], 0, True)
+			else:
+				parts_pythia_h = None
 
 			# print("!! pythia hadron (before vectorization) event size is ", pythia.event.size())
 			# eventcounter = 0
@@ -611,7 +634,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 
 			# Some "accepted" events don't survive hadronization step -- keep track here
 			self.hNevents.Fill(0)
-			self.find_jets_fill_histograms(parts_pythia_hch, iev, D0Kpidecayfound)
+			self.find_jets_fill_histograms(parts_pythia_hch, iev, D0Kpidecayfound, parts_pythia_h)
 
 			iev += 1
 
@@ -644,7 +667,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 	#---------------------------------------------------------------
 	# Find jets, do matching between levels, and fill histograms
 	#---------------------------------------------------------------
-	def find_jets_fill_histograms(self, parts_pythia_hch, iev, D0Kpidecayfound):
+	def find_jets_fill_histograms(self, parts_pythia_hch, iev, D0Kpidecayfound, parts_pythia_h):
 		# Loop over jet radii
 		for jetR in self.jetR_list:
 
@@ -658,11 +681,14 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 
 			# Get the jets at different levels
 			#jets_p  = fj.sorted_by_pt(jet_selector(jet_def(parts_pythia_p  ))) # parton level
-			#jets_h  = fj.sorted_by_pt(jet_selector(jet_def(parts_pythia_h  ))) # full hadron level
+			# jets_h  = fj.sorted_by_pt(jet_selector(jet_def(track_selector_ch(parts_pythia_h)))) # full hadron level
 			# if (not self.replaceKPpairs and not self.phimeson):
 			# 	jets_ch = fj.sorted_by_pt(jet_selector(jet_def(parts_pythia_hch))) # charged hadron level
 			# else:
-			jets_ch = fj.sorted_by_pt(jet_selector(jet_def(track_selector_ch(parts_pythia_hch)))) # charged hadron level
+			if self.use_fulljets:
+				jets_ch = fj.sorted_by_pt(jet_selector(jet_def(track_selector_ch(parts_pythia_h)))) # full hadron level
+			else:
+				jets_ch = fj.sorted_by_pt(jet_selector(jet_def(track_selector_ch(parts_pythia_hch)))) # charged hadron level
 			# print("!! length of jets_ch", len(jets_ch))
 
 			R_label = str(jetR).replace('.', '') + 'Scaled'
@@ -735,6 +761,15 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 					parton_types += ["gluon"]
 				if not self.replaceKPpairs:
 					parton_types += ["inclusive"]
+
+				if self.glu_spli:
+					scatteringparton_id = self.scatteringpartons_ids[i_parent]
+					if scatteringparton_id in self.gluon_pdg_ids:
+						parton_types += ["c_gluonsplit"]
+						self.gluonsplitting = True
+					else:
+						parton_types += ["c_nogluonsplit"]
+						self.gluonsplitting = False
 
 				# If parent parton not identified, skip for now
 				if not len(parton_types):
@@ -872,23 +907,41 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 						self.hDstarNjets.Fill(0) 
 					if (self.phimeson and phitaggedjet):
 						self.hphiNjets.Fill(0)
+					# count the number of gluon splittings
+					if self.glu_spli and self.gluonsplitting:
+						self.hNgluonsplitjets.Fill(0)
 
 					# print("filling jet level thnsparse")
+					# fill jet pt histogram to give the normalization
+					self.fsparsejetlevelJetvalue[0] = jet.pt()
+					if ( self.replaceKPpairs or self.phimeson): # phimeson has bad naming convention but is properly filled here
+						D0_px = self.D0particleinfo.px()
+						D0_py = self.D0particleinfo.py()
+						D0_pt = math.sqrt(D0_px*D0_px + D0_py*D0_py)
+						# print("momentum confirmed", D0_px, D0_py)
+						self.fsparsejetlevelJetvalue[1] = D0_pt
+						self.fsparsejetlevelJetvalue[2] = self.D0particleinfo.y()
+
+						# D0 information
+						self.hD0pT.Fill(D0_pt)
+						self.hD0z.Fill(D0_pt/jet.pt(), jet.pt())
+						if D0_pt/jet.pt() == 1.:
+							print("z=1!:", len(jet.constituents()), D0_pt, self.D0particleinfo.y())
+						if self.glu_spli and self.gluonsplitting:
+							self.hD0pT_gluonsplit.Fill(D0_pt)
+							self.hD0z_gluonsplit.Fill(D0_pt/jet.pt(), jet.pt())
+						
+					else:
+						self.fsparsejetlevelJetvalue[1] = -1
+						self.fsparsejetlevelJetvalue[2] = -99
+
 					for parton_type in parton_types:
-						# fill jet pt histogram to give the normalization
-						self.fsparsejetlevelJetvalue[0] = jet.pt()
-						if ( self.replaceKPpairs or self.phimeson): # phimeson has bad naming convention but is properly filled here
-							D0_px = self.D0particleinfo.px()
-							D0_py = self.D0particleinfo.py()
-							# print("momentum confirmed", D0_px, D0_py)
-							self.fsparsejetlevelJetvalue[1] = math.sqrt(D0_px*D0_px + D0_py*D0_py)
-							self.fsparsejetlevelJetvalue[2] = self.D0particleinfo.y()
-						else:
-							self.fsparsejetlevelJetvalue[1] = -1
-							self.fsparsejetlevelJetvalue[2] = -99
 						getattr(self, ('h_JetPt_%s_R%s_%s_jetlevel' % (parton_type, jetR, obs_label)) if \
 							len(obs_label) else ('h_JetPt_%s_R%s_jetlevel' % (parton_type, jetR))).Fill(self.fsparsejetlevelJetvalue)
 					
+
+						
+
 
 					# skip filling the pair level information if necessary 
 					if (self.difNorm): 
@@ -916,23 +969,23 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 
 					# print("filling pair level thnsparse")
 					for index in range(obs.correlator(2).rs().size()):
+						self.fsparsepartonJetvalue[0] = jet.pt()
+						if (self.use_ptRL):
+							self.fsparsepartonJetvalue[3] = obs.correlator(2).rs()[index]*jet.pt()
+						else:
+							self.fsparsepartonJetvalue[3] = obs.correlator(2).rs()[index]
+						if ( self.replaceKPpairs or self.phimeson): # phimeson has bad naming convention but is properly filled here
+							D0_px = self.D0particleinfo.px()
+							D0_py = self.D0particleinfo.py()
+							# print("D0 pt is ", math.sqrt(D0_px*D0_px + D0_py*D0_py))
+							self.fsparsepartonJetvalue[1] = math.sqrt(D0_px*D0_px + D0_py*D0_py)
+							self.fsparsepartonJetvalue[2] = self.D0particleinfo.y()
+						else:
+							self.fsparsepartonJetvalue[1] = -1
+							self.fsparsepartonJetvalue[2] = -99
+
 						for parton_type in parton_types:
 							#fill parton hnsparse info
-							self.fsparsepartonJetvalue[0] = jet.pt()
-							if (self.use_ptRL):
-								self.fsparsepartonJetvalue[3] = obs.correlator(2).rs()[index]*jet.pt()
-							else:
-								self.fsparsepartonJetvalue[3] = obs.correlator(2).rs()[index]
-							if ( self.replaceKPpairs or self.phimeson): # phimeson has bad naming convention but is properly filled here
-								D0_px = self.D0particleinfo.px()
-								D0_py = self.D0particleinfo.py()
-								# print("D0 pt is ", math.sqrt(D0_px*D0_px + D0_py*D0_py))
-								self.fsparsepartonJetvalue[1] = math.sqrt(D0_px*D0_px + D0_py*D0_py)
-								self.fsparsepartonJetvalue[2] = self.D0particleinfo.y()
-							else:
-								self.fsparsepartonJetvalue[1] = -1
-								self.fsparsepartonJetvalue[2] = -99
-
 							if self.weighted:
 								getattr(self, ('h_%s_JetPt_%s_R%s_%s' % (observable, parton_type, jetR, obs_label)) if \
 									len(obs_label) else ('h_%s_JetPt_%s_R%s' % (observable, parton_type, jetR))).Fill(self.fsparsepartonJetvalue, obs.correlator(2).weights()[index])
@@ -1238,8 +1291,9 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 		self.hD0KpiNevents.SetBinError(1, 0)
 		self.hD0KpiNjets.SetBinError(1, 0)
 		self.hDstarNjets.SetBinError(1, 0)
-		self.hnumconst.SetBinError(1, 0)
-		self.hnumconstwTrackcut.SetBinError(1, 0)
+		# self.hnumconst.SetBinError(1, 0)
+		# self.hnumconstwTrackcut.SetBinError(1, 0)
+		self.hNgluonsplitjets.SetBinError(1, 0)
 
 		if self.phimeson:
 			self.hphiNevents.SetBinError(1, 0)
@@ -1278,7 +1332,8 @@ if __name__ == '__main__':
 						'4' gives soft pion with everything")
 	parser.add_argument('--giveptRL', action='store', type=int, default=0, help="'1' changes THnSparse to calculate pT*RL (instead of RL)")
 	parser.add_argument('--runphi', action='store', type=int, default=0, help="'1' looks at the phi meson (not allowed to decay)")
-
+	parser.add_argument('--fulljets', action='store', type=int, default=0, help="'0' runs charged jets, '1' runs full jets")
+	parser.add_argument('--gluspli', action='store', type=int, default=0, help="'1' saves gluon splitting info")
 
 	args = parser.parse_args()
 	pinfo("The arguments to run are: ", args)

@@ -192,7 +192,8 @@ void make_qg_plots_write_all() {
     // File containing quark vs gluon histograms
 
      //FOR WHEN WEIGHTED/UNWEIGHTED IN SAME FILE
-    const char infile_D0_weighted[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17651853/AnalysisResultsFinal.root"; // OR 17651853? //this is using thnsparse
+    // const char infile_D0_weighted[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17651853/AnalysisResultsFinal.root"; // OR 17651853? //this is using thnsparse
+    const char infile_D0_weighted[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/24737979/AnalysisResultsFinal.root"; // using this for consistency
     const char infile_D02_weighted[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/18063568/AnalysisResultsFinal.root"; // OR 17651853? //this is using thnsparse
     const char infile_D0_unweighted[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/23581878/AnalysisResultsFinal.root"; //this is using thnsparse
     const char infile_incl_weighted[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/23581930/AnalysisResultsFinal.root";
@@ -244,6 +245,36 @@ void make_qg_plots_write_all() {
         const std::string hi_jet_name = "h_JetPt_inclusive_R" + jetR + "_jetlevel";
 
         const std::string hD0KpiNjets_name = "hD0KpiNjets"; //TODO later: = "hD0KpiNehD0KpiNjetsvents" for run 16729583
+
+        // find D0 reconstruction through charm
+
+        THnSparse* hsparsejet_c = (THnSparse*) f_D0_w->Get(hc_name.c_str());
+        THnSparse* hsparsejet_c_jetlevel = (THnSparse*) f_D0_w->Get(hc_jet_name.c_str());
+        THnSparse* hsparsejet_c_uw = (THnSparse*) f_D0_uw->Get(hc_name.c_str());
+        THnSparse* hsparsejet_c_uw_jetlevel = (THnSparse*) f_D0_uw->Get(hc_jet_name.c_str());
+
+        THnSparse* hsparsejet_g = (THnSparse*) f_incl_w->Get(hg_name.c_str());
+        THnSparse* hsparsejet_g_jetlevel = (THnSparse*) f_incl_w->Get(hg_jet_name.c_str());
+        THnSparse* hsparsejet_g_uw = (THnSparse*) f_incl_uw->Get(hg_name.c_str());
+        THnSparse* hsparsejet_g_uw_jetlevel = (THnSparse*) f_incl_uw->Get(hg_jet_name.c_str());
+        
+        THnSparse* hsparsejet_l = (THnSparse*) f_incl_w->Get(hl_name.c_str());
+        THnSparse* hsparsejet_l_jetlevel = (THnSparse*) f_incl_w->Get(hl_jet_name.c_str());
+        THnSparse* hsparsejet_l_uw = (THnSparse*) f_incl_uw->Get(hl_name.c_str());
+        THnSparse* hsparsejet_l_uw_jetlevel = (THnSparse*) f_incl_uw->Get(hl_jet_name.c_str());
+
+        THnSparse* hsparsejet_i = (THnSparse*) f_incl_w->Get(hi_name.c_str());
+        THnSparse* hsparsejet_i_jetlevel = (THnSparse*) f_incl_w->Get(hi_jet_name.c_str());
+        THnSparse* hsparsejet_i_uw = (THnSparse*) f_incl_uw->Get(hi_name.c_str());
+        THnSparse* hsparsejet_i_uw_jetlevel = (THnSparse*) f_incl_uw->Get(hi_jet_name.c_str());
+
+        // save D0 pt spectrum
+        TH1D *hD0_pT = hsparsejet_c_jetlevel->Projection(1); //use jet level
+        TH1D *hD0_uw_pT = hsparsejet_c_uw_jetlevel->Projection(1);
+
+        hD0_pT->SetNameTitle("hD0_pt", "hD0_pt");
+        hD0_uw_pT->SetNameTitle("hD0_uw_pt", "hD0_uw_pt");
+        // cout << "Num entries: " << hsparsejet_c_jetlevel->GetEntries() << endl;
 
 
 
@@ -330,27 +361,6 @@ void make_qg_plots_write_all() {
             
 
             //-------------------------------------------------//
-            // find D0 reconstruction through charm
-
-            THnSparse* hsparsejet_c = (THnSparse*) f_D0_w->Get(hc_name.c_str());
-            THnSparse* hsparsejet_c_jetlevel = (THnSparse*) f_D0_w->Get(hc_jet_name.c_str());
-            THnSparse* hsparsejet_c_uw = (THnSparse*) f_D0_uw->Get(hc_name.c_str());
-            THnSparse* hsparsejet_c_uw_jetlevel = (THnSparse*) f_D0_uw->Get(hc_jet_name.c_str());
-
-            THnSparse* hsparsejet_g = (THnSparse*) f_incl_w->Get(hg_name.c_str());
-            THnSparse* hsparsejet_g_jetlevel = (THnSparse*) f_incl_w->Get(hg_jet_name.c_str());
-            THnSparse* hsparsejet_g_uw = (THnSparse*) f_incl_uw->Get(hg_name.c_str());
-            THnSparse* hsparsejet_g_uw_jetlevel = (THnSparse*) f_incl_uw->Get(hg_jet_name.c_str());
-            
-            THnSparse* hsparsejet_l = (THnSparse*) f_incl_w->Get(hl_name.c_str());
-            THnSparse* hsparsejet_l_jetlevel = (THnSparse*) f_incl_w->Get(hl_jet_name.c_str());
-            THnSparse* hsparsejet_l_uw = (THnSparse*) f_incl_uw->Get(hl_name.c_str());
-            THnSparse* hsparsejet_l_uw_jetlevel = (THnSparse*) f_incl_uw->Get(hl_jet_name.c_str());
-
-            THnSparse* hsparsejet_i = (THnSparse*) f_incl_w->Get(hi_name.c_str());
-            THnSparse* hsparsejet_i_jetlevel = (THnSparse*) f_incl_w->Get(hi_jet_name.c_str());
-            THnSparse* hsparsejet_i_uw = (THnSparse*) f_incl_uw->Get(hi_name.c_str());
-            THnSparse* hsparsejet_i_uw_jetlevel = (THnSparse*) f_incl_uw->Get(hi_jet_name.c_str());
             
             // testing - look at # jets before cuts
             cout << "numDtaggedjets from hist before cuts " << hsparsejet_c_jetlevel->Projection(0)->GetEntries() << endl;
@@ -377,6 +387,7 @@ void make_qg_plots_write_all() {
             THnSparse *hsparsejet_i_jetlevel_clone = (THnSparse *) hsparsejet_i_jetlevel->Clone("hsparsejet_i_jetlevel_clone");
             THnSparse *hsparsejet_i_uw_clone = (THnSparse *) hsparsejet_i_uw->Clone("hsparsejet_i_uw_clone");
             THnSparse *hsparsejet_i_uw_jetlevel_clone = (THnSparse *) hsparsejet_i_uw_jetlevel->Clone("hsparsejet_i_uw_jetlevel_clone");
+
             
             // get jet pT range
             hsparsejet_c_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max); // apply cut on jet pt
@@ -384,13 +395,13 @@ void make_qg_plots_write_all() {
             hsparsejet_c_uw_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max); // apply cut on jet pt
             hsparsejet_c_uw_jetlevel_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max); // apply cut on jet pt
             
-            hsparsejet_c_clone->GetAxis(1)->SetRangeUser(5., pt_max); // apply cut on Dmeson pt
+            hsparsejet_c_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max); // apply cut on Dmeson pt
             hsparsejet_c_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8); // apply cut on Dmeson rapidity
-            hsparsejet_c_jetlevel_clone->GetAxis(1)->SetRangeUser(5., pt_max);
+            hsparsejet_c_jetlevel_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max);
             hsparsejet_c_jetlevel_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8);
-            hsparsejet_c_uw_clone->GetAxis(1)->SetRangeUser(5., pt_max);
+            hsparsejet_c_uw_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max);
             hsparsejet_c_uw_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8);
-            hsparsejet_c_uw_jetlevel_clone->GetAxis(1)->SetRangeUser(5., pt_max); // apply cut on Dmeson pt
+            hsparsejet_c_uw_jetlevel_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max); // apply cut on Dmeson pt
             hsparsejet_c_uw_jetlevel_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8); // apply cut on Dmeson rapidity
 
             hsparsejet_g_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max); // apply cut on jet pt
@@ -658,7 +669,13 @@ void make_qg_plots_write_all() {
             // }
              
         } // pT bins loop
+
+        hD0_pT->Write();
+        hD0_uw_pT->Write();
+
     } // jetR loop
+
+    
 
     f_D0_w->Close();
     delete f_D0_w;
