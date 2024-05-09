@@ -139,8 +139,6 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			obs_config_dict = config[observable]
 			obs_config_list = [name for name in list(obs_config_dict.keys()) if 'config' in name ]
 
-			# obs_subconfig_list = [name for name in list(obs_config_dict.keys()) if 'config' in name ]
-			# pinfo("obs_subconfig_list", obs_subconfig_list)
 			self.obs_settings[observable] = self.utils.obs_settings(observable, obs_config_dict, obs_config_list)
 			pinfo("self.obs_settings[observable]", self.obs_settings[observable])
 			self.obs_grooming_settings[observable] = self.utils.grooming_settings(obs_config_dict)
@@ -355,15 +353,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 				pinfo("all the settings", obs_setting, grooming_setting, obs_label)
 
 
-				# # make THnSparse for D0 EEC
-				# name = ('hsparse_%s_JetPt_%s_R%s_%s' % (observable, "D0-tagged", jetR, obs_label)) if \
-				#     len(obs_label) else ('h_%s_JetPt_%s_R%s' % (observable, "D0-tagged", jetR))
-				# hsparse_D0 = ROOT.THnSparseD(name,"hsparsejet_gen; '#it{p}_{T}^{ch jet}'; R_{L}; D_pt", D0_dim,  nbins_array, xmin_array, xmax_array)
-				# # hsparse_D0.GetXaxis().SetTitle('#it{p}_{T,%s}^{ch jet}' % (parton_type[0] + "-init"))
-				# # hsparse_D0.GetYaxis().SetTitle("R_{L}" + '^{%s}' % (parton_type[0] + "-init"))
-				# hsparse_D0.Sumw2()
-				# setattr(self, name, hsparse_D0)
-				# getattr(self, hist_list_name).append(hsparse_D0)
+
 				self.fsparsepartonJetvalue = array.array( 'd', ( 0, 0, 0, 0, 0 ))
 				self.fsparsejetlevelJetvalue = array.array( 'd', ( 0, 0, 0, 0 ))
 		
@@ -373,7 +363,6 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 
 				for parton_type in partontypeslist:
 
-					# title = [ '#it{p}_{T}^{ch jet}', '#it{R}_{L}', 'y', '#it{p}_{T}^{D^{0}}']
 					if (self.use_ptRL):
 						title = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'y', 'z', '#it{p}_{T}#it{R}_{L}' ]
 					else:
@@ -486,21 +475,6 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			# Print out some information
 			# print("NEW EVENT", iev)
 			# print("pythia.event size is ", pythia.event.size())
-			# eventcounter = 0
-			# for event in pythia.event:
-				# '''
-				# if eventcounter >=3 and eventcounter < 10:
-				#     print(eventcounter, "parton! with event id", event.id())
-				# if event.id() == 111 or event.id() == 211 or event.id() == -211: #pi0 or pi+ or pi-
-				#     print(eventcounter, "pion with event id", event.id())
-				# elif event.id() == 321 or event.id() == -321:
-				#     print(eventcounter, "kaon with event id", event.id())
-				# elif not(event.id() == 21 or (event.id() >=-8 and event.id() <= 8)): #gluon or quark
-				#     print(eventcounter, "not q/g with event id", event.id())
-				#     '''
-				# print(event.id())
-				# eventcounter+=1
-			# print("event counter is ", eventcounter)
 
 
 			# parton level
@@ -516,12 +490,6 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			else:
 				parts_pythia_h = None
 
-			# print("!! pythia hadron (before vectorization) event size is ", pythia.event.size())
-			# eventcounter = 0
-			# for event in pythia.event:
-			#     # if event.id() == 111 or event.id() == 211 or event.id() == -211: #pi0 or pi+ or pi-
-			#         # print(eventcounter, "pion with event id", event.id())
-			#     eventcounter+=1
 
 			#testing
 			# parts_pythia_hch_noreplace = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal, pythiafjext.kCharged], 0, True)
@@ -549,16 +517,11 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			# print("!! pythia hadron (after vectorization) event size is ", pythia.event.size())
 			#TODO: move this block above choosing final state charged particles??
 			particlecounter = 0
-			# eventcounter1 = 0
-			# eventcounter2 = 0
-			# indeximportant = -1
 			D0found = False
 			D0Kpidecayfound = False
 			phifound = False
 			self.DstarKpipidecayfound = False
 			for particle in self.event: #for event in pythia.event:
-			#     # if particle.id() == 111 or particle.id() == 211 or particle.id() == -211: #pi0 or pi+ or pi-
-			#         # print(particlecounter, "pion with particle id", particle.id())
 				if particle.id() == 421 or particle.id() == -421: #D0
 					D0found = True
 				#     print(particlecounter, "D0 with particle id", particle.id())
@@ -566,7 +529,6 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 						# print(particlecounter, "This is a D0->Kpi decay!", particle.id())
 						# print("Size of new vector", len(parts_pythia_hch))
 						D0Kpidecayfound = True
-						# self.getD0Info(particle)
 
 						#debugging prompt/nonprompt
 						# print("DEBUGGING!")
@@ -580,18 +542,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 					phifound = True
 
 				particlecounter+=1
-			#         # print("D0 daughter indices", pythia.event[event.daughter1()].id(), pythia.event[event.daughter2()].id())
-			#     if event.isCharged() and event.isFinal():
-			#         eventcounter1+=1
-			#         if indeximportant == -1:
-			#             indeximportant = eventcounter
-			#     # if event.isNeutral():
-			#     else:
-			#         eventcounter2+=1
-			#         # print(eventcounter2, "neutral hadron with event id", event.id())
-			#     eventcounter+=1
-			# print("eventcounter1", eventcounter1)
-			# # print(eventcounter1+eventcounter2)
+
 
 			#if D0->Kpi found, count the events; if not, check that length of charged final state hadrons vector is 0
 			if (D0Kpidecayfound):
@@ -605,30 +556,9 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 				# if len(parts_pythia_hch) > 0:
 				#         print(particlecounter, "There ARE particles in this jet (but shouldn't be)", len(parts_pythia_hch))
 
-			
-			
-
-
-			# self.event = pythia.event
-			# iev_to_print = [28, 31, 32, 58, 61, 89, 110, 113, 118, 123, 137, 144, 147, 150, 161, 173, 174, 175, 185, 194, 200, 202,210,211,216, 228, 231, 236, 240, 247, 248,251, 257, 259,263, 272, 273,284, 292,301,972]
-			# if (iev in iev_to_print):
-			# if (iev<10):
-			#     print(" event printed!:", iev)
-			#     print(self.event)
-
-
-
-			# if there is no D0 for charm jet, remove
-			# if ( self.replaceKPpairs ):
-			#     D0_indices = list(filter(lambda event: (event.idAbs() == 421), pythia.event))
-			#     print("There are", len(D0_indices), "D0s in this list")
-			#     if (len(D0_indices) == 0):
-			#         parts_pythia_hch = []
-
 
 			# print("!! length (parts_pythi_hch)", len(parts_pythia_hch))
 			# print("ID COMPARISON", pythia.event[indeximportant].id(), parts_pythia_hch[0].description()) #user_index())
-
 
 				
 
@@ -697,10 +627,6 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			# print("pythia charged hadron event size is ", pythia.event.size())
 
 
-			# # Replace k/pi pairs with D0
-			# if (self.replaceKPpairs):
-			#     print("hi")
-			anothacounter=0
 
 			# Find the charged jet closest to the axis of the original parton
 			# Require that the match is within some small angle, and that it is unique
@@ -713,41 +639,29 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 					self.hDeltaR.Fill(jch.delta_R(parent))
 					if jch.delta_R(parent) < jet_matching_distance * jetR:
 						match = getattr(self, parentmatch_name)
-						# print("MATCH FOR",i_parent,":",match)
 						if not match:
 							setattr(self, parentmatch_name, jch)
-							# print("MATCH SET TO JET WITH pT", jch.pt())
 						else:  # Already found a match
 							# Set flag value so that we know to ignore this one
-							# print("already found a match flagged")
 							setattr(self, parentmatch_name, 0)
-					# print(i_jch, "anothacounter", anothacounter)
 
 
 			# If we have matches, fill histograms
 			for i_parent, parent in enumerate(self.parents):
-				# print("in nexr loop")
 				jet = getattr(self, "parent%imatch" % i_parent)
-				# print(jet)
 				if not jet:
-					# pinfo("in not jet")
 					if jet == 0: # More than one match -- take note and continue
-						# print("case  1")
 						count1 += 1
 						continue
 					else:  # jet == None
 						# No matches -- take note and continue
-						# print("case  2")
 						count2 += 1
 						continue
 
-				# print("CHECKPOINT 2")
 
 				# One unique match
 				# Identify the histograms which need to be filled
-#                pinfo("passed not jet")
 				parton_id = self.parent_ids[i_parent]
-				# print("parton_id is ", parton_id)
 				parton_types = []
 				if parton_id in self.quark_pdg_ids:
 					# parton_types += ["quark"]
@@ -841,13 +755,6 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 							# print("Dstar is true and Dstar is not tagged")
 							continue
 					
-					
-					# print ("HERE!!!!")
-
-					# check if prompt or nonprompt - NOT for the Dstars - TODO: CHECK THIS LATER
-					# if (not self.Dstar):
-					#     self.promptness = self.checkPrompt(pythiafjext.getPythia8Particle(c), self.event)
-					#     print("prompt???", self.promptness)
 
 
 				phitaggedjet = False
@@ -876,7 +783,6 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 				# Fill histograms
 				for observable in self.observable_list:
 #                    pinfo("len(self.obs_settings[observable])", len(self.obs_settings[observable]))
-#                    for i in range(len(self.obs_settings[observable])): #looping through different configurations?
 
 					obs_setting = self.obs_settings[observable]
 					grooming_setting = self.obs_grooming_settings[observable]
@@ -1005,13 +911,6 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 		jetR, jet_pt_ungroomed):
 
 		if observable == "EEC":
-
-			# idk about this grooming setting....
-			# WRITE STUFF HERE
-			
-			#TODO: get the dcand from the jet! (need the djmm??)
-#            j = jet[0]
-#            dcand = djmm.get_Dcand_in_jet(jet)
 			
 			# Extract information for EEC
 			constituents = fj.sorted_by_pt(jet.constituents())
@@ -1034,6 +933,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			# print("The jet constit being sent in are ")
 			# for c_sel in c_select:
 				# print("index", pythiafjext.getPythia8Particle(c_sel).index(), "id", pythiafjext.getPythia8Particle(c_sel).id(), "userindex", c_sel.user_index())
+
 #            new_corr = ecorrel.CorrelatorBuilder(c_select, dcand, jet_pt_ungroomed, 2, 1, dphi_cut, deta_cut) #jet, D, scale, max, power, dphicut, detacut
 			if (self.softpion_action == 2):
 				new_corr = ecorrel.CorrelatorBuilder(c_select, self.D0particleinfo_psjet, self.softpion_particleinfo_psjet, jet.perp(), 2, 1, dphi_cut, deta_cut, False)
@@ -1052,20 +952,6 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 
 			return new_corr #new_corr.correlator(2).rs()[index]
 			
-#            return fjext.lambda_beta_kappa(jet, jet_groomed_lund.pair(), obs_setting, 1, jetR) \
-#                   if grooming_setting else fjext.lambda_beta_kappa(jet, obs_setting, 1, jetR)
-
-#        elif observable == "mass":
-#
-#            if grooming_setting:
-#                j_groomed = jet_groomed_lund.pair()
-#                if not j_groomed.has_constituents():
-#                    # Untagged jet -- record underflow value
-#                    return -1
-#                else:
-#                    return j_groomed.m()
-#
-#            return jet.m()
 
 		# Should not be any other observable
 		raise ValueError("Observable %s not implemented" % observable)
@@ -1088,8 +974,6 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 
 			if(not d1 or not d2):
 				return decay
-
-			# print("checkpoint 3")
 	
 
 			absPdg1 = d1.idAbs()
@@ -1279,8 +1163,6 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			hist_list_name = "hist_list_R%s" % str(jetR).replace('.', '')
 			# print(hist_list_name)
 			for h in getattr(self, hist_list_name):
-			#     if 'jetlevel' in h.GetTitle():
-			#         continue
 				h.Scale(scale_f)
 
 		print("N total final events:", int(self.hNevents.GetBinContent(1)), "with",
