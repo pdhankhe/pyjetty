@@ -186,8 +186,8 @@ void make_herwig_plots_write() {
      //FOR WHEN WEIGHTED/UNWEIGHTED IN SAME FILE
     // const char infile_D0_noDstar[] = "/rstorage/generators/herwig_alice/histograms/249612/216486/AnalysisResultsFinal.root"; //this is using thnsparse
     // const char infile_D0[] = "/rstorage/generators/herwig_alice/histograms/277508/271758/AnalysisResultsFinal.root"; //this is using thnsparse
-    std::string infile_D0 = "/rstorage/generators/herwig_alice/scaling/249612/216486/AnalysisResultsFinal.root"; //this is using thnsparse
-    std::string infile_D0_noDstar = "/rstorage/generators/herwig_alice/scaling/277508/271758/AnalysisResultsFinal.root"; //this is using thnsparse
+    std::string infile_D0 = "/rstorage/generators/herwig_alice/scaling/326144/216486/AnalysisResultsFinal.root"; //this is using thnsparse
+    std::string infile_D0_noDstar = "/rstorage/generators/herwig_alice/scaling/325784/271758/AnalysisResultsFinal.root"; //this is using thnsparse
 
 
     // int plot_case:
@@ -237,11 +237,20 @@ void make_herwig_plots_write() {
                 // testing - look at # jets before cuts
                 cout << "numDtaggedjets from hist before cuts " << hsparse_jetinfo->Projection(0)->GetEntries() << endl;
 
+                //==================================================//
 
                 // save D0 pt spectrum
                 TH1D *hD0_pT = hsparse_jetinfo->Projection(1); //use jet level
                 hD0_pT->SetNameTitle( (dname + "_trkthrd" + trkthrd + "_D0_pt").c_str() ,  (dname + "_trkthrd" + trkthrd + "_D0_pt").c_str());
+                double numjets_d0 = hD0_pT->Integral();
+                hD0_pT->Scale(1/numjets_d0, "width");
 
+                // save D0 z spectrum
+                TH1D *hD0_z = hsparse_jetinfo->Projection(3); //use jet level
+                hD0_z->SetNameTitle( (dname + "_trkthrd" + trkthrd + "_D0_z").c_str() ,  (dname + "_trkthrd" + trkthrd + "_D0_z").c_str());
+                hD0_z->Scale(1/numjets_d0, "width");
+
+                //==================================================//
 
 
                 // pt bins
@@ -320,10 +329,12 @@ void make_herwig_plots_write() {
 
 
                     // Project onto observable axis
-                    TH1D *hD0_EEC_proj = hsparse_EEC_clone->Projection(3); //CALL THESE TH1*????
-                    TH1D *hD0_EEC_ptrl_proj = hsparse_EEC_ptrl_clone->Projection(3);
-                    TH1D *hD0_EEC_noweight_proj = hsparse_EEC_noweight_clone->Projection(3);
+                    TH1D *hD0_EEC_proj = hsparse_EEC_clone->Projection(4); //CALL THESE TH1*????
+                    TH1D *hD0_EEC_ptrl_proj = hsparse_EEC_ptrl_clone->Projection(4);
+                    TH1D *hD0_EEC_noweight_proj = hsparse_EEC_noweight_clone->Projection(4);
                     TH1D *hjetpt = hsparse_jetinfo_clone->Projection(0);
+                    TH1D *hjetz_pt = hsparse_jetinfo_clone->Projection(3);
+                    
 
                     // Set to appropriate name
                     std::string hname = hD0_EEC_proj->GetName();
@@ -337,6 +348,9 @@ void make_herwig_plots_write() {
                     hname = hD0_EEC_noweight_proj->GetName();
                     hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_trkthrd" + trkthrd;
                     hD0_EEC_noweight_proj->SetNameTitle(hname.c_str(), hname.c_str());
+
+                    hname = dname + "_D0_z_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_trkthrd" + trkthrd;
+                    hjetz_pt->SetNameTitle(hname.c_str(), hname.c_str());
 
 
                     // Rebin or clone
@@ -363,6 +377,7 @@ void make_herwig_plots_write() {
                     hD0_EEC->Scale(1/numjets_D0, "width");
                     hD0_EEC_ptrl->Scale(1/numjets_D0, "width");
                     hD0_EEC_noweight->Scale(1/numjets_D0, "width");
+                    hjetz_pt->Scale(1/numjets_d0, "width");
 
 
                     //Format color and style
@@ -434,12 +449,14 @@ void make_herwig_plots_write() {
                     hD0_EEC->Write();
                     hD0_EEC_ptrl->Write();
                     hD0_EEC_noweight->Write();
+                    hjetz_pt->Write();
                     // }
                     
                 } // pT bins loop
 
                 itrkthrd++;
                 hD0_pT->Write();
+                hD0_z->Write();
 
             } // end track threshold loop
         

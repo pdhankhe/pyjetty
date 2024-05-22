@@ -11,19 +11,26 @@ else
   echo "Wrong command line arguments"
 fi
 
-# if [ "$2" != "" ]; then
-#   JOB_ID=$2
-#   echo "Job ID: $JOB_ID"
-# else
-#   echo "Wrong command line arguments"
-# fi
+if [ "$2" != "" ]; then
+  JOB_ID=$2
+  echo "Job ID: $JOB_ID"
+else
+  echo "Wrong command line arguments"
+fi
 
-# if [ "$3" != "" ]; then
-#   TASK_ID=$3
-#   echo "Task ID: $TASK_ID"
-# else
-#   echo "Wrong command line arguments"
-# fi
+if [ "$3" != "" ]; then
+  TASK_ID=$3
+  echo "Task ID: $TASK_ID"
+else
+  echo "Wrong command line arguments"
+fi
+
+if [ "$4" != "" ]; then
+  GENERATION_TYPE=$4
+  echo "Generation type: $GENERATION_TYPE"
+else
+  echo "Wrong command line arguments"
+fi
 
 
 # Load modules
@@ -31,4 +38,5 @@ source /home/blianggi/activate_pyjetty.sh
 
 # Run main script
 ALICEANALYSIS_DIR=/software/users/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis
-python $ALICEANALYSIS_DIR/generation/hepmc2antuple_tn.py -i $INPUT_FILE -o ./AnalysisResultsGen.root -g sherpa --no-progress-bar -d --hepmc 3
+OUTPUT_DIR="/rstorage/blianggi/sherpagen/$GENERATION_TYPE/tree_gen/$JOB_ID/$TASK_ID"
+python $ALICEANALYSIS_DIR/generation/hepmc2antuple_tn.py -i $INPUT_FILE -o $OUTPUT_DIR/AnalysisResultsGen.root -g sherpa --no-progress-bar -d --hepmc 3

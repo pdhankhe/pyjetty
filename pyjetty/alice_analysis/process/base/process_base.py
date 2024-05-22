@@ -34,12 +34,13 @@ class ProcessBase(common_base.CommonBase):
   #---------------------------------------------------------------
   # Constructor
   #---------------------------------------------------------------
-  def __init__(self, input_file='', config_file='', output_dir='', event_start_offset=0, debug_level=0, **kwargs):
+  def __init__(self, input_file='', config_file='', output_dir='', event_start_offset=0, dstar=0, debug_level=0, **kwargs):
     super(ProcessBase, self).__init__(**kwargs)
     self.input_file = input_file
     self.config_file = config_file
     self.output_dir = output_dir
     self.event_start_offset = event_start_offset
+    self.dstar = dstar
     self.debug_level = debug_level # (0 = no debug info, 1 = some debug info, 2 = all debug info)
     
     # Create output dir
@@ -122,6 +123,8 @@ class ProcessBase(common_base.CommonBase):
 
     pt_bins = binnings[0]
     rapi_bins = binnings[1]
+    z_bins = binnings[2] #TODO: FIX THIS FOR OTHER CORRELATOR OBSERVABLES
+    
 
     # print("binnings", binnings)
     # print("pt bins", pt_bins)
@@ -132,6 +135,7 @@ class ProcessBase(common_base.CommonBase):
     rapi_bins_og = np.linspace(-5,5,201)
     rl_bins_og = np.logspace(np.log10(1E-4), np.log10(1), 51)
     ptrl_bins_og = np.logspace(np.log10(1E-3), np.log10(100), 61)
+    z_bins_og = np.linspace(0, 1.01, 102)
 
     # print("pt bins", pt_bins)
     # print("pt bins og", pt_bins_og)
@@ -142,21 +146,25 @@ class ProcessBase(common_base.CommonBase):
     # print("rapi bins type is be", type(rapi_bins))
 
     
-    nbins  = [len(pt_bins)-1, len(pt_bins)-1, len(rapi_bins)-1  ]
-    xmin =   [pt_bins[0],     pt_bins[0],     rapi_bins[0]      ]
-    xmax =   [pt_bins[-1],    pt_bins[-1],    rapi_bins[-1]     ]
-    if dim == 4:
-      obs_bins = binnings[2]
+    nbins  = [len(pt_bins)-1, len(pt_bins)-1, len(rapi_bins)-1, len(z_bins)-1  ]
+    xmin =   [pt_bins[0],     pt_bins[0],     rapi_bins[0],     z_bins[0]      ]
+    xmax =   [pt_bins[-1],    pt_bins[-1],    rapi_bins[-1],    z_bins[-1]     ]
+    if dim == 5:
+      obs_bins = binnings[3]
       nbins.append(len(obs_bins)-1)
       xmin.append(obs_bins[0])
       xmax.append(obs_bins[-1])
+
+    print("MAX HERE", max)
+    print("MAX HERE", min)
+    
                 
-    nbins_arr = (nbins)
-    xmin_arr = (min)
-    xmax_arr = (max)
-    nbins_array = array('i', nbins)
-    xmin_array = array('d', xmin)
-    xmax_array = array('d', xmax)
+    # nbins_arr = (nbins)
+    # xmin_arr = (xmin) #(min)
+    # xmax_arr = (xmax) #(max)
+    nbins_array = array('i', nbins) #('i', nbins_arr)
+    xmin_array = array('d', xmin) #('d', xmin_arr)
+    xmax_array = array('d', xmax) #('d', xmax_arr)
     # h = ROOT.THnF(name, name, dim, nbins_array, xmin_array, xmax_array)
     h = ROOT.THnSparseD(name, name, dim, nbins_array, xmin_array, xmax_array)
     h.Sumw2()
@@ -167,6 +175,8 @@ class ProcessBase(common_base.CommonBase):
       if i == 2:
         h.SetBinEdges(i, rapi_bins_og)
       if i == 3:
+        h.SetBinEdges(i, z_bins_og)
+      if i == 4:
         if obs=='rl':
           h.SetBinEdges(i, rl_bins_og)
         elif obs=='ptrl':

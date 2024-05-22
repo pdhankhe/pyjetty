@@ -35,7 +35,7 @@ class ProcessIO(common_base.CommonBase):
   def __init__(self, input_file='', tree_dir='PWGHF_TreeCreator',
                track_tree_name='tree_Particle', event_tree_name='tree_event_char', #D0_tree_name='tree_D0_gen',
                output_dir='', is_pp=True, min_cent=0., max_cent=10.,
-               use_ev_id_ext=True, use_D0_info=False, is_jetscape=False, holes=False,
+               use_ev_id_ext=True, use_D0_info=False, using_dstar=False, is_jetscape=False, holes=False,
                event_plane_range=None, skip_event_tree=False, is_ENC=False, is_det_level=False, **kwargs):
     super(ProcessIO, self).__init__(**kwargs)
     self.input_file = input_file
@@ -49,6 +49,7 @@ class ProcessIO(common_base.CommonBase):
     self.is_pp = is_pp
     self.use_ev_id_ext = use_ev_id_ext
     self.use_D0_info = use_D0_info
+    self.using_dstar = using_dstar
     self.is_jetscape = is_jetscape
     self.holes = holes
     self.event_plane_range = event_plane_range
@@ -90,7 +91,10 @@ class ProcessIO(common_base.CommonBase):
       # self.track_columns += ['ParticleRapidity']
 
     # Set relevant columns of D0 tree
-    self.D0_columns = self.unique_identifier + ['ParticlePt', 'ParticleEta', 'ParticlePhi', 'ParticleRapidity', 'ParticlePID', 'MotherPID']
+    if (self.using_dstar):
+      self.D0_columns = self.unique_identifier + ['ParticlePt', 'ParticleEta', 'ParticlePhi', 'ParticleRapidity', 'ParticlePID']
+    else:
+      self.D0_columns = self.unique_identifier + ['ParticlePt', 'ParticleEta', 'ParticlePhi', 'ParticleRapidity', 'ParticlePID', 'MotherPID']
     
     
     #print(self)
@@ -382,9 +386,14 @@ class ProcessIO(common_base.CommonBase):
         self.get_particles_rap, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt, notD0=False)
         df_fjparticles_pid = track_df_grouped.apply(
         self.get_particles_pid, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
-        df_fjparticles_mid = track_df_grouped.apply(
-        self.get_particles_mother_id, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
-
+        if (self.using_dstar): # fill in a dummy axis for "MotherID" - 
+          # could replace with default values of -1, but right now all the values will be +-421 (which won't be a Dstar, so it'll be wrong but ok)
+          df_fjparticles_mid = track_df_grouped.apply(
+          self.get_particles_pid, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
+        else:
+          df_fjparticles_mid = track_df_grouped.apply(
+          self.get_particles_mother_id, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
+        
         print('debug d0',df_fjparticles_orig)
         print('debug d0 aux: evid',df_fjparticles_evid)
         print('debug d0 aux: rap',df_fjparticles_rap)

@@ -43,12 +43,15 @@ class HepMC2antupleBase(common_base.CommonBase):
       self.t_p = ROOT.TNtuple('tree_Particle', 'tree_Particle', 'run_number:ev_id:ParticlePt:ParticleEta:ParticlePhi:ParticlePID')
     elif self.include_status:
       self.t_p = ROOT.TNtuple('tree_Particle_gen', 'tree_Particle_gen', 'run_number:ev_id:ParticlePt:ParticleEta:ParticlePhi:ParticlePID:Status')
-    else:
+    elif self.include_D0:
       self.t_p = ROOT.TNtuple('tree_Particle_gen', 'tree_Particle_gen', 'run_number:ev_id:ParticlePt:ParticleEta:ParticlePhi:ParticlePID:MotherPID')
+      self.t_D = ROOT.TNtuple('tree_D0_gen', 'tree_D0_gen', 'run_number:ev_id:ParticlePt:ParticleEta:ParticlePhi:ParticleRapidity:ParticlePID:MotherPID')
+    else:
+      self.t_p = ROOT.TNtuple('tree_Particle_gen', 'tree_Particle_gen', 'run_number:ev_id:ParticlePt:ParticleEta:ParticlePhi:ParticlePID')
       if self.include_parton:
         self.t_pp = ROOT.TNtuple('tree_Particle_gen_parton', 'tree_Particle_gen_parton', 'run_number:ev_id:ParticlePt:ParticleEta:ParticlePhi:ParticlePID')
     self.t_e = ROOT.TNtuple('tree_event_char', 'tree_event_char', 'run_number:ev_id:z_vtx_reco:is_ev_rej')
-    self.t_D = ROOT.TNtuple('tree_D0_gen', 'tree_D0_gen', 'run_number:ev_id:ParticlePt:ParticleEta:ParticlePhi:ParticleRapidity:ParticlePID:MotherPID')
+    # self.t_D = ROOT.TNtuple('tree_D0_gen', 'tree_D0_gen', 'run_number:ev_id:ParticlePt:ParticleEta:ParticlePhi:ParticleRapidity:ParticlePID:MotherPID')
 
     # run number will be a double - file size in MB
     self.run_number = os.path.getsize(self.input) / 1.e6

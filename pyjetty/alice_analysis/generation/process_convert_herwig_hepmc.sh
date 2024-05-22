@@ -25,13 +25,21 @@ else
   echo "Wrong command line arguments"
 fi
 
+if [ "$4" != "" ]; then
+  SAVE_D0=$4
+  echo "Save the D0: $SAVE_D0"
+else
+  echo "Wrong command line arguments"
+fi
+
+
 # Define output path from relevant sub-path of input file
 # Note: suffix depends on file structure of input file -- need to edit appropriately for each dataset
 OUTPUT_SUFFIX=$(echo $INPUT_FILE | cut -d/ -f6-8)
 echo "OUTPUT_SUFFIX SUPPOSED TO BE:"
 echo $OUTPUT_SUFFIX
 # OUTPUT_SUFFIX=${TASK_ID}
-OUTPUT_DIR="/rstorage/generators/herwig_alice/tree_gen/$JOB_ID/$OUTPUT_SUFFIX/"
+OUTPUT_DIR="/rstorage/generators/herwig_alice/tree_gen/$JOB_ID/$OUTPUT_SUFFIX"
 echo "Output dir: $OUTPUT_DIR"
 mkdir -p $OUTPUT_DIR
 
@@ -46,7 +54,14 @@ module load herwig_with_deps
 
 # Run main script
 cd /software/users/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/generation
-python hepmc2antuple_tn.py -i $INPUT_FILE -o $OUTPUT_DIR/AnalysisResultsGen.root -g herwig --no-progress-bar -d
+if [ "$SAVE_D0" = true ] ; then
+    echo 'Running with saving D0!'
+    python hepmc2antuple_tn.py -i $INPUT_FILE -o $OUTPUT_DIR/AnalysisResultsGen.root -g herwig --no-progress-bar -d
+else
+    echo 'Running inclusive'
+    python hepmc2antuple_tn.py -i $INPUT_FILE -o $OUTPUT_DIR/AnalysisResultsGen.root -g herwig --no-progress-bar
+fi
+
 
 # Move stdout to appropriate folder
 # mkdir -p /rstorage/generators/herwig_alice/tree_gen/${JOB_ID}/slurm-output

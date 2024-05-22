@@ -55,10 +55,10 @@ class ProcessMC_ENC_HF(process_mc_base.ProcessMCBase):
   #---------------------------------------------------------------
   # Constructor
   #---------------------------------------------------------------
-  def __init__(self, input_file='', config_file='', output_dir='', event_start_offset=0, debug_level=0, **kwargs):
+  def __init__(self, input_file='', config_file='', output_dir='', event_start_offset=0, dstar=0, debug_level=0, **kwargs):
   
     # Initialize base class
-    super(ProcessMC_ENC_HF, self).__init__(input_file, config_file, output_dir, event_start_offset, debug_level, **kwargs)
+    super(ProcessMC_ENC_HF, self).__init__(input_file, config_file, output_dir, event_start_offset, dstar, debug_level, **kwargs)
     
     self.observable = self.observable_list[0]
 
@@ -135,52 +135,55 @@ class ProcessMC_ENC_HF(process_mc_base.ProcessMCBase):
             if 'ENC' in observable:
               for ipoint in range(2, 3):
                 
-                dim = 4
+                dim = 5
                 pt_bins = linbins(0,200,200)
                 ptRL_bins = logbins(1E-3,1E2,60)
                 rapi_bins = np.linspace(-5,5,201)
                 RL_bins = logbins(1E-4,1,50)
+                z_bins = np.linspace(0, 1.01, 102)
 
                 # Truth histograms
                 name = 'h_{}{}{}_JetPt_Truth_R{}_{}'.format(observable, ipoint, pair_type_label, jetR, obs_label) #pair_type_label is blank for me
-                title_truth = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'D^{0} y', '#it{R}_{L}' ]
-                binnings = [pt_bins, rapi_bins, RL_bins]
+                title_truth = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'D^{0} y', 'D^{0} z', '#it{R}_{L}' ]
+                binnings = [pt_bins, rapi_bins, z_bins, RL_bins]
                 self.create_thn(name, title_truth, dim, binnings, obs='rl')
 
                 name = 'h_{}{}{}Pt_JetPt_Truth_R{}_{}'.format(observable, ipoint, pair_type_label, jetR, obs_label) # pt scaled histograms (currently only for unmatched jets)
-                title = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'D^{0} y', '#it{p}_{T}#it{R}_{L}' ]
-                binnings = (pt_bins, rapi_bins, ptRL_bins)
+                title = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'D^{0} y', 'D^{0} z', '#it{p}_{T}#it{R}_{L}' ]
+                binnings = (pt_bins, rapi_bins, z_bins, ptRL_bins)
                 self.create_thn(name, title_truth, dim, binnings, obs='ptrl') 
                 
             if 'EEC_noweight' in observable or 'EEC_weight2' in observable:
               
-              dim = 4
+              dim = 5
               pt_bins = linbins(0,200,200)
               rapi_bins = np.linspace(-5,5,201)
               RL_bins = logbins(1E-4,1,50)
+              z_bins = np.linspace(0, 1.01, 102)
 
               # Truth histograms
               name = 'h_{}{}_JetPt_Truth_R{}_{}'.format(observable, pair_type_label, jetR, obs_label)
-              title = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'D^{0} y', '#it{R}_{L}' ]
-              binnings = (pt_bins, rapi_bins, RL_bins)
+              title = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'D^{0} y', 'D^{0} z', '#it{R}_{L}' ]
+              binnings = (pt_bins, rapi_bins, z_bins, RL_bins)
               self.create_thn(name, title_truth, dim, binnings, obs='rl') # this will need to be fixed later! - add more dimensions to also include jet pt?
 
         
         if 'jet_pt' in observable:
 
-          dim = 3
+          dim = 4
           pt_bins = linbins(0,200,200)
           rapi_bins = np.linspace(-5,5,201)
+          z_bins = np.linspace(0, 1.01, 102)
 
           # Truth histograms
           name = 'h_{}_JetPt_Truth_R{}_{}'.format(observable, jetR, obs_label)
-          title = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'D^{0} y' ]
-          binnings = (pt_bins, rapi_bins)
+          title = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'D^{0} y', 'D^{0} z' ]
+          binnings = (pt_bins, rapi_bins, z_bins)
           self.create_thn(name, title_truth, dim, binnings) # this will need to be fixed later! - add more dimensions to also include jet pt?
 
         #Make some blank arrays to be filled if thnsparse
-        self.fsparsepartonJetvalue = array.array( 'd', ( 0, 0, 0 ,0 ))
-        self.fsparsejetlevelJetvalue = array.array( 'd', ( 0, 0, 0 ))
+        self.fsparsepartonJetvalue = array.array( 'd', ( 0, 0, 0, 0, 0 ))
+        self.fsparsejetlevelJetvalue = array.array( 'd', ( 0, 0, 0, 0 ))
 
         # Init pair distance histograms (both det and truth level)
         # average track pt bins
@@ -394,13 +397,16 @@ class ProcessMC_ENC_HF(process_mc_base.ProcessMCBase):
         d0injetfound_bool = True
         D0_px = self.D0particleinfo.px()
         D0_py = self.D0particleinfo.py()
-        self.fsparsejetlevelJetvalue[1] = math.sqrt(D0_px*D0_px + D0_py*D0_py)
-        self.fsparsepartonJetvalue[1] = math.sqrt(D0_px*D0_px + D0_py*D0_py)
+        D0_pt = math.sqrt(D0_px*D0_px + D0_py*D0_py)
+        self.fsparsejetlevelJetvalue[1] = D0_pt
+        self.fsparsepartonJetvalue[1] = D0_pt
         self.fsparsejetlevelJetvalue[2] = self.D0particleinfo.python_info().particle_rap #self.D0particleinfo.rap()
         self.fsparsepartonJetvalue[2] = self.D0particleinfo.python_info().particle_rap #self.D0particleinfo.rap()
+        self.fsparsejetlevelJetvalue[3] = D0_pt/jet_pt
+        self.fsparsepartonJetvalue[3] = D0_pt/jet_pt
         if self.firsttimejet:
           print('event {}'.format(self.event_number))
-          print("D0 pt is ", math.sqrt(D0_px*D0_px + D0_py*D0_py), "and D0 rapidity is", self.D0particleinfo.python_info().particle_rap) #self.D0particleinfo.rap())
+          print("D0 pt is ", D0_pt, "and D0 rapidity is", self.D0particleinfo.python_info().particle_rap) #self.D0particleinfo.rap())
           self.alld0counter+=1          
         break # break after one D0 found in a jet
     if d0injetfound_bool == False:
@@ -450,10 +456,10 @@ class ProcessMC_ENC_HF(process_mc_base.ProcessMCBase):
               else:
                 # only change truth level hists to thnsparse
                 # save in thnsparse
-                self.fsparsepartonJetvalue[3] = new_corr.correlator(ipoint).rs()[index]
+                self.fsparsepartonJetvalue[4] = new_corr.correlator(ipoint).rs()[index]
                 getattr(self, hname.format(observable + str(ipoint) + pair_type_label,obs_label)).Fill(self.fsparsepartonJetvalue, new_corr.correlator(ipoint).weights()[index])
                 
-                self.fsparsepartonJetvalue[3] = jet_pt*new_corr.correlator(ipoint).rs()[index]
+                self.fsparsepartonJetvalue[4] = jet_pt*new_corr.correlator(ipoint).rs()[index]
                 getattr(self, hname.format(observable + str(ipoint) + pair_type_label + 'Pt',obs_label)).Fill(self.fsparsepartonJetvalue, new_corr.correlator(ipoint).weights()[index])
 
                 # getattr(self, hname.format(observable + str(ipoint) + pair_type_label,obs_label)).Fill(jet_pt, new_corr.correlator(ipoint).rs()[index], new_corr.correlator(ipoint).weights()[index])
@@ -464,7 +470,7 @@ class ProcessMC_ENC_HF(process_mc_base.ProcessMCBase):
                 getattr(self, hname.format(observable + pair_type_label,obs_label)).Fill(jet_pt, new_corr.correlator(ipoint).rs()[index], weights_pair[index])
               else:
                 #change truth level hists to thnsparse
-                self.fsparsepartonJetvalue[3] = new_corr.correlator(ipoint).rs()[index]
+                self.fsparsepartonJetvalue[4] = new_corr.correlator(ipoint).rs()[index]
                 getattr(self, hname.format(observable + pair_type_label,obs_label)).Fill(self.fsparsepartonJetvalue)
 
             if ipoint==2 and 'EEC_weight2' in observable:
@@ -653,6 +659,10 @@ if __name__ == '__main__':
                       type=int, metavar='eventStartOffset',
                       default=0,
                       help='If input file does not start with event 1, offset it by this amount')
+  parser.add_argument('-d', '--dstar', action='store',
+                      type=int, metavar='dstar',
+                      default=0,
+                      help='If want to be friendly and include the Dstar, turn this switch on')
   
   # Parse the arguments
   args = parser.parse_args()
@@ -662,6 +672,7 @@ if __name__ == '__main__':
   print('configFile: \'{0}\''.format(args.configFile))
   print('ouputDir: \'{0}\"'.format(args.outputDir))
   print('eventOffset: \'{0}\"'.format(args.eventStartOffset))
+  print('dstar on?: \'{0}\"'.format(args.dstar))
 
   # If invalid inputFile is given, exit
   if not os.path.exists(args.inputFile):
@@ -673,6 +684,6 @@ if __name__ == '__main__':
     print('File \"{0}\" does not exist! Exiting!'.format(args.configFile))
     sys.exit(0)
 
-  analysis = ProcessMC_ENC_HF(input_file=args.inputFile, config_file=args.configFile, output_dir=args.outputDir, event_start_offset=args.eventStartOffset)
+  analysis = ProcessMC_ENC_HF(input_file=args.inputFile, config_file=args.configFile, output_dir=args.outputDir, event_start_offset=args.eventStartOffset, dstar=args.dstar)
   analysis.process_mc()
 

@@ -58,10 +58,10 @@ class ProcessMCBase(process_base.ProcessBase):
   #---------------------------------------------------------------
   # Constructor
   #---------------------------------------------------------------
-  def __init__(self, input_file='', config_file='', output_dir='', event_start_offset=0, debug_level=0, **kwargs):
+  def __init__(self, input_file='', config_file='', output_dir='', event_start_offset=0, dstar=0, debug_level=0, **kwargs):
   
     # Initialize base class
-    super(ProcessMCBase, self).__init__(input_file, config_file, output_dir, event_start_offset, debug_level, **kwargs)
+    super(ProcessMCBase, self).__init__(input_file, config_file, output_dir, event_start_offset, dstar, debug_level, **kwargs)
     
     # Initialize configuration
     self.initialize_config()
@@ -248,7 +248,7 @@ class ProcessMCBase(process_base.ProcessBase):
     # start by getting the D0s
     if self.use_D0_info:
       io_D0_truth = process_io.ProcessIO(input_file=self.input_file, tree_dir=tree_dir,
-                                    track_tree_name='tree_D0_gen', use_ev_id_ext=False, use_D0_info=True,
+                                    track_tree_name='tree_D0_gen', use_ev_id_ext=False, use_D0_info=True, using_dstar=self.dstar,
                                     is_jetscape=self.jetscape, event_plane_range=self.event_plane_range, is_ENC=self.ENC_fastsim, is_det_level=False)
       df_D0particles_truth = io_D0_truth.load_data(m=self.m) # no dropping of tracks at truth level (important for the det-truth association because the index of the truth particle is used)
       self.nEvents_truth = len(df_D0particles_truth.index)
