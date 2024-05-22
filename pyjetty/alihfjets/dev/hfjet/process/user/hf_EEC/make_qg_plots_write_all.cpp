@@ -194,6 +194,7 @@ void make_qg_plots_write_all() {
      //FOR WHEN WEIGHTED/UNWEIGHTED IN SAME FILE
     // const char infile_D0_weighted[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17651853/AnalysisResultsFinal.root"; // OR 17651853? //this is using thnsparse
     const char infile_D0_weighted[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/24737979/AnalysisResultsFinal.root"; // using this for consistency
+    const char infile_D0_weighted_newhisttype[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/25536401/AnalysisResultsFinal.root";
     const char infile_D02_weighted[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/18063568/AnalysisResultsFinal.root"; // OR 17651853? //this is using thnsparse
     const char infile_D0_unweighted[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/23581878/AnalysisResultsFinal.root"; //this is using thnsparse
     const char infile_incl_weighted[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/23581930/AnalysisResultsFinal.root";
@@ -207,10 +208,18 @@ void make_qg_plots_write_all() {
     int plot_case = 0;
     bool logstring = false;
 
+    // do somthing about if run_number >= 25536163, then use new hist type
+    bool newhisttype = true;
+
     TFile* f;
     TString label1 = "";
 
-    TFile* f_D0_w = new TFile(infile_D0_weighted, "READ"); //new TFile(infile_D02_weighted, "READ");
+    TFile* f_D0_w;
+    if (newhisttype) {
+        f_D0_w = new TFile(infile_D0_weighted_newhisttype, "READ"); 
+    } else {
+        f_D0_w = new TFile(infile_D0_weighted, "READ"); //new TFile(infile_D02_weighted, "READ");
+    }
     TFile* f_D0_uw = new TFile(infile_D0_unweighted, "READ");
     TFile* f_incl_w = new TFile(infile_incl_weighted, "READ");
     TFile* f_incl_uw = new TFile(infile_incl_unweighted, "READ");
@@ -275,6 +284,22 @@ void make_qg_plots_write_all() {
         hD0_pT->SetNameTitle("hD0_pt", "hD0_pt");
         hD0_uw_pT->SetNameTitle("hD0_uw_pt", "hD0_uw_pt");
         // cout << "Num entries: " << hsparsejet_c_jetlevel->GetEntries() << endl;
+
+        double numjets_d0 = hD0_pT->Integral();
+        double numjets_d0_uw = hD0_uw_pT->Integral();
+        hD0_pT->Scale(1/numjets_d0, "width");
+        hD0_uw_pT->Scale(1/numjets_d0_uw, "width");
+
+        // save D0 z spectrum
+        TH2F *hD0z_2F;
+        TH1D *hD0z;
+        if (newhisttype) {
+            hD0z_2F = (TH2F*) f_D0_w->Get("hD0z");
+            hD0z = hD0z_2F->ProjectionX();
+            hD0z->SetNameTitle("hD0z", "hD0z");
+            hD0z->Scale(1/numjets_d0, "width");
+        }
+
 
 
 
@@ -421,7 +446,14 @@ void make_qg_plots_write_all() {
             
 
             // Project onto observable axis
-            TH1D *hD0_proj = hsparsejet_c_clone->Projection(3); //CALL THESE TH1*????
+            TH1D *hD0_proj;
+            TH1D *hD0_z;
+            if (newhisttype) {
+                hD0_proj = hsparsejet_c_clone->Projection(4);
+                hD0_z = hsparsejet_c_clone->Projection(3);
+            } else {
+                hD0_proj = hsparsejet_c_clone->Projection(3); //CALL THESE TH1*????
+            }
             TH1D *hc1D_jet = hsparsejet_c_jetlevel_clone->Projection(0);
             TH1D *hD0_uw_proj = hsparsejet_c_uw_clone->Projection(3); 
             TH1D *hc1D_uw_jet = hsparsejet_c_uw_jetlevel_clone->Projection(0);
@@ -447,6 +479,11 @@ void make_qg_plots_write_all() {
             hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
             hD0_proj->SetNameTitle(hname.c_str(), hname.c_str());
             cout << "name " << hname << endl;
+            if (newhisttype) {
+                hname = "hD0z_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
+                hD0_z->SetNameTitle(hname.c_str(),hname.c_str());
+            }
+
             hname = hD0_uw_proj->GetName();
             hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
             hD0_uw_proj->SetNameTitle(hname.c_str(), hname.c_str());
@@ -525,6 +562,9 @@ void make_qg_plots_write_all() {
             cout << "Rebin done" << endl;
 
             hc->Scale(1/numjets_charm, "width");
+            if (newhisttype) {
+                hD0_z->Scale(1/numjets_charm, "width");
+            }
             hc_uw->Scale(1/numjets_charm_uw, "width");
 
             hg->Scale(1/numjets_gluon, "width");
@@ -659,6 +699,7 @@ void make_qg_plots_write_all() {
                 // Write rebinned histograms to root file
             f_out->cd();
             hc->Write();
+            hD0_z->Write();
             hc_uw->Write();
             hg->Write();
             hg_uw->Write();
@@ -672,6 +713,7 @@ void make_qg_plots_write_all() {
 
         hD0_pT->Write();
         hD0_uw_pT->Write();
+        hD0z->Write();
 
     } // jetR loop
 

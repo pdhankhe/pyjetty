@@ -258,7 +258,7 @@ void make_qg_plots_ptrl() {
 
         // set up variables across pts
         vector<TH1D*> hD0_vec;
-        Double_t pt_D0_colors[] = { kRed+2, kRed, kRed-9 };
+        Double_t pt_D0_colors[] = { kRed+2, kRed, kRed-9, kMagenta, kMagenta+2 };
         // const TString pt_labels[] = {}
         TCanvas* c_D0_allpt = new TCanvas();
         ProcessCanvas(c_D0_allpt);
@@ -277,9 +277,9 @@ void make_qg_plots_ptrl() {
 
 
         //const int pt_bins[] = { 10, 20, 40, 60, 80, 100, 150 };
-        const int pt_bins[] = { 7, 10, 15, 30 }; //{ 10, 20, 40 };
-        const int d0_pt_cuts[] = { 3, 5, 5 };
-        const int n_bins = 3;
+        const int pt_bins[] = { 7, 10, 15, 30, 50, 70 }; //{ 10, 20, 40 };
+        const int d0_pt_cuts[] = { 3, 5, 5, 5, 5 }; //3, 5, 5, 12, 12 };
+        const int n_bins = 5;
         for (int i = 0; i < n_bins; i++) {
             cout << "in pt bin" << i << endl;
             int pt_min = pt_bins[i];
@@ -468,10 +468,10 @@ void make_qg_plots_ptrl() {
             FormatHist(l, hl, label3, markercolor3, markerstyle3);
             FormatHist(l, hi, label4, markercolor4, markerstyle4);
             
-            hg->SetMaximum(hg->GetMaximum()*1.2);
-
-            hg->Draw("L same");
+            hl->SetMaximum(hl->GetMaximum()*1.1);
+            
             hl->Draw("L same");
+            hg->Draw("L same");
             hi->Draw("L same");
             hD0->Draw("L same");
 

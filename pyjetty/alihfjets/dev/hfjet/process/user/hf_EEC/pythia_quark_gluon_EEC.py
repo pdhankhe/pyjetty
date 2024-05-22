@@ -88,21 +88,23 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 		self.noISR = (bool)(1-args.ISRon)
 
 		# self implemented variables to study
-		self.charmdecaysOFF = (bool)(args.nocharmdecay) #charmdecaysOFF=True(F) when charmdecayon=1(0)
+		self.charmdecaysOFF = (bool)(args.nocharmdecay) #charmdecaysOFF=True(F) when nocharmdecay=1(0)
 		pinfo("charm decay input value", args.nocharmdecay)
+		self.beautydecaysOFF = (bool)(args.nobeautydecay) #beautydecaysOFF=True(F) when nobeautydecay=1(0)
 		self.weighted = (bool)(args.weightON) #weightON=True(F) means turn weights on(off)
 		self.leading_parton_pt_cut = args.leadingptcut
 		self.replaceKPpairs = (bool)(args.replaceKP) #replaceKP=True(F) means turn k/pi pairs are('nt) replaced
 		self.gg2ccbar = (bool)(args.onlygg2ccbar) #gg2ccbar=True means only run gg->ccbar process
 		self.hardccbar = (bool)(args.onlyccbar) #hard2ccbar=True means only run hard->ccbar process
 		self.Dstar = (bool)(args.DstarON) #Dstar=True means look at D* EEC, should be run with self.replaceKPpairs=True
-		self.initscat = args.chinitscat #1=hard->ccbar, 2=gg->ccbar, 3=D0->Kpi channel, 4=hard->bbar w/ D0->Kpi
+		self.initscat = args.chinitscat #1=hard->ccbar, 2=gg->ccbar, 3=D0->Kpi channel, 4=hard->bbar w/ D0->Kpi, 5=hard->bbar
 		self.D0wDstar = (bool)(args.D0withDstarON) #D0wDstar=True means looking at D-tagged jets including D0 from D*
 		self.difNorm = (bool)(args.difNorm) #difNorm=True means normalize D* distribution with (D0+D*) jets
-		self.softpion_action = args.softpion #1 = remove soft pion from D*, 2 = only pair soft pion with charged particles, 3 = only pair soft pion with D0, 4 = pair soft pion w everything
+		self.softpion_action = args.softpion #1 = remove soft pion from D*, 2 = only pair soft pion with charged particles, 3 = only pair soft pion with D0, 
+											 #4 = pair soft pion w everything
 		self.use_ptRL = (bool)(args.giveptRL) #1=True=replace RL in THnSparse with pT*RL
 		self.phimeson = (bool)(args.runphi) #1=don't let phi meson decay and look at its EEC
-		self.use_fulljets = (bool)(args.fulljets) #0 = use charged jets, 1 = use full jets
+		self.use_fulljets = args.fulljets #0 = use charged jets, 1 = use full jets, 2 = charged jets and add in neutral hadrons
 		self.glu_spli = (bool)(args.gluspli) #0 = do not save gluon splitting info, 1 = do save gluon splitting info
 
 		# PDG ID values for quarks and gluons
@@ -230,6 +232,10 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			mycfg.append('421:onMode = off')
 			mycfg.append('421:onIfMatch = 321 211')
 
+		if (self.initscat == 5): # hard->bbar
+			mycfg.append('HardQCD:all = off')
+			mycfg.append('HardQCD:hardbbbar = on')
+
 		if (self.phimeson):
 			pinfo("turning phi's OFF")
 			mycfg.append('333:mayDecay = no')
@@ -255,6 +261,91 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 				mycfg.append('10433:mayDecay = no')
 				mycfg.append('20433:mayDecay = no')
 				mycfg.append('435:mayDecay = no')
+
+		if (self.beautydecaysOFF == True and self.replaceKPpairs == False):
+			pinfo("beauty decays turning OFF")
+			mycfg.append('511:mayDecay = no')
+			mycfg.append('521:mayDecay = no')
+			mycfg.append('10511:mayDecay = no')
+			mycfg.append('10521:mayDecay = no')
+			mycfg.append('513:mayDecay = no')
+			mycfg.append('523:mayDecay = no')
+			mycfg.append('10513:mayDecay = no')
+			mycfg.append('10523:mayDecay = no')
+			mycfg.append('20513:mayDecay = no')
+			mycfg.append('20523:mayDecay = no')
+			mycfg.append('515:mayDecay = no')
+			mycfg.append('525:mayDecay = no')
+			mycfg.append('531:mayDecay = no')
+			mycfg.append('10531:mayDecay = no')
+			mycfg.append('533:mayDecay = no')
+			mycfg.append('10533:mayDecay = no')
+			mycfg.append('20533:mayDecay = no')
+			mycfg.append('535:mayDecay = no')
+			mycfg.append('541:mayDecay = no')
+			mycfg.append('10541:mayDecay = no')
+			mycfg.append('543:mayDecay = no')
+			mycfg.append('10543:mayDecay = no')
+			mycfg.append('20543:mayDecay = no')
+			mycfg.append('545:mayDecay = no')
+
+			mycfg.append('5122:mayDecay = no')
+			mycfg.append('5112:mayDecay = no')
+			mycfg.append('5212:mayDecay = no')
+			mycfg.append('5222:mayDecay = no')
+			mycfg.append('5114:mayDecay = no')
+			mycfg.append('5214:mayDecay = no')
+			mycfg.append('5224:mayDecay = no')
+			mycfg.append('5132:mayDecay = no')
+			mycfg.append('5232:mayDecay = no')
+			mycfg.append('5312:mayDecay = no')
+			mycfg.append('5322:mayDecay = no')
+			mycfg.append('5314:mayDecay = no')
+			mycfg.append('5324:mayDecay = no')
+			mycfg.append('5332:mayDecay = no')
+			mycfg.append('5334:mayDecay = no')
+			mycfg.append('5142:mayDecay = no')
+			mycfg.append('5242:mayDecay = no')
+			mycfg.append('5412:mayDecay = no')
+			mycfg.append('5422:mayDecay = no')
+			mycfg.append('5414:mayDecay = no')
+			mycfg.append('5424:mayDecay = no')
+			mycfg.append('5342:mayDecay = no')
+			mycfg.append('5432:mayDecay = no')
+			mycfg.append('5434:mayDecay = no')
+			mycfg.append('5442:mayDecay = no')
+			mycfg.append('5444:mayDecay = no')
+			mycfg.append('5512:mayDecay = no')
+			mycfg.append('5522:mayDecay = no')
+			mycfg.append('5514:mayDecay = no')
+			mycfg.append('5524:mayDecay = no')
+			mycfg.append('5532:mayDecay = no')
+			mycfg.append('5534:mayDecay = no')
+			mycfg.append('5542:mayDecay = no')
+			mycfg.append('5544:mayDecay = no')
+			mycfg.append('5554:mayDecay = no')
+
+
+			mycfg.append('4212:mayDecay = no')
+			mycfg.append('4112:mayDecay = no')
+			mycfg.append('4224:mayDecay = no')
+			mycfg.append('4214:mayDecay = no')
+			mycfg.append('4114:mayDecay = no')
+			mycfg.append('4232:mayDecay = no')
+			mycfg.append('4132:mayDecay = no')
+			mycfg.append('4322:mayDecay = no')
+			mycfg.append('4312:mayDecay = no')
+			mycfg.append('4324:mayDecay = no')
+			mycfg.append('4314:mayDecay = no')
+			mycfg.append('4332:mayDecay = no')
+			mycfg.append('4334:mayDecay = no')
+			mycfg.append('4412:mayDecay = no')
+			mycfg.append('4422:mayDecay = no')
+			mycfg.append('4414:mayDecay = no')
+			mycfg.append('4424:mayDecay = no')
+			mycfg.append('4432:mayDecay = no')
+			mycfg.append('4434:mayDecay = no')
+			mycfg.append('4444:mayDecay = no')
 
 		# print the banner first
 		fj.ClusterSequence.print_banner()
@@ -331,7 +422,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 				z_bins = np.linspace(0, 1.01, 102)
 
 
-				dim = 4
+				dim = 5
 				nbins  = [len(pt_bins)-1, len(pt_bins)-1, len(rapi_bins)-1, len(z_bins)-1, 50]
 				min_li = [pt_bins[0],     pt_bins[0],      rapi_bins[0],      obs_bins[0],      z_bins[0]]
 				max_li = [pt_bins[-1],    pt_bins[-1],     rapi_bins[-1],     obs_bins[-1],     z_bins[-1]]
@@ -357,9 +448,12 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 				self.fsparsepartonJetvalue = array.array( 'd', ( 0, 0, 0, 0, 0 ))
 				self.fsparsejetlevelJetvalue = array.array( 'd', ( 0, 0, 0, 0 ))
 		
-				partontypeslist = ["charm", "light", "gluon", "inclusive", "c_gluonsplit", "c_nogluonsplit"] #got rid of quark
-				if (self.initscat == 4):
+				partontypeslist = ["charm", "light", "gluon", "inclusive"] #got rid of quark
+				if (self.initscat == 4 or self.initscat == 5):
 					partontypeslist.append("beauty")
+				if (self.glu_spli):
+					partontypeslist.append("c_gluonsplit")
+					partontypeslist.append("c_nogluonsplit")
 
 				for parton_type in partontypeslist:
 
@@ -485,8 +579,11 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 				continue
 
 			# full-hadron level
-			if self.use_fulljets:
-				parts_pythia_h = pythiafjext.vectorize_select_replaceD0(pythia, [pythiafjext.kFinal], 0, True)
+			if ( self.use_fulljets == 1 ):
+				if ( self.replaceKPpairs == False ):
+					parts_pythia_h = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal], 0, True)
+				else:
+					parts_pythia_h = pythiafjext.vectorize_select_replaceD0(pythia, [pythiafjext.kFinal], 0, True)
 			else:
 				parts_pythia_h = None
 
@@ -496,6 +593,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			# parts_pythia_hch_replaced = pythiafjext.vectorize_select_replaceD0(pythia, [pythiafjext.kFinal, pythiafjext.kCharged], 0, True)
 
 			# charged-hadron level
+			# if ( self.use_fulljets != 1 ):
 			if ( self.replaceKPpairs == False ):
 				if ( self.phimeson ):
 					old_pythia_hch = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal, pythiafjext.kCharged], 0, True)
@@ -504,6 +602,15 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 					# print("There are ", len(old_pythia_hch), "in oph, and ", len(phis_pythia_hch), " in phis", len(parts_pythia_hch), " in parts")
 				else:
 					parts_pythia_hch = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal, pythiafjext.kCharged], 0, True)
+					if (self.charmdecaysOFF and self.use_fulljets == 2 ): # add in the neutral hadrons
+						c_parts_pythia_hch = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal, pythiafjext.kNeutralCharm], 0, True)
+						# print("len", len(parts_pythia_hch), len(c_parts_pythia_hch))
+						parts_pythia_hch = pythiafjext.add_vectors(parts_pythia_hch, c_parts_pythia_hch)
+						# print("new len", len(parts_pythia_hch))
+					elif (self.beautydecaysOFF and self.use_fulljets == 2):  # add in the neutral hadrons
+						b_parts_pythia_hch = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal, pythiafjext.kNeutralBeauty], 0, True)
+						parts_pythia_hch = pythiafjext.add_vectors(parts_pythia_hch, b_parts_pythia_hch)
+						
 			else: #replace D0->Kpi
 				if ( self.softpion_action != 1):
 					parts_pythia_hch = pythiafjext.vectorize_select_replaceD0(pythia, [pythiafjext.kFinal, pythiafjext.kCharged], 0, True)
@@ -615,7 +722,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			# if (not self.replaceKPpairs and not self.phimeson):
 			# 	jets_ch = fj.sorted_by_pt(jet_selector(jet_def(parts_pythia_hch))) # charged hadron level
 			# else:
-			if self.use_fulljets:
+			if self.use_fulljets == 1:
 				jets_ch = fj.sorted_by_pt(jet_selector(jet_def(track_selector_ch(parts_pythia_h)))) # full hadron level
 			else:
 				jets_ch = fj.sorted_by_pt(jet_selector(jet_def(track_selector_ch(parts_pythia_hch)))) # charged hadron level
@@ -634,7 +741,6 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			self.parent0match, self.parent1match = None, None
 			for i_jch, jch in enumerate(jets_ch):
 				for i_parent, parent in enumerate(self.parents):
-					anothacounter+=1
 					parentmatch_name = "parent%imatch" % i_parent
 					self.hDeltaR.Fill(jch.delta_R(parent))
 					if jch.delta_R(parent) < jet_matching_distance * jetR:
@@ -669,7 +775,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 						parton_types += ["charm"]
 					elif parton_id in self.up_pdg_ids or parton_id in self.down_pdg_ids or parton_id in self.strange_pdg_ids:
 						parton_types += ["light"]
-					elif (parton_id in self.beauty_pdg_ids and self.initscat == 4):
+					elif (parton_id in self.beauty_pdg_ids and (self.initscat == 4 or self.initscat == 5)):
 						parton_types += ["beauty"]
 				elif parton_id in self.gluon_pdg_ids:
 					parton_types += ["gluon"]
@@ -827,12 +933,13 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 						# print("momentum confirmed", D0_px, D0_py)
 						self.fsparsejetlevelJetvalue[1] = D0_pt
 						self.fsparsejetlevelJetvalue[2] = self.D0particleinfo.y()
+						self.fsparsejetlevelJetvalue[3] = D0_pt/jet.pt()
 
 						# D0 information
 						self.hD0pT.Fill(D0_pt)
 						self.hD0z.Fill(D0_pt/jet.pt(), jet.pt())
-						if D0_pt/jet.pt() == 1.:
-							print("z=1!:", len(jet.constituents()), D0_pt, self.D0particleinfo.y())
+						# if D0_pt/jet.pt() == 1.:
+						# 	print("z=1!:", len(jet.constituents()), D0_pt, self.D0particleinfo.y())
 						if self.glu_spli and self.gluonsplitting:
 							self.hD0pT_gluonsplit.Fill(D0_pt)
 							self.hD0z_gluonsplit.Fill(D0_pt/jet.pt(), jet.pt())
@@ -840,6 +947,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 					else:
 						self.fsparsejetlevelJetvalue[1] = -1
 						self.fsparsejetlevelJetvalue[2] = -99
+						self.fsparsejetlevelJetvalue[3] = -99
 
 					for parton_type in parton_types:
 						getattr(self, ('h_JetPt_%s_R%s_%s_jetlevel' % (parton_type, jetR, obs_label)) if \
@@ -877,18 +985,20 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 					for index in range(obs.correlator(2).rs().size()):
 						self.fsparsepartonJetvalue[0] = jet.pt()
 						if (self.use_ptRL):
-							self.fsparsepartonJetvalue[3] = obs.correlator(2).rs()[index]*jet.pt()
+							self.fsparsepartonJetvalue[4] = obs.correlator(2).rs()[index]*jet.pt()
 						else:
-							self.fsparsepartonJetvalue[3] = obs.correlator(2).rs()[index]
+							self.fsparsepartonJetvalue[4] = obs.correlator(2).rs()[index]
 						if ( self.replaceKPpairs or self.phimeson): # phimeson has bad naming convention but is properly filled here
-							D0_px = self.D0particleinfo.px()
-							D0_py = self.D0particleinfo.py()
+							# D0_px = self.D0particleinfo.px()
+							# D0_py = self.D0particleinfo.py()
 							# print("D0 pt is ", math.sqrt(D0_px*D0_px + D0_py*D0_py))
-							self.fsparsepartonJetvalue[1] = math.sqrt(D0_px*D0_px + D0_py*D0_py)
+							self.fsparsepartonJetvalue[1] = D0_pt
 							self.fsparsepartonJetvalue[2] = self.D0particleinfo.y()
+							self.fsparsepartonJetvalue[3] = D0_pt/jet.pt()
 						else:
 							self.fsparsepartonJetvalue[1] = -1
 							self.fsparsepartonJetvalue[2] = -99
+							self.fsparsepartonJetvalue[3] = -99
 
 						for parton_type in parton_types:
 							#fill parton hnsparse info
@@ -923,6 +1033,11 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 					break
 				#print("constituent used for pair =", c)
 				c_select.append(c)
+				
+				if not ( self.replaceKPpairs or self.phimeson):
+					# Just fill all the other particle information - aka all the information of all constituents in the jet
+					self.hD0pT.Fill(c.pt())
+					self.hD0z.Fill(c.pt()/jet.pt(), jet.pt())
 				
 			dphi_cut = -9999
 			deta_cut = -9999
@@ -1199,6 +1314,7 @@ if __name__ == '__main__':
 	parser.add_argument('-cf', '--config_file', action='store', type=str, default='config/angularity.yaml',
 						help="Path of config file for observable configurations")
 	parser.add_argument('--nocharmdecay', action='store', type=int, default=0, help="'1' turns charm decays off")
+	parser.add_argument('--nobeautydecay', action='store', type=int, default=0, help="'1' turns beauty decays off")
 	parser.add_argument('--weightON', action='store', type=int, default=1, help="'1' turns weights on, '0' turns them off")
 	parser.add_argument('--leadingptcut', action='store', type=float, default=0, help="leading track pt cut")
 	parser.add_argument('--replaceKP', action='store', type=int, default=0, help="'1' replaces the K/pi pairs with D0")
@@ -1206,7 +1322,8 @@ if __name__ == '__main__':
 	parser.add_argument('--onlyccbar', action='store', type=int, default=0, help="'1' runs only hard->ccbar events, '0' runs all events")
 	parser.add_argument('--DstarON', action='store', type=int, default=0, help="'1' looks at EEC for D* only")
 	parser.add_argument('--chinitscat', action='store', type=int, default=0, help="'0' runs all events, \
-						'1' runs only hard->ccbar events, '2' runs only gg->ccbar events, '3' runs only D0->Kpi events")
+						'1' runs only hard->ccbar events, '2' runs only gg->ccbar events, '3' runs only D0->Kpi events, \
+					 	'4' runs only hard->bbbar events with D0->Kpi, '5' runs only hard->bbbar events")
 	parser.add_argument('--D0withDstarON', action='store', type=int, default=0, help="'1' looks at EEC for D0 and D0 from D*")
 	parser.add_argument('--difNorm', action='store', type=int, default=0, help="'1' normalizes D* with (D0+D*)")
 	parser.add_argument('--softpion', action='store', type=int, default=0, help="'1' removes the soft pion from D* distribution, \
@@ -1214,7 +1331,7 @@ if __name__ == '__main__':
 						'4' gives soft pion with everything")
 	parser.add_argument('--giveptRL', action='store', type=int, default=0, help="'1' changes THnSparse to calculate pT*RL (instead of RL)")
 	parser.add_argument('--runphi', action='store', type=int, default=0, help="'1' looks at the phi meson (not allowed to decay)")
-	parser.add_argument('--fulljets', action='store', type=int, default=0, help="'0' runs charged jets, '1' runs full jets")
+	parser.add_argument('--fulljets', action='store', type=int, default=0, help="'0' runs charged jets, '1' runs full jets, '2' runs charged jets with neutral hadrons")
 	parser.add_argument('--gluspli', action='store', type=int, default=0, help="'1' saves gluon splitting info")
 
 	args = parser.parse_args()

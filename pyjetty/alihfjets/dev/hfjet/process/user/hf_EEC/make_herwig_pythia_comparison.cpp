@@ -204,7 +204,7 @@ TLine * drawHoriLine(double x1, double x2, double y1, int color, int linestyle=2
 
 void make_herwig_pythia_comparison() {
 
-//    gROOT->SetBatch(); //prevents plots from showing up
+    //    gROOT->SetBatch(); //prevents plots from showing up
     gStyle->SetOptStat(0);
     SetStyle();
     Double_t markers[10] = {kFullCircle, kFullSquare, kFullDiamond, kFullTriangleUp, kFullStar, kOpenCircle, kOpenTriangleUp, kOpenDiamond, kOpenSquare, kOpenStar};
@@ -225,7 +225,7 @@ void make_herwig_pythia_comparison() {
     // 2 = adding in sherpa D0 vs herwig D0 vs pythia D0
     
     //CONTOL VARIABLES HERE
-    int plot_case = 1;
+    int plot_case = 0;
     bool logstring = false;
 
     TString label1 = "";
@@ -287,8 +287,11 @@ void make_herwig_pythia_comparison() {
     //look at pt bins
     const std::string herwig_Djet_pt_name = "D0_noDstar_trkthrd1.0_D0_pt";
     const std::string herwig_DjetwithDstar_pt_name = "D0_trkthrd1.0_D0_pt";
+    const std::string herwig_Djet_z_name = "D0_noDstar_trkthrd1.0_D0_z";
 
-    const std::string pythia_Djet_pt_name = "hD0_uw_pt";
+    const std::string pythia_Djet_pt_name = "hD0_pt";
+    // const std::string pythia_Djet_uw_pt_name = "hD0_uw_pt";
+    const std::string pythia_Djet_z_name = "hD0z";
 
             
     TCanvas* c_pt = new TCanvas();
@@ -307,12 +310,18 @@ void make_herwig_pythia_comparison() {
     TH1D* hD0_pt_herwig = (TH1D*) f_herwig->Get(herwig_Djet_pt_name.c_str());
     TH1D* hD0wDstar_pt_herwig = (TH1D*) f_herwig->Get(herwig_DjetwithDstar_pt_name.c_str());
 
+    TH1D* hD0z_pythia = (TH1D*) f_pythia_D0->Get(pythia_Djet_z_name.c_str());
+    TH1D* hD0z_herwig = (TH1D*) f_herwig->Get(herwig_Djet_z_name.c_str());
+
     hD0_pt_pythia->GetXaxis()->SetTitle("D^{0} p_{T}");
     // hD0wDstar_pt_pythia->GetXaxis()->SetTitle("D^{0} p_{T}");
     hD0_pt_herwig->GetXaxis()->SetTitle("D^{0} p_{T}");
     hD0wDstar_pt_herwig->GetXaxis()->SetTitle("D^{0} p_{T}");
 
-    TLegend* l_fake = new TLegend(0.5797168,0.600741,0.8562155,0.8885185,""); //not so fake anymore but whatever
+    hD0z_pythia->GetXaxis()->SetTitle("D^{0} z");
+    hD0z_herwig->GetXaxis()->SetTitle("D^{0} z");
+
+    TLegend* l_fake = new TLegend(0.5097168,0.670741,0.7362155,0.8885185,""); //not so fake anymore but whatever
     l_fake->AddEntry("NULL","in charged jets, anti-#it{k}_{T}, #it{R} = 0.4","h");
     l_fake->SetTextSize(0.037);
     l_fake->SetBorderSize(0);
@@ -323,39 +332,43 @@ void make_herwig_pythia_comparison() {
     FormatHist(l_fake, hD0_pt_herwig, label3, markercolor3, markerstyle3, 0.80);
     // FormatHist(l_fake, hD0wDstar_pt_herwig, label4, markercolor4, markerstyle4, 0.80);
 
-    // hD0_pt_pythia->Draw("same");
-    // hD0wDstar_pt_pythia->Draw("L same");
+    hD0_pt_pythia->Draw("same");
+    // hD0wDstar_pt_pythia->Draw("L same"); //not implemented properly yet
     hD0_pt_herwig->Draw("same");
     // hD0wDstar_pt_herwig->Draw("L same");
 
     //PT STUFF FIGURE OUT WHERE TO PUT THIS LATER
     // c_pt->cd();
     // pad1->cd();
-    // l_fake->Draw("same");
+    l_fake->Draw("same");
+    hD0_pt_pythia->GetXaxis()->SetLabelSize(0);
 
-    // TPad *pad2 = new TPad("pad1","",0.,0.,1.,1.);
-    // pad2->SetTopMargin(0.71);
-    // pad2->SetFillColor(0);
-    // pad2->SetFillStyle(0);
-    // pad2->Draw();
+    TPad *pad2 = new TPad("pad1","",0.,0.,1.,1.);
+    pad2->SetTopMargin(0.71);
+    pad2->SetFillColor(0);
+    pad2->SetFillStyle(0);
+    pad2->Draw();
     // pad2->SetLogx();
-    // pad2->cd();
+    pad2->SetLogy();
+    pad2->cd();
 
-    // std::string ratio_name = "hratio_D0_pt";
-    // TH1D* hratio = (TH1D*) hD0_pt_herwig->Clone(ratio_name.c_str());
-    // hratio->Divide(hD0_pt_pythia);
+    std::string ratio_name = "hratio_D0_pt";
+    TH1D* hratio = (TH1D*) hD0_pt_herwig->Clone(ratio_name.c_str());
+    hratio->Divide(hD0_pt_pythia);
     // hratio->SetMinimum(0.5);
-    // hratio->SetMaximum(1.5);
+    hratio->SetMaximum(10.);
 
 
-    // FormatHist(l2, hratio, "ratio", kBlack, markers[2]); //, 0.05, 0.04, 1.2, 0.035, 0.03, 1.5);
-    // hratio->GetYaxis()->SetTitle("#frac{Herwig}{PYTHIA}");
-    // hratio->GetYaxis()->SetNdivisions(5);
+    FormatHist(l2, hratio, "ratio", kBlack, markers[2]); //, 0.05, 0.04, 1.2, 0.035, 0.03, 1.5);
+    hratio->GetYaxis()->SetTitle("#frac{Herwig}{PYTHIA}");
+    hratio->GetYaxis()->SetNdivisions(5);
+    hratio->GetYaxis()->SetTitleSize(0.04);
+    hratio->GetYaxis()->SetTitleOffset(1.5);
 
-    // hratio->Draw();
+    hratio->Draw();
 
     // // draw line at 1
-    // drawHoriLine(1e-4, 1., 1., kGray+2, 1)->Draw();
+    drawHoriLine(0., 200., 1., kGray+2, 1)->Draw();
 
     
 
@@ -364,9 +377,65 @@ void make_herwig_pythia_comparison() {
     const char* fname_ptc = fname_pt.c_str();
     c_pt->SaveAs(fname_ptc);
     delete c_pt;
+    
+    //--------------------------------------------------------//
+    // now do z
+
+    TCanvas* c_z = new TCanvas();
+    ProcessCanvas(c_z);
+    c_z->cd();
+    gPad->SetLogy();
+    gPad->SetBottomMargin(0.31);
 
 
+    TPad *pad3 = new TPad("pad3","pad3",0.,0.,1.,1.);
 
+    hD0z_pythia->GetXaxis()->SetTitle("D^{0} z");
+    hD0z_herwig->GetXaxis()->SetTitle("D^{0} z");
+
+    FormatHist(l2, hD0z_pythia, label1, markercolor1, markerstyle1, 0.80);
+    FormatHist(l2, hD0z_herwig, label3, markercolor3, markerstyle3, 0.80);
+
+    hD0z_pythia->Draw("same");
+    hD0z_herwig->Draw("same");
+
+    l_fake->Draw("same");
+    hD0z_pythia->GetXaxis()->SetLabelSize(0);
+
+    TPad *pad4 = new TPad("pad3","",0.,0.,1.,1.);
+    pad4->SetTopMargin(0.71);
+    pad4->SetFillColor(0);
+    pad4->SetFillStyle(0);
+    pad4->Draw();
+    // pad4->SetLogx();
+    pad4->SetLogy();
+    pad4->cd();
+
+    ratio_name = "hratio_D0z";
+    TH1D* hratioz = (TH1D*) hD0z_herwig->Clone(ratio_name.c_str());
+    hratioz->Divide(hD0z_pythia);
+    // hratioz->SetMinimum(0.5);
+    hratioz->SetMaximum(10.);
+
+
+    FormatHist(l2, hratioz, "ratio", kBlack, markers[2]); //, 0.05, 0.04, 1.2, 0.035, 0.03, 1.5);
+    hratioz->GetYaxis()->SetTitle("#frac{Herwig}{PYTHIA}");
+    hratioz->GetYaxis()->SetNdivisions(5);
+    hratioz->GetYaxis()->SetTitleSize(0.04);
+    hratioz->GetYaxis()->SetTitleOffset(1.5);
+
+    hratioz->Draw();
+
+    // // draw line at 1
+    drawHoriLine(0., 200., 1., kGray+2, 1)->Draw();
+
+    
+
+    //PT STUFF FIGURE OUT WHERE TO PUT THIS LATER
+    std::string fname_z = outdir + "herwig-pythia_comparison_D0_z_R0.4.pdf";
+    const char* fname_zc = fname_z.c_str();
+    c_z->SaveAs(fname_zc);
+    delete c_z;
 
 
 
@@ -387,7 +456,7 @@ void make_herwig_pythia_comparison() {
         TString ptD = TString::Format("%d #leq #it{p}_{T}^{D^{0}} < %d GeV/#it{c}, #font[122]{|}#it{y}_{D^{0}}#font[122]{|} #leq 0.8", d0_pt_cuts[i], pt_max);
 
         // Names of histograms in the file
-        const std::string pythia_Djet_EEC_name = "hsparsejet_c_clone_proj_3_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
+        const std::string pythia_Djet_EEC_name = "hsparsejet_c_clone_proj_4_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max); //NOTE: after thnsparse axis change -> this projection # turned to a 4
         const std::string pythia_DjetwithDstar_EEC_name = "hsparsejet_c_Dstar_clone_proj_3_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
         // const std::string pythia_Djet_EEC_noweight_name = "hsparsejet_c_uw_clone_proj_3_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
         
@@ -404,6 +473,10 @@ void make_herwig_pythia_comparison() {
         const std::string sherpa_c_jetpt15_EEC_name = "c_jetpt15_EEC_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_R0.4_trkthrd1.0";
         const std::string sherpa_c_jetpt15_lund_EEC_name = "c_jetpt15_lund_EEC_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_R0.4_trkthrd1.0";
         
+        const std::string pythia_Djet_z_name = "hD0z_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
+        const std::string herwig_Djet_z_perpt_name = "D0_noDstar_D0_z_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_trkthrd1.0";
+        const std::string herwig_DjetwithDstar_z_perpt_name = "D0_D0_z_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_trkthrd1.0";
+        
         
         // make a canvas for each pt range
         TCanvas* c = new TCanvas();
@@ -413,6 +486,14 @@ void make_herwig_pythia_comparison() {
         if (logstring) {
             gPad->SetLogy();
         }
+
+        TCanvas* c_z2 = new TCanvas();
+        ProcessCanvas(c_z2);
+        c_z2->cd();
+        gPad->SetLogx();
+        gPad->SetLogy();
+        gPad->SetBottomMargin(0.31);
+        TPad *pad1a = new TPad("pad1a","pad1a",0.,0.,1.,1.);
         
 
         TLegend* l; // = new TLegend(0.17, 0.65, 0.5, 0.85);
@@ -449,7 +530,9 @@ void make_herwig_pythia_comparison() {
         TH1D* hc_jetpt15_sherpa = (TH1D*) f_sherpa->Get(sherpa_c_jetpt15_EEC_name.c_str());
         TH1D* hc_jetpt15_lund_sherpa = (TH1D*) f_sherpa->Get(sherpa_c_jetpt15_lund_EEC_name.c_str());
 
-        
+        TH1D* hD0_z_pythia = (TH1D*) f_pythia_D0->Get(pythia_Djet_z_name.c_str());
+        TH1D* hD0_z_herwig = (TH1D*) f_herwig->Get(herwig_Djet_z_perpt_name.c_str()); 
+        TH1D* hD0wDstar_z_herwig = (TH1D*) f_herwig->Get(herwig_DjetwithDstar_z_perpt_name.c_str()); //not used
 
         // Format histograms for plotting (this order needed to keep legend in order and graphs lookin good)
         hD0_pythia->GetXaxis()->SetTitle("#it{R}_{L}");
@@ -461,6 +544,8 @@ void make_herwig_pythia_comparison() {
         hD0wDstar_herwig->GetXaxis()->SetTitle("#it{R}_{L}");
         hD0wDstar_herwig->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
         // not bothering formatting sherpa
+
+        hD0_z_pythia->GetXaxis()->SetTitle("D^{0} z");
         
         cout << "about to format D0" << endl;
         
@@ -490,6 +575,7 @@ void make_herwig_pythia_comparison() {
         // get maximum
         hD0_pythia->SetMaximum(hD0_pythia->GetMaximum()*1.5);
         
+        c->cd();
         hD0_pythia->Draw("L same");
         hD0_herwig->Draw("L same");
         if (plot_case == 1) {
@@ -546,6 +632,56 @@ void make_herwig_pythia_comparison() {
         c->SaveAs(fnamec);
         delete c;
 
+        // save D0 z by pt range
+        c_z2->cd();
+        hD0_z_pythia->Draw("same");
+        hD0_z_herwig->Draw("same");
+
+        FormatHist(l2, hD0_z_pythia, label1, markercolor1, markerstyle1, 0.80);
+        FormatHist(l2, hD0_z_herwig, label3, markercolor3, markerstyle3, 0.80);
+
+        l_fake->Draw("same");
+        hD0_z_pythia->GetXaxis()->SetLabelSize(0);
+
+        TPad *pad2a = new TPad("pad1a","",0.,0.,1.,1.);
+        pad2a->SetTopMargin(0.71);
+        pad2a->SetFillColor(0);
+        pad2a->SetFillStyle(0);
+        pad2a->Draw();
+        // pad2a->SetLogx();
+        pad2a->SetLogy();
+        pad2a->cd();
+
+        ratio_name = "hratio_D0_z";
+        TH1D* hratio_z = (TH1D*) hD0_z_herwig->Clone(ratio_name.c_str());
+        hratio_z->Divide(hD0_z_pythia);
+        // hratio_z->SetMinimum(0.5);
+        hratio_z->SetMaximum(10.);
+
+
+        FormatHist(l2, hratio_z, "ratio", kBlack, markers[2]); //, 0.05, 0.04, 1.2, 0.035, 0.03, 1.5);
+        hratio_z->GetYaxis()->SetTitle("#frac{Herwig}{PYTHIA}");
+        hratio_z->GetYaxis()->SetNdivisions(5);
+        hratio_z->GetYaxis()->SetTitleSize(0.04);
+        hratio_z->GetYaxis()->SetTitleOffset(1.5);
+
+        hratio_z->Draw();
+
+        // // draw line at 1
+        drawHoriLine(0., 1., 1., kGray+2, 1)->Draw();
+
+    
+
+        //PT STUFF FIGURE OUT WHERE TO PUT THIS LATER
+        std::string fname_z2 = outdir + "herwig-pythia_comparison_z_pt" + std::to_string(pt_min) + '-' + std::to_string(pt_max) + "_R0.4_plotcase" + std::to_string(plot_case) + ".pdf";
+        const char* fname_z2c = fname_z2.c_str();
+        c_z2->SaveAs(fname_z2c);
+        delete c_z2;
+
+
+
+
+
 
         f_out->cd();
         hD0_pythia->Write();
@@ -558,6 +694,9 @@ void make_herwig_pythia_comparison() {
         hc_jetpt15_sherpa->Write();
         hc_jetpt15_lund_sherpa->Write();
 
+        hD0_z_pythia->Write();
+        hD0_z_herwig->Write();
+
             
     } // pT bins loop
 
@@ -566,6 +705,9 @@ void make_herwig_pythia_comparison() {
     // hD0wDstar_pt_pythia->Write();
     hD0_pt_herwig->Write();
     hD0wDstar_pt_herwig->Write();
+
+    hD0z_pythia->Write();
+    hD0z_herwig->Write();
 
 
 
