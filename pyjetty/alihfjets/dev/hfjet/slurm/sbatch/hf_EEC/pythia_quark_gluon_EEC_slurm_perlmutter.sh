@@ -61,10 +61,10 @@ if $USE_PTHAT_MAX; then
     echo "pipenv run python $SCRIPT -c $CONFIG --output-dir $OUTDIR --user-seed $SEED --py-pthatmin $PTHAT_MIN --py-ecm $ECM --nev $NEV_PER_JOB --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2,PhaseSpace:pTHatMax=$PTHAT_MAX"
     pipenv run python $SCRIPT -c $CONFIG --output-dir $OUTDIR --user-seed $SEED \
         --py-pthatmin $PTHAT_MIN --py-ecm $ECM --nev $NEV_PER_JOB \
-        --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2,PhaseSpace:pTHatMax=$PTHAT_MAX --nocharmdecay 0 --fulljets 1
+        --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2,PhaseSpace:pTHatMax=$PTHAT_MAX --replaceKP 1 --chinitscat 3 --fulljets 1
 else
     echo "pipenv run python $SCRIPT -c $CONFIG --output-dir $OUTDIR --user-seed $SEED --py-pthatmin $PTHAT_MIN --py-ecm $ECM --nev $NEV_PER_JOB --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2"
     pipenv run python $SCRIPT -c $CONFIG --output-dir $OUTDIR \
         --user-seed $SEED --py-pthatmin $PTHAT_MIN --py-ecm $ECM --nev $NEV_PER_JOB \
-        --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2 --nocharmdecay 0 --fulljets 1
+        --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2 --replaceKP 1 --chinitscat 3 --fulljets 1
 fi

@@ -21,7 +21,8 @@ void SetStyle(Bool_t graypalette=true) {
   	gStyle->SetPadTickX(1);
   	gStyle->SetPadTickY(1);
   	gStyle->SetPadBottomMargin(0.15);
- 	gStyle->SetPadLeftMargin(0.15);
+ 	gStyle->SetPadLeftMargin(0.175);
+    // gStyle->SetPadRightMargin(0.1);
   	gStyle->SetHistLineWidth(1);
   	gStyle->SetHistLineColor(kRed);
   	gStyle->SetFuncWidth(2);
@@ -59,33 +60,8 @@ void ProcessCanvas(TCanvas *Canvas) {
  	Canvas->SetFrameBorderMode(1);
 }
 
-// void FormatHist(TLegend *l, TH1 *hist, TString text, int markercolor=1, int markerstyle=8) 
-// {
-//     hist->SetLineColor(markercolor);
-//     hist->SetMarkerColor(markercolor);
-//     hist->SetMarkerStyle(markerstyle);
-//     hist->SetMarkerSize(1.5);
-//     l->AddEntry(hist, text, "pl");
 
-// 	//gPad->SetTickx(); 
-// 	//gPad->SetTicky(); 
-// 	// h->SetLineWidth(2);
-// 	hist->GetYaxis()->SetTitleOffset(1.05); 
-// 	hist->GetYaxis()->SetTitleSize(0.06); //(0.042);
-// 	hist->GetYaxis()->SetLabelSize(0.05); //(0.042);
-// 	hist->GetYaxis()->SetLabelFont(42);
-// 	hist->GetXaxis()->SetLabelFont(42);
-// 	hist->GetYaxis()->SetTitleFont(42);
-// 	hist->GetXaxis()->SetTitleFont(42);
-// 	hist->GetXaxis()->SetTitleOffset(1.0);
-// 	hist->GetXaxis()->SetTitleSize(0.06); //(0.042);
-// 	hist->GetXaxis()->SetLabelSize(0.05); //(0.042);
-
-
-//     return;
-// }
-
-void FormatHist(TLegend *l, TH1 *hist, TString text, int markercolor=1, int markerstyle=8, double markeralpha=1., double markerfill=-1.,
+void FormatHist(TLegend *l, TH1 *hist, TString text, int markercolor=1, int markerstyle=8, double markeralpha=1.,
                 double xtitlesize=0.06, double xlabelsize=0.05, double xoffset=1.0,
                 double ytitlesize=0.06, double ylabelsize=0.05, double yoffset=1.05) 
                 // double xtitlesize=0.04, double xlabelsize=0.04, double xoffset=1.2,
@@ -95,9 +71,6 @@ void FormatHist(TLegend *l, TH1 *hist, TString text, int markercolor=1, int mark
     hist->SetMarkerColorAlpha(markercolor, markeralpha);
     hist->SetMarkerStyle(markerstyle);
     hist->SetMarkerSize(1.5);
-    if (markerfill != -1) {
-        hist->SetFillStyle(markerfill);
-    }
     l->AddEntry(hist, text, "pl");
 
 	//gPad->SetTickx(); 
@@ -255,6 +228,8 @@ TH1D * getObsHist(TFile *filename, std::string h_name, std::string h_jet_name, i
     //normalize
     double numjets = h_proj_jetlevel->Integral();
     hist->Scale(1/numjets, "width");
+    // cout << "There are " << h_proj->GetEntries() << " pair entries in this pt bin" << endl;
+    // cout << "There are " << h_proj_jetlevel->GetEntries() << " jet entries in this pt bin" << endl;
 
     if (ptrl) {
         hist->GetXaxis()->SetTitle("#it{p}_{T}#it{R}_{L}");
@@ -266,10 +241,12 @@ TH1D * getObsHist(TFile *filename, std::string h_name, std::string h_jet_name, i
     return hist;
 }
 
-void drawWithLineAtMax(TH1D *hist, TLegend *l, std::string labeltext, int markercolor, int markerstyle, 
-                    bool ptrl=false, bool removexaxis=false, double markeralpha=1, double markerfill=-1, bool verbosity=false) {
+double drawWithLineAtMax(TH1D *hist, TLegend *l, std::string labeltext, int markercolor, int markerstyle, 
+                    bool ptrl=false, bool removexaxis=false, double markeralpha=1, double xoffset=1.0, bool verbosity=false) {
     // FormatHist(l, hist, "gluon-init jets", markercolor_g, markerstyle_g);
-    FormatHist(l, hist, labeltext, markercolor, markerstyle, markeralpha, markerfill);
+    FormatHist(l, hist, labeltext, markercolor, markerstyle, markeralpha,
+               0.06, 0.05, xoffset, 0.06, 0.05, 1.05);
+    hist->GetXaxis()->SetRangeUser(1e-3, 1.);
     hist->Draw("L same");
     if (removexaxis) hist->GetXaxis()->SetLabelSize(0);
     
@@ -279,51 +256,159 @@ void drawWithLineAtMax(TH1D *hist, TLegend *l, std::string labeltext, int marker
     if (verbosity) {
         cout << hist->GetName() << " top bincenter " << hist->GetBinCenter(hist_top_binpos) << ", " << hist->GetName() << " top binpos" << hist->GetBinContent(hist_top_binpos) << endl;
     }   
+
+    return hist->GetBinCenter(hist_top_binpos);
 }
 
-void makeTopPad() {
+double getPeak(TH1D *hist, bool ptrl=false, bool verbosity=false) {
+    
+    double hist_top_binpos = findTopOfCurve(hist, ptrl);
+    if (verbosity) {
+        cout << hist->GetName() << " top bincenter " << hist->GetBinCenter(hist_top_binpos) << ", " << hist->GetName() << " top binpos" << hist->GetBinContent(hist_top_binpos) << endl;
+    }   
+
+    return hist->GetBinCenter(hist_top_binpos);
+}
+
+double getPeakErr(TH1D *hist, bool ptrl=false, bool verbosity=false) {
+    
+    double hist_top_binpos = findTopOfCurve(hist, ptrl);
+    if (verbosity) {
+        cout << hist->GetName() << " top bincenter " << hist->GetBinCenter(hist_top_binpos) << ", " << hist->GetName() << " top binpos" << hist->GetBinContent(hist_top_binpos) << endl;
+    }   
+
+    return hist->GetBinWidth(hist_top_binpos)/2;
+}
+
+void plotGraph(TMultiGraph *mg, TLegend *l, int n_bins, double *pt_x, double *peaks_y, double *err_y, TString text, int markercolor, int markerstyle, double markeralpha=1.0) {
+    // TGraph *g = new TGraph(n_bins,pt_x,peaks_y);
+    double err_x[n_bins];
+    for (int i=0; i<n_bins; i++) {
+        err_x[i] = 0;
+    }
+    TGraphErrors *g = new TGraphErrors(n_bins,pt_x,peaks_y, err_x, err_y);
+    g->SetMarkerColorAlpha(markercolor, markeralpha);
+    g->SetMarkerStyle(markerstyle);
+    g->SetMarkerSize(1.5);
+    g->SetLineColorAlpha(markercolor, markeralpha);
+    // if (markerstyle == kFullDiamond) g->SetMarkerSize(1.75);
+    if (markercolor == kRed && markerstyle == kOpenCircle) g->SetMarkerSize(1);
+
+    l->AddEntry(g, text, "pl");
+
+    g->GetXaxis()->SetTitle("#it{p}_{T}");
+    g->GetYaxis()->SetTitle("#it{R}_{L} peak position");
+
+    if (text == "#frac{b-init full jets}{l-init full jets}") {
+        cout << "here!!!!!" << endl;
+        g->SetMaximum(2.9);
+    }
+    
+
+    // g->Draw("ap SAME");
+    // return g;
+    mg->Add(g);
+
+}
+
+// TPad * makeTopPad(TH1D *hdummy, double ymax, double botmarg=0.31) {
+TPad * makeTopPad(double botmarg=0.31) {
     TPad *pad1 = new TPad("pad1","pad1",0.,0.,1.,1.);
     pad1->SetLogx();
     pad1->SetFillColor(0);
     pad1->SetFillStyle(0);
-    pad1->SetBottomMargin(0.31);
+    pad1->SetTopMargin(0.025);
+    pad1->SetBottomMargin(botmarg);
     pad1->Draw();
     pad1->cd();
+
+    // hdummy->SetMaximum(ymax);
+    // hdummy->Draw();
+
+    return pad1;
 }
 
-void makeBottomPad() {
+TPad * makeBottomPad(double topmarg=0.71, double botmarg=0.975) {
     TPad *pad2 = new TPad("pad1","",0.,0.,1.,1.);
-    pad2->SetTopMargin(0.71);
+    pad2->SetTopMargin(topmarg); //0.71);
+    pad2->SetBottomMargin(botmarg);
     pad2->SetFillColor(0);
     pad2->SetFillStyle(0);
     pad2->Draw();
     pad2->SetLogx();
+    // pad2->SetGridy();
     pad2->cd();
+
+    return pad2;
 }
 
-void plotRatio(TH1D *h1, TH1D *h2, std::string ratio_name, TLegend *l, int markerstyle, std::string yaxislabel, int ndiv=5) {    
-    makeBottomPad();
+TPad * plotRatio(TH1D *h1, TH1D *h2, std::string ratio_name, TLegend *l, int markercolor, int markerstyle, std::string yaxislabel, 
+               double ymin=0.5, double ymax=1.5, double topmarg=0.71, double botmarg=0.975, bool removexaxis=false, bool justratio=false,
+               int ndiv=5) {   
+
+    TPad *pad2;
+    if (!justratio) pad2 = makeBottomPad(topmarg, botmarg);
 
     TH1D* hratio = (TH1D*) h1->Clone(ratio_name.c_str());
     hratio->Divide(h2);
-    // hratio->SetMinimum(0.5);
-    // hratio->SetMaximum(1.5);
+    hratio->SetMinimum(ymin);
+    hratio->SetMaximum(ymax);
     
     //xtitlesize, xlabelsize, xoffset, ytitlesize, ylabelsize, yoffset
-    FormatHist(l, hratio, "ratio", kBlack, markerstyle, 1.0, 0.05, 0.04, 1.2, 0.035, 0.03, 1.5);
-    hratio->GetYaxis()->SetTitle(yaxislabel.c_str());
+    FormatHist(l, hratio, "ratio", markercolor, markerstyle, 1.0, 0.05, 0.04, 1.2, 0.035, 0.03, 1.5);
     hratio->GetYaxis()->SetNdivisions(5);
+    if (removexaxis) hratio->GetXaxis()->SetLabelSize(0);
+    else hratio->GetXaxis()->SetTitleOffset(0.95);
 
     hratio->Draw();
 
-    // draw line at 1
-    drawHoriLine(1e-4, 1., 1., kGray+2, 1)->Draw();
-    // drawHoriLine(1e-4, 1., 0.9, kGray+2, 6)->Draw();
-    // drawHoriLine(1e-4, 1., 1.1, kGray+2, 6)->Draw();
+    hratio->GetYaxis()->SetTitleSize(0);
+
+    if (!justratio) {
+        double ypos = ((1-topmarg) + botmarg) / 2;
+        TLatex *t = new TLatex(0.075,ypos,yaxislabel.c_str());
+        t->SetTextAlign(22);
+        t->SetTextColor(kBlack);
+        t->SetTextFont(43);
+        t->SetTextSize(14);
+        // t->SetTextAngle(45);
+        t->SetNDC(kTRUE);
+        t->Draw();
+
+        // draw line at 1
+        drawHoriLine(1e-3, 1., 1., kGray+2, 1)->Draw();
+        // drawHoriLine(1e-3, 1., 0.9, kGray+2, 6)->Draw();
+        // drawHoriLine(1e-3, 1., 1.1, kGray+2, 6)->Draw();
+    }
+
+    return pad2;
 
 }
 
+TH1D * plotRatio2(TH1D *h1, TH1D *h2, std::string ratio_name, TLegend *l, int markercolor, int markerstyle, std::string yaxislabel, 
+               double ymin=0.5, double ymax=1.5, double topmarg=0.71, double botmarg=0.975, bool removexaxis=false, bool justratio=false,
+               int ndiv=5) 
+{   
 
+    TH1D* hratio2 = (TH1D*) h1->Clone(ratio_name.c_str());
+    hratio2->Divide(h2);
+    // hratio2->SetMinimum(ymin);
+    // hratio2->SetMaximum(ymax);
+    
+    //xtitlesize, xlabelsize, xoffset, ytitlesize, ylabelsize, yoffset
+    FormatHist(l, hratio2, "ratio", markercolor, markerstyle, 1.0, 0.05, 0.04, 1.2, 0.035, 0.03, 1.5);
+    // hratio2->GetYaxis()->SetNdivisions(5);
+    if (removexaxis) hratio2->GetXaxis()->SetLabelSize(0);
+
+    // hratio2->Draw();
+
+    hratio2->GetYaxis()->SetTitleSize(0);
+
+    return hratio2;
+ }
+
+
+//===========================================================================//
 
 void make_qg_plots_cgl() {
 
@@ -342,25 +427,34 @@ void make_qg_plots_cgl() {
     const TString basedir = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/";
     const TString root_filename = "/AnalysisResultsFinal.root";
 
-    const TString infile_ptrl_charmdecaysON = basedir + "24691538" + root_filename; //--nocharmdecay 0 --giveptRL 1 //currently not used**
+    const TString infile_ptrl_charmdecaysON = basedir + "24691538" + root_filename; //--nocharmdecay 0 --giveptRL 1 **
     const TString infile_ptrl_charmdecaysOFF = basedir + "24692158" + root_filename; //--nocharmdecay 1 --giveptRL 1 **
     const TString infile_ptrl_c_enhanced_D0 = basedir + "24690700" + root_filename; //--replaceKP 1 --chinitscat 3 --giveptRL 1**
         
     //---------------------------------------------------------------------//
     // these histograms have D0 pt and z information:
-    const TString infile_charmdecaysON = basedir + "25735401" + root_filename; //--nocharmdecay 0 //currently not used**
-    const TString infile_charmdecaysOFF = basedir + "25735384" + root_filename; //--nocharmdecay 1**
+    const TString infile_charmdecaysON = basedir + "25735401" + root_filename; //--nocharmdecay 0
+    const TString infile_charmdecaysOFF = basedir + "25735384" + root_filename; //--nocharmdecay 1
+    const TString infile_charmdecaysON_higherpthat = basedir + "25963614" + root_filename; //--nocharmdecay 0, higher pt-hat
+    const TString infile_charmdecaysOFF_higherpthat = basedir + "25963640" + root_filename; //--nocharmdecay 1, higher pt-hat
     
     const TString infile_c_enhanced_D0 = basedir + "25536401" + root_filename; //--replaceKP 1 --chinitscat 3
+    const TString infile_c_enhanced_D0_higherpthat = basedir + "25963105" + root_filename; //--replaceKP 1 --chinitscat 3, higher pt-hat
+
+    const TString infile_c_enhanced_D0_fulljets = basedir + "26404382" + root_filename; //--replaceKP 1 --chinitscat 3 --fulljets 1
 
     const TString infile_c_enhanced_charmdecaysOFF_chargedjets_and_neutralhadrons = basedir + "25536163" + root_filename; //--nocharmdecay 1 --chinitscat 1 //now --fulljets 2?
     const TString infile_b_enhanced_beautydecaysOFF_chargedjets_and_neutralhadrons = basedir + "25536177" + root_filename; //--nobeautydecay 1 --chinitscat 5 //now --fulljets 2?
     
     const TString infile_c_enhanced_charmdecaysOFF_fulljets = basedir + "25620729" + root_filename; //--nocharmdecay 1 --chinitscat 1 --fulljets 1
     const TString infile_b_enhanced_beautydecaysOFF_fulljets = basedir + "25620738" + root_filename; //--nobeautydecay 1 --chinitscat 5 --fulljets 1
+    const TString infile_c_enhanced_charmdecaysOFF_fulljets_higherpthat = basedir + "25963688" + root_filename; //--nocharmdecay 1 --chinitscat 1 --fulljets 1, higher pt-hat
+    const TString infile_b_enhanced_beautydecaysOFF_fulljets_higherpthat = basedir + "25963694" + root_filename; //--nobeautydecay 1 --chinitscat 5 --fulljets 1, higher pt-hat
     
-    const TString infile_charmdecaysON_fulljets = basedir + "25735421" + root_filename; //--nocharmdecay 0 --fulljets 1 //currently not used
+    const TString infile_charmdecaysON_fulljets = basedir + "25735421" + root_filename; //--nocharmdecay 0 --fulljets 1
     const TString infile_charmdecaysOFF_fulljets = basedir + "25735417" + root_filename; //--nocharmdecay 1 --fulljets 1
+    const TString infile_charmdecaysON_fulljets_higherpthat = basedir + "25963982" + root_filename; //--nocharmdecay 0 --fulljets 1, higher pt-hat
+    const TString infile_charmdecaysOFF_fulljets_higherpthat = basedir + "25963983" + root_filename; //--nocharmdecay 1 --fulljets 1, higher pt-hat
     
     //---------------------------------------------------------------------//
     // other
@@ -379,6 +473,7 @@ void make_qg_plots_cgl() {
     TFile *f_ptrl_c_enhanced_D0 = new TFile(infile_ptrl_c_enhanced_D0, "READ");
 
     TFile *f_c_enhanced_D0 = new TFile(infile_c_enhanced_D0, "READ");
+    TFile *f_c_enhanced_D0_fulljets = new TFile(infile_c_enhanced_D0_fulljets, "READ");
     TFile *f_c_enhanced_charmdecaysOFF_chargedjets_and_neutralhadrons = new TFile(infile_c_enhanced_charmdecaysOFF_chargedjets_and_neutralhadrons, "READ");
     TFile *f_b_enhanced_beautydecaysOFF_chargedjets_and_neutralhadrons = new TFile(infile_b_enhanced_beautydecaysOFF_chargedjets_and_neutralhadrons, "READ");
     TFile *f_c_enhanced_charmdecaysOFF_fulljets = new TFile(infile_c_enhanced_charmdecaysOFF_fulljets, "READ");
@@ -392,22 +487,25 @@ void make_qg_plots_cgl() {
     // plot cases:
     //final:
     // 0: plot c, g, l, i --NOT IMPLEMENTED
-        // g, l, i from charmdecaysOFF; c from c_enhanced_charmdecaysOFF
+        // g, l, i from charmdecaysON; c from c_enhanced_charmdecaysOFF
     // 1: plot D0, g, l, i, include ratio of D0/inclusive **
-        // g, l, i from charmdecaysOFF; D0 from c_enhanced_D0
+        // g, l, i from charmdecaysON; D0 from c_enhanced_D0 - thought about this, want ON bc we don't want to control any decays for the other samples
     // 2: plot D0, g, l, i but pt*RL -- TODO: already done in other file, port over here later
-        // g, l, i from ptrl_charmdecaysOFF; D0 from ptrl_c_enhanced_D0
+        // g, l, i from ptrl_charmdecaysON; D0 from ptrl_c_enhanced_D0
     // 3: plot l, c, b full jets **
-        // l from charmdecaysOFF_fulljets; c from c_enhanced_charmdecaysOFF_fulljets, b from b_enhanced_beautydecaysOFF_fulljets
-    
+        // l from charmdecaysON_fulljets; c from c_enhanced_charmdecaysOFF_fulljets, b from b_enhanced_beautydecaysOFF_fulljets
+    // 100: plot the peak positions as a function of pt
+
     //exploring:
     // 10: plot c, g, l, i, b from full jets -- not neccesary...
-        // g, l, i from charmdecaysOFF_fulljets; c from c_enhanced_charmdecaysOFF_fulljets; b from b_enhanced_beautydecaysOFF_fulljets
+        // g, l, i from charmdecaysON_fulljets; c from c_enhanced_charmdecaysOFF_fulljets; b from b_enhanced_beautydecaysOFF_fulljets
     // 11: plot l, c, b full jets and charged jets + neutrals hadrons, and charged jets
-        // g, l, i from charmdecaysOFF_fulljets; c from c_enhanced_charmdecaysOFF_fulljets; b from b_enhanced_beautydecaysOFF_fulljets
+        // g, l, i from charmdecaysON_fulljets; c from c_enhanced_charmdecaysOFF_fulljets; b from b_enhanced_beautydecaysOFF_fulljets
         // don't have light for charged jets+neutral, but c from c_enhanced_charmdecaysOFF_chargedjets_and_neutralhadrons; b from b_enhanced_beautydecaysOFF_chargedjets_and_neutralhadrons
-        // also add light charged jets from infile_charmdecaysOFF, c charged jets from infile_c_enhanced_charmdecaysOFF, don't have b charged jets
-    int plot_case = 3;
+        // also add light charged jets from infile_charmdecaysON, c charged jets from infile_c_enhanced_charmdecaysOFF, don't have b charged jets
+    // 12: plot_case 3 and also with charm decays OFF for full light jets
+    // 20: plot_case 1 and also with charm decays OFF from g, l, i
+    int plot_case = 100;
 
     // std::vector<TFile*> files;
     std::string add_name;
@@ -425,7 +523,7 @@ void make_qg_plots_cgl() {
     // save pdf plots in more specific directories
     if (plot_case == 2) {
         outdir += "ptrl/";
-    } else if (plot_case == 3 or plot_case == 11) {
+    } else if (plot_case == 3 or plot_case == 11 or plot_case == 12) {
         outdir += "beauty/";
     }
 
@@ -447,12 +545,76 @@ void make_qg_plots_cgl() {
 
         //-------------------------------------------------//
         //TODO: IF THNSPARSE CLONES ARE BEFORE THE PT BIN LOOP, MOVE THEM INTO IT!!
+        //-------------------------------------------------//
+        // Make canvases that save across pt bins
+        TCanvas* c_D0 = new TCanvas();
+        ProcessCanvas(c_D0);
+        c_D0->cd();
+        gPad->SetLogx();
+        // gPad->SetLogy();
 
+        TCanvas* c_rat1 = new TCanvas();
+        ProcessCanvas(c_rat1);
+        c_rat1->cd();
+        gPad->SetLogx();
+
+        TCanvas *c_peaks = new TCanvas();
+        ProcessCanvas(c_peaks);
+
+        TCanvas *c_peaks_frac = new TCanvas();
+        ProcessCanvas(c_peaks_frac);
+        
+
+
+        //-------------------------------------------------//
 
         //const int pt_bins[] = { 10, 20, 40, 60, 80, 100, 150 };
-        const int pt_bins[] = { 7, 10, 15, 30, 50, 70 }; //, 100, 150 }; //{ 10, 20, 40 };
-        const int d0_pt_cuts[] = { 3, 5, 5, 5, 5 }; //, 5, 5 };
-        const int n_bins = 5; //7;
+        const int pt_bins[] = { 7, 10, 15, 30, 50, 70, 100, 150, 200 }; //, 100, 150 }; //{ 10, 20, 40 };
+        const int d0_pt_cuts[] = { 3, 5, 5, 5, 5, 5, 5, 5 }; //, 5, 5 };
+        const int n_bins = 8; //7;
+        double pt_x[n_bins] = { 10., 15., 30., 50., 70., 100., 150., 200.0 };
+        
+        double peaks_l_full_y[n_bins];
+        double peaks_c_full_y[n_bins];
+        double peaks_b_full_y[n_bins];
+        double peaks_D0_full_y[n_bins];
+        
+        double peaks_l_ch_y[n_bins];
+        double peaks_g_ch_y[n_bins];
+        double peaks_incl_ch_y[n_bins];
+        double peaks_D0_ch_y[n_bins];
+
+        double peakserr_l_full_y[n_bins];
+        double peakserr_c_full_y[n_bins];
+        double peakserr_b_full_y[n_bins];
+        double peakserr_D0_full_y[n_bins];
+        
+        double peakserr_l_ch_y[n_bins];
+        double peakserr_g_ch_y[n_bins];
+        double peakserr_incl_ch_y[n_bins];
+        double peakserr_D0_ch_y[n_bins];
+
+        //Format color and style
+        int markercolor_c = kRed; //charm
+        int markerstyle_c = kFullCircle;
+        int markercolor_g = kViolet+2; //gluon
+        int markerstyle_g = 33; //diamond
+        int markercolor_l = kGreen+2; //light
+        int markerstyle_l = 21; //square
+        int markercolor_i = kMagenta-6; //inclusive
+        int markerstyle_i = 29; //star
+        int markercolor_D0 = kOrange+7; //kGreen-5; //D0
+        int markerstyle_D0 = kFullCircle;
+        int markercolor_b = kAzure; //beauty
+        int markerstyle_b = 34;
+
+        int markerstyle_c_ch = kOpenCircle; //charged jets when being compared to full
+        int markerfill_c_chn = 3944; //charged jets with neutral hadrons
+
+        int markerstyle_l_ch = kOpenSquare; //charged jets when being compared to full
+        int markerfill_b_chn = 3944; //charged jets with neutral hadrons
+
+        
         for (int i = 0; i < n_bins; i++) {
             cout << "in pt bin" << i << endl;
             int pt_min = pt_bins[i];
@@ -461,13 +623,18 @@ void make_qg_plots_cgl() {
             // define pt related variables
             TString ptbin = TString::Format("%d #leq #it{p}_{T}^{ch. jet} < %d GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5", pt_min, pt_max);
             TString ptD = TString::Format("%d #leq #it{p}_{T}^{D^{0}} < %d GeV/#it{c}, #font[122]{|}#it{y}_{D^{0}}#font[122]{|} #leq 0.8", d0_pt_cuts[i], pt_max);
-            
+            if (plot_case == 3 or plot_case == 11 or plot_case == 12) {
+                ptbin = TString::Format("%d #leq #it{p}_{T}^{full jet} < %d GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5", pt_min, pt_max);
+            }
 
             // make a canvas for each pt range
             TCanvas* c = new TCanvas();
             ProcessCanvas(c);
             c->cd();
             gPad->SetLogx();
+            // if (plot_case == 1 or plot_case == 20) {
+            //     c->SetCanvasSize(900, 900);
+            // }
             // gPad->SetLogy();
 
             TLegend* l; // = new TLegend(0.17, 0.65, 0.5, 0.85);
@@ -479,19 +646,24 @@ void make_qg_plots_cgl() {
             // Open histograms
 
 
-            l = new TLegend(0.1797168,0.400741,0.4562155,0.8885185,""); //(0.17, 0.4, 0.5, 0.53);
+            // if (plot_case == 1 or plot_case == 20) 
+            l = new TLegend(0.1957168,0.600741,0.462155,0.9485185,"");
+            // else l = new TLegend(0.1797168,0.400741,0.4562155,0.8885185,""); //(0.17, 0.4, 0.5, 0.53);
             l->SetTextSize(0.045);
             l->AddEntry("NULL","PYTHIA 8 Monash 2013","h");
             l->AddEntry("NULL","pp, #sqrt{#it{s}} = 13 TeV","h");
-            if (plot_case == 3 or plot_case == 11) l->AddEntry("NULL","anti-#it{k}_{T}, #it{R} = 0.4","h");
+            if (plot_case == 3 or plot_case == 11 or plot_case == 12) l->AddEntry("NULL","anti-#it{k}_{T}, #it{R} = 0.4","h");
             else {
                 l->AddEntry("NULL","D^{0} #rightarrow K^{#minus} #pi^{+} and charge conj.","h");
                 l->AddEntry("NULL","in charged jets, anti-#it{k}_{T}, #it{R} = 0.4","h");
             }
             l->AddEntry("NULL",ptbin,"h");
-            l->AddEntry("NULL",ptD,"h");
-            l->SetTextSize(0.037);
+            if (!(plot_case == 3 or plot_case == 11 or plot_case == 12)) l->AddEntry("NULL",ptD,"h");
+            // if (plot_case == 1 or plot_case == 20) 
+            l->SetTextSize(0.028);
+            // else l->SetTextSize(0.037);
             l->SetBorderSize(0);
+            l->SetFillStyle(0);
             // l->Draw("same");
 
 
@@ -504,12 +676,22 @@ void make_qg_plots_cgl() {
             TH1D *h_charmdecaysOFF_i = getObsHist(f_charmdecaysOFF, hi_name, hi_jet_name, pt_min, pt_max, d0_pt_cuts[i], "h_charmdecaysOFF_i" + pt_name, false, 4);
             TH1D *h_c_enhanced_charmdecaysOFF_c = getObsHist(f_c_enhanced_charmdecaysOFF, hc_name, hc_jet_name, pt_min, pt_max, d0_pt_cuts[i], "h_c_enhanced_charmdecaysOFF_c" + pt_name, false, 3);
             
+            TH1D *h_charmdecaysON_g = getObsHist(f_charmdecaysON, hg_name, hg_jet_name, pt_min, pt_max, d0_pt_cuts[i], "h_charmdecaysON_g" + pt_name, false, 4);
+            TH1D *h_charmdecaysON_l = getObsHist(f_charmdecaysON, hl_name, hl_jet_name, pt_min, pt_max, d0_pt_cuts[i], "h_charmdecaysON_l" + pt_name, false, 4);
+            TH1D *h_charmdecaysON_i = getObsHist(f_charmdecaysON, hi_name, hi_jet_name, pt_min, pt_max, d0_pt_cuts[i], "h_charmdecaysON_i" + pt_name, false, 4);
+            
             TH1D *h_ptrl_charmdecaysOFF_g = getObsHist(f_ptrl_charmdecaysOFF, hg_name, hg_jet_name, pt_min, pt_max, d0_pt_cuts[i], "h_ptrl_charmdecaysOFF_g" + pt_name, false, 3, true);
             TH1D *h_ptrl_charmdecaysOFF_l = getObsHist(f_ptrl_charmdecaysOFF, hl_name, hl_jet_name, pt_min, pt_max, d0_pt_cuts[i], "h_ptrl_charmdecaysOFF_l" + pt_name, false, 3, true);
             TH1D *h_ptrl_charmdecaysOFF_i = getObsHist(f_ptrl_charmdecaysOFF, hi_name, hi_jet_name, pt_min, pt_max, d0_pt_cuts[i], "h_ptrl_charmdecaysOFF_i" + pt_name, false, 3, true);
             TH1D *h_ptrl_charmdecaysOFF_c = getObsHist(f_ptrl_charmdecaysOFF, hc_name, hc_jet_name, pt_min, pt_max, d0_pt_cuts[i], "h_ptrl_charmdecaysOFF_c" + pt_name, false, 3, true);
             
+            TH1D *h_ptrl_charmdecaysON_g = getObsHist(f_ptrl_charmdecaysON, hg_name, hg_jet_name, pt_min, pt_max, d0_pt_cuts[i], "h_ptrl_charmdecaysON_g" + pt_name, false, 3, true);
+            TH1D *h_ptrl_charmdecaysON_l = getObsHist(f_ptrl_charmdecaysON, hl_name, hl_jet_name, pt_min, pt_max, d0_pt_cuts[i], "h_ptrl_charmdecaysON_l" + pt_name, false, 3, true);
+            TH1D *h_ptrl_charmdecaysON_i = getObsHist(f_ptrl_charmdecaysON, hi_name, hi_jet_name, pt_min, pt_max, d0_pt_cuts[i], "h_ptrl_charmdecaysON_i" + pt_name, false, 3, true);
+            
             TH1D *h_c_enhanced_D0 = getObsHist(f_c_enhanced_D0, hc_name, hc_jet_name, pt_min, pt_max, d0_pt_cuts[i], "h_c_enhanced_D0" + pt_name, true, 4);
+
+            TH1D *h_c_enhanced_D0_fulljets = getObsHist(f_c_enhanced_D0_fulljets, hc_name, hc_jet_name, pt_min, pt_max, d0_pt_cuts[i], "h_c_enhanced_D0_fulljets" + pt_name, true, 4);
 
             TH1D *h_ptrl_c_enhanced_D0 = getObsHist(f_ptrl_c_enhanced_D0, hc_name, hc_jet_name, pt_min, pt_max, d0_pt_cuts[i], "h_ptrl_c_enhanced_D0" + pt_name, true, 3, true);
 
@@ -518,46 +700,16 @@ void make_qg_plots_cgl() {
             TH1D *h_c_enhanced_charmdecaysOFF_fulljets_c = getObsHist(f_c_enhanced_charmdecaysOFF_fulljets, hc_name, hc_jet_name, pt_min, pt_max, d0_pt_cuts[i], "h_c_enhanced_charmdecaysOFF_fulljets_c" + pt_name, false, 4);
             TH1D *h_b_enhanced_beautydecaysOFF_fulljets_b = getObsHist(f_b_enhanced_beautydecaysOFF_fulljets, hb_name, hb_jet_name, pt_min, pt_max, d0_pt_cuts[i], "h_b_enhanced_beautydecaysOFF_fulljets_b" + pt_name, false, 4);
 
+            TH1D *h_charmdecaysON_fulljets_g = getObsHist(f_charmdecaysON_fulljets, hg_name, hg_jet_name, pt_min, pt_max, d0_pt_cuts[i], "h_charmdecaysON_fulljets_g" + pt_name, false, 4);
+            TH1D *h_charmdecaysON_fulljets_l = getObsHist(f_charmdecaysON_fulljets, hl_name, hl_jet_name, pt_min, pt_max, d0_pt_cuts[i], "h_charmdecaysON_fulljets_l" + pt_name, false, 4);
+            
             TH1D *h_c_enhanced_charmdecaysOFF_chargedjets_and_neutralhadrons_c = getObsHist(f_c_enhanced_charmdecaysOFF_chargedjets_and_neutralhadrons, hc_name, hc_jet_name, pt_min, pt_max, d0_pt_cuts[i], "h_c_enhanced_charmdecaysOFF_chargedjets_and_neutralhadrons_c" + pt_name, false, 4);
             TH1D *h_b_enhanced_beautydecaysOFF_chargedjets_and_neutralhadrons_b = getObsHist(f_b_enhanced_beautydecaysOFF_chargedjets_and_neutralhadrons, hb_name, hb_jet_name, pt_min, pt_max, d0_pt_cuts[i], "h_b_enhanced_beautydecaysOFF_chargedjets_and_neutralhadrons_b" + pt_name, false, 4);
 
+            //make dummy histogram
+            TH1D *h_dummy = getObsHist(f_charmdecaysOFF, hg_name, hg_jet_name, pt_min, pt_max, d0_pt_cuts[i], "hdummy", false, 4);
 
-
-            // Rebin
-            int n_obs_bins = 50; //-1;
-            double obs_bins[] = {1.00000000e-04, 1.25892541e-04, 1.58489319e-04, 1.99526231e-04,
-                2.51188643e-04, 3.16227766e-04, 3.98107171e-04, 5.01187234e-04,
-                6.30957344e-04, 7.94328235e-04, 1.00000000e-03, 1.25892541e-03,
-                1.58489319e-03, 1.99526231e-03, 2.51188643e-03, 3.16227766e-03,
-                3.98107171e-03, 5.01187234e-03, 6.30957344e-03, 7.94328235e-03,
-                1.00000000e-02, 1.25892541e-02, 1.58489319e-02, 1.99526231e-02,
-                2.51188643e-02, 3.16227766e-02, 3.98107171e-02, 5.01187234e-02,
-                6.30957344e-02, 7.94328235e-02, 1.00000000e-01, 1.25892541e-01,
-                1.58489319e-01, 1.99526231e-01, 2.51188643e-01, 3.16227766e-01,
-                3.98107171e-01, 5.01187234e-01, 6.30957344e-01, 7.94328235e-01,
-                1.00000000e+00};
-
-
-            //Format color and style
-            int markercolor_c = kRed; //charm
-            int markerstyle_c = kFullCircle;
-            int markercolor_g = kViolet+2; //gluon
-            int markerstyle_g = 33; //diamond
-            int markercolor_l = kGreen+2; //light
-            int markerstyle_l = 21; //square
-            int markercolor_i = kMagenta-6; //inclusive
-            int markerstyle_i = 29; //star
-            int markercolor_D0 = kOrange+7; //kGreen-5; //D0
-            int markerstyle_D0 = kFullCircle;
-            int markercolor_b = kAzure; //beauty
-            int markerstyle_b = 34;
-
-            int markerstyle_c_ch = kOpenCircle; //charged jets when being compared to full
-            int markerfill_c_chn = 3944; //charged jets with neutral hadrons
-
-            int markerstyle_l_ch = kOpenSquare; //charged jets when being compared to full
-            int markerfill_b_chn = 3944; //charged jets with neutral hadrons
-
+            
 
 
             // // Format histograms for plotting (this order needed to keep legend in order and graphs lookin good)
@@ -575,43 +727,72 @@ void make_qg_plots_cgl() {
 
             // FormatHist(l, h_charmdecaysOFF_fulljets_g, "gluon-init full jets", markercolor_g, markerstyle_g);
 
+            TPad *pad1;
+            TPad *pad2;
 
+            // h_dummy->GetXaxis()->SetRangeUser(3e-4, 1.);
+            // h_dummy->SetMarkerColor(0);
 
             if (plot_case == 0) {
 
-            } else if (plot_case == 1) { //D0, g, l, i in charged jets
+            } else if (plot_case == 1 or plot_case == 20) { //D0, g, l, i in charged jets
 
-                makeTopPad();
-                h_charmdecaysOFF_l->SetMaximum(h_charmdecaysOFF_l->GetMaximum()*1.2);
+                // pad1 = makeTopPad(h_dummy, h_charmdecaysON_l->GetMaximum()*1.2, 0.41);
+                pad1 = makeTopPad(0.41);
+                h_charmdecaysON_l->SetMaximum(h_charmdecaysON_l->GetMaximum()*1.2);
                 
-                drawWithLineAtMax(h_charmdecaysOFF_l, l, "light-init jets", markercolor_l, markerstyle_l, false, true, 0.8);
-                drawWithLineAtMax(h_charmdecaysOFF_g, l, "gluon-init jets", markercolor_g, markerstyle_g, false, true, 0.8);
-                drawWithLineAtMax(h_charmdecaysOFF_i, l, "inclusive jets", markercolor_i, markerstyle_i, false, true, 0.8);
+                drawWithLineAtMax(h_charmdecaysON_l, l, "light-init jets", markercolor_l, markerstyle_l, false, true, 0.8);
+                drawWithLineAtMax(h_charmdecaysON_g, l, "gluon-init jets", markercolor_g, markerstyle_g, false, true, 0.8);
+                drawWithLineAtMax(h_charmdecaysON_i, l, "inclusive jets", markercolor_i, markerstyle_i, false, true, 0.8);
                 drawWithLineAtMax(h_c_enhanced_D0, l, "D^{0}-tagged, c-init jets", markercolor_D0, markerstyle_D0, false, true, 0.8);
-
-                //make ratio plot!
+                
+                //make ratio plots!
                 std::string yaxislabel = "#frac{D^{0}-tagged jets}{inclusive jets}";
-                plotRatio(h_c_enhanced_D0, h_charmdecaysOFF_i, "hratio" + pt_name + "_R" + jetR + add_name, l2, markers[2], yaxislabel);
-
+                plotRatio(h_c_enhanced_D0, h_charmdecaysON_i, "hratio_Djet_incl" + pt_name + "_R" + jetR + add_name, l2, kBlack, markers[2], yaxislabel, 0., 1.48, 0.61, 0.25, true);
+                drawHoriLine(1e-3, 1., 0.5, kGray+2, 6)->Draw();
+                
+                yaxislabel = "#frac{D^{0}-tagged jets}{light jets}";
+                plotRatio(h_c_enhanced_D0, h_charmdecaysON_l, "hratio_Djet_light" + pt_name + "_R" + jetR + add_name, l2, kBlack, markers[2], yaxislabel, 0., 1.48, 0.75, 0.11);
+                drawHoriLine(1e-3, 1., 0.5, kGray+2, 6)->Draw();
 
 
             } else if (plot_case == 2) { //D0, g, l, i pT*RL
                 h_ptrl_charmdecaysOFF_l->SetMaximum(h_ptrl_charmdecaysOFF_l->GetMaximum()*1.2);
 
-                drawWithLineAtMax(h_ptrl_charmdecaysOFF_l, l, "light-init jets", markercolor_l, markerstyle_l, true, false, 0.8);
-                drawWithLineAtMax(h_ptrl_charmdecaysOFF_g, l, "gluon-init jets", markercolor_g, markerstyle_g, true, false, 0.8);
-                drawWithLineAtMax(h_ptrl_charmdecaysOFF_i, l, "inclusive jets", markercolor_i, markerstyle_i, true, false, 0.8);
+                drawWithLineAtMax(h_ptrl_charmdecaysON_l, l, "light-init jets", markercolor_l, markerstyle_l, true, false, 0.8);
+                drawWithLineAtMax(h_ptrl_charmdecaysON_g, l, "gluon-init jets", markercolor_g, markerstyle_g, true, false, 0.8);
+                drawWithLineAtMax(h_ptrl_charmdecaysON_i, l, "inclusive jets", markercolor_i, markerstyle_i, true, false, 0.8);
                 // drawWithLineAtMax(h_ptrl_c_enhanced_charmdecaysOFF_chargedjets_c, l, "charm-init jets", markercolor_c, markerstyle_c, true, false, 0.8);
                 drawWithLineAtMax(h_ptrl_c_enhanced_D0, l, "D^{0}-tagged, c-init jets", markercolor_D0, markerstyle_D0, true, false, 0.8);
 
                 // TH1D* h_ptrl_c_enhanced_D0
-            } else if (plot_case == 3 or plot_case == 11) { //l, c, b
-                h_charmdecaysOFF_fulljets_l->SetMaximum(h_charmdecaysOFF_fulljets_l->GetMaximum()*1.2);
+            } else if (plot_case == 3 or plot_case == 11 or plot_case == 12) { //l, c, b
+                pad1 = makeTopPad(0.41); //0.31);
+                h_charmdecaysON_fulljets_l->SetMaximum(h_charmdecaysON_fulljets_l->GetMaximum()*1.2);
 
-                drawWithLineAtMax(h_charmdecaysOFF_fulljets_l, l, "light-init full jets", markercolor_l, markerstyle_l, false, false, 0.8);
-                drawWithLineAtMax(h_c_enhanced_charmdecaysOFF_fulljets_c, l, "charm-init full jets", markercolor_c, markerstyle_c, false, false, 0.8);
-                drawWithLineAtMax(h_b_enhanced_beautydecaysOFF_fulljets_b, l, "beauty-init full jets", markercolor_b, markerstyle_b, false, false, 0.8);
+                drawWithLineAtMax(h_charmdecaysON_fulljets_l, l, "light-init full jets", markercolor_l, markerstyle_l, false, true, 0.8);
+                drawWithLineAtMax(h_c_enhanced_charmdecaysOFF_fulljets_c, l, "charm-init full jets", markercolor_c, markerstyle_c, false, true, 0.8);
+                drawWithLineAtMax(h_b_enhanced_beautydecaysOFF_fulljets_b, l, "beauty-init full jets", markercolor_b, markerstyle_b, false, true, 0.8);
                 
+                //make ratio plots!
+                std::string yaxislabel = "#frac{charm jets}{light jets}";//"#frac{heavy quark jets}{light quark jets}";
+                // pad2 = plotRatio(h_c_enhanced_charmdecaysOFF_fulljets_c, h_charmdecaysON_fulljets_l, "hratio_charm_light" + pt_name + "_R" + jetR + add_name, l2, markercolor_c, markers[2], yaxislabel, 0., 3., 0.71, 0.11, true);
+                // pad2->cd();
+                // plotRatio2(h_b_enhanced_beautydecaysOFF_fulljets_b, h_charmdecaysON_fulljets_l, "hratio_beauty_light" + pt_name + "_R" + jetR + add_name, l2, markercolor_b, markers[2], "", 0., 1.48, 0.71, 0.11, true, true)->Draw();
+                // drawHoriLine(1e-3, 1., 0.5, kGray+2, 6)->Draw();
+                
+                // yaxislabel = "#frac{D^{0}-tagged jets}{light jets}";
+                // plotRatio(h_c_enhanced_D0, h_charmdecaysON_l, "hratio_Djet_light" + pt_name + "_R" + jetR + add_name, l2, markers[2], yaxislabel, 0., 1.48, 0.75, 0.11);
+                // drawHoriLine(1e-3, 1., 0.5, kGray+2, 6)->Draw();
+
+                plotRatio(h_c_enhanced_charmdecaysOFF_fulljets_c, h_charmdecaysON_fulljets_l, "hratio_charm_light" + pt_name + "_R" + jetR + add_name, l2, markercolor_c, markers[2], yaxislabel, 0., 1.48, 0.61, 0.25, true);
+                drawHoriLine(1e-3, 1., 0.5, kGray+2, 6)->Draw();
+                
+                yaxislabel = "#frac{beauty jets}{light jets}";
+                plotRatio(h_b_enhanced_beautydecaysOFF_fulljets_b, h_charmdecaysON_fulljets_l, "hratio_beauty_light" + pt_name + "_R" + jetR + add_name, l2, markercolor_b, markers[2], yaxislabel, 0., 1.48, 0.75, 0.11);
+                drawHoriLine(1e-3, 1., 0.5, kGray+2, 6)->Draw();
+
+
             }
 
             if (plot_case == 11) {
@@ -619,32 +800,51 @@ void make_qg_plots_cgl() {
                 drawWithLineAtMax(h_c_enhanced_charmdecaysOFF_chargedjets_and_neutralhadrons_c, l, "charm-init ch jets + neutral hadrons", markercolor_c, markerstyle_c, false, false, 0.4);
                 drawWithLineAtMax(h_b_enhanced_beautydecaysOFF_chargedjets_and_neutralhadrons_b, l, "beauty-init ch jets + neutral hadrons", markercolor_b, markerstyle_b, false, false, 0.4);
                 
-                drawWithLineAtMax(h_charmdecaysOFF_l, l, "light-init charged jets", markercolor_l, markerstyle_l_ch, false, false, 0.8);
-                drawWithLineAtMax(h_c_enhanced_charmdecaysOFF_c, l, "charm-init charged jets", markercolor_c, markerstyle_c_ch, false, false, 0.8);
+                drawWithLineAtMax(h_charmdecaysON_l, l, "light-init charged jets", markercolor_l, markerstyle_l_ch, false, false, 0.8);
+                drawWithLineAtMax(h_c_enhanced_charmdecaysOFF_c, l, "charm-init charged jets, charm decays off", markercolor_c, markerstyle_c_ch, false, false, 0.8);
+
+            } else if (plot_case == 12) {
+                drawWithLineAtMax(h_charmdecaysOFF_fulljets_l, l, "light-init full jets, charm decays off", markercolor_l, markerstyle_l, false, false, 0.4);
+            }
+
+            if (plot_case == 20) {
+                pad1->cd();
+                drawWithLineAtMax(h_charmdecaysOFF_l, l, "light-init jets, charm decays off", markercolor_l, markerstyle_l, false, true, 0.4);
+                drawWithLineAtMax(h_charmdecaysOFF_g, l, "gluon-init jets, charm decays off", markercolor_g, markerstyle_g, false, true, 0.4);
+                drawWithLineAtMax(h_charmdecaysOFF_i, l, "inclusive jets, charm decays off", markercolor_i, markerstyle_i, false, true, 0.4);
+            }
+
+
+            // save peak positions as a function of pT
+            if ( plot_case == 100) {
+                // pt_x[i] = pt_max;
+                // getPeak(hist, ptrl)
+                // FULL JETS L/C/B
+                peaks_l_full_y[i] = getPeak(h_charmdecaysON_fulljets_l, false);
+                peaks_c_full_y[i] = getPeak(h_c_enhanced_charmdecaysOFF_fulljets_c, false);
+                peaks_b_full_y[i] = getPeak(h_b_enhanced_beautydecaysOFF_fulljets_b, false);
+                peaks_D0_full_y[i] = getPeak(h_c_enhanced_D0_fulljets, false);
+
+                peaks_l_ch_y[i] = getPeak(h_charmdecaysON_l, false);
+                peaks_g_ch_y[i] = getPeak(h_charmdecaysON_g, false);
+                peaks_incl_ch_y[i] = getPeak(h_charmdecaysON_i, false);
+                peaks_D0_ch_y[i] = getPeak(h_c_enhanced_D0, false);
+
+                peakserr_l_full_y[i] = getPeakErr(h_charmdecaysON_fulljets_l, false);
+                peakserr_c_full_y[i] = getPeakErr(h_c_enhanced_charmdecaysOFF_fulljets_c, false);
+                peakserr_b_full_y[i] = getPeakErr(h_b_enhanced_beautydecaysOFF_fulljets_b, false);
+                peakserr_D0_full_y[i] = getPeakErr(h_c_enhanced_D0_fulljets, false);
+
+                peakserr_l_ch_y[i] = getPeakErr(h_charmdecaysON_l, false);
+                peakserr_g_ch_y[i] = getPeakErr(h_charmdecaysON_g, false);
+                peakserr_incl_ch_y[i] = getPeakErr(h_charmdecaysON_i, false);
+                peakserr_D0_ch_y[i] = getPeakErr(h_c_enhanced_D0, false);
 
             }
 
 
-
-            
             // vector<double> fullwidth_vec = findWidthOfCurve(hD0,  hD0_top_binpos);
             // drawHoriLine(fullwidth_vec[1], fullwidth_vec[2], fullwidth_vec[0], kMagenta+3, 1)->Draw();
-            
-            
-            // Add legend about D0 info
-            
-
-
-            // TODO: ADD RATIO PLOT
-            // auto rp = new TRatioPlot(hD0, hc);
-            // rp->Draw();
-            // rp->GetLowYaxis()->SetNdivisions(505);
-            // c->Update();
-
-
-    
-
-
             
 
 
@@ -657,7 +857,7 @@ void make_qg_plots_cgl() {
 
             std::string fname = outdir + "QG_comp" + pt_name + "_R" + jetR + add_name; //"_charmdecaysONcomparison.pdf"; // + "_normbytype.pdf"; //"_nonorm.pdf";
             const char* fnamec = fname.c_str();
-            c->SaveAs(fnamec);
+            if (plot_case != 100 ) c->SaveAs(fnamec);
             delete c;
 
             f_out->cd();
@@ -706,6 +906,69 @@ void make_qg_plots_cgl() {
             
              
         } // pT bins loop
+
+        // plot peak positions as a function of pt
+        if (plot_case == 100) {
+            c_peaks->cd();
+            // c_peaks->SetLogy();
+            auto mg = new TMultiGraph();
+            TLegend* l_peaks = new TLegend(0.5497168,0.550741,0.8562155,0.8785185,""); //dummy legend
+            plotGraph(mg, l_peaks, n_bins, pt_x, peaks_l_full_y, peakserr_l_full_y, "light-init full jets", markercolor_l, kOpenSquare);
+            plotGraph(mg, l_peaks, n_bins, pt_x, peaks_c_full_y, peakserr_c_full_y, "charm-init full jets", markercolor_c, kOpenCircle);
+            plotGraph(mg, l_peaks, n_bins, pt_x, peaks_D0_full_y, peakserr_D0_full_y, "D0-tagged full jets", markercolor_D0, kOpenCircle);
+            plotGraph(mg, l_peaks, n_bins, pt_x, peaks_b_full_y, peakserr_b_full_y, "beauty-init full jets", markercolor_b, kOpenCross);
+            
+            plotGraph(mg, l_peaks, n_bins, pt_x, peaks_l_ch_y, peakserr_l_ch_y, "light-init ch jets", markercolor_l, markerstyle_l, 0.65);
+            plotGraph(mg, l_peaks, n_bins, pt_x, peaks_D0_ch_y, peakserr_D0_ch_y, "D0-tagged ch jets", markercolor_D0, markerstyle_D0, 0.65);
+            plotGraph(mg, l_peaks, n_bins, pt_x, peaks_g_ch_y, peakserr_g_ch_y, "gluon-init ch jets", markercolor_g, markerstyle_g, 0.65);
+            plotGraph(mg, l_peaks, n_bins, pt_x, peaks_incl_ch_y, peakserr_incl_ch_y, "inclusive ch jets", markercolor_i, markerstyle_i, 0.65);
+            
+            mg->GetXaxis()->SetTitle("#it{p}_{T}");
+            mg->GetYaxis()->SetTitle("#it{R}_{L} peak position");
+        
+            mg->Draw("ap same");
+            l_peaks->Draw("same");
+
+            std::string fname_peaks = outdir + "PEAKPOS" + "_R" + jetR + add_name; //"_charmdecaysONcomparison.pdf"; // + "_normbytype.pdf"; //"_nonorm.pdf";
+            const char* fname_peaksc = fname_peaks.c_str();
+            c_peaks->SaveAs(fname_peaksc);
+            delete c_peaks;
+
+            //--------------------------------------
+            c_peaks_frac->cd();
+
+            auto mg2 = new TMultiGraph();
+            TLegend* l_peaks_frac = new TLegend(0.5497168,0.550741,0.8562155,0.8785185,""); //dummy legend
+            l_peaks_frac->SetTextSize(0.028);
+            double frac_b_c_y[n_bins];
+            double frac_c_l_y[n_bins];
+            double frac_b_l_y[n_bins];
+            double err_y_dummy[n_bins];
+            for (int j=0; j<n_bins; j++) {
+                frac_b_c_y[j] = peaks_b_full_y[j]/peaks_c_full_y[j];
+                frac_c_l_y[j] = peaks_c_full_y[j]/peaks_l_full_y[j];
+                frac_b_l_y[j] = peaks_b_full_y[j]/peaks_l_full_y[j];
+                err_y_dummy[j] = 0;
+
+            }
+            plotGraph(mg2, l_peaks_frac, n_bins, pt_x, frac_b_l_y, err_y_dummy, "#frac{b-init full jets}{l-init full jets}", markercolor_l, markerstyle_l);
+            plotGraph(mg2, l_peaks_frac, n_bins, pt_x, frac_b_c_y, err_y_dummy, "#frac{b-init full jets}{c-init full jets}", markercolor_b, markerstyle_b);
+            plotGraph(mg2, l_peaks_frac, n_bins, pt_x, frac_c_l_y, err_y_dummy, "#frac{c-init full jets}{l-init full jets}", markercolor_c, markerstyle_c);
+            
+            mg2->SetMaximum(2.9);
+            mg2->GetXaxis()->SetTitle("#it{p}_{T}");
+            mg2->GetYaxis()->SetTitle("fraction of #it{R}_{L} peak position");
+        
+            mg2->Draw("ap same");
+            l_peaks_frac->Draw("same");
+
+            std::string fname_peaksfrac = outdir + "PEAKPOS_FRAC" + "_R" + jetR + add_name; //"_charmdecaysONcomparison.pdf"; // + "_normbytype.pdf"; //"_nonorm.pdf";
+            const char* fname_peaksfracc = fname_peaksfrac.c_str();
+            c_peaks_frac->SaveAs(fname_peaksfracc);
+            delete c_peaks_frac;
+        }
+
+
     } // jetR loop
 
     f_charmdecaysON->Close();
@@ -717,6 +980,7 @@ void make_qg_plots_cgl() {
     f_ptrl_c_enhanced_D0->Close();
 
     f_c_enhanced_D0->Close();
+    f_c_enhanced_D0_fulljets->Close();
     f_c_enhanced_charmdecaysOFF_chargedjets_and_neutralhadrons->Close();
     f_b_enhanced_beautydecaysOFF_chargedjets_and_neutralhadrons->Close();
     f_c_enhanced_charmdecaysOFF_fulljets->Close();
@@ -733,6 +997,7 @@ void make_qg_plots_cgl() {
     delete f_ptrl_c_enhanced_D0;
 
     delete f_c_enhanced_D0;
+    delete f_c_enhanced_D0_fulljets;
     delete f_c_enhanced_charmdecaysOFF_chargedjets_and_neutralhadrons;
     delete f_b_enhanced_beautydecaysOFF_chargedjets_and_neutralhadrons;
     delete f_c_enhanced_charmdecaysOFF_fulljets;

@@ -106,6 +106,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 		self.phimeson = (bool)(args.runphi) #1=don't let phi meson decay and look at its EEC
 		self.use_fulljets = args.fulljets #0 = use charged jets, 1 = use full jets, 2 = charged jets and add in neutral hadrons
 		self.glu_spli = (bool)(args.gluspli) #0 = do not save gluon splitting info, 1 = do save gluon splitting info
+		self.partonlevel = (bool)(args.parton) #0 = do not usre parton level, 1 = use parton level
 
 		# PDG ID values for quarks and gluons
 		self.quark_pdg_ids = [1, 2, 3, 4, 5, 6, 7, 8, -1, -2, -3, -4, -5, -6, -7, -8]
@@ -572,8 +573,12 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 
 
 			# parton level
-			#parts_pythia_p = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal], 0, True)
+			if (self.partonlevel):
+				parts_pythia_p = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal], 0, True) # parton level, full jets
+			else:
+				parts_pythia_p = None
 
+			# Force hadronization here
 			hstatus = pythia.forceHadronLevel()
 			if not hstatus:
 				continue
@@ -671,7 +676,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 
 			# Some "accepted" events don't survive hadronization step -- keep track here
 			self.hNevents.Fill(0)
-			self.find_jets_fill_histograms(parts_pythia_hch, iev, D0Kpidecayfound, parts_pythia_h)
+			self.find_jets_fill_histograms(parts_pythia_hch, iev, D0Kpidecayfound, parts_pythia_h, parts_pythia_p)
 
 			iev += 1
 
@@ -704,7 +709,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 	#---------------------------------------------------------------
 	# Find jets, do matching between levels, and fill histograms
 	#---------------------------------------------------------------
-	def find_jets_fill_histograms(self, parts_pythia_hch, iev, D0Kpidecayfound, parts_pythia_h):
+	def find_jets_fill_histograms(self, parts_pythia_hch, iev, D0Kpidecayfound, parts_pythia_h, parts_pythia_p):
 		# Loop over jet radii
 		for jetR in self.jetR_list:
 
@@ -722,7 +727,9 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			# if (not self.replaceKPpairs and not self.phimeson):
 			# 	jets_ch = fj.sorted_by_pt(jet_selector(jet_def(parts_pythia_hch))) # charged hadron level
 			# else:
-			if self.use_fulljets == 1:
+			if self.partonlevel:
+				jets_ch = fj.sorted_by_pt(jet_selector(jet_def(track_selector_ch(parts_pythia_p)))) # full parton level
+			elif self.use_fulljets == 1:
 				jets_ch = fj.sorted_by_pt(jet_selector(jet_def(track_selector_ch(parts_pythia_h)))) # full hadron level
 			else:
 				jets_ch = fj.sorted_by_pt(jet_selector(jet_def(track_selector_ch(parts_pythia_hch)))) # charged hadron level
@@ -1333,6 +1340,7 @@ if __name__ == '__main__':
 	parser.add_argument('--runphi', action='store', type=int, default=0, help="'1' looks at the phi meson (not allowed to decay)")
 	parser.add_argument('--fulljets', action='store', type=int, default=0, help="'0' runs charged jets, '1' runs full jets, '2' runs charged jets with neutral hadrons")
 	parser.add_argument('--gluspli', action='store', type=int, default=0, help="'1' saves gluon splitting info")
+	parser.add_argument('--parton', action='store', type=int, default=0, help="'1' uses parton level")
 
 	args = parser.parse_args()
 	pinfo("The arguments to run are: ", args)

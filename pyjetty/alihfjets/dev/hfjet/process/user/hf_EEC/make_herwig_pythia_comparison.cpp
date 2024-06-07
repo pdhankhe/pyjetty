@@ -225,7 +225,7 @@ void make_herwig_pythia_comparison() {
     // 2 = adding in sherpa D0 vs herwig D0 vs pythia D0
     
     //CONTOL VARIABLES HERE
-    int plot_case = 0;
+    int plot_case = 2;
     bool logstring = false;
 
     TString label1 = "";
@@ -273,14 +273,14 @@ void make_herwig_pythia_comparison() {
     int markercolor8 = kViolet+8; //sherpa D0 c_jetpt15_lund
     int markerstyle8 = kFullStar;
     
-    label1 = "PYTHIA primordial D0-tagged"; //, c-init jets";
+    label1 ="PYTHIA"; // "PYTHIA primordial D0-tagged"; //, c-init jets";
     TString label2 = "PYTHIA all D0-tagged"; //, c-init jets";
-    TString label3 = "Herwig primordial D0-tagged";
+    TString label3 = "Herwig"; //"Herwig primordial D0-tagged";
     TString label4 = "Herwig all D0-tagged";
     TString label5 = "Sherpa c_jetpt10"; //primordial D0-tagged";
     TString label6 = "Sherpa c_jetpt10_lund"; //primordial D0-tagged";
-    TString label7 = "Sherpa c_jetpt15"; //primordial D0-tagged";
-    TString label8 = "Sherpa c_jetpt15_lund"; //primordial D0-tagged";
+    TString label7 = "Sherpa Ahadic"; //"Sherpa c_jetpt15"; //primordial D0-tagged";
+    TString label8 = "Sherpa Lund"; //"Sherpa c_jetpt15_lund"; //primordial D0-tagged";
 
     
     //--------------------------------------------------------//
@@ -490,7 +490,7 @@ void make_herwig_pythia_comparison() {
         TCanvas* c_z2 = new TCanvas();
         ProcessCanvas(c_z2);
         c_z2->cd();
-        gPad->SetLogx();
+        // gPad->SetLogx();
         gPad->SetLogy();
         gPad->SetBottomMargin(0.31);
         TPad *pad1a = new TPad("pad1a","pad1a",0.,0.,1.,1.);
@@ -507,7 +507,7 @@ void make_herwig_pythia_comparison() {
         l = new TLegend(0.1797168,0.400741,0.4562155,0.8885185,""); //(0.17, 0.4, 0.5, 0.53);
         l->SetTextSize(0.045);
         // TLegend *leg = new TLegend(0.1797168,0.5390741,0.4562155,0.8885185,"");
-        l->AddEntry("NULL","PYTHIA 8 Monash 2013 and Herwig","h");
+        l->AddEntry("NULL","PYTHIA 8 Monash 2013, Herwig7, Sherpa2","h");
         l->AddEntry("NULL","pp, #sqrt{#it{s}} = 13 TeV","h");
         l->AddEntry("NULL","D^{0} #rightarrow K^{#minus} #pi^{+} and charge conj.","h");
         l->AddEntry("NULL","in charged jets, anti-#it{k}_{T}, #it{R} = 0.4","h");
@@ -564,8 +564,8 @@ void make_herwig_pythia_comparison() {
                 hc_jetpt15_lund_sherpa->SetBinError(j+1, 0);
             }
 
-            FormatHistwithLine(l, hc_jetpt10_sherpa, label5, markercolor5, markerstyle5, 0.80);
-            FormatHistwithLine(l, hc_jetpt10_lund_sherpa, label6, markercolor6, markerstyle6, 0.80);
+            // FormatHistwithLine(l, hc_jetpt10_sherpa, label5, markercolor5, markerstyle5, 0.80);
+            // FormatHistwithLine(l, hc_jetpt10_lund_sherpa, label6, markercolor6, markerstyle6, 0.80);
             FormatHistwithLine(l, hc_jetpt15_sherpa, label7, markercolor7, markerstyle7, 0.80);
             FormatHistwithLine(l, hc_jetpt15_lund_sherpa, label8, markercolor8, markerstyle8, 0.80);
             
@@ -582,8 +582,8 @@ void make_herwig_pythia_comparison() {
             hD0wDstar_pythia->Draw("L same");
             hD0wDstar_herwig->Draw("L same");
         } else if (plot_case == 2) {
-            hc_jetpt10_sherpa->Draw("L same");
-            hc_jetpt10_lund_sherpa->Draw("L same");
+            // hc_jetpt10_sherpa->Draw("L same");
+            // hc_jetpt10_lund_sherpa->Draw("L same");
             hc_jetpt15_sherpa->Draw("L same");
             hc_jetpt15_lund_sherpa->Draw("L same");
         }
@@ -610,10 +610,10 @@ void make_herwig_pythia_comparison() {
             drawVertLine(hD0wDstar_herwig->GetBinCenter(hD0wDstar_herwig_top_binpos), 0, hD0wDstar_herwig->GetBinContent(hD0wDstar_herwig_top_binpos), markercolor4, 1)->Draw();
         
         } else if (plot_case == 2) {
-            double hc_jetpt10_sherpa_top_binpos = findTopOfCurve(hc_jetpt10_sherpa, 1, 0.08);
-            drawVertLine(hc_jetpt10_sherpa->GetBinCenter(hc_jetpt10_sherpa_top_binpos), 0, hc_jetpt10_sherpa->GetBinContent(hc_jetpt10_sherpa_top_binpos), markercolor5, 1)->Draw();
-            double hc_jetpt10_lund_sherpa_top_binpos = findTopOfCurve(hc_jetpt10_lund_sherpa, 1, 0.08);
-            drawVertLine(hc_jetpt10_lund_sherpa->GetBinCenter(hc_jetpt10_lund_sherpa_top_binpos), 0, hc_jetpt10_lund_sherpa->GetBinContent(hc_jetpt10_lund_sherpa_top_binpos), markercolor6, 1)->Draw();
+            // double hc_jetpt10_sherpa_top_binpos = findTopOfCurve(hc_jetpt10_sherpa, 1, 0.08);
+            // drawVertLine(hc_jetpt10_sherpa->GetBinCenter(hc_jetpt10_sherpa_top_binpos), 0, hc_jetpt10_sherpa->GetBinContent(hc_jetpt10_sherpa_top_binpos), markercolor5, 1)->Draw();
+            // double hc_jetpt10_lund_sherpa_top_binpos = findTopOfCurve(hc_jetpt10_lund_sherpa, 1, 0.08);
+            // drawVertLine(hc_jetpt10_lund_sherpa->GetBinCenter(hc_jetpt10_lund_sherpa_top_binpos), 0, hc_jetpt10_lund_sherpa->GetBinContent(hc_jetpt10_lund_sherpa_top_binpos), markercolor6, 1)->Draw();
             double hc_jetpt15_sherpa_top_binpos = findTopOfCurve(hc_jetpt15_sherpa, 1, 0.08);
             drawVertLine(hc_jetpt15_sherpa->GetBinCenter(hc_jetpt15_sherpa_top_binpos), 0, hc_jetpt15_sherpa->GetBinContent(hc_jetpt15_sherpa_top_binpos), markercolor7, 1)->Draw();
             double hc_jetpt15_lund_sherpa_top_binpos = findTopOfCurve(hc_jetpt15_lund_sherpa, 1, 0.08);
@@ -642,6 +642,7 @@ void make_herwig_pythia_comparison() {
 
         l_fake->Draw("same");
         hD0_z_pythia->GetXaxis()->SetLabelSize(0);
+        hD0_z_pythia->GetYaxis()->SetTitle("z");
 
         TPad *pad2a = new TPad("pad1a","",0.,0.,1.,1.);
         pad2a->SetTopMargin(0.71);

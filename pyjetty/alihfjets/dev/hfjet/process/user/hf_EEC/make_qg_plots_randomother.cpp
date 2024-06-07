@@ -179,6 +179,13 @@ TLine * drawHoriLine(double x1, double x2, double y1, int color, int linestyle=2
 
 }
 
+// double display(double x) {
+//     if (x%1 == 0) {
+//         return (int)x;
+//     } else {
+//         return x;
+//     }
+// }
 
 void make_qg_plots_randomother() {
 
@@ -200,6 +207,8 @@ void make_qg_plots_randomother() {
     const char infile_D0[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/24737979/AnalysisResultsFinal.root"; //this is using thnsparse - latest generation - USE THIS (it matches with #3)
     const char infile_Dstar[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/18008705/AnalysisResultsFinal.root"; //this is using thnsparse
     
+    const char infile_D0_fulljets[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/26404382/AnalysisResultsFinal.root";
+
     const char infile_D0_difNorm[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/17652140/AnalysisResultsFinal.root";
     const char infile_Dstar_difNorm[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/18008709/AnalysisResultsFinal.root";
     const char infile_D0wDstar_difNorm[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/EEC/18044499/AnalysisResultsFinal.root";
@@ -220,14 +229,18 @@ void make_qg_plots_randomother() {
     // 0 = D0 vs c-init, charm decays off
     // 1 = D0 vs c-init, charm decays off, with multiple iterations of the jobs
         // also tryna figure out the difference bw the two D0 files
+    // 2 = D0 charged jets vs D0 full jets with differen D0 pt cuts
+    // 3 = D0 charged jets vs D0 full jets with same D0 pt cuts
+    // 4 = D0 charged jets vs D0 full jets with NO D0 pt cuts for full jet
 
     //CONTOL VARIABLES HERE
-    int plot_case = 0;
+    int plot_case = 2;
 
     TString label_D0 = "";
     TString label_D01 = "";
     TString label_D02 = "";
     TString label_D03 = "";
+    TString label_D0_fulljet = "";
     TString label_c_nothnsparse = "";
     TString label_c = "";
 
@@ -236,6 +249,7 @@ void make_qg_plots_randomother() {
     TFile* f_D01 = new TFile(infile_D0_1, "READ");
     TFile* f_D02 = new TFile(infile_D0_2, "READ");
     TFile* f_D03 = new TFile(infile_D0_3, "READ");
+    TFile *f_D0_fulljets = new TFile(infile_D0_fulljets, "READ");
     TFile* f_charmdecaysOFF_nothnsparse = new TFile(infile_noD0replacement_charmdecaysOFF, "READ");
     TFile* f_charmdecaysOFF = new TFile(infile_noD0replacement_charmdecaysOFF_thnsparse_higherstats, "READ");
     // TFile* f_charmdecaysOFF = new TFile(infile_noD0replacement_charmdecaysOFF, "READ");
@@ -269,9 +283,9 @@ void make_qg_plots_randomother() {
 
 
 
-        const int pt_bins[] = { 7, 10, 15, 30 }; //{ 10, 20, 40 }; // CHANGE HERE!!
-        const int d0_pt_cuts[] = { 3, 5, 5 };
-        const int n_bins = 3; 
+        const int pt_bins[] = { 7, 10, 15, 30, 50, 70 }; //{ 10, 20, 40 }; // CHANGE HERE!!
+        const int d0_pt_cuts[] = { 3, 5, 5, 5, 5 };
+        const int n_bins = 5; 
         for (int i = 0; i < n_bins; i++) {
             cout << "in pt bin" << i << endl;
             int pt_min = pt_bins[i];
@@ -280,7 +294,10 @@ void make_qg_plots_randomother() {
             // define pt related variables
             TString ptbin = TString::Format("%d #leq #it{p}_{T}^{ch. jet} < %d GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5", pt_min, pt_max);
             TString ptD = TString::Format("%d #leq #it{p}_{T}^{D^{0}} < %d GeV/#it{c}, #font[122]{|}#it{y}_{D^{0}}#font[122]{|} #leq 0.8", d0_pt_cuts[i], pt_max);
-
+            TString ptbin_full = TString::Format("%.1f #leq #it{p}_{T}^{full jet} < %.1f GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5", 1.5*pt_min, 1.5*pt_max);
+            TString ptD_full = TString::Format("%.1f #leq #it{p}_{T}^{D^{0}_{full jet}} < %.1f GeV/#it{c}, #font[122]{|}#it{y}_{D^{0}_{full jet}}#font[122]{|} #leq 0.8", 1.5*d0_pt_cuts[i], 1.5*pt_max);
+            TString ptD_full_samecut = TString::Format("%d #leq #it{p}_{T}^{D^{0}_{full jet}} < %d GeV/#it{c}, #font[122]{|}#it{y}_{D^{0}_{full jet}}#font[122]{|} #leq 0.8", d0_pt_cuts[i], pt_max);
+            
 
             // make a canvas for each pt range
             TCanvas* c = new TCanvas();
@@ -307,7 +324,8 @@ void make_qg_plots_randomother() {
             // Open histograms
 
 
-            l = new TLegend(0.1797168,0.450741,0.4562155,0.8885185,""); //(0.17, 0.4, 0.5, 0.53);
+            if (plot_case <= 1 ) l = new TLegend(0.1797168,0.450741,0.4562155,0.8885185,""); //(0.17, 0.4, 0.5, 0.53);
+            else l = new TLegend(0.1797168,0.400741,0.4562155,0.8885185,"");
             l->SetTextSize(0.045);
             // TLegend *leg = new TLegend(0.1797168,0.5390741,0.4562155,0.8885185,"");
             l->AddEntry("NULL","PYTHIA 8 Monash 2013","h");
@@ -315,7 +333,10 @@ void make_qg_plots_randomother() {
             l->AddEntry("NULL","D^{0} #rightarrow K^{#minus} #pi^{+} and charge conj.","h");
             l->AddEntry("NULL","in charged jets, anti-#it{k}_{T}, #it{R} = 0.4","h");
             l->AddEntry("NULL",ptbin,"h");
+            if (plot_case >= 2) l->AddEntry("NULL",ptbin_full,"h");
             l->AddEntry("NULL",ptD,"h");
+            if (plot_case == 2) l->AddEntry("NULL",ptD_full_samecut,"h");
+            if (plot_case == 3) l->AddEntry("NULL",ptD_full,"h");
             l->SetTextSize(0.037);
             l->SetBorderSize(0);
             // l->Draw("same");
@@ -334,6 +355,9 @@ void make_qg_plots_randomother() {
             THnSparse* hsparsejet_D03 = (THnSparse*) f_D03->Get(hc_name.c_str());
             THnSparse* hsparsejet_D03_jetlevel = (THnSparse*) f_D03->Get(hc_jet_name.c_str());
 
+            THnSparse* hsparsejet_D0_fulljet = (THnSparse*) f_D0_fulljets->Get(hc_name.c_str());
+            THnSparse* hsparsejet_D0_fulljet_jetlevel = (THnSparse*) f_D0_fulljets->Get(hc_jet_name.c_str());
+
             TH2F* hcharm_nothnsparse = (TH2F*) f_charmdecaysOFF_nothnsparse->Get(hc_name.c_str());
             TH1F* hcharm_nothnsparse_jetlevel = (TH1F*) f_charmdecaysOFF_nothnsparse->Get(hc_jet_name.c_str());
 
@@ -349,6 +373,8 @@ void make_qg_plots_randomother() {
             THnSparse *hsparsejet_D02_jetlevel_clone = (THnSparse *) hsparsejet_D02_jetlevel->Clone("hsparsejet_D02_jetlevel_clone");
             THnSparse *hsparsejet_D03_clone = (THnSparse *) hsparsejet_D03->Clone("hsparsejet_D03_clone");
             THnSparse *hsparsejet_D03_jetlevel_clone = (THnSparse *) hsparsejet_D03_jetlevel->Clone("hsparsejet_D03_jetlevel_clone");
+            THnSparse *hsparsejet_D0_fulljet_clone = (THnSparse *) hsparsejet_D0_fulljet->Clone("hsparsejet_D0_fulljet_clone");
+            THnSparse *hsparsejet_D0_fulljet_jetlevel_clone = (THnSparse *) hsparsejet_D0_fulljet_jetlevel->Clone("hsparsejet_D0_fulljet_jetlevel_clone");
             THnSparse *hsparsejet_charm_clone = (THnSparse *) hsparsejet_charm->Clone("hsparsejet_charm_clone");
             THnSparse *hsparsejet_charm_jetlevel_clone = (THnSparse *) hsparsejet_charm_jetlevel->Clone("hsparsejet_charm_jetlevel_clone");
 
@@ -362,6 +388,9 @@ void make_qg_plots_randomother() {
             hsparsejet_D02_jetlevel_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max);
             hsparsejet_D03_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max); 
             hsparsejet_D03_jetlevel_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max);
+
+            hsparsejet_D0_fulljet_clone->GetAxis(0)->SetRangeUser(1.5*pt_min, 1.5*pt_max); 
+            hsparsejet_D0_fulljet_jetlevel_clone->GetAxis(0)->SetRangeUser(1.5*pt_min, 1.5*pt_max);
 
             hsparsejet_charm_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max);
             hsparsejet_charm_jetlevel_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max);
@@ -386,6 +415,13 @@ void make_qg_plots_randomother() {
             hsparsejet_D03_jetlevel_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max);
             hsparsejet_D03_jetlevel_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8);
 
+            if (plot_case == 3) hsparsejet_D0_fulljet_clone->GetAxis(1)->SetRangeUser(1.5*d0_pt_cuts[i], 1.5*pt_max);
+            else if (plot_case != 4) hsparsejet_D0_fulljet_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max);
+            if (plot_case != 4) hsparsejet_D0_fulljet_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8);
+            if (plot_case == 3) hsparsejet_D0_fulljet_jetlevel_clone->GetAxis(1)->SetRangeUser(1.5*d0_pt_cuts[i], 1.5*pt_max);
+            else if (plot_case != 4) hsparsejet_D0_fulljet_jetlevel_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max);
+            if (plot_case != 4) hsparsejet_D0_fulljet_jetlevel_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8);
+
 
             // Project onto observable axis
             TH1D *hD0_proj = hsparsejet_D0_clone->Projection(3); //CALL THESE TH1*????
@@ -396,6 +432,9 @@ void make_qg_plots_randomother() {
             TH1D *hc1D2_jet = hsparsejet_D02_jetlevel_clone->Projection(0);
             TH1D *hD03_proj = hsparsejet_D03_clone->Projection(3); 
             TH1D *hc1D3_jet = hsparsejet_D03_jetlevel_clone->Projection(0);
+
+            TH1D *hD0_fulljet_proj = hsparsejet_D0_fulljet_clone->Projection(4);
+            TH1D *hD0_fulljet_jet = hsparsejet_D0_fulljet_jetlevel_clone->Projection(0);
 
             TH1D *hcharm_proj = hsparsejet_charm_clone->Projection(3); 
             TH1D *hcharm_jet = hsparsejet_charm_jetlevel_clone->Projection(0);
@@ -418,6 +457,10 @@ void make_qg_plots_randomother() {
             hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
             hD03_proj->SetNameTitle(hname.c_str(), hname.c_str());
 
+            hname = hD0_fulljet_proj->GetName();
+            hname += "_pt_3/2_" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
+            hD0_fulljet_proj->SetNameTitle(hname.c_str(), hname.c_str());
+
             hname = hcharm_proj->GetName();
             hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
             hcharm_proj->SetNameTitle(hname.c_str(), hname.c_str());
@@ -439,6 +482,7 @@ void make_qg_plots_randomother() {
             TH1* hD01 = (TH1*) hD01_proj->Clone( hD01_proj->GetName() );
             TH1* hD02 = (TH1*) hD02_proj->Clone( hD02_proj->GetName() );
             TH1* hD03 = (TH1*) hD03_proj->Clone( hD03_proj->GetName() );
+            TH1* hD0_fulljet = (TH1*) hD0_fulljet_proj->Clone ( hD0_fulljet_proj->GetName() );
             TH1* hc = (TH1*) hcharm_proj->Clone( hcharm_proj->GetName() );
             TH1* hc_nothnsparse = (TH1*) hc_nothnsparse_proj->Clone( hc_nothnsparse_proj->GetName() );
             cout << "Rebin done" << endl;
@@ -448,12 +492,14 @@ void make_qg_plots_randomother() {
             double numjets_D01 = hc1D1_jet->Integral();
             double numjets_D02 = hc1D2_jet->Integral();
             double numjets_D03 = hc1D3_jet->Integral();
+            double numjets_D0_fulljet = hD0_fulljet_jet->Integral();
             double numjets_charm = hcharm_jet->Integral();
             double numjets_charm_nothnsparse = hcharm_nothnsparse_jetlevel->Integral();
             hD0->Scale(1/numjets_D0, "width");
             hD01->Scale(1/numjets_D01, "width");
             hD02->Scale(1/numjets_D02, "width");
             hD03->Scale(1/numjets_D03, "width");
+            hD0_fulljet->Scale(1/numjets_D0_fulljet, "width");
             hc->Scale(1/numjets_charm, "width");
             hc_nothnsparse->Scale(1/numjets_charm_nothnsparse, "width");
 
@@ -473,11 +519,14 @@ void make_qg_plots_randomother() {
             int markerstyle4 = kFullCircle;
             int markercolor5 = kRed-9; //charm - no thnsparse
             int markerstyle5 = kOpenCircle;
+            int markercolor6 = kPink-9; //D0 full jets
+            int markerstyle6 = kFullCircle;
             
             label_D0 = "D^{0}-tagged, c-init jets";
             label_D01 = "D^{0}-tagged [1], c-init jets";
             label_D02 = "D^{0}-tagged [2], c-init jets";
             label_D03 = "D^{0}-tagged [3], c-init jets";
+            label_D0_fulljet = "D^{0}-tagged full jets";
             label_c = "c-init jets, charm decays off";
             label_c_nothnsparse = "c-init jets [lower stats], charm decays off";
 
@@ -488,12 +537,14 @@ void make_qg_plots_randomother() {
             hD01->GetXaxis()->SetTitle("#it{R}_{L}");
             hD02->GetXaxis()->SetTitle("#it{R}_{L}");
             hD03->GetXaxis()->SetTitle("#it{R}_{L}");
+            hD0_fulljet->GetXaxis()->SetTitle("#it{R}_{L}");
             hc->GetXaxis()->SetTitle("#it{R}_{L}");
             hc_nothnsparse->GetXaxis()->SetTitle("#it{R}_{L}");
             hD0->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
             hD01->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
             hD02->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
             hD03->GetXaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
+            hD0_fulljet->GetXaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
             hc->GetXaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
             hc_nothnsparse->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
 
@@ -505,12 +556,17 @@ void make_qg_plots_randomother() {
                 FormatHist(l, hD02, label_D02, markercolor2, markerstyle2);
                 FormatHist(l, hD03, label_D03, markercolor3, markerstyle3);
                 FormatHist(l, hc_nothnsparse, label_c_nothnsparse, markercolor5, markerstyle5);
+            } else if ( plot_case >= 2 ) {
+                FormatHist(l, hD0_fulljet, label_D0_fulljet, markercolor6, markerstyle6);
+            } else if ( plot_case == 0 or plot_case == 1) {
+                FormatHist(l, hc, label_c, markercolor4, markerstyle4);
             }
-            FormatHist(l, hc, label_c, markercolor4, markerstyle4);
+
             if (plot_case == 0){
                 l->AddEntry("NULL","          D* decays off","h");
             } 
             hD0->SetMaximum(hD0->GetMaximum()*1.5);
+            if (plot_case >= 2 ) hD0->SetMaximum(hD0_fulljet->GetMaximum()*1.5);
             c->cd();
             pad1->cd(); 
             hD0->Draw("L same");
@@ -519,8 +575,12 @@ void make_qg_plots_randomother() {
                 hD02->Draw("L same");
                 hD03->Draw("L same");
                 hc_nothnsparse->Draw("L same");
+            } else if ( plot_case >= 2 ) {
+                hD0_fulljet->Draw("L same");
+            } else if ( plot_case == 0 or plot_case == 1) {
+                hc->Draw("L same");
             }
-            hc->Draw("L same");
+            
 
             
             
@@ -535,10 +595,13 @@ void make_qg_plots_randomother() {
                 drawVertLine(hD03->GetBinCenter(hD03_top_binpos), 0, hD03->GetBinContent(hD03_top_binpos), markercolor3, 1)->Draw();
                 double hc_nothnsparse_top_binpos = findTopOfCurve(hc_nothnsparse);
                 drawVertLine(hc_nothnsparse->GetBinCenter(hc_nothnsparse_top_binpos), 0, hc_nothnsparse->GetBinContent(hc_nothnsparse_top_binpos), markercolor5, 1)->Draw();
+            } else if ( plot_case >= 2 ) {
+                double hD0_fulljet_top_binpos = findTopOfCurve(hD0_fulljet);
+                drawVertLine(hD0_fulljet->GetBinCenter(hD0_fulljet_top_binpos), 0, hD0_fulljet->GetBinContent(hD0_fulljet_top_binpos), markercolor6, 1)->Draw();
+            } else if ( plot_case == 0 or plot_case == 1) {
+                double hc_top_binpos = findTopOfCurve(hc);
+                drawVertLine(hc->GetBinCenter(hc_top_binpos), 0, hc->GetBinContent(hc_top_binpos), markercolor4, 1)->Draw();
             }
-            double hc_top_binpos = findTopOfCurve(hc);
-            drawVertLine(hc->GetBinCenter(hc_top_binpos), 0, hc->GetBinContent(hc_top_binpos), markercolor4, 1)->Draw();
-
             
             // vector<double> fullwidth_vec = findWidthOfCurve(hD0,  hD0_top_binpos);
             // drawHoriLine(fullwidth_vec[1], fullwidth_vec[2], fullwidth_vec[0], kMagenta+3, 1)->Draw();
@@ -550,7 +613,7 @@ void make_qg_plots_randomother() {
 
 
             //plot the ratio of the D-tagged to charm jets
-            if (plot_case == 0) {
+            if (plot_case == 0 or plot_case >= 2 ) {
 
                 hD0->GetXaxis()->SetLabelSize(0);
                 // hD0->GetYaxis()->SetWmin(0.1);
@@ -568,33 +631,35 @@ void make_qg_plots_randomother() {
                 
                 
                 std::string ratio_name = "hratio_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_R" + jetR + add_name;
-                TH1D* hratio = (TH1D*) hD0->Clone(ratio_name.c_str());
-                hratio->Divide(hc);
-                hratio->SetMinimum(0.5);
-                hratio->SetMaximum(1.5);
+                TH1D* hratio;
+                if ( plot_case == 0 ) {
+                    hratio = (TH1D*) hD0->Clone(ratio_name.c_str());
+                    hratio->Divide(hc);
+                    hratio->SetMinimum(0.5);
+                    hratio->SetMaximum(1.5);
+
+                    hratio->GetYaxis()->SetTitle("#frac{D^{0}-tagged jets}{charm-init jets}");
+                
+                } else if ( plot_case >= 2 ) {
+                    hratio = (TH1D*) hD0->Clone(ratio_name.c_str());
+                    hratio->Divide(hD0_fulljet);
+                    hratio->SetMinimum(0.25);
+                    hratio->SetMaximum(1.5);
+
+                    hratio->GetYaxis()->SetTitle("#frac{D^{0}-tagged charged jets}{D^{0}-tagged full jets}"); 
+                }
 
 
                 FormatHist(l2, hratio, "ratio", kBlack, markers[2], 0.05, 0.04, 1.2, 0.035, 0.03, 1.5);
-                hratio->GetYaxis()->SetTitle("#frac{D^{0}-tagged jets}{charm-init jets}");
+                hratio->GetYaxis()->SetTitleSize(0.03);
                 hratio->GetYaxis()->SetNdivisions(5);
 
                 hratio->Draw();
 
                 // draw line at 1
                 drawHoriLine(1e-4, 1., 1., kGray+2, 1)->Draw();
-                drawHoriLine(1e-4, 1., 0.9, kGray+2, 6)->Draw();
-                drawHoriLine(1e-4, 1., 1.1, kGray+2, 6)->Draw();
-                
-
-                // TH1* hD0_clone = (TH1*) hD0->Clone("ratio plot");
-                // auto rp = new TRatioPlot(hD0_clone, hc);
-                // // c->SetTicks(0, 1);
-                // rp->Draw();
-                // // rp->GetLowYaxis()->SetNdivisions(505);
-                // rp->GetLowerRefGraph()->SetMinimum(0);
-                // rp->GetLowerRefGraph()->SetMaximum(3);
-                // // c->Update();
-                
+                // drawHoriLine(1e-4, 1., 0.9, kGray+2, 6)->Draw();
+                // drawHoriLine(1e-4, 1., 1.1, kGray+2, 6)->Draw();
 
             }
             
@@ -611,6 +676,7 @@ void make_qg_plots_randomother() {
             hD01->Write();
             hD02->Write();
             hD03->Write();
+            hD0_fulljet->Write();
             hc_nothnsparse->Write();
             hc->Write();
             // }
@@ -626,6 +692,8 @@ void make_qg_plots_randomother() {
     delete f_D02;
     f_D03->Close();
     delete f_D03;
+    f_D0_fulljets->Close();
+    delete f_D0_fulljets;
     f_charmdecaysOFF->Close();
     delete f_charmdecaysOFF;
     f_charmdecaysOFF_nothnsparse->Close();
