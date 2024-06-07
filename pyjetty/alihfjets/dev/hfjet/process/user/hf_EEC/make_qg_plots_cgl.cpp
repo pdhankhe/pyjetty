@@ -505,7 +505,7 @@ void make_qg_plots_cgl() {
         // also add light charged jets from infile_charmdecaysON, c charged jets from infile_c_enhanced_charmdecaysOFF, don't have b charged jets
     // 12: plot_case 3 and also with charm decays OFF for full light jets
     // 20: plot_case 1 and also with charm decays OFF from g, l, i
-    int plot_case = 100;
+    int plot_case = 3;
 
     // std::vector<TFile*> files;
     std::string add_name;
@@ -572,7 +572,9 @@ void make_qg_plots_cgl() {
         const int pt_bins[] = { 7, 10, 15, 30, 50, 70, 100, 150, 200 }; //, 100, 150 }; //{ 10, 20, 40 };
         const int d0_pt_cuts[] = { 3, 5, 5, 5, 5, 5, 5, 5 }; //, 5, 5 };
         const int n_bins = 8; //7;
-        double pt_x[n_bins] = { 10., 15., 30., 50., 70., 100., 150., 200.0 };
+        double pt_x[n_bins];
+        for (int i=0; i<n_bins; i++) pt_x[i] = pt_bins[i+1];
+
         
         double peaks_l_full_y[n_bins];
         double peaks_c_full_y[n_bins];
