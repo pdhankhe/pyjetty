@@ -132,6 +132,25 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
         for pair_type_label in self.pair_type_labels:
             if 'ENC' in observable:
               for ipoint in range(2, 3):
+                dim = 5
+                pt_bins = linbins(0,200,200)
+                ptRL_bins = logbins(1E-3,1E2,60)
+                rapi_bins = np.linspace(-5,5,201)
+                RL_bins = logbins(1E-4,1,50)
+                z_bins = np.linspace(0, 1.01, 102)
+
+                # Truth histograms
+                name = 'h_{}{}{}_JetPt_Truth_R{}_{}'.format(observable, ipoint, pair_type_label, jetR, obs_label) #pair_type_label is blank for me
+                title_truth = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'D^{0} y', 'D^{0} z', '#it{R}_{L}' ]
+                binnings = [pt_bins, rapi_bins, z_bins, RL_bins]
+                self.create_thn(name, title_truth, dim, binnings, obs='rl')
+
+                name = 'h_{}{}{}Pt_JetPt_Truth_R{}_{}'.format(observable, ipoint, pair_type_label, jetR, obs_label) # pt scaled histograms (currently only for unmatched jets)
+                title = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'D^{0} y', 'D^{0} z', '#it{p}_{T}#it{R}_{L}' ]
+                binnings = (pt_bins, rapi_bins, z_bins, ptRL_bins)
+                self.create_thn(name, title_truth, dim, binnings, obs='ptrl') 
+                
+                '''
                 name = 'h_{}{}{}_JetPt_R{}_{}'.format(observable, ipoint, pair_type_label, jetR, obs_label)
                 pt_bins = linbins(0,200,200)
                 RL_bins = logbins(1E-4,1,50)
@@ -231,8 +250,21 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
                     h.GetYaxis().SetTitle('R_{L}')
                     setattr(self, name, h)
 
+                '''
             if 'EEC_noweight' in observable or 'EEC_weight2' in observable:
-              name = 'h_{}{}_JetPt_R{}_{}'.format(observable, pair_type_label, jetR, obs_label)
+              dim = 5
+              pt_bins = linbins(0,200,200)
+              rapi_bins = np.linspace(-5,5,201)
+              RL_bins = logbins(1E-4,1,50)
+              z_bins = np.linspace(0, 1.01, 102)
+
+              # Truth histograms
+              name = 'h_{}{}_JetPt_Truth_R{}_{}'.format(observable, pair_type_label, jetR, obs_label)
+              title = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'D^{0} y', 'D^{0} z', '#it{R}_{L}' ]
+              binnings = (pt_bins, rapi_bins, z_bins, RL_bins)
+              self.create_thn(name, title_truth, dim, binnings, obs='rl') # this will need to be fixed later! - add more dimensions to also include jet pt?
+
+              '''name = 'h_{}{}_JetPt_R{}_{}'.format(observable, pair_type_label, jetR, obs_label)
               pt_bins = linbins(0,200,200)
               RL_bins = logbins(1E-4,1,50)
               h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
@@ -315,9 +347,21 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
                   h.GetYaxis().SetTitle('R_{L}')
                   setattr(self, name, h)
         
-        
+              '''
+
         if 'jet_pt' in observable:
-          name = 'h_{}_JetPt_R{}_{}'.format(observable, jetR, obs_label)
+          dim = 4
+          pt_bins = linbins(0,200,200)
+          rapi_bins = np.linspace(-5,5,201)
+          z_bins = np.linspace(0, 1.01, 102)
+
+          # Truth histograms
+          name = 'h_{}_JetPt_Truth_R{}_{}'.format(observable, jetR, obs_label)
+          title = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'D^{0} y', 'D^{0} z' ]
+          binnings = (pt_bins, rapi_bins, z_bins)
+          self.create_thn(name, title_truth, dim, binnings) # this will need to be fixed later! - add more dimensions to also include jet pt?
+
+          '''name = 'h_{}_JetPt_R{}_{}'.format(observable, jetR, obs_label)
           pt_bins = linbins(0,200,200)
           h = ROOT.TH1D(name, name, 200, pt_bins)
           h.GetXaxis().SetTitle('p_{T,ch jet}')
@@ -354,7 +398,9 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
           h.GetXaxis().SetTitle('p_{T,ch jet}^{det}')
           h.GetYaxis().SetTitle('p_{T,ch jet}^{truth}')
           setattr(self, name, h)
+          '''
 
+        
         # # Diagnostic
         # if 'jet_diag' in observable:
         #   name = 'h_{}_JetEta_R{}_{}'.format(observable, jetR, obs_label)
@@ -372,6 +418,10 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
         #   h.GetXaxis().SetTitle('p_{T,ch jet}')
         #   h.GetYaxis().SetTitle('#eta_{ch jet}')
         #   setattr(self, name, h)
+
+        #Make some blank arrays to be filled if thnsparse
+        self.fsparsepartonJetvalue = array.array( 'd', ( 0, 0, 0, 0, 0 ))
+        self.fsparsejetlevelJetvalue = array.array( 'd', ( 0, 0, 0, 0 ))
 
         # Init pair distance histograms (both det and truth level)
         # average track pt bins
@@ -447,21 +497,21 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
     else:
       suffix = ''
 
-    # Create THn of response for ENC
-    dim = 4;
-    title = ['p_{T,det}', 'p_{T,truth}', 'R_{L,det}', 'R_{L,truth}']
-    nbins = [30, 20, 100, 100]
-    min = [0., 0., 0., 0.]
-    max = [150., 200., 1., 1.]
-    name = 'hResponse_JetPt_{}{}_R{}_{}{}'.format(observable, ipoint, jetR, trk_thrd, suffix)
-    self.create_thn(name, title, dim, nbins, min, max)
+    # # Create THn of response for ENC
+    # dim = 4;
+    # title = ['p_{T,det}', 'p_{T,truth}', 'R_{L,det}', 'R_{L,truth}']
+    # nbins = [30, 20, 100, 100]
+    # min = [0., 0., 0., 0.]
+    # max = [150., 200., 1., 1.]
+    # name = 'hResponse_JetPt_{}{}_R{}_{}{}'.format(observable, ipoint, jetR, trk_thrd, suffix)
+    # self.create_thn(name, title, dim, nbins, min, max)
     
-    name = 'hResidual_JetPt_{}{}_R{}_{}{}'.format(observable, ipoint, jetR, trk_thrd, suffix)
-    h = ROOT.TH3F(name, name, 20, 0, 200, 100, 0., 1., 200, -2., 2.)
-    h.GetXaxis().SetTitle('p_{T,truth}')
-    h.GetYaxis().SetTitle('R_{L}')
-    h.GetZaxis().SetTitle('#frac{R_{L,det}-R_{L,truth}}{R_{L,truth}}')
-    setattr(self, name, h)
+    # name = 'hResidual_JetPt_{}{}_R{}_{}{}'.format(observable, ipoint, jetR, trk_thrd, suffix)
+    # h = ROOT.TH3F(name, name, 20, 0, 200, 100, 0., 1., 200, -2., 2.)
+    # h.GetXaxis().SetTitle('p_{T,truth}')
+    # h.GetYaxis().SetTitle('R_{L}')
+    # h.GetZaxis().SetTitle('#frac{R_{L,det}-R_{L,truth}}{R_{L,truth}}')
+    # setattr(self, name, h)
   
   def create_corr_histograms(self, observable, ipoint, jetR, obs_label):
   
@@ -526,16 +576,18 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
     setattr(self, name, h)
     '''
 
+
+
     # name = 'h_JetPt_{}{}_R{}_{}'.format(observable, ipoint, jetR, obs_label)
     name = 'h_{}{}_JetPt_Truth_R{}_{}'.format(observable, ipoint, jetR, obs_label)
     # print("NAME", name)
     nbins  = [len(pt_bins)-1, len(RL_bins)-1, len(obs_bins)-1]
     min = [pt_bins[0],      RL_bins[0],     obs_bins[0]]
     max = [pt_bins[-1],     RL_bins[-1],    obs_bins[-1]]
-    self.create_thn(name, title_truth, dim, nbins, min, max)
+    # self.create_thn(name, title_truth, dim, nbins, min, max)
 
-    name = 'h_{}{}_JetPt_R{}_{}'.format(observable, ipoint, jetR, obs_label)
-    self.create_thn(name, title, dim, nbins, min, max)
+    # name = 'h_{}{}_JetPt_R{}_{}'.format(observable, ipoint, jetR, obs_label)
+    # self.create_thn(name, title, dim, nbins, min, max)
     
 
 
@@ -619,6 +671,18 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
       jet_pt = jet.perp()
 
     new_corr = ecorrel.CorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut)
+    # save jet level information to thnsparse arrays
+    self.fsparsejetlevelJetvalue[0] = jet_pt
+    self.fsparsepartonJetvalue[0] = jet_pt
+
+    for part in c_select:
+      self.fsparsejetlevelJetvalue[1] = -99
+      self.fsparsepartonJetvalue[1] = -99
+      self.fsparsejetlevelJetvalue[2] = -99
+      self.fsparsepartonJetvalue[2] = -99
+      self.fsparsejetlevelJetvalue[3] = part.pt()/jet_pt
+      self.fsparsepartonJetvalue[3] = part.pt()/jet_pt
+
     for observable in self.observable_list:
       # print("CP OBSERVABLE", observable)
       if 'ENC' in observable or 'EEC_noweight' in observable or 'EEC_weight2' in observable:
@@ -648,14 +712,26 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
                 getattr(self, hname.format(observable + str(ipoint) + pair_type_label + 'Pt',obs_label)).Fill(jet_pt, jet_pt*new_corr.correlator(ipoint).rs()[index], new_corr.correlator(ipoint).weights()[index]*weights_pair[index]) # NB: fill pt*RL
 
               else:
-                getattr(self, hname.format(observable + str(ipoint) + pair_type_label,obs_label)).Fill(jet_pt, new_corr.correlator(ipoint).rs()[index], new_corr.correlator(ipoint).weights()[index])
-                getattr(self, hname.format(observable + str(ipoint) + pair_type_label + 'Pt',obs_label)).Fill(jet_pt, jet_pt*new_corr.correlator(ipoint).rs()[index], new_corr.correlator(ipoint).weights()[index])
+                # only change truth level hists to thnsparse
+                # save in thnsparse
+                self.fsparsepartonJetvalue[4] = new_corr.correlator(ipoint).rs()[index]
+                getattr(self, hname.format(observable + str(ipoint) + pair_type_label,obs_label)).Fill(self.fsparsepartonJetvalue, new_corr.correlator(ipoint).weights()[index])
+                
+                self.fsparsepartonJetvalue[4] = jet_pt*new_corr.correlator(ipoint).rs()[index]
+                getattr(self, hname.format(observable + str(ipoint) + pair_type_label + 'Pt',obs_label)).Fill(self.fsparsepartonJetvalue, new_corr.correlator(ipoint).weights()[index])
+
+                # getattr(self, hname.format(observable + str(ipoint) + pair_type_label,obs_label)).Fill(jet_pt, new_corr.correlator(ipoint).rs()[index], new_corr.correlator(ipoint).weights()[index])
+                # getattr(self, hname.format(observable + str(ipoint) + pair_type_label + 'Pt',obs_label)).Fill(jet_pt, jet_pt*new_corr.correlator(ipoint).rs()[index], new_corr.correlator(ipoint).weights()[index])
 
             if ipoint==2 and 'EEC_noweight' in observable:
               if self.ENC_fastsim and (not 'Truth' in hname):
                 getattr(self, hname.format(observable + pair_type_label,obs_label)).Fill(jet_pt, new_corr.correlator(ipoint).rs()[index], weights_pair[index])
               else:
-                getattr(self, hname.format(observable + pair_type_label,obs_label)).Fill(jet_pt, new_corr.correlator(ipoint).rs()[index])
+                #change truth level hists to thnsparse
+                self.fsparsepartonJetvalue[4] = new_corr.correlator(ipoint).rs()[index]
+                getattr(self, hname.format(observable + pair_type_label,obs_label)).Fill(self.fsparsepartonJetvalue)
+
+                # getattr(self, hname.format(observable + pair_type_label,obs_label)).Fill(jet_pt, new_corr.correlator(ipoint).rs()[index])
 
             if ipoint==2 and 'EEC_weight2' in observable:
               if self.ENC_fastsim and (not 'Truth' in hname):
@@ -664,7 +740,8 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
                 getattr(self, hname.format(observable + pair_type_label,obs_label)).Fill(jet_pt, new_corr.correlator(ipoint).rs()[index], pow(new_corr.correlator(ipoint).weights()[index],2))
 
       if 'jet_pt' in observable:
-        getattr(self, hname.format(observable,obs_label)).Fill(jet_pt)
+        getattr(self, hname.format(observable,obs_label)).Fill(self.fsparsejetlevelJetvalue)
+        # getattr(self, hname.format(observable,obs_label)).Fill(jet_pt)
       
       # NB: for now, only perform this check on data and full sim
       if 'EEC_detail' in observable and self.ENC_fastsim==False: 

@@ -224,7 +224,7 @@ class ProcessMCBase(process_base.ProcessBase):
     # a SeriesGroupBy object of fastjet particles per event
     
     io_truth = process_io.ProcessIO(input_file=self.input_file, tree_dir=tree_dir,
-                                    track_tree_name='tree_Particle_gen', use_ev_id_ext=False, use_D0_info=True,
+                                    track_tree_name='tree_Particle_gen', use_ev_id_ext=False, use_D0_info=self.use_D0_info,
                                     is_jetscape=self.jetscape, event_plane_range=self.event_plane_range, is_ENC=self.ENC_fastsim, is_det_level=False)
     df_fjparticles_truth = io_truth.load_data(m=self.m) # no dropping of tracks at truth level (important for the det-truth association because the index of the truth particle is used)
     self.nEvents_truth = len(df_fjparticles_truth.index)
@@ -255,109 +255,109 @@ class ProcessMCBase(process_base.ProcessBase):
       self.nTracks_truth = len(io_D0_truth.track_df.index)
       print('--- {} seconds ---'.format(time.time() - self.start_time))
 
-    print("COLS!", df_D0particles_truth.columns)
+      print("COLS!", df_D0particles_truth.columns)
 
-    # remove kaons and pions with D0 mother
-    D0_PIDs = [421, -421]
-    print("LOOK HERE", df_fjparticles_truth.columns)
-    print("length", len(df_fjparticles_truth))
-    print("AND HERE", df_fjparticles_truth[20:30])#fj_particles_det[11].python_info())
-    # print("HIII", df_fjparticles_truth['MotherPID'].values[21])#[21:22].values[12:100])
-    print("keep for debug, len of entry 21 with a D0", len(df_fjparticles_truth['MotherPID'].values[21]))
-    
-    mother_pids = df_fjparticles_truth['MotherPID'].values
-    d0_pids = df_D0particles_truth['ParticlePID'].values
-    d0_mids = df_D0particles_truth['MotherPID'].values
-    d0_evids = df_D0particles_truth['ev_id'].values
-    d0_4vec = df_D0particles_truth['fj_particle'].values
-    d0_rap = df_D0particles_truth['ParticleRapidity'].values
-    d0_event_counter = 0
-    num_d0s_in_event = 0
-    self.alld0counter = 0
-    self.d0nodstar_counter = 0
+      # remove kaons and pions with D0 mother
+      D0_PIDs = [421, -421]
+      print("LOOK HERE", df_fjparticles_truth.columns)
+      print("length", len(df_fjparticles_truth))
+      print("AND HERE", df_fjparticles_truth[20:30])#fj_particles_det[11].python_info())
+      # print("HIII", df_fjparticles_truth['MotherPID'].values[21])#[21:22].values[12:100])
+      print("keep for debug, len of entry 21 with a D0", len(df_fjparticles_truth['MotherPID'].values[21]))
+      
+      mother_pids = df_fjparticles_truth['MotherPID'].values
+      d0_pids = df_D0particles_truth['ParticlePID'].values
+      d0_mids = df_D0particles_truth['MotherPID'].values
+      d0_evids = df_D0particles_truth['ev_id'].values
+      d0_4vec = df_D0particles_truth['fj_particle'].values
+      d0_rap = df_D0particles_truth['ParticleRapidity'].values
+      d0_event_counter = 0
+      num_d0s_in_event = 0
+      self.alld0counter = 0
+      self.d0nodstar_counter = 0
 
-    # print("type part", type(df_fjparticles_truth))
-    # print("Type d0", type(df_D0particles_truth))
+      # print("type part", type(df_fjparticles_truth))
+      # print("Type d0", type(df_D0particles_truth))
 
-    #print("index", df_fjparticles_truth.index)    #gets the row names!! - these rows are indexed by MultiIndex!
-    run_num = df_fjparticles_truth.index[0][0]
-    print("run num is", run_num)
+      #print("index", df_fjparticles_truth.index)    #gets the row names!! - these rows are indexed by MultiIndex!
+      run_num = df_fjparticles_truth.index[0][0]
+      print("run num is", run_num)
 
-    for iev, event_mpids in enumerate(mother_pids):
-      ievent_adj = self.event_start_offset+iev
-      # if iev == 500:
-      #   break
-      dau_inds = []
-      if D0_PIDs[0] in event_mpids or D0_PIDs[1] in event_mpids:
+      for iev, event_mpids in enumerate(mother_pids):
+        ievent_adj = self.event_start_offset+iev
+        # if iev == 500:
+        #   break
+        dau_inds = []
+        if D0_PIDs[0] in event_mpids or D0_PIDs[1] in event_mpids:
 
-        if iev < 1000:
-          print("keep for debug, length to start", len(df_fjparticles_truth['fj_particle'].values[iev]), 
-              len(df_fjparticles_truth['ParticlePID'].values[iev]), len(df_fjparticles_truth['MotherPID'].values[iev]))
+          if iev < 1000:
+            print("keep for debug, length to start", len(df_fjparticles_truth['fj_particle'].values[iev]), 
+                len(df_fjparticles_truth['ParticlePID'].values[iev]), len(df_fjparticles_truth['MotherPID'].values[iev]))
 
-        dau_inds = [i for i, mpid in enumerate(event_mpids) if abs(mpid) == 421] # List comprehension
-        # print("debug index", iev, "with D0 daughter indices", dau_inds)
+          dau_inds = [i for i, mpid in enumerate(event_mpids) if abs(mpid) == 421] # List comprehension
+          # print("debug index", iev, "with D0 daughter indices", dau_inds)
 
-        # check against D0s that are in d0 tree
-        particle_pids = df_fjparticles_truth['ParticlePID'].values
-        # for ind in dau_inds:
-        #   print("debug part", particle_pids[iev][ind], "mother", event_mpids[ind])
-        num_d0s_in_event = len(d0_evids[d0_event_counter])
+          # check against D0s that are in d0 tree
+          particle_pids = df_fjparticles_truth['ParticlePID'].values
+          # for ind in dau_inds:
+          #   print("debug part", particle_pids[iev][ind], "mother", event_mpids[ind])
+          num_d0s_in_event = len(d0_evids[d0_event_counter])
 
         
-        # print("index!", df_fjparticles_truth[:10])
-        print("index!", df_fjparticles_truth.loc[((run_num, ievent_adj))].index)
-        # remove the rows that have the kaon and pion
-        for col in df_fjparticles_truth.loc[((run_num, ievent_adj))].index: #lists the columns
-          # print("len 1", col, len (df_fjparticles_truth.loc[((run_num, ievent_adj))][col]) )
-          # print("CHECK HEREEEE 1", df_fjparticles_truth.loc[((run_num, ievent_adj))][col])
-          # print("type 1", type(df_fjparticles_truth.loc[((run_num, ievent_adj))][col]) )
-          if col == 'fj_particle':
-            for dau_ind in reversed(dau_inds):
-              # print("dau ind", dau_ind, type(dau_ind))
-              df_fjparticles_truth.loc[((run_num, ievent_adj))][col] = pythiafjext.removeByIndex(df_fjparticles_truth.loc[((run_num, ievent_adj))][col], dau_ind) 
-          else:
-            for dau_ind in reversed(dau_inds):
-              # print("dau ind in else", dau_ind, type(dau_ind))
-              df_fjparticles_truth.loc[((run_num, ievent_adj))][col] = np.delete(df_fjparticles_truth.loc[((run_num, ievent_adj))][col], dau_ind)
-          # print("len 2", col, len (df_fjparticles_truth.loc[((run_num, ievent_adj))][col]) )
-          # print("CHECK HEREEEE 2", df_fjparticles_truth.loc[((run_num, ievent_adj))][col])
-
-        if iev < 1000:
-          print("keep for debug, length after kpi removal", len(df_fjparticles_truth['fj_particle'].values[iev]), 
-              len(df_fjparticles_truth['ParticlePID'].values[iev]), len(df_fjparticles_truth['MotherPID'].values[iev]))
-
-        # and add the D0
-        event_num = d0_evids[d0_event_counter] #there probably is a better way to do this but ok
-
-        for col in df_fjparticles_truth.loc[((run_num, ievent_adj))].index: #lists the columns
-          for i_d0 in range(num_d0s_in_event):
+          # print("index!", df_fjparticles_truth[:10])
+          print("index!", df_fjparticles_truth.loc[((run_num, ievent_adj))].index)
+          # remove the rows that have the kaon and pion
+          for col in df_fjparticles_truth.loc[((run_num, ievent_adj))].index: #lists the columns
+            # print("len 1", col, len (df_fjparticles_truth.loc[((run_num, ievent_adj))][col]) )
+            # print("CHECK HEREEEE 1", df_fjparticles_truth.loc[((run_num, ievent_adj))][col])
+            # print("type 1", type(df_fjparticles_truth.loc[((run_num, ievent_adj))][col]) )
             if col == 'fj_particle':
-              # print("inserting", d0_4vec[d0_event_counter][i_d0], "of", d0_4vec[d0_event_counter], "into", col)
-              df_fjparticles_truth.loc[((run_num, ievent_adj))][col] = pythiafjext.addByIndex(df_fjparticles_truth.loc[((run_num, ievent_adj))][col], 
-                                                                                          dau_inds[0], d0_4vec[d0_event_counter][i_d0])
-            elif col == 'ParticlePID':
-              # print("inserting", d0_pids[d0_event_counter][i_d0], "of", d0_pids[d0_event_counter], "into", col)
-              df_fjparticles_truth.loc[((run_num, ievent_adj))][col] = np.insert(df_fjparticles_truth.loc[((run_num, ievent_adj))][col],
-                                                                            dau_inds[0], d0_pids[d0_event_counter][i_d0])
-            elif col == 'MotherPID':
-              # print("inserting -1 into", col)
-              df_fjparticles_truth.loc[((run_num, ievent_adj))][col] = np.insert(df_fjparticles_truth.loc[((run_num, ievent_adj))][col], 
-                                                                              dau_inds[0], d0_mids[d0_event_counter][i_d0]) #-1)
-              # print("CHECK HEREEEE 3", df_fjparticles_truth.loc[((run_num, ievent_adj))][col])
-            
-            elif col == 'ParticleRapidity':
-              # print("inserting", type(d0_rap[d0_event_counter][i_d0]), d0_rap[d0_event_counter][i_d0], "of", d0_rap[d0_event_counter], "into", col)
-              df_fjparticles_truth.loc[((run_num, ievent_adj))][col] = np.insert(df_fjparticles_truth.loc[((run_num, ievent_adj))][col], dau_inds[0], d0_rap[d0_event_counter][i_d0])
-              # print("after inserting", type(df_fjparticles_truth.loc[((run_num, ievent_adj))][col][0]), df_fjparticles_truth.loc[((run_num, ievent_adj))][col])
+              for dau_ind in reversed(dau_inds):
+                # print("dau ind", dau_ind, type(dau_ind))
+                df_fjparticles_truth.loc[((run_num, ievent_adj))][col] = pythiafjext.removeByIndex(df_fjparticles_truth.loc[((run_num, ievent_adj))][col], dau_ind) 
+            else:
+              for dau_ind in reversed(dau_inds):
+                # print("dau ind in else", dau_ind, type(dau_ind))
+                df_fjparticles_truth.loc[((run_num, ievent_adj))][col] = np.delete(df_fjparticles_truth.loc[((run_num, ievent_adj))][col], dau_ind)
+            # print("len 2", col, len (df_fjparticles_truth.loc[((run_num, ievent_adj))][col]) )
+            # print("CHECK HEREEEE 2", df_fjparticles_truth.loc[((run_num, ievent_adj))][col])
 
-        if iev < 1000:
-          print("keep for debug, length at end", len(df_fjparticles_truth['fj_particle'].values[iev]), 
-              len(df_fjparticles_truth['ParticlePID'].values[iev]), len(df_fjparticles_truth['MotherPID'].values[iev]))
+          if iev < 1000:
+            print("keep for debug, length after kpi removal", len(df_fjparticles_truth['fj_particle'].values[iev]), 
+                len(df_fjparticles_truth['ParticlePID'].values[iev]), len(df_fjparticles_truth['MotherPID'].values[iev]))
+
+          # and add the D0
+          event_num = d0_evids[d0_event_counter] #there probably is a better way to do this but ok
+
+          for col in df_fjparticles_truth.loc[((run_num, ievent_adj))].index: #lists the columns
+            for i_d0 in range(num_d0s_in_event):
+              if col == 'fj_particle':
+                # print("inserting", d0_4vec[d0_event_counter][i_d0], "of", d0_4vec[d0_event_counter], "into", col)
+                df_fjparticles_truth.loc[((run_num, ievent_adj))][col] = pythiafjext.addByIndex(df_fjparticles_truth.loc[((run_num, ievent_adj))][col], 
+                                                                                            dau_inds[0], d0_4vec[d0_event_counter][i_d0])
+              elif col == 'ParticlePID':
+                # print("inserting", d0_pids[d0_event_counter][i_d0], "of", d0_pids[d0_event_counter], "into", col)
+                df_fjparticles_truth.loc[((run_num, ievent_adj))][col] = np.insert(df_fjparticles_truth.loc[((run_num, ievent_adj))][col],
+                                                                              dau_inds[0], d0_pids[d0_event_counter][i_d0])
+              elif col == 'MotherPID':
+                # print("inserting -1 into", col)
+                df_fjparticles_truth.loc[((run_num, ievent_adj))][col] = np.insert(df_fjparticles_truth.loc[((run_num, ievent_adj))][col], 
+                                                                                dau_inds[0], d0_mids[d0_event_counter][i_d0]) #-1)
+                # print("CHECK HEREEEE 3", df_fjparticles_truth.loc[((run_num, ievent_adj))][col])
               
-        print("debug d0", d0_evids[d0_event_counter], d0_event_counter, num_d0s_in_event)
-        d0_pt = np.sqrt( d0_4vec[d0_event_counter][0].px()*d0_4vec[d0_event_counter][0].px() + d0_4vec[d0_event_counter][0].py()*d0_4vec[d0_event_counter][0].py() )
-        print("debug d0 info pt:", d0_pt, "eta:", d0_4vec[d0_event_counter][0].eta(), "phi:", d0_4vec[d0_event_counter][0].phi(), "rap:", d0_4vec[d0_event_counter][0].rap())
-        d0_event_counter+=1
+              elif col == 'ParticleRapidity':
+                # print("inserting", type(d0_rap[d0_event_counter][i_d0]), d0_rap[d0_event_counter][i_d0], "of", d0_rap[d0_event_counter], "into", col)
+                df_fjparticles_truth.loc[((run_num, ievent_adj))][col] = np.insert(df_fjparticles_truth.loc[((run_num, ievent_adj))][col], dau_inds[0], d0_rap[d0_event_counter][i_d0])
+                # print("after inserting", type(df_fjparticles_truth.loc[((run_num, ievent_adj))][col][0]), df_fjparticles_truth.loc[((run_num, ievent_adj))][col])
+
+          if iev < 1000:
+            print("keep for debug, length at end", len(df_fjparticles_truth['fj_particle'].values[iev]), 
+                len(df_fjparticles_truth['ParticlePID'].values[iev]), len(df_fjparticles_truth['MotherPID'].values[iev]))
+              
+          print("debug d0", d0_evids[d0_event_counter], d0_event_counter, num_d0s_in_event)
+          d0_pt = np.sqrt( d0_4vec[d0_event_counter][0].px()*d0_4vec[d0_event_counter][0].px() + d0_4vec[d0_event_counter][0].py()*d0_4vec[d0_event_counter][0].py() )
+          print("debug d0 info pt:", d0_pt, "eta:", d0_4vec[d0_event_counter][0].eta(), "phi:", d0_4vec[d0_event_counter][0].phi(), "rap:", d0_4vec[d0_event_counter][0].rap())
+          d0_event_counter+=1
         
     # print("COLS!", df_D0particles_truth.columns) #COLS! Index(['fj_particle', 'ParticlePID', 'MotherPID'], dtype='object')
 
@@ -380,7 +380,10 @@ class ProcessMCBase(process_base.ProcessBase):
         # self.df_fjparticles = pandas.concat([df_fjparticles_det, df_fjparticles_truth], axis=1)
         # self.df_fjparticles.columns = ['fj_particles_det', 'ParticleMCIndex', 'fj_particles_truth', 'ParticlePID','ParticleRapidity']
         self.df_fjparticles = pandas.concat([df_fjparticles_truth], axis=1)
-        self.df_fjparticles.columns = ['fj_particles_truth', 'ParticlePID', 'MotherPID', 'ParticleRapidity']
+        if self.use_D0_info:
+          self.df_fjparticles.columns = ['fj_particles_truth', 'ParticlePID', 'MotherPID', 'ParticleRapidity']
+        else:
+          self.df_fjparticles.columns = ['fj_particles_truth', 'ParticlePID']
         print('Merged output',self.df_fjparticles.columns)
         # print("RAPIDITY HERE!!", df_fjparticles_truth['ParticleRapidity'])
         # print("RAPIDITY HERE!!", self.df_fjparticles['ParticleRapidity'])
@@ -412,8 +415,9 @@ class ProcessMCBase(process_base.ProcessBase):
     print('Find jets...')
     self.analyze_events()
 
-    print("There were", self.alld0counter, "D0's")
-    print("There were", self.d0nodstar_counter, "D0's that did not come from charged D*")
+    if self.use_D0_info:
+      print("There were", self.alld0counter, "D0's")
+      print("There were", self.d0nodstar_counter, "D0's that did not come from charged D*")
     
     # Plot histograms
     print('Save histograms...')
@@ -523,7 +527,10 @@ class ProcessMCBase(process_base.ProcessBase):
         if self.use_D0_info:
           result = [self.analyze_event_nodet(fj_particles_truth=fj_particles_truth, particles_pid_truth=particles_pid_truth, particles_rap_truth=particles_rap_truth, particles_mid_truth=particles_mid_truth) for fj_particles_truth, particles_pid_truth, particles_mid_truth, particles_rap_truth in zip(self.df_fjparticles['fj_particles_truth'], self.df_fjparticles['ParticlePID'], self.df_fjparticles['MotherPID'],self.df_fjparticles['ParticleRapidity'])]
         else:
-          result = [self.analyze_event(fj_particles_det=fj_particles_det, fj_particles_truth=fj_particles_truth, particles_mcid_det=particles_mcid_det, particles_pid_truth=particles_pid_truth) for fj_particles_det, fj_particles_truth, particles_mcid_det, particles_pid_truth in zip(self.df_fjparticles['fj_particles_det'], self.df_fjparticles['fj_particles_truth'], self.df_fjparticles['ParticleMCIndex'], self.df_fjparticles['ParticlePID'])]
+          #use no det for now...
+          print("self.df_fjparticles", self.df_fjparticles)
+          result = [self.analyze_event_nodet(fj_particles_truth=fj_particles_truth, particles_pid_truth=particles_pid_truth) for fj_particles_truth, particles_pid_truth in zip(self.df_fjparticles['fj_particles_truth'], self.df_fjparticles['ParticlePID'])]
+          # result = [self.analyze_event(fj_particles_det=fj_particles_det, fj_particles_truth=fj_particles_truth, particles_mcid_det=particles_mcid_det, particles_pid_truth=particles_pid_truth) for fj_particles_det, fj_particles_truth, particles_mcid_det, particles_pid_truth in zip(self.df_fjparticles['fj_particles_det'], self.df_fjparticles['fj_particles_truth'], self.df_fjparticles['ParticleMCIndex'], self.df_fjparticles['ParticlePID'])]
     else:
         result = [self.analyze_event(fj_particles_det, fj_particles_truth) for fj_particles_det, fj_particles_truth in zip(self.df_fjparticles['fj_particles_det'], self.df_fjparticles['fj_particles_truth'])]
     
@@ -627,14 +634,20 @@ class ProcessMCBase(process_base.ProcessBase):
             ecorr_user_info = jet_info.JetInfo()
           ecorr_user_info.particle_truth = fj_particles_truth[index]
           ecorr_user_info.charge = particles_charge_truth[index]
-          ecorr_user_info.particle_pid = particles_pid_truth[index]
-          ecorr_user_info.particle_rap = particles_rap_truth[index]
-          ecorr_user_info.particle_mid = particles_mid_truth[index]
-          # if abs(particles_pid_truth[index]) == 421:
-            # print("CROSS CHECKING", particles_rap_truth)
-            # print("Analyzing event and found a D0 in event", self.event_number, "with pid", particles_pid_truth[index], "and rapidity", particles_rap_truth[index])
-          # print(ecorr_user_info)
-          
+          if (self.use_D0_info):
+            ecorr_user_info.particle_pid = particles_pid_truth[index]
+            ecorr_user_info.particle_rap = particles_rap_truth[index]
+            ecorr_user_info.particle_mid = particles_mid_truth[index]
+            # if abs(particles_pid_truth[index]) == 421:
+              # print("CROSS CHECKING", particles_rap_truth)
+              # print("Analyzing event and found a D0 in event", self.event_number, "with pid", particles_pid_truth[index], "and rapidity", particles_rap_truth[index])
+            # print(ecorr_user_info)
+            
+          else:
+            ecorr_user_info.particle_pid = -99
+            ecorr_user_info.particle_rap = -99
+            ecorr_user_info.particle_mid = -99
+
           fj_particles_truth[index].set_python_info(ecorr_user_info)
           # if rapidity needs to be saved, maybe here??
           # fj_particles_truth[index].set_user_index(int(index))

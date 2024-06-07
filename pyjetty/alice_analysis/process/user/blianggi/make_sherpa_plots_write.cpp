@@ -186,8 +186,10 @@ void make_sherpa_plots_write() {
      //FOR WHEN WEIGHTED/UNWEIGHTED IN SAME FILE
     std::string infile_charm_jetpt10 = "/rstorage/blianggi/sherpagen/charm_jetpt10/histograms/AnalysisResultsFinal.root"; //this is using thnsparse
     std::string infile_charm_jetpt10_lund = "/rstorage/blianggi/sherpagen/charm_jetpt10_lund/histograms/AnalysisResultsFinal.root"; //this is using thnsparse
-    std::string infile_charm_jetpt15 = "/rstorage/blianggi/sherpagen/charm_jetpt15/histograms/AnalysisResultsFinal.root"; //this is using thnsparse
-    std::string infile_charm_jetpt15_lund = "/rstorage/blianggi/sherpagen/charm_jetpt15_lund/histograms/AnalysisResultsFinal.root"; //this is using thnsparse
+    // std::string infile_charm_jetpt15 = "/rstorage/blianggi/sherpagen/charm_jetpt15/histograms/AnalysisResultsFinal.root"; //this is using thnsparse
+    // std::string infile_charm_jetpt15_lund = "/rstorage/blianggi/sherpagen/charm_jetpt15_lund/histograms/AnalysisResultsFinal.root"; //this is using thnsparse
+    std::string infile_charm_jetpt15 = "/rstorage/blianggi/sherpagen/charm_jetpt15/histograms/346745/344985/AnalysisResultsFinal.root"; //this is using thnsparse
+    std::string infile_charm_jetpt15_lund = "/rstorage/blianggi/sherpagen/charm_jetpt15_lund/histograms/346785/345025/AnalysisResultsFinal.root"; //this is using thnsparse
 
 
     // int plot_case:
@@ -245,9 +247,9 @@ void make_sherpa_plots_write() {
 
 
                 // pt bins
-                const int pt_bins[] = { 7, 10, 15, 30 }; //{ 10, 20, 40 }; // CHANGE HERE!!
-                const int d0_pt_cuts[] = { 3, 5, 5 };
-                const int n_bins = 3; 
+                const int pt_bins[] = { 7, 10, 15, 30, 50, 70 }; //{ 10, 20, 40 }; // CHANGE HERE!!
+                const int d0_pt_cuts[] = { 3, 5, 5, 5, 5 };
+                const int n_bins = 5; 
                 for (int i = 0; i < n_bins; i++) {
                     cout << "in pt bin" << i << endl;
                     int pt_min = pt_bins[i];
@@ -320,11 +322,12 @@ void make_sherpa_plots_write() {
 
 
                     // Project onto observable axis
-                    TH1D *hD0_EEC_proj = hsparse_EEC_clone->Projection(3); //CALL THESE TH1*????
-                    TH1D *hD0_EEC_ptrl_proj = hsparse_EEC_ptrl_clone->Projection(3);
-                    TH1D *hD0_EEC_noweight_proj = hsparse_EEC_noweight_clone->Projection(3);
+                    int projaxis = 3;
+                    if ( ifile > 1 ) projaxis = 4;
+                    TH1D *hD0_EEC_proj = hsparse_EEC_clone->Projection(projaxis); //(3); //CALL THESE TH1*????
+                    TH1D *hD0_EEC_ptrl_proj = hsparse_EEC_ptrl_clone->Projection(projaxis); //(3);
+                    TH1D *hD0_EEC_noweight_proj = hsparse_EEC_noweight_clone->Projection(projaxis); //(3);
                     TH1D *hjetpt = hsparse_jetinfo_clone->Projection(0);
-
                     // Set to appropriate name
                     std::string hname = hD0_EEC_proj->GetName();
                     hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_trkthrd" + trkthrd;

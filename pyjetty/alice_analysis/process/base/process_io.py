@@ -86,15 +86,18 @@ class ProcessIO(common_base.CommonBase):
           self.track_columns += ['ParticleMCIndex']
         else:
           self.track_columns += ['ParticlePID']
+    print("USE D0 INFO IS SET TO", self.use_D0_info)
     if self.use_D0_info:
+      print("entering here????")
       self.track_columns += ['MotherPID']
       # self.track_columns += ['ParticleRapidity']
 
-    # Set relevant columns of D0 tree
-    if (self.using_dstar):
-      self.D0_columns = self.unique_identifier + ['ParticlePt', 'ParticleEta', 'ParticlePhi', 'ParticleRapidity', 'ParticlePID']
-    else:
-      self.D0_columns = self.unique_identifier + ['ParticlePt', 'ParticleEta', 'ParticlePhi', 'ParticleRapidity', 'ParticlePID', 'MotherPID']
+      # Set relevant columns of D0 tree
+      if (self.using_dstar):
+        self.D0_columns = self.unique_identifier + ['ParticlePt', 'ParticleEta', 'ParticlePhi', 'ParticleRapidity', 'ParticlePID']
+      else:
+        print("or here????")
+        self.D0_columns = self.unique_identifier + ['ParticlePt', 'ParticleEta', 'ParticlePhi', 'ParticleRapidity', 'ParticlePID', 'MotherPID']
     
     
     #print(self)
@@ -207,6 +210,8 @@ class ProcessIO(common_base.CommonBase):
       with uproot.open(self.input_file)[track_tree_name] as track_tree:
         if not track_tree:
           raise ValueError("Tree %s not found in file %s" % (track_tree_name, self.input_file))
+        print("TESTING", self.track_columns)
+        print("TESTING2", track_tree_name, track_tree)
         track_df_orig = uproot.concatenate(track_tree, self.track_columns, library="pd")
 
       

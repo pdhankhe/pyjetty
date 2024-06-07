@@ -186,9 +186,9 @@ void make_herwig_plots_write() {
      //FOR WHEN WEIGHTED/UNWEIGHTED IN SAME FILE
     // const char infile_D0_noDstar[] = "/rstorage/generators/herwig_alice/histograms/249612/216486/AnalysisResultsFinal.root"; //this is using thnsparse
     // const char infile_D0[] = "/rstorage/generators/herwig_alice/histograms/277508/271758/AnalysisResultsFinal.root"; //this is using thnsparse
-    std::string infile_D0 = "/rstorage/generators/herwig_alice/scaling/326144/216486/AnalysisResultsFinal.root"; //this is using thnsparse
-    std::string infile_D0_noDstar = "/rstorage/generators/herwig_alice/scaling/325784/271758/AnalysisResultsFinal.root"; //this is using thnsparse
-
+    std::string infile_D0 = "/rstorage/generators/herwig_alice/scaling/343985/299990/AnalysisResultsFinal.root"; //this is using thnsparse
+    std::string infile_D0_noDstar = "/rstorage/generators/herwig_alice/scaling/344485/299990/AnalysisResultsFinal.root"; //this is using thnsparse
+    std::string infile_inclusive = "/rstorage/generators/herwig_alice/scaling/352629/329854/AnalysisResultsFinal.root";
 
     // int plot_case:
     // 0 = plot everything in a separate file, currently not set yet
@@ -204,8 +204,8 @@ void make_herwig_plots_write() {
     TFile* f_out = new TFile(outfile.c_str(), "RECREATE");
 
     int ifile = 0;
-    std::string file_list[] = { infile_D0, infile_D0_noDstar };
-    std::string dname_list[] = { "D0", "D0_noDstar" };
+    std::string file_list[] = { infile_D0, infile_D0_noDstar, infile_inclusive };
+    std::string dname_list[] = { "D0", "D0_noDstar", "inclusive" };
     for (std::string file : file_list) {
         
         TFile* f = new TFile(file.c_str(), "READ");
@@ -300,7 +300,7 @@ void make_herwig_plots_write() {
                     l->AddEntry("NULL","D^{0} #rightarrow K^{#minus} #pi^{+} and charge conj.","h");
                     l->AddEntry("NULL","in charged jets, anti-#it{k}_{T}, #it{R} = 0.4","h");
                     l->AddEntry("NULL",ptbin,"h");
-                    l->AddEntry("NULL",ptD,"h");
+                    if (ifile != 2) l->AddEntry("NULL",ptD,"h");
                     l->SetTextSize(0.037);
                     l->SetBorderSize(0);
                     // l->Draw("same");
@@ -318,14 +318,16 @@ void make_herwig_plots_write() {
                     hsparse_EEC_noweight_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max);
                     hsparse_jetinfo_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max);
 
-                    hsparse_EEC_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max); // apply cut on Dmeson pt
-                    hsparse_EEC_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8); // apply cut on Dmeson rapidity
-                    hsparse_EEC_ptrl_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max);
-                    hsparse_EEC_ptrl_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8);
-                    hsparse_EEC_noweight_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max);
-                    hsparse_EEC_noweight_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8);
-                    hsparse_jetinfo_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max);
-                    hsparse_jetinfo_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8);
+                    if (ifile != 2) { // D0 cuts do not apply to inclusive
+                        hsparse_EEC_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max); // apply cut on Dmeson pt
+                        hsparse_EEC_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8); // apply cut on Dmeson rapidity
+                        hsparse_EEC_ptrl_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max);
+                        hsparse_EEC_ptrl_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8);
+                        hsparse_EEC_noweight_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max);
+                        hsparse_EEC_noweight_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8);
+                        hsparse_jetinfo_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max);
+                        hsparse_jetinfo_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8);
+                    }
 
 
                     // Project onto observable axis
