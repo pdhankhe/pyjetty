@@ -6,5 +6,5 @@ Stat:showProcessLevel = on
 
 Beams:eCM = 13000.
 HardQCD:all = on
-PhaseSpace:pTHatMin = 21.
-PhaseSpace:pTHatMax = 28.
+PhaseSpace:pTHatMin = 85.
+PhaseSpace:pTHatMax = 99.

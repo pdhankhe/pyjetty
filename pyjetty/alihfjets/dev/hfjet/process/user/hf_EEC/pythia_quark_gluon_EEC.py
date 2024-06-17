@@ -107,6 +107,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 		self.use_fulljets = args.fulljets #0 = use charged jets, 1 = use full jets, 2 = charged jets and add in neutral hadrons
 		self.glu_spli = (bool)(args.gluspli) #0 = do not save gluon splitting info, 1 = do save gluon splitting info
 		self.partonlevel = (bool)(args.parton) #0 = do not usre parton level, 1 = use parton level
+		self.rigidcone_R = args.rigidcone # use a rigid cone of specified radius to select particles that will be paired (default = -1 = no rigid cone)
 
 		# PDG ID values for quarks and gluons
 		self.quark_pdg_ids = [1, 2, 3, 4, 5, 6, 7, 8, -1, -2, -3, -4, -5, -6, -7, -8]
@@ -1049,6 +1050,12 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			dphi_cut = -9999
 			deta_cut = -9999
 
+			# if asking for a rigid cone, select particles here
+			# print("BEFORE RIGID CONE, there were ", len(c_select), "particles")
+			if (self.rigidcone_R != -1):
+				c_select = self.find_parts_around_jet(c_select, jet, self.rigidcone_R)
+				# print("AFTER RIGID CONE, there were ", len(c_select), "particles")
+
 			# Fill num const after track cut
 			self.hnumconstwTrackcut.Fill(len(c_select))
 			
@@ -1079,6 +1086,16 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 		raise ValueError("Observable %s not implemented" % observable)
 	
 
+	def find_parts_around_jet(self, parts, jet, cone_R):
+		# select particles around jet axis
+		cone_parts = fj.vectorPJ()
+		for part in parts:
+			if jet.delta_R(part) <= cone_R:
+				cone_parts.push_back(part)
+		
+		return cone_parts
+
+	
 	def checkDecayChannel(self, particle, event): #(part, mcArray): # what type is part
 		
 		if(not event):
@@ -1341,6 +1358,7 @@ if __name__ == '__main__':
 	parser.add_argument('--fulljets', action='store', type=int, default=0, help="'0' runs charged jets, '1' runs full jets, '2' runs charged jets with neutral hadrons")
 	parser.add_argument('--gluspli', action='store', type=int, default=0, help="'1' saves gluon splitting info")
 	parser.add_argument('--parton', action='store', type=int, default=0, help="'1' uses parton level")
+	parser.add_argument('--rigidcone', action='store', type=float, default=-1, help="only uses particle in a rigid cone of specified radius")
 
 	args = parser.parse_args()
 	pinfo("The arguments to run are: ", args)

@@ -3,12 +3,8 @@ Next:numberShowEvent = 0
 Next:numberShowInfo = 0
 Next:numberShowProcess = 0
 Stat:showProcessLevel = on
-#Random:setSeed=on
-#Random:seed=0
 
 Beams:eCM = 13000.
 HardQCD:all = on
-#PromptPhoton: all = on
-PhaseSpace:pTHatMin = 45.
-PhaseSpace:pTHatMax = 57.
-PartonLevel:MPI = off
+PhaseSpace:pTHatMin = 57.
+PhaseSpace:pTHatMax = 70.

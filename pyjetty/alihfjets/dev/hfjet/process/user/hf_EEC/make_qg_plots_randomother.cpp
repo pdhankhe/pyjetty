@@ -229,12 +229,12 @@ void make_qg_plots_randomother() {
     // 0 = D0 vs c-init, charm decays off
     // 1 = D0 vs c-init, charm decays off, with multiple iterations of the jobs
         // also tryna figure out the difference bw the two D0 files
-    // 2 = D0 charged jets vs D0 full jets with differen D0 pt cuts
+    // 2 = D0 charged jets vs D0 full jets with different D0 pt cuts
     // 3 = D0 charged jets vs D0 full jets with same D0 pt cuts
     // 4 = D0 charged jets vs D0 full jets with NO D0 pt cuts for full jet
 
     //CONTOL VARIABLES HERE
-    int plot_case = 2;
+    int plot_case = 4;
 
     TString label_D0 = "";
     TString label_D01 = "";
@@ -646,10 +646,12 @@ void make_qg_plots_randomother() {
                     hratio->SetMinimum(0.25);
                     hratio->SetMaximum(1.5);
 
+                    hratio->SetTitle(ratio_name.c_str());
                     hratio->GetYaxis()->SetTitle("#frac{D^{0}-tagged charged jets}{D^{0}-tagged full jets}"); 
+                
                 }
 
-
+                
                 FormatHist(l2, hratio, "ratio", kBlack, markers[2], 0.05, 0.04, 1.2, 0.035, 0.03, 1.5);
                 hratio->GetYaxis()->SetTitleSize(0.03);
                 hratio->GetYaxis()->SetNdivisions(5);
@@ -661,6 +663,11 @@ void make_qg_plots_randomother() {
                 // drawHoriLine(1e-4, 1., 0.9, kGray+2, 6)->Draw();
                 // drawHoriLine(1e-4, 1., 1.1, kGray+2, 6)->Draw();
 
+                if (plot_case == 4) {
+                    f_out->cd();
+                    hratio->Write();
+                }
+
             }
             
             std::string fname = outdir + "QG_comp_pt" + std::to_string(pt_min) + '-' + std::to_string(pt_max) + "_R" + jetR + add_name + "_plotcase" + std::to_string(plot_case) + ".pdf";
@@ -668,21 +675,25 @@ void make_qg_plots_randomother() {
             c->SaveAs(fnamec);
             delete c;
 
-
+            // TODO: find out why these files were not writing nicely. When I included them all, they would't 
+            // print in a .ls, but I could see them in a TBrowser. IDKKKKKK
+            
             // if (pt_min == 10) { //} && grooming == "") {
                 // Write rebinned histograms to root file
-            f_out->cd();
-            hD0->Write();
-            hD01->Write();
-            hD02->Write();
-            hD03->Write();
-            hD0_fulljet->Write();
-            hc_nothnsparse->Write();
-            hc->Write();
+            // f_out->cd();
+            // hD0->Write();
+            // hD01->Write();
+            // hD02->Write();
+            // hD03->Write();
+            // hD0_fulljet->Write();
+            // hc_nothnsparse->Write();
+            // hc->Write();
             // }
              
         } // pT bins loop
     } // jetR loop
+
+    f_out->Close();
 
     f_D0->Close();
     delete f_D0;
