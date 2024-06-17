@@ -184,13 +184,24 @@ void make_sherpa_plots_write() {
     // File containing quark vs gluon histograms
 
      //FOR WHEN WEIGHTED/UNWEIGHTED IN SAME FILE
+    /*
     std::string infile_charm_jetpt10 = "/rstorage/blianggi/sherpagen/charm_jetpt10/histograms/AnalysisResultsFinal.root"; //this is using thnsparse
     std::string infile_charm_jetpt10_lund = "/rstorage/blianggi/sherpagen/charm_jetpt10_lund/histograms/AnalysisResultsFinal.root"; //this is using thnsparse
     // std::string infile_charm_jetpt15 = "/rstorage/blianggi/sherpagen/charm_jetpt15/histograms/AnalysisResultsFinal.root"; //this is using thnsparse
     // std::string infile_charm_jetpt15_lund = "/rstorage/blianggi/sherpagen/charm_jetpt15_lund/histograms/AnalysisResultsFinal.root"; //this is using thnsparse
     std::string infile_charm_jetpt15 = "/rstorage/blianggi/sherpagen/charm_jetpt15/histograms/346745/344985/AnalysisResultsFinal.root"; //this is using thnsparse
     std::string infile_charm_jetpt15_lund = "/rstorage/blianggi/sherpagen/charm_jetpt15_lund/histograms/346785/345025/AnalysisResultsFinal.root"; //this is using thnsparse
+    */
+    //new files here:
+    std::string infile_charm_jetpt10 = "/rstorage/blianggi/sherpagen/charm_13TeV_jetpt_10/histograms/360419/359421/AnalysisResultsFinal.root"; //this is using thnsparse
+    std::string infile_charm_jetpt10_lund = "/rstorage/blianggi/sherpagen/charm_jetpt10_lund/histograms/361381/359562/AnalysisResultsFinal.root"; //this is using thnsparse
+    std::string infile_charm_jetpt15 = "/rstorage/blianggi/sherpagen/charm_jetpt15/histograms/361400/359819/AnalysisResultsFinal.root"; //this is using thnsparse
+    std::string infile_charm_jetpt15_lund = "/rstorage/blianggi/sherpagen/charm_jetpt15_lund/histograms/361724/359823/AnalysisResultsFinal.root"; //this is using thnsparse
 
+    std::string infile_inclusive_jetpt10 = "/rstorage/blianggi/sherpagen/inclusive_jetpt10/histograms/362440/361601/AnalysisResultsFinal.root";
+    std::string infile_inclusive_jetpt10_lund = "/rstorage/blianggi/sherpagen/inclusive_jetpt10_lund/histograms/362460/361713/AnalysisResultsFinal.root";
+    std::string infile_inclusive_jetpt15 = "/rstorage/blianggi/sherpagen/inclusive_jetpt15/histograms/362480/361721/AnalysisResultsFinal.root";
+    std::string infile_inclusive_jetpt15_lund = "/rstorage/blianggi/sherpagen/inclusive_jetpt15_lund/histograms/362500/361722/AnalysisResultsFinal.root";
 
     // int plot_case:
     // 0 = plot everything in a separate file, currently not set yet
@@ -206,8 +217,10 @@ void make_sherpa_plots_write() {
     TFile* f_out = new TFile(outfile.c_str(), "RECREATE");
 
     int ifile = 0;
-    std::string file_list[] = { infile_charm_jetpt10, infile_charm_jetpt10_lund, infile_charm_jetpt15, infile_charm_jetpt15_lund };
-    std::string dname_list[] = { "c_jetpt10", "c_jetpt10_lund", "c_jetpt15", "c_jetpt15_lund"};
+    std::string file_list[] = { infile_charm_jetpt10, infile_charm_jetpt10_lund, infile_charm_jetpt15, infile_charm_jetpt15_lund,
+                                infile_inclusive_jetpt10, infile_inclusive_jetpt10_lund, infile_inclusive_jetpt15, infile_inclusive_jetpt15_lund };
+    std::string dname_list[] = { "c_jetpt10", "c_jetpt10_lund", "c_jetpt15", "c_jetpt15_lund", 
+                                 "i_jetpt10", "i_jetpt10_lund", "i_jetpt15", "i_jetpt15_lund"};
     for (std::string file : file_list) {
         
         TFile* f = new TFile(file.c_str(), "READ");
@@ -220,7 +233,7 @@ void make_sherpa_plots_write() {
         for (std::string jetR : jetR_list) {
             
             // different track threshold values
-            std::string trkthrd_list[] = { "0.15", "0.5", "1.0" };
+            std::string trkthrd_list[] = { "1.0" }; //{ "0.15", "0.5", "1.0" };
             int itrkthrd = 0;
             for (std::string trkthrd : trkthrd_list) {
                 const std::string EEC_name = "h_jet_ENC_RL2_JetPt_Truth_R" + jetR + "_" + trkthrd;
@@ -311,19 +324,22 @@ void make_sherpa_plots_write() {
                     hsparse_EEC_noweight_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max);
                     hsparse_jetinfo_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max);
 
-                    hsparse_EEC_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max); // apply cut on Dmeson pt
-                    hsparse_EEC_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8); // apply cut on Dmeson rapidity
-                    hsparse_EEC_ptrl_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max);
-                    hsparse_EEC_ptrl_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8);
-                    hsparse_EEC_noweight_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max);
-                    hsparse_EEC_noweight_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8);
-                    hsparse_jetinfo_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max);
-                    hsparse_jetinfo_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8);
+                    if (ifile < 4) {
+                        hsparse_EEC_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max); // apply cut on Dmeson pt
+                        hsparse_EEC_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8); // apply cut on Dmeson rapidity
+                        hsparse_EEC_ptrl_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max);
+                        hsparse_EEC_ptrl_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8);
+                        hsparse_EEC_noweight_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max);
+                        hsparse_EEC_noweight_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8);
+                        hsparse_jetinfo_clone->GetAxis(1)->SetRangeUser(d0_pt_cuts[i], pt_max);
+                        hsparse_jetinfo_clone->GetAxis(2)->SetRangeUser(-0.8, 0.8);
+                    }
 
 
                     // Project onto observable axis
-                    int projaxis = 3;
-                    if ( ifile > 1 ) projaxis = 4;
+                    // int projaxis = 3;
+                    // if ( ifile > 1 ) projaxis = 4;
+                    int projaxis = 4;
                     TH1D *hD0_EEC_proj = hsparse_EEC_clone->Projection(projaxis); //(3); //CALL THESE TH1*????
                     TH1D *hD0_EEC_ptrl_proj = hsparse_EEC_ptrl_clone->Projection(projaxis); //(3);
                     TH1D *hD0_EEC_noweight_proj = hsparse_EEC_noweight_clone->Projection(projaxis); //(3);

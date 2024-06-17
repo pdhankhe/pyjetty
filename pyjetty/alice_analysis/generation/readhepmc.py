@@ -20,11 +20,13 @@ import pyhepmc_ng
 # Open the file in read mode
 file_ahadic = "/rstorage/ploskon/eec_sherpa_charm/charm_jetpt15/list.txt"
 file_lund = "/rstorage/ploskon/eec_sherpa_charm/charm_jetpt15_lund/list.txt"
+new_file = "/software/users/ploskon/eecmc/list__charm_13TeV_jetpt_10.txt"
+new_file_lund = "/software/users/ploskon/eecmc/list__charm_13TeV_lund_jetpt_10.txt"
 
-with open(file_lund, 'r') as file:
+with open(new_file_lund, 'r') as file:
   # Loop through each line in the file
   for ifile, input_file in enumerate(file):
-    if ifile != 28:
+    if ifile != 1:
       continue
     # Process each line as needed
     print("intput file: ", ifile, input_file.strip())  # strip() removes any leading/trailing whitespace
@@ -58,8 +60,8 @@ with open(file_lund, 'r') as file:
         break
       # self.fill_event(event_hepmc)
       # self.increment_event()
-      if evid > 0 and 250000 < evid:
-        break
+      # if evid > 0 and 250000 < evid:
+      #   break
       evid+=1
 
     print("Total number of events in hepmc file", ifile, "is ", evid)
