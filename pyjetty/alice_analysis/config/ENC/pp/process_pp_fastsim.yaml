@@ -23,6 +23,8 @@ ENC_pair_cut: False
 study_D0: False
 pair_eff_file: '/software/users/blianggi/mypyjetty/ENC/PairEff.root'
 
+leadingtrack_pt_cut: 5.0
+
 # Observable block
 jet_ENC_RL:
 

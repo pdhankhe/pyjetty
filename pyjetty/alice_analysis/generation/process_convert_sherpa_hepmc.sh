@@ -39,7 +39,7 @@ source /home/blianggi/activate_pyjetty.sh
 # Run main script
 ALICEANALYSIS_DIR=/software/users/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis
 OUTPUT_DIR="/rstorage/blianggi/sherpagen/$GENERATION_TYPE/tree_gen/$JOB_ID/$TASK_ID"
-# python $ALICEANALYSIS_DIR/generation/hepmc2antuple_tn.py -i $INPUT_FILE -o $OUTPUT_DIR/AnalysisResultsGen.root -g sherpa --no-progress-bar -d --hepmc 3
+python $ALICEANALYSIS_DIR/generation/hepmc2antuple_tn.py -i $INPUT_FILE -o $OUTPUT_DIR/AnalysisResultsGen.root -g sherpa --no-progress-bar -d --hepmc 3
 
 # inclusive version: #TODO: COMMENT OUT OR FIX LATER
-python $ALICEANALYSIS_DIR/generation/hepmc2antuple_tn.py -i $INPUT_FILE -o $OUTPUT_DIR/AnalysisResultsGen.root -g sherpa --no-progress-bar --hepmc 3
+# python $ALICEANALYSIS_DIR/generation/hepmc2antuple_tn.py -i $INPUT_FILE -o $OUTPUT_DIR/AnalysisResultsGen.root -g sherpa --no-progress-bar --hepmc 3

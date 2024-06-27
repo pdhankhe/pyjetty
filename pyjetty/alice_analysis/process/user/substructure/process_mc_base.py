@@ -119,6 +119,11 @@ class ProcessMCBase(process_base.ProcessBase):
     self.dry_run = config['dry_run']
     self.skip_deltapt_RC_histograms = True
     self.fill_RM_histograms = True
+
+    if 'leadingtrack_pt_cut' in config:
+      self.leading_parton_pt_cut = config['leadingtrack_pt_cut']
+    else:
+      self.leading_parton_pt_cut = 0.
     
     self.jet_matching_distance = config['jet_matching_distance']
     self.reject_tracks_fraction = config['reject_tracks_fraction']
@@ -1030,6 +1035,12 @@ class ProcessMCBase(process_base.ProcessBase):
   
     # Fill truth-level jet histograms (before matching)
     for jet_truth in jets_truth_selected:
+
+      leading_parton = fj.sorted_by_pt(jet_truth.constituents())[0]
+      leading_parton_pt = leading_parton.pt()
+      if (leading_parton_pt < self.leading_parton_pt_cut):
+        # print("leading parton pt cut!!!, skipping jet", leading_parton_pt)
+        continue
     
       if self.is_pp or self.fill_Rmax_indep_hists:
         self.fill_truth_before_matching(jet_truth, jetR)
