@@ -101,8 +101,13 @@ class HepMC2antuple(hepmc2antuple_base.HepMC2antupleBase):
 
       if self.accept_particle(part, part.status, part.end_vertex, part.pid, self.pdg, self.gen):
         # print("in here!")
-      
-        self.particles_accepted.add(self.pdg.GetParticle(part.pid).GetName())          
+        # if (self.ev_id > 750 and self.ev_id < 800): # it was event 783 
+        #   print(self.ev_id, "particle pid", part.pid)
+        #   print("particle pid name", self.pdg.GetParticle(part.pid))
+        if (part.pid == -14122):
+          self.particles_accepted.add("Lambda_c+")
+        else:
+          self.particles_accepted.add(self.pdg.GetParticle(part.pid).GetName())          
         self.t_p.Fill(self.run_number, self.ev_id, part.momentum.pt(), part.momentum.eta(), part.momentum.phi(), part.pid, motherPID)          
       
       elif self.include_parton and self.accept_particle(part, part.status, part.end_vertex, part.pid, self.pdg, self.gen, parton=True):

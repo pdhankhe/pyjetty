@@ -90,7 +90,7 @@ void FormatHistwithLine(TLegend *l, TH1 *hist, TString text, int linecolor=1, in
     hist->SetFillStyle(0);
     hist->SetLineColorAlpha(linecolor, linealpha);
     hist->SetFillColor(linecolor);
-    // hist->SetLineStyle(linestyle);
+    hist->SetLineStyle(linestyle);
     hist->SetLineWidth(3);
     l->AddEntry(hist, text, "pl");
 
@@ -219,13 +219,27 @@ void make_herwig_pythia_comparison() {
     const char infile_pythia_D0wDstar[] = "/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_EEC/plots/final/AnalysisResultsFinal_afteranalysis_Dstar_plotcase3.root";
     const char infile_sherpa_D0[] = "/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_EEC/sherpa/AnalysisResultsFinal_sherpa.root";
     
+    //Mateusz's files
+    const char infile_sherpa_m_charm_jetpt_10_ahadic[] = "/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_EEC/sherpa/mateusz/hadded_list__charm_13TeV_jetpt_10_ana_eec.txt_h.root";
+    const char infile_sherpa_m_charm_jetpt_10_lund[] = "/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_EEC/sherpa/mateusz/hadded_list__charm_13TeV_lund_jetpt_10_ana_eec.txt_h.root";
+    const char infile_sherpa_m_charm_jetpt_15_ahadic[] = "/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_EEC/sherpa/mateusz/hadded_list__charm_13TeV_jetpt_15_ana_eec.txt_h.root";
+    const char infile_sherpa_m_charm_jetpt_15_lund[] = "/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_EEC/sherpa/mateusz/hadded_list__charm_13TeV_lund_jetpt_15_ana_eec.txt_h.root";
+
+    const char infile_sherpa_m_incl_jetpt_10_ahadic[] = "/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_EEC/sherpa/mateusz/hadded_list__inclusive_13TeV_jetpt_10_ana_eec.txt_h.root";
+    const char infile_sherpa_m_incl_jetpt_10_lund[] = "/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_EEC/sherpa/mateusz/hadded_list__inclusive_13TeV_lund_jetpt_10_ana_eec.txt_h.root";
+    const char infile_sherpa_m_incl_jetpt_15_ahadic[] = "/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_EEC/sherpa/mateusz/hadded_list__inclusive_13TeV_jetpt_15_ana_eec.txt_h.root";
+    const char infile_sherpa_m_incl_jetpt_15_lund[] = "/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_EEC/sherpa/mateusz/hadded_list__inclusive_13TeV_lund_jetpt_15_ana_eec.txt_h.root";
+
+    
     //plot cases~
     // 0 = herwig D0 vs pythia D0
     // 1 = herwig D0 vs herwig D0wDstar vs pythia D0 vs pythia D0wDstar
     // 2 = adding in sherpa D0 vs herwig D0 vs pythia D0
+    // 3 = adding in Mateusz's sherpa to sherpa vs herwig vs pythia D0
+    // 4 = adding in Mateusz's sherpa to sherpa vs herwig vs pythia D0 and also Mateusz's inclusive 5 GeV cut
     
     //CONTOL VARIABLES HERE
-    int plot_case = 2;
+    int plot_case = 4;
     bool logstring = false;
 
     TString label1 = "";
@@ -235,10 +249,20 @@ void make_herwig_pythia_comparison() {
     TFile* f_pythia_D0wDstar = new TFile(infile_pythia_D0wDstar, "READ");
     TFile* f_sherpa = new TFile(infile_sherpa_D0, "READ");
 
+    TFile* f_sherpa_m_charm_jetpt_10_ahadic = new TFile(infile_sherpa_m_charm_jetpt_10_ahadic, "READ");
+    TFile* f_sherpa_m_charm_jetpt_10_lund = new TFile(infile_sherpa_m_charm_jetpt_10_lund, "READ");
+    TFile* f_sherpa_m_charm_jetpt_15_ahadic = new TFile(infile_sherpa_m_charm_jetpt_15_ahadic, "READ");
+    TFile* f_sherpa_m_charm_jetpt_15_lund = new TFile(infile_sherpa_m_charm_jetpt_15_lund, "READ");
+    TFile* f_sherpa_m_incl_jetpt_10_ahadic = new TFile(infile_sherpa_m_incl_jetpt_10_ahadic, "READ");
+    TFile* f_sherpa_m_incl_jetpt_10_lund = new TFile(infile_sherpa_m_incl_jetpt_10_lund, "READ");
+    TFile* f_sherpa_m_incl_jetpt_15_ahadic = new TFile(infile_sherpa_m_incl_jetpt_15_ahadic, "READ");
+    TFile* f_sherpa_m_incl_jetpt_15_lund = new TFile(infile_sherpa_m_incl_jetpt_15_lund, "READ");
+
+
 
     // Output directory
     std::string outdir = "plots/final/herwig-pythia/";
-    if (plot_case == 2) {
+    if (plot_case >= 2 and plot_case <= 4) {
         outdir = "plots/final/herwig-pythia-sherpa/";
     }
     // Output file for binned results
@@ -249,7 +273,9 @@ void make_herwig_pythia_comparison() {
         outfile = outdir + "AnalysisResultsFinal_herwig_pythia_D0wDstar_comparison.root"; 
     } else if (plot_case == 2) {
         outfile = outdir + "AnalysisResultsFinal_herwig_pythia_sherpa_comparison.root"; 
-    }
+    } else if (plot_case == 3 or plot_case == 4) {
+        outfile = outdir + "AnalysisResultsFinal_herwig_pythia_sherpa_mateusz_comparison.root"; 
+    } 
     TFile* f_out = new TFile(outfile.c_str(), "RECREATE");
 
     //--------------------------------------------------------//
@@ -477,6 +503,8 @@ void make_herwig_pythia_comparison() {
         const std::string herwig_Djet_z_perpt_name = "D0_noDstar_D0_z_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_trkthrd1.0";
         const std::string herwig_DjetwithDstar_z_perpt_name = "D0_D0_z_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_trkthrd1.0";
         
+        const std::string sherpa_mateusz_EEC_name = "h_eec1_eec";
+        const std::string sherpa_mateusz_incl_EEC_name = "h_eec1_lead5_eec";
         
         // make a canvas for each pt range
         TCanvas* c = new TCanvas();
@@ -534,6 +562,24 @@ void make_herwig_pythia_comparison() {
         TH1D* hD0_z_herwig = (TH1D*) f_herwig->Get(herwig_Djet_z_perpt_name.c_str()); 
         TH1D* hD0wDstar_z_herwig = (TH1D*) f_herwig->Get(herwig_DjetwithDstar_z_perpt_name.c_str()); //not used
 
+        TH1D* hc_jetpt10_ahadic_sherpa_mateusz; TH1D* hc_jetpt10_lund_sherpa_mateusz;
+        TH1D* hc_jetpt15_ahadic_sherpa_mateusz; TH1D* hc_jetpt15_lund_sherpa_mateusz;
+        TH1D* hi_jetpt10_ahadic_sherpa_mateusz; TH1D* hi_jetpt10_lund_sherpa_mateusz;
+        TH1D* hi_jetpt15_ahadic_sherpa_mateusz; TH1D* hi_jetpt15_lund_sherpa_mateusz;
+        if (pt_min == 10) {
+            hc_jetpt10_ahadic_sherpa_mateusz = (TH1D*) f_sherpa_m_charm_jetpt_10_ahadic->Get(sherpa_mateusz_EEC_name.c_str());
+            hc_jetpt10_lund_sherpa_mateusz = (TH1D*) f_sherpa_m_charm_jetpt_10_lund->Get(sherpa_mateusz_EEC_name.c_str());
+            hi_jetpt10_ahadic_sherpa_mateusz = (TH1D*) f_sherpa_m_incl_jetpt_10_ahadic->Get(sherpa_mateusz_incl_EEC_name.c_str());
+            hi_jetpt10_lund_sherpa_mateusz = (TH1D*) f_sherpa_m_incl_jetpt_10_lund->Get(sherpa_mateusz_incl_EEC_name.c_str());
+        
+        } else if (pt_min == 15) {
+            hc_jetpt15_ahadic_sherpa_mateusz = (TH1D*) f_sherpa_m_charm_jetpt_15_ahadic->Get(sherpa_mateusz_EEC_name.c_str());
+            hc_jetpt15_lund_sherpa_mateusz = (TH1D*) f_sherpa_m_charm_jetpt_15_lund->Get(sherpa_mateusz_EEC_name.c_str());
+            hi_jetpt15_ahadic_sherpa_mateusz = (TH1D*) f_sherpa_m_incl_jetpt_15_ahadic->Get(sherpa_mateusz_incl_EEC_name.c_str());
+            hi_jetpt15_lund_sherpa_mateusz = (TH1D*) f_sherpa_m_incl_jetpt_15_lund->Get(sherpa_mateusz_incl_EEC_name.c_str());
+        
+        }
+
         // Format histograms for plotting (this order needed to keep legend in order and graphs lookin good)
         hD0_pythia->GetXaxis()->SetTitle("#it{R}_{L}");
         hD0_pythia->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
@@ -556,7 +602,7 @@ void make_herwig_pythia_comparison() {
             FormatHist(l, hD0wDstar_pythia, label2, markercolor2, markerstyle2, 0.80);
             FormatHist(l, hD0wDstar_herwig, label4, markercolor4, markerstyle4, 0.80);
         }
-        if (plot_case == 2) {
+        if (plot_case >= 2) {
             for (int j=0; j < hc_jetpt10_sherpa->GetNbinsX();j++){
                 hc_jetpt10_sherpa->SetBinError(j+1, 0);
                 hc_jetpt10_lund_sherpa->SetBinError(j+1, 0);
@@ -570,10 +616,44 @@ void make_herwig_pythia_comparison() {
             FormatHistwithLine(l, hc_jetpt15_lund_sherpa, label8, markercolor8, markerstyle8, 0.80);
             
         }
+        if (plot_case >= 3) {
+            if (pt_min == 10) {
+                for (int j=0; j < hc_jetpt10_ahadic_sherpa_mateusz->GetNbinsX();j++){
+                    hc_jetpt10_ahadic_sherpa_mateusz->SetBinError(j+1, 0);
+                    hc_jetpt10_lund_sherpa_mateusz->SetBinError(j+1, 0);
+                    hi_jetpt10_ahadic_sherpa_mateusz->SetBinError(j+1, 0);
+                    hi_jetpt10_lund_sherpa_mateusz->SetBinError(j+1, 0);
+                }
+
+                FormatHistwithLine(l, hc_jetpt10_ahadic_sherpa_mateusz, "0.6 * Mateusz Sherpa Ahadic D-jet", kRed, 1, 0.80);
+                FormatHistwithLine(l, hc_jetpt10_lund_sherpa_mateusz, "0.6 * Mateusz Sherpa Lund D-jet", kRed, 2, 0.80);
+                if (plot_case == 4) {
+                    FormatHistwithLine(l, hi_jetpt10_ahadic_sherpa_mateusz, "0.6 * Mateusz Sherpa Ahadic inclusive p_{T}^{lead}>5 GeV/c", kBlack, 1, 0.80);
+                    FormatHistwithLine(l, hi_jetpt10_lund_sherpa_mateusz, "0.6 * Mateusz Sherpa Lund inclusive p_{T}^{lead}>5 GeV/c", kBlack, 2, 0.80);
+                }
+            } else if (pt_min == 15) {
+                for (int j=0; j < hc_jetpt15_ahadic_sherpa_mateusz->GetNbinsX();j++){
+                    hc_jetpt15_ahadic_sherpa_mateusz->SetBinError(j+1, 0);
+                    hc_jetpt15_lund_sherpa_mateusz->SetBinError(j+1, 0);
+                    hi_jetpt15_ahadic_sherpa_mateusz->SetBinError(j+1, 0);
+                    hi_jetpt15_lund_sherpa_mateusz->SetBinError(j+1, 0);
+                }
+                FormatHistwithLine(l, hc_jetpt15_ahadic_sherpa_mateusz, "0.6 * Mateusz Sherpa Ahadic D-jet", kRed, 1, 0.80);
+                FormatHistwithLine(l, hc_jetpt15_lund_sherpa_mateusz, "0.6 * Mateusz Sherpa Lund D-jet", kRed, 2, 0.80);
+                if (plot_case == 4) {
+                    FormatHistwithLine(l, hi_jetpt15_ahadic_sherpa_mateusz, "0.6 * Mateusz Sherpa Ahadic inclusive p_{T}^{lead}>5 GeV/c", kBlack, 1, 0.80);
+                    FormatHistwithLine(l, hi_jetpt15_lund_sherpa_mateusz, "0.6 * Mateusz Sherpa Lund inclusive p_{T}^{lead}>5 GeV/c", kBlack, 2, 0.80);
+                }
+            }
+        }
 
          
         // get maximum
         hD0_pythia->SetMaximum(hD0_pythia->GetMaximum()*1.5);
+        if (plot_case >= 3) {
+            if (pt_min == 10) hD0_pythia->SetMaximum(hc_jetpt10_ahadic_sherpa_mateusz->GetMaximum()*1.5);
+            if (pt_min == 15) hD0_pythia->SetMaximum(hc_jetpt15_ahadic_sherpa_mateusz->GetMaximum()*1.5);
+        }
         
         c->cd();
         hD0_pythia->Draw("L same");
@@ -581,11 +661,37 @@ void make_herwig_pythia_comparison() {
         if (plot_case == 1) {
             hD0wDstar_pythia->Draw("L same");
             hD0wDstar_herwig->Draw("L same");
-        } else if (plot_case == 2) {
+        } else if (plot_case >= 2) {
             // hc_jetpt10_sherpa->Draw("L same");
             // hc_jetpt10_lund_sherpa->Draw("L same");
             hc_jetpt15_sherpa->Draw("L same");
             hc_jetpt15_lund_sherpa->Draw("L same");
+        } 
+        if (plot_case >= 3) {
+            if (pt_min == 10) {
+                hc_jetpt10_ahadic_sherpa_mateusz->Scale(0.6);
+                hc_jetpt10_lund_sherpa_mateusz->Scale(0.6);
+                hc_jetpt10_ahadic_sherpa_mateusz->Draw("L same");
+                hc_jetpt10_lund_sherpa_mateusz->Draw("L same");
+            } else if (pt_min == 15) {
+                hc_jetpt15_ahadic_sherpa_mateusz->Scale(0.6);
+                hc_jetpt15_lund_sherpa_mateusz->Scale(0.6);
+                hc_jetpt15_ahadic_sherpa_mateusz->Draw("L same");
+                hc_jetpt15_lund_sherpa_mateusz->Draw("L same");
+            }
+        }
+        if (plot_case == 4) {
+            if (pt_min == 10) {
+                hi_jetpt10_ahadic_sherpa_mateusz->Scale(0.6);
+                hi_jetpt10_lund_sherpa_mateusz->Scale(0.6);
+                hi_jetpt10_ahadic_sherpa_mateusz->Draw("L same");
+                hi_jetpt10_lund_sherpa_mateusz->Draw("L same");
+            } else if (pt_min == 15) {
+                hi_jetpt15_ahadic_sherpa_mateusz->Scale(0.6);
+                hi_jetpt15_lund_sherpa_mateusz->Scale(0.6);
+                hi_jetpt15_ahadic_sherpa_mateusz->Draw("L same");
+                hi_jetpt15_lund_sherpa_mateusz->Draw("L same");
+            }
         }
         
 

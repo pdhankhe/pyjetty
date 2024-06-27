@@ -361,7 +361,7 @@ TPad * makeBottomPad(double topmarg=0.71, double botmarg=0.975) {
 
 TPad * plotRatio(TH1D *h1, TH1D *h2, std::string ratio_name, TLegend *l, int markercolor, int markerstyle, std::string yaxislabel, 
                double ymin=0.5, double ymax=1.5, double topmarg=0.71, double botmarg=0.975, double lowx=1e-3, std::string legendlabel="ratio",
-               bool removexaxis=false, bool justratio=false, int ndiv=5) {   
+               bool removexaxis=false, bool drawlineatone=false, bool justratio=false, int ndiv=5) {   
 
     TPad *pad2;
     if (!justratio) pad2 = makeBottomPad(topmarg, botmarg);
@@ -396,7 +396,7 @@ TPad * plotRatio(TH1D *h1, TH1D *h2, std::string ratio_name, TLegend *l, int mar
 
         // draw line at 1
         
-        drawHoriLine(lowx, 1., 1., kGray+2, 1)->Draw();
+        if (drawlineatone) drawHoriLine(lowx, 1., 1., kGray+2, 1)->Draw();
         // drawHoriLine(1e-3, 1., 0.9, kGray+2, 6)->Draw();
         // drawHoriLine(1e-3, 1., 1.1, kGray+2, 6)->Draw();
     }
@@ -595,7 +595,8 @@ void make_qg_plots_cgl() {
     // 13: plot_case 3 but with all having leading pt cut of 5 gev
     // 20: plot_case 1 and also with charm decays OFF from g, l, i
     // 21: plot_case 1 but with all having leading pt cut of 5 gev
-    int plot_case = 4;
+    // 14: plot_case 1 and 21 combined
+    int plot_case = 14;
 
     // std::vector<TFile*> files;
     std::string add_name;
@@ -890,7 +891,55 @@ void make_qg_plots_cgl() {
                 drawHoriLine(lowx, 1., 0.5, kGray+2, 6)->Draw();
 
 
-            } else if (plot_case == 21) { //D0, g, l, i in charged jets, 5 GeV leading pt cut
+            }
+            if (plot_case == 21) { //D0, g, l, i in charged jets, 5 GeV leading pt cut
+
+                // pad1 = makeTopPad(h_dummy, h_charmdecaysON_l->GetMaximum()*1.2, 0.41);
+                if (plot_case == 21) pad1 = makeTopPad(0.41);
+               
+                double in_yaxis_min=0;
+                double in_yaxis_max=0;
+                double in_xaxis_min=0;
+                double in_xaxis_max=0;
+                
+                double l_yaxis_min=0;
+                double l_yaxis_max=0;
+                double l_xaxis_min=0;
+                double l_xaxis_max=0;
+                double lowx=0;
+            
+                if (pt_min==7){in_yaxis_min=0.;in_yaxis_max=0.6; l_yaxis_min=0.;l_yaxis_max=0.7;lowx=1e-2;}
+                if (pt_min==10){in_yaxis_min=0.;in_yaxis_max=0.6; l_yaxis_min=0.;l_yaxis_max=0.8;lowx=0.6*1e-2;}
+                if (pt_min==15){in_yaxis_min=0.0;in_yaxis_max=0.7; l_yaxis_min=0.;l_yaxis_max=1;lowx=0.6*1e-2;}
+                if (pt_min==30){in_yaxis_min=0.3;in_yaxis_max=1.1; l_yaxis_min=0.;l_yaxis_max=1;lowx=0.5*1e-2;}
+                if (pt_min==50){in_yaxis_min=0.0;in_yaxis_max=1.1; l_yaxis_min=0.3;l_yaxis_max=1;lowx=1e-3;}
+                if (pt_min==70){in_yaxis_min=0.0;in_yaxis_max=1.1; l_yaxis_min=0.4;l_yaxis_max=1.1;lowx=1e-3;}
+                if (pt_min==100){in_yaxis_min=0.0;in_yaxis_max=1.1; l_yaxis_min=0.4;l_yaxis_max=1.1;lowx=0.5*1e-3;}
+                if (pt_min==150){in_yaxis_min=0.0;in_yaxis_max=0; l_yaxis_min=0.;l_yaxis_max=1.1;}
+   
+                
+                h_charmdecaysON_leadpt5_l->SetMaximum(h_charmdecaysON_leadpt5_l->GetMaximum()*1.2);
+                
+                // drawWithLineAtMax(h_charmdecaysON_l, l, "light-init jets", markercolor_l, markerstyle_l, lowx, false, true, 0.8);
+                // drawWithLineAtMax(h_charmdecaysON_g, l, "gluon-init jets", markercolor_g, markerstyle_g, lowx, false, true, 0.8);
+                // drawWithLineAtMax(h_charmdecaysON_i, l, "inclusive jets", markercolor_i, markerstyle_i, lowx, false, true, 0.8);
+                // drawWithLineAtMax(h_c_enhanced_D0, l, "D^{0}-tagged, c-init jets", markercolor_D0, markerstyle_D0, lowx, false, true, 0.8);
+                drawWithLineAtMax(h_charmdecaysON_leadpt5_l, l, "light-init jets", markercolor_l, kOpenSquare, lowx, false, true, 0.8);
+                drawWithLineAtMax(h_charmdecaysON_leadpt5_g, l, "gluon-init jets", markercolor_g, kOpenDiamond, lowx, false, true, 0.8);
+                drawWithLineAtMax(h_charmdecaysON_leadpt5_i, l, "inclusive jets", markercolor_i, kOpenStar, lowx, false, true, 0.8);
+                drawWithLineAtMax(h_c_enhanced_D0_leadpt5_c, l, "D^{0}-tagged, c-init jets", markercolor_D0, kOpenCircle, lowx, false, true, 0.8);
+                
+                //make ratio plots!
+                // std::string yaxislabel = "#frac{D^{0}-tagged jets}{inclusive jets}";
+                // plotRatio(h_c_enhanced_D0_leadpt5_c, h_charmdecaysON_leadpt5_i, "hratio_Djet_incl" + pt_name + "_R" + jetR + add_name, l2, kBlack, markers[2], yaxislabel, in_yaxis_min, in_yaxis_max, 0.61, 0.25, lowx, "", true);
+                // drawHoriLine(lowx, 1., 0.5, kGray+2, 6)->Draw();
+                
+                // yaxislabel = "#frac{D^{0}-tagged jets}{light jets}";
+                // plotRatio(h_c_enhanced_D0_leadpt5_c, h_charmdecaysON_leadpt5_l, "hratio_Djet_light" + pt_name + "_R" + jetR + add_name, l2, kBlack, markers[2], yaxislabel,l_yaxis_min, l_yaxis_max, 0.75, 0.11, lowx);
+                // drawHoriLine(lowx, 1., 0.5, kGray+2, 6)->Draw();
+
+
+            } if (plot_case == 14) { //D0, g, l, i in charged jets
 
                 // pad1 = makeTopPad(h_dummy, h_charmdecaysON_l->GetMaximum()*1.2, 0.41);
                 pad1 = makeTopPad(0.41);
@@ -907,10 +956,10 @@ void make_qg_plots_cgl() {
                 double lowx=0;
                 
                 if (pt_min==7){in_yaxis_min=0.;in_yaxis_max=0.6; l_yaxis_min=0.;l_yaxis_max=0.7;lowx=1e-2;}
-                if (pt_min==10){in_yaxis_min=0.;in_yaxis_max=0.6; l_yaxis_min=0.;l_yaxis_max=0.8;lowx=0.6*1e-2;}
-                if (pt_min==15){in_yaxis_min=0.0;in_yaxis_max=0.7; l_yaxis_min=0.;l_yaxis_max=1;lowx=0.6*1e-2;}
-                if (pt_min==30){in_yaxis_min=0.3;in_yaxis_max=1.1; l_yaxis_min=0.;l_yaxis_max=1;lowx=0.5*1e-2;}
-                if (pt_min==50){in_yaxis_min=0.0;in_yaxis_max=1.1; l_yaxis_min=0.3;l_yaxis_max=1;lowx=1e-3;}
+                if (pt_min==10){in_yaxis_min=0.;in_yaxis_max=0.7; l_yaxis_min=0.;l_yaxis_max=0.9;lowx=0.6*1e-2;}
+                if (pt_min==15){in_yaxis_min=0.0;in_yaxis_max=0.79; l_yaxis_min=0.;l_yaxis_max=1.1;lowx=0.6*1e-2;}
+                if (pt_min==30){in_yaxis_min=0.3;in_yaxis_max=1.1; l_yaxis_min=0.;l_yaxis_max=1.1;lowx=0.5*1e-2;}
+                if (pt_min==50){in_yaxis_min=0.0;in_yaxis_max=1.1; l_yaxis_min=0.3;l_yaxis_max=1.1;lowx=1e-3;}
                 if (pt_min==70){in_yaxis_min=0.0;in_yaxis_max=1.1; l_yaxis_min=0.4;l_yaxis_max=1.1;lowx=1e-3;}
                 if (pt_min==100){in_yaxis_min=0.0;in_yaxis_max=1.1; l_yaxis_min=0.4;l_yaxis_max=1.1;lowx=0.5*1e-3;}
                 if (pt_min==150){in_yaxis_min=0.0;in_yaxis_max=0; l_yaxis_min=0.;l_yaxis_max=1.1;}
@@ -918,24 +967,52 @@ void make_qg_plots_cgl() {
                 
                 h_charmdecaysON_l->SetMaximum(h_charmdecaysON_l->GetMaximum()*1.2);
                 
-                // drawWithLineAtMax(h_charmdecaysON_l, l, "light-init jets", markercolor_l, markerstyle_l, lowx, false, true, 0.8);
-                // drawWithLineAtMax(h_charmdecaysON_g, l, "gluon-init jets", markercolor_g, markerstyle_g, lowx, false, true, 0.8);
-                // drawWithLineAtMax(h_charmdecaysON_i, l, "inclusive jets", markercolor_i, markerstyle_i, lowx, false, true, 0.8);
-                // drawWithLineAtMax(h_c_enhanced_D0, l, "D^{0}-tagged, c-init jets", markercolor_D0, markerstyle_D0, lowx, false, true, 0.8);
-                drawWithLineAtMax(h_charmdecaysON_leadpt5_l, l, "light-init jets", markercolor_l, kOpenSquare, lowx, false, true, 0.8);
-                drawWithLineAtMax(h_charmdecaysON_leadpt5_g, l, "gluon-init jets", markercolor_g, kOpenDiamond, lowx, false, true, 0.8);
-                drawWithLineAtMax(h_charmdecaysON_leadpt5_i, l, "inclusive jets", markercolor_i, kOpenStar, lowx, false, true, 0.8);
-                drawWithLineAtMax(h_c_enhanced_D0_leadpt5_c, l, "D^{0}-tagged, c-init jets", markercolor_D0, kOpenCircle, lowx, false, true, 0.8);
+                drawWithLineAtMax(h_charmdecaysON_l, l, "light-init jets", markercolor_l, markerstyle_l, lowx, false, true, 0.6);
+                drawWithLineAtMax(h_charmdecaysON_leadpt5_l, l2, "light-init jets", markercolor_l, kOpenSquare, lowx, false, true, 1.0);
                 
+                drawWithLineAtMax(h_charmdecaysON_g, l, "gluon-init jets", markercolor_g, markerstyle_g, lowx, false, true, 0.6);
+                drawWithLineAtMax(h_charmdecaysON_leadpt5_g, l2, "gluon-init jets", markercolor_g, kOpenDiamond, lowx, false, true, 1.0);
+                
+                drawWithLineAtMax(h_charmdecaysON_i, l, "inclusive jets", markercolor_i, markerstyle_i, lowx, false, true, 0.6);
+                drawWithLineAtMax(h_charmdecaysON_leadpt5_i, l2, "inclusive jets", markercolor_i, kOpenStar, lowx, false, true, 1.0);
+                
+                drawWithLineAtMax(h_c_enhanced_D0, l, "D^{0}-tagged, c-init jets", markercolor_D0, markerstyle_D0, lowx, false, true, 0.6);
+                drawWithLineAtMax(h_c_enhanced_D0_leadpt5_c, l2, "D^{0}-tagged, c-init jets", markercolor_D0, kOpenCircle, lowx, false, true, 1.0);
+                
+                //purely for the legend
+                // l->AddEntry("NULL", "", "h");
+                TLegend* l3 = new TLegend(0.5797168,0.890741,0.875,0.9485185,""); //dummy legend
+                l3->SetTextSize(0.028);
+                l3->SetBorderSize(0);
+                l3->SetFillStyle(0);
+                Double_t xedges[2] = {lowx, 1.0};
+                TH1D* h_dummy2 = new TH1D("h_dummy2", "h_dummy2", 1, xedges);
+                TH1D* h_dummy2_clone = (TH1D*) h_dummy2->Clone("");
+                drawNoLine(h_dummy2, l3, "no leading track p_{T} cut", kBlack, kFullDiamond, lowx, 1.5, true, 1.0);
+                drawNoLine(h_dummy2_clone, l3, "leading track p_{T} cut = 5 GeV/c", kBlack, kOpenDiamond, lowx, 1.5, true, 1.0);
+                l3->Draw("same");
+
                 //make ratio plots!
                 std::string yaxislabel = "#frac{D^{0}-tagged jets}{inclusive jets}";
-                plotRatio(h_c_enhanced_D0_leadpt5_c, h_charmdecaysON_leadpt5_i, "hratio_Djet_incl" + pt_name + "_R" + jetR + add_name, l2, kBlack, markers[2], yaxislabel, in_yaxis_min, in_yaxis_max, 0.61, 0.25, lowx, "", true);
+                pad2 = plotRatio(h_c_enhanced_D0, h_charmdecaysON_i, "hratio_Djet_incl" + pt_name + "_R" + jetR + add_name, l2, kBlack, markers[2], yaxislabel, in_yaxis_min, in_yaxis_max, 0.61, 0.25, lowx, "", true);
+                
+                pad2->cd();
+                TH1D* hratio2 = (TH1D*) h_c_enhanced_D0_leadpt5_c->Clone("");
+                hratio2->Divide(h_charmdecaysON_leadpt5_i);
+                                FormatHist(l2, hratio2, "", kBlack, kOpenDiamond); //, 1.0, 0.05, 0.04, 1.2, 0.035, 0.03, 1.5);
+                hratio2->Draw("same");
                 drawHoriLine(lowx, 1., 0.5, kGray+2, 6)->Draw();
                 
                 yaxislabel = "#frac{D^{0}-tagged jets}{light jets}";
-                plotRatio(h_c_enhanced_D0_leadpt5_c, h_charmdecaysON_leadpt5_l, "hratio_Djet_light" + pt_name + "_R" + jetR + add_name, l2, kBlack, markers[2], yaxislabel,l_yaxis_min, l_yaxis_max, 0.75, 0.11, lowx);
+                TPad * pad3 = plotRatio(h_c_enhanced_D0, h_charmdecaysON_l, "hratio_Djet_light" + pt_name + "_R" + jetR + add_name, l2, kBlack, markers[2], yaxislabel,l_yaxis_min, l_yaxis_max, 0.75, 0.11, lowx);
+                pad3->cd();
+                TH1D* hratio3 = (TH1D*) h_c_enhanced_D0_leadpt5_c->Clone("");
+                hratio3->Divide(h_charmdecaysON_leadpt5_l);
+                                FormatHist(l2, hratio3, "", kBlack, kOpenDiamond); //, 1.0, 0.05, 0.04, 1.2, 0.035, 0.03, 1.5);
+                hratio3->Draw("same");
                 drawHoriLine(lowx, 1., 0.5, kGray+2, 6)->Draw();
 
+    
 
             } else if (plot_case == 2) { //D0, g, l, i pT*RL
                 double lowx = 1e-4;
@@ -1169,6 +1246,11 @@ void make_qg_plots_cgl() {
             h_c_enhanced_charmdecaysOFF_chargedjets_and_neutralhadrons_c->Write();
             h_b_enhanced_beautydecaysOFF_chargedjets_and_neutralhadrons_b->Write();
 
+            h_charmdecaysON_leadpt5_l->Write();
+            h_charmdecaysON_leadpt5_g->Write();
+            h_charmdecaysON_leadpt5_i->Write();
+            h_c_enhanced_D0_leadpt5_c->Write();
+
 
             delete h_charmdecaysOFF_g;
             delete h_charmdecaysOFF_l;
@@ -1190,6 +1272,11 @@ void make_qg_plots_cgl() {
 
             delete h_c_enhanced_charmdecaysOFF_chargedjets_and_neutralhadrons_c;
             delete h_b_enhanced_beautydecaysOFF_chargedjets_and_neutralhadrons_b;
+
+            delete h_charmdecaysON_leadpt5_l;
+            delete h_charmdecaysON_leadpt5_g;
+            delete h_charmdecaysON_leadpt5_i;
+            delete h_c_enhanced_D0_leadpt5_c;
             
              
         } // pT bins loop
