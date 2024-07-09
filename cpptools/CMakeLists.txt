@@ -30,6 +30,10 @@ include(common_heppy_finds)
 include(swigify)
 include(install_targets_custom)
 
+# included by beatrice
+find_package(Python COMPONENTS NumPy)
+include_directories(${Python_NumPy_INCLUDE_DIRS})
+
 # Layout build dir like install dir
 if(UNIX)
   option(BUILD_SHARED_LIBS "Build shared libraries(.so or .dyld)." ON)
