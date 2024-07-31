@@ -39,12 +39,12 @@ from pyjetty.mputils.csubtractor import CEventSubtractor
 
 def linbins(xmin, xmax, nbins):
   lspace = np.linspace(xmin, xmax, nbins+1)
-  arr = array.array('f', lspace)
+  arr = array.array('d', lspace) #'f', lspace) # needs to be d to be bins for histograms??
   return arr
 
 def logbins(xmin, xmax, nbins):
   lspace = np.logspace(np.log10(xmin), np.log10(xmax), nbins+1)
-  arr = array.array('f', lspace)
+  arr = array.array('d', lspace) #'f', lspace)
   return arr
 
 ################################################################
@@ -143,12 +143,12 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
                 name = 'h_{}{}{}_JetPt_Truth_R{}_{}'.format(observable, ipoint, pair_type_label, jetR, obs_label) #pair_type_label is blank for me
                 title_truth = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'D^{0} y', 'D^{0} z', '#it{R}_{L}' ]
                 binnings = [pt_bins, rapi_bins, z_bins, RL_bins]
-                self.create_thn(name, title_truth, dim, binnings, obs='rl')
+                self.create_thn_EEC(name, title_truth, dim, binnings, obs='rl')
 
                 name = 'h_{}{}{}Pt_JetPt_Truth_R{}_{}'.format(observable, ipoint, pair_type_label, jetR, obs_label) # pt scaled histograms (currently only for unmatched jets)
                 title = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'D^{0} y', 'D^{0} z', '#it{p}_{T}#it{R}_{L}' ]
                 binnings = (pt_bins, rapi_bins, z_bins, ptRL_bins)
-                self.create_thn(name, title_truth, dim, binnings, obs='ptrl') 
+                self.create_thn_EEC(name, title_truth, dim, binnings, obs='ptrl') 
                 
                 '''
                 name = 'h_{}{}{}_JetPt_R{}_{}'.format(observable, ipoint, pair_type_label, jetR, obs_label)
@@ -262,7 +262,7 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
               name = 'h_{}{}_JetPt_Truth_R{}_{}'.format(observable, pair_type_label, jetR, obs_label)
               title = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'D^{0} y', 'D^{0} z', '#it{R}_{L}' ]
               binnings = (pt_bins, rapi_bins, z_bins, RL_bins)
-              self.create_thn(name, title_truth, dim, binnings, obs='rl') # this will need to be fixed later! - add more dimensions to also include jet pt?
+              self.create_thn_EEC(name, title_truth, dim, binnings, obs='rl') # this will need to be fixed later! - add more dimensions to also include jet pt?
 
               '''name = 'h_{}{}_JetPt_R{}_{}'.format(observable, pair_type_label, jetR, obs_label)
               pt_bins = linbins(0,200,200)
@@ -359,7 +359,7 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
           name = 'h_{}_JetPt_Truth_R{}_{}'.format(observable, jetR, obs_label)
           title = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'D^{0} y', 'D^{0} z' ]
           binnings = (pt_bins, rapi_bins, z_bins)
-          self.create_thn(name, title_truth, dim, binnings) # this will need to be fixed later! - add more dimensions to also include jet pt?
+          self.create_thn_EEC(name, title_truth, dim, binnings) # this will need to be fixed later! - add more dimensions to also include jet pt?
 
           '''name = 'h_{}_JetPt_R{}_{}'.format(observable, jetR, obs_label)
           pt_bins = linbins(0,200,200)
@@ -518,23 +518,25 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
     pt_bins = linbins(0,200,200)
     # RL_bins = logbins(1E-4,1,50)
     ptRL_bins = logbins(1E-3,1E2,60)
-    deltap_bins = linbins(0, 1., 100)
+    deltap_bins = linbins(0., 10., 250) #linbins(0, 1., 100) + linbins(1.0, 100., 99)[1:]
     charge_bins = linbins(-1.5, 1.5, 3)
+    weight_bins = linbins(0, 1, 100) #is this how i want to do it??
 
-    a1 = np.logspace(np.log10(1E-4),np.log10(1E-2),26)
-    arr1 = array.array('f', a1)
-    arr2 = logbins(1E-2,2E-2,5)
+    a1 = np.logspace(np.log10(1E-4),np.log10(1E-2),21) # array from 10^-4 to 10^-2 in 20 bins
+    arr1 = array.array('d', a1) #'f' makes all the numbers weird
+    arr2 = logbins(1E-2,2E-2,5) # gives 5 bins (6 values in array)
     arr3 = logbins(2E-2,3E-2,5)
     arr4 = logbins(3E-2,7E-2,5)
     arr5 = logbins(7E-2,2E-1,5)
     arr6 = logbins(2E-1,4E-1,5)
     arr7 = logbins(4E-1,1,5)
-    RL_bins = arr1+arr2+arr3+arr4+arr5+arr6+arr7
+    RL_bins = arr1+arr2[1:]+arr3[1:]+arr4[1:]+arr5[1:]+arr6[1:]+arr7[1:]
+    # print("RL BINS HERE!", RL_bins)
 
 
     # Create histograms
     # delta p, truth
-    dim = 3;
+    dim = 3
     if (observable == "corr_deltap"):
       title_truth = ['p_{T,ch jet,truth}', 'R_{L,truth}', '#Deltap_{truth}']
       title = ['p_{T,ch jet,det}', 'R_{L,det}', '#Deltap_{det}']
@@ -576,14 +578,30 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
     setattr(self, name, h)
     '''
 
+#------
+    # dim = 5
+    # pt_bins = linbins(0,200,200)
+    # rapi_bins = np.linspace(-5,5,201)
+    # RL_bins = logbins(1E-4,1,50)
+    # z_bins = np.linspace(0, 1.01, 102)
+
+    # # Truth histograms
+    # name = 'h_{}{}_JetPt_Truth_R{}_{}'.format(observable, pair_type_label, jetR, obs_label)
+    # title = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'D^{0} y', 'D^{0} z', '#it{R}_{L}' ]
+    # binnings = (pt_bins, rapi_bins, z_bins, RL_bins)
+    # self.create_thn(name, title_truth, dim, binnings, obs='rl') # this will need to be fixed later! - add more dimensions to also include jet pt?
+#------
 
 
-    # name = 'h_JetPt_{}{}_R{}_{}'.format(observable, ipoint, jetR, obs_label)
-    name = 'h_{}{}_JetPt_Truth_R{}_{}'.format(observable, ipoint, jetR, obs_label)
+    # name = 'h_{}{}_JetPt_Truth_R{}_{}'.format(observable, ipoint, jetR, obs_label)
+    name = 'h_{}_JetPt_Truth_R{}_{}'.format(observable, jetR, obs_label)
     # print("NAME", name)
-    nbins  = [len(pt_bins)-1, len(RL_bins)-1, len(obs_bins)-1]
-    min = [pt_bins[0],      RL_bins[0],     obs_bins[0]]
-    max = [pt_bins[-1],     RL_bins[-1],    obs_bins[-1]]
+    binnings = (pt_bins, RL_bins, obs_bins)
+    self.create_thn(name, title_truth, dim, binnings) # this will need to be fixed later! - add more dimensions to also include jet pt?
+
+    # nbins  = [len(pt_bins)-1, len(RL_bins)-1, len(obs_bins)-1]
+    # min = [pt_bins[0],      RL_bins[0],     obs_bins[0]]
+    # max = [pt_bins[-1],     RL_bins[-1],    obs_bins[-1]]
     # self.create_thn(name, title_truth, dim, nbins, min, max)
 
     # name = 'h_{}{}_JetPt_R{}_{}'.format(observable, ipoint, jetR, obs_label)
@@ -768,7 +786,7 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
             getattr(self, hname.format(observable,obs_label)).Fill(jet_pt, new_corr.correlator(ipoint).rs()[index])
           else:
             getattr(self, hname.format(observable,obs_label)).Fill(jet_pt, new_corr.correlator(ipoint).rs()[index], new_corr.correlator(ipoint).weights()[index])
-
+      # print("BLAHBLAHHHH", observable, "AND", str(ipoint), "AND", obs_label, "AND", hname.format(observable+str(ipoint),obs_label))
       # correlation histograms 
       if 'corr' in observable :
         # print("OBS! HERE!", observable)
@@ -804,12 +822,13 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
             samecharge_boolean = self.is_same_charge(new_corr, ipoint, c_select, index)
             fsparsejetlevelJetvalue[2] = 1 if samecharge_boolean else -1
             if samecharge_boolean and observable == "corr_samecharge":
-              getattr(self, hname.format(observable+str(ipoint),obs_label)).Fill(fsparsejetlevelJetvalue, new_corr.correlator(ipoint).weights()[index])
+              getattr(self, hname.format(observable,obs_label)).Fill(fsparsejetlevelJetvalue, new_corr.correlator(ipoint).weights()[index])
             elif not samecharge_boolean and observable == "corr_oppcharge":
-              getattr(self, hname.format(observable+str(ipoint),obs_label)).Fill(fsparsejetlevelJetvalue, new_corr.correlator(ipoint).weights()[index])
+              getattr(self, hname.format(observable,obs_label)).Fill(fsparsejetlevelJetvalue, new_corr.correlator(ipoint).weights()[index])
           else:
             fsparsejetlevelJetvalue[2] = new_obs_corr.correlator(ipoint).rs()[index]
-            getattr(self, hname.format(observable+str(ipoint),obs_label)).Fill(fsparsejetlevelJetvalue, new_corr.correlator(ipoint).weights()[index])
+            getattr(self, hname.format(observable,obs_label)).Fill(fsparsejetlevelJetvalue, new_corr.correlator(ipoint).weights()[index])
+            # getattr(self, hname.format(observable+str(ipoint),obs_label)).Fill(fsparsejetlevelJetvalue, new_corr.correlator(ipoint).weights()[index])
 
 
   #---------------------------------------------------------------

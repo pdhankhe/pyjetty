@@ -582,6 +582,7 @@ void make_qg_plots_cgl() {
     // 3: plot l, c, b full jets **
         // l from charmdecaysON_fulljets; c from c_enhanced_charmdecaysOFF_fulljets, b from b_enhanced_beautydecaysOFF_fulljets
     // 4: RL edge effect
+    // 5: plot all full jets - l, c, b, i, g
     // 100: plot the peak positions as a function of pt
 
     //exploring:
@@ -596,7 +597,7 @@ void make_qg_plots_cgl() {
     // 20: plot_case 1 and also with charm decays OFF from g, l, i
     // 21: plot_case 1 but with all having leading pt cut of 5 gev
     // 14: plot_case 1 and 21 combined
-    int plot_case = 14;
+    int plot_case = 5;
 
     // std::vector<TFile*> files;
     std::string add_name;
@@ -614,7 +615,7 @@ void make_qg_plots_cgl() {
     // save pdf plots in more specific directories
     if (plot_case == 2) {
         outdir += "ptrl/";
-    } else if (plot_case == 3 or plot_case == 11 or plot_case == 12 or plot_case == 13) {
+    } else if (plot_case == 3 or plot_case == 11 or plot_case == 12 or plot_case == 13 or plot_case == 5) {
         outdir += "beauty/";
     } else if (plot_case == 4) {
         outdir += "RLedge/";
@@ -716,7 +717,7 @@ void make_qg_plots_cgl() {
             // define pt related variables
             TString ptbin = TString::Format("%d #leq #it{p}_{T}^{ch. jet} < %d GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5", pt_min, pt_max);
             TString ptD = TString::Format("%d #leq #it{p}_{T}^{D^{0}} < %d GeV/#it{c}, #font[122]{|}#it{y}_{D^{0}}#font[122]{|} #leq 0.8", d0_pt_cuts[i], pt_max);
-            if (plot_case == 3 or plot_case == 11 or plot_case == 12) {
+            if (plot_case == 3 or plot_case == 11 or plot_case == 12 or plot_case == 5) {
                 ptbin = TString::Format("%d #leq #it{p}_{T}^{full jet} < %d GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5", pt_min, pt_max);
             } else if (plot_case == 13 or plot_case == 21) {
                 ptD = TString::Format("%d #leq #it{p}_{T}^{D^{0}} < %d GeV/#it{c}, #font[122]{|}#it{y}_{D^{0}}#font[122]{|} #leq 0.8", 5, pt_max);
@@ -754,13 +755,13 @@ void make_qg_plots_cgl() {
             l->SetTextSize(0.045);
             l->AddEntry("NULL","PYTHIA 8 Monash 2013","h");
             l->AddEntry("NULL","pp, #sqrt{#it{s}} = 13 TeV","h");
-            if (plot_case == 3 or plot_case == 11 or plot_case == 12) l->AddEntry("NULL","anti-#it{k}_{T}, #it{R} = 0.4","h");
+            if (plot_case == 3 or plot_case == 11 or plot_case == 12 or plot_case == 5) l->AddEntry("NULL","anti-#it{k}_{T}, #it{R} = 0.4","h");
             else {
                 l->AddEntry("NULL","D^{0} #rightarrow K^{#minus} #pi^{+} and charge conj.","h");
                 l->AddEntry("NULL","in charged jets, anti-#it{k}_{T}, #it{R} = 0.4","h");
             }
             l->AddEntry("NULL",ptbin,"h");
-            if (!(plot_case == 3 or plot_case == 11 or plot_case == 12)) l->AddEntry("NULL",ptD,"h");
+            if (!(plot_case == 3 or plot_case == 11 or plot_case == 12 or plot_case == 5)) l->AddEntry("NULL",ptD,"h");
             // if (plot_case == 1 or plot_case == 20) 
             l->SetTextSize(0.028);
             // else l->SetTextSize(0.037);
@@ -804,6 +805,7 @@ void make_qg_plots_cgl() {
 
             TH1D *h_charmdecaysON_fulljets_g = getObsHist(f_charmdecaysON_fulljets, hg_name, hg_jet_name, pt_min, pt_max, d0_pt_cuts[i], "h_charmdecaysON_fulljets_g" + pt_name, false, 4);
             TH1D *h_charmdecaysON_fulljets_l = getObsHist(f_charmdecaysON_fulljets, hl_name, hl_jet_name, pt_min, pt_max, d0_pt_cuts[i], "h_charmdecaysON_fulljets_l" + pt_name, false, 4);
+            TH1D *h_charmdecaysON_fulljets_i = getObsHist(f_charmdecaysON_fulljets, hi_name, hi_jet_name, pt_min, pt_max, d0_pt_cuts[i], "h_charmdecaysON_fulljets_i" + pt_name, false, 4);
             
             TH1D *h_c_enhanced_charmdecaysOFF_chargedjets_and_neutralhadrons_c = getObsHist(f_c_enhanced_charmdecaysOFF_chargedjets_and_neutralhadrons, hc_name, hc_jet_name, pt_min, pt_max, d0_pt_cuts[i], "h_c_enhanced_charmdecaysOFF_chargedjets_and_neutralhadrons_c" + pt_name, false, 4);
             TH1D *h_b_enhanced_beautydecaysOFF_chargedjets_and_neutralhadrons_b = getObsHist(f_b_enhanced_beautydecaysOFF_chargedjets_and_neutralhadrons, hb_name, hb_jet_name, pt_min, pt_max, d0_pt_cuts[i], "h_b_enhanced_beautydecaysOFF_chargedjets_and_neutralhadrons_b" + pt_name, false, 4);
@@ -1025,7 +1027,7 @@ void make_qg_plots_cgl() {
                 drawWithLineAtMax(h_ptrl_c_enhanced_D0, l, "D^{0}-tagged, c-init jets", markercolor_D0, markerstyle_D0, lowx, true, false, 0.8);
 
                 // TH1D* h_ptrl_c_enhanced_D0
-            } else if (plot_case == 3 or plot_case == 11 or plot_case == 12) { //l, c, b
+            } else if (plot_case == 3 or plot_case == 11 or plot_case == 12 or plot_case == 5) { //l, c, b
                 pad1 = makeTopPad(0.41); //0.31);
                 
                 h_charmdecaysON_fulljets_l->SetMaximum(h_charmdecaysON_fulljets_l->GetMaximum()*1.2);
@@ -1066,6 +1068,12 @@ void make_qg_plots_cgl() {
                 drawWithLineAtMax(h_c_enhanced_charmdecaysOFF_fulljets_c, l, "charm-init full jets", markercolor_c, markerstyle_c, lowx, false, true, 0.8);
                 drawWithLineAtMax(h_b_enhanced_beautydecaysOFF_fulljets_b, l, "beauty-init full jets", markercolor_b, markerstyle_b, lowx, false, true, 0.8);
                 
+                if (plot_case == 5) {
+                    drawWithLineAtMax(h_charmdecaysON_fulljets_g, l, "gluon-init full jets", markercolor_g, markerstyle_g, lowx, false, true, 0.8);
+                    drawWithLineAtMax(h_charmdecaysON_fulljets_i, l, "inclusive full jets", markercolor_i, markerstyle_i, lowx, false, true, 0.8);
+                
+                }
+
                 //make ratio plots!
                 std::string yaxislabel = "#frac{charm jets}{light jets}";//"#frac{heavy quark jets}{light quark jets}";
                 

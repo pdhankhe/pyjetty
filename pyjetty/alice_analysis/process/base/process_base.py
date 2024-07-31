@@ -119,7 +119,7 @@ class ProcessBase(common_base.CommonBase):
   # Create thn and set as class attribute from name, dim
   #   and lists of nbins, xmin, xmax.
   #---------------------------------------------------------------
-  def create_thn(self, name, title, dim, binnings=[], obs=''): # note: binnings should be given as (ptbins, rapi bins, obs bins)
+  def create_thn_EEC(self, name, title, dim, binnings=[], obs=''): # note: binnings should be given as (ptbins, rapi bins, obs bins)
 
     pt_bins = binnings[0]
     rapi_bins = binnings[1]
@@ -155,8 +155,8 @@ class ProcessBase(common_base.CommonBase):
       xmin.append(obs_bins[0])
       xmax.append(obs_bins[-1])
 
-    print("MAX HERE", max)
-    print("MAX HERE", min)
+    # print("MAX HERE", max)
+    # print("MAX HERE", min)
     
                 
     # nbins_arr = (nbins)
@@ -181,6 +181,32 @@ class ProcessBase(common_base.CommonBase):
           h.SetBinEdges(i, rl_bins_og)
         elif obs=='ptrl':
           h.SetBinEdges(i, ptrl_bins_og)
+
+    setattr(self, name, h)
+
+
+  def create_thn(self, name, title, dim, binnings=[]): # note: binnings could be given as (ptbins, rapi bins, obs bins)
+
+
+    nbins = [len(x)-1 for x in binnings]
+    print("NBINS", nbins)
+
+    xmin = [x[0] for x in binnings]
+    xmax = [x[-1] for x in binnings]
+    # print("xmin", xmin)
+    # print("xmax", xmax)
+      
+
+    nbins_array = array('i', nbins) #('i', nbins_arr)
+    xmin_array = array('d', xmin) #('d', xmin_arr)
+    xmax_array = array('d', xmax) #('d', xmax_arr)
+    h = ROOT.THnSparseD(name, name, dim, nbins_array, xmin_array, xmax_array)
+    h.Sumw2()
+    for i in range(0, dim):
+      h.GetAxis(i).SetTitle(title[i])
+      print("BINNINGS", type(binnings[i]), binnings[i])
+      h.SetBinEdges(i, binnings[i])
+        
 
     setattr(self, name, h)
 
