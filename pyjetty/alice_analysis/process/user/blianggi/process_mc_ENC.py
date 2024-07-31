@@ -680,8 +680,8 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
       self.fsparsepartonJetvalue[1] = -99
       self.fsparsejetlevelJetvalue[2] = -99
       self.fsparsepartonJetvalue[2] = -99
-      self.fsparsejetlevelJetvalue[3] = part.pt()/jet_pt
-      self.fsparsepartonJetvalue[3] = part.pt()/jet_pt
+      self.fsparsejetlevelJetvalue[3] = -99 #part.pt()/jet_pt
+      self.fsparsepartonJetvalue[3] = -99 #part.pt()/jet_pt
 
     for observable in self.observable_list:
       # print("CP OBSERVABLE", observable)
