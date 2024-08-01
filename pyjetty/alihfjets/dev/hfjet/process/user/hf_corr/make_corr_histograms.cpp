@@ -55,12 +55,26 @@ void ProcessCanvas(TCanvas *Canvas) {
  	Canvas->SetFrameBorderMode(1);
 }
 
-void FormatHist(TLegend *l, TH1 *hist, TString text, int markercolor=1, int markerstyle=8) 
+void FormatHist(TLegend *l, TH1 *hist, TString text, int markercolor=1, int markerstyle=8, double linealpha=1., bool drawline=false) 
 {
-    hist->SetLineColor(markercolor);
-    hist->SetMarkerColor(markercolor);
-    hist->SetMarkerStyle(markerstyle);
-    hist->SetMarkerSize(1.5);
+    if (drawline) {
+        // for (int k=0; k < hist->GetNbinsX();k++){
+        //     hist->SetBinError(k+1, 0);
+        // }
+        hist->SetMarkerStyle(20);
+        hist->SetMarkerColorAlpha(markercolor, 0);
+
+        hist->SetFillStyle(0);
+        hist->SetLineColorAlpha(markercolor, linealpha);
+        hist->SetFillColor(markercolor);
+        hist->SetLineStyle(1);
+        hist->SetLineWidth(3);
+    } else {
+        hist->SetLineColor(markercolor);
+        hist->SetMarkerColor(markercolor);
+        hist->SetMarkerStyle(markerstyle);
+        hist->SetMarkerSize(1.5);
+    }
     l->AddEntry(hist, text, "pl");
 
 	//gPad->SetTickx(); 
@@ -176,29 +190,706 @@ TLine * drawHoriLine(double x1, double x2, double y1, int color, int linestyle=2
 }
 
 
-void make_corr_histograms() {
+// ======================================================= //
+//                     SOME FUNCTIONS 
+// ======================================================= //
 
-//    gROOT->SetBatch(); //prevents plots from showing up
-    gStyle->SetOptStat(0);
-    SetStyle();
+//get histogram and clone it
+THnSparse * getHistAndClone(TFile *f, std::string histname) {
+    THnSparse *hsparsejet = (THnSparse*) f->Get(histname.c_str());
+    std::string hn = hsparsejet->GetName();
+    hn += "_clone";
+    THnSparse *hsparsejet_clone = (THnSparse *) hsparsejet->Clone( hn.c_str() ); //TODO: change this name!
+
+    return hsparsejet_clone;
+    
+}
+
+
+void applyCuts(THnSparse *hsparse, int pt_min, int pt_max, int RLaxis, double RL_min, double RL_max, 
+               bool EWaxis = false) { //todo: don't need paxis anymore??
+
+    // hsparse->GetAxis(0)->SetRangeUser(pt_min, pt_max);
+    // cout << "RL AXIS is " << RLaxis << " w RL min: " << RL_min << " & RL max: " << RL_max << endl;
+    if (RLaxis != -1) {
+        hsparse->GetAxis(RLaxis)->SetRangeUser(RL_min, RL_max);
+        // hsparse->GetAxis(RLaxis)->SetRangeUser(1e-5, 1.);
+        
+        //hsparse->GetAxis(RLaxis)->SetRangeUser(-2, -1); //9.9e-5, 1e-4);//RL_min, RL_max);
+        // cout << "UNDERFLOW BIN HAS " << hsparse->Projection(RLaxis)->GetBinContent(0) << " entries" << endl;
+        // TH1D* testhist = hsparse->Projection(RLaxis);
+        // for (int aa=0; aa<testhist->GetNbinsX(); aa++) {
+        //     cout << testhist->GetBinLowEdge(aa) << " ";
+        // }
+        // cout << endl;
+        
+    }
+    if (EWaxis) { //energy weight axis
+        hsparse->GetAxis(4)->SetRangeUser(0., 0.5); //0.3);
+    }
+
+    cout << "CHECK 1A LOOKING AT NUM EMNRTIRES HERE: " << hsparse->GetEntries() << endl;
+
+    
+}
+
+// get the observable histogram
+//usually obsaxis is 3, but in new histograms it is 4. For jet level histograms, use 0.
+TH1D * getObsHist(TFile *filename, std::string h_name, std::string h_jet_name, int pt_min, int pt_max, 
+                  int RLaxis, double RL_min, double RL_max, std::string newhistname, int obsaxis, std::string xtitle,
+                  int n_rebin_bins, double rebinbins[], int normalized=0, bool EWaxis=false) {
+    
+    cout << "HNAME is " << h_name << endl;
+    cout << "RL AXIS is " << RLaxis << " w RL min: " << RL_min << " & RL max: " << RL_max << endl;
+    
+    THnSparse *hsparse = getHistAndClone(filename, h_name);
+    THnSparse *hsparse_jetlevel = getHistAndClone(filename, h_jet_name);
+
+    cout << "CHECK 1 LOOKING AT NUM EMNRTIRES HERE: " << hsparse->GetEntries() << endl;
+    cout << "CHECK 1 LOOKING AT NUM ENTRIES: " << hsparse_jetlevel->GetEntries() << endl;
+    
+    TH1D *testhist = hsparse->Projection(4);
+    cout << "CHECK 0A LOOKING AT NUM EMNRTIRES HERE: " << testhist->GetEntries() << endl;
+    
+    
+    applyCuts(hsparse, pt_min, pt_max, RLaxis, RL_min, RL_max, EWaxis);
+    applyCuts(hsparse_jetlevel, pt_min, pt_max, -1, RL_min, RL_max, false);
+
+    cout << "CHECK 2 LOOKING AT NUM EMNRTIRES HERE: " << hsparse->GetEntries() << endl;
+    cout << "CHECK 2 LOOKING AT NUM ENTRIES: " << hsparse_jetlevel->GetEntries() << endl;
+    
+    TH1D *h_proj = hsparse->Projection(obsaxis);
+    TH1D *h_proj_jetlevel = hsparse_jetlevel->Projection(0); // jet pt axis
+
+    cout << "CHECK 3 LOOKING AT NUM EMNRTIRES HERE: " << h_proj->GetEntries() << endl;
+    cout << "CHECK 3 LOOKING AT NUM ENTRIES: " << h_proj_jetlevel->GetEntries() << endl;
+    
+
+    std::string hname = h_proj->GetName();
+    hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_RL" + std::to_string(RL_min) + "-" + std::to_string(RL_max);
+    h_proj->SetNameTitle(hname.c_str(), hname.c_str());
+    // cout << "HISTOGRAM NAME IS " << h_proj->GetName() << " AND TITLE " << h_proj->GetTitle() << endl;
+
+    // allow rebin or cloning here
+    TH1D* hist;
+    // int n_obs_bins = sizeof(rebinbins) / sizeof(rebinbins[0]) - 1;
+    // if ( n_rebin_bins != 0) {
+    //     hist = (TH1D*) h_proj->Rebin(n_rebin_bins, newhistname.c_str(), rebinbins); //h_proj->GetName()
+    // } else {
+    //     hist = (TH1D*) h_proj->Clone(newhistname.c_str());
+    // }
+    hist = (TH1D*) h_proj->Clone(newhistname.c_str());
+    // if (debug)
+    cout << "LOOKING AT NUM EMNRTIRES HERE: " << h_proj->GetEntries() << endl;
+    cout << "LOOKING AT NUM BINS: " << hist->GetNbinsX() << endl;
+    cout << "LOOKING AT NUM ENTRIES: " << hist->GetEntries() << endl;
+
+    // for (int i=0; i<hist->GetNbinsX(); i++) {
+    //     cout << hist->GetBinContent(i) << " ";
+    // }
+    // cout << endl;
+
+    //normalize
+    cout << "IS THIS NORMALIZED? " << normalized << endl;
+    if (normalized == 1) {
+        double numjets = hist->Integral();
+        hist->Scale(1/numjets, "width");
+        cout << "IN NORMALIZED1" << endl;
+    } else if (normalized == 2) {
+        double numjets = h_proj_jetlevel->Integral();
+        hist->Scale(1/numjets, "width");
+        cout << "IN NORMALIZED2" << endl;
+    }
+    // cout << "There are " << h_proj->GetEntries() << " pair entries in this pt bin" << endl;
+    // cout << "There are " << h_proj_jetlevel->GetEntries() << " jet entries in this pt bin" << endl;
+
+    hist->GetXaxis()->SetTitle(xtitle.c_str()); //("#it{R}_{L}");
+    // THESE AXES LABELS ARE DEF WRONG!!
+    if (normalized != 0) hist->GetYaxis()->SetTitle( Form("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d%s}", xtitle.c_str()) );
+    else hist->GetYaxis()->SetTitle( Form("#frac{d#it{N}_{EEC}}{d%s}", xtitle.c_str()) ); 
+
+
+    delete hsparse;
+    delete hsparse_jetlevel;
+    delete h_proj_jetlevel;
+    delete h_proj;
+
+    return hist;
+
+}
+
+// ======================================================= //
+//                   2ND MAIN FUNCTION 
+// ======================================================= //
+
+void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted) {
+
     Double_t markers[10] = {kFullCircle, kFullSquare, kFullDiamond, kFullTriangleUp, kFullStar, kOpenCircle, kOpenTriangleUp, kOpenDiamond, kOpenSquare, kOpenStar};
     Double_t marker_size = 1.5;
-    Double_t colors[16] = {kRed, kGreen+2, kBlue, kOrange+1, kViolet+1, kYellow+1, kCyan+1};
+    Double_t colors[16] = {kGray, kRed, kGreen+2, kBlue, kOrange+1, kViolet+1, kYellow+1, kCyan+1};
     // Double_t colors[16] = {kRed, kGreen+2, kBlue, kRed+1, kGreen+1, kBlue+1, kRed+2, kGreen+2, kBlue+2, kRed+3, kGreen+3, kBlue+3, kOrange+1, kViolet+1, kYellow+1, kCyan+1};
 
+    //    gROOT->SetBatch(); //prevents plots from showing up
     const int pt_bins[] = { 20, 40, 60, 80 };
     const std::string pt_bin_names[] = {"20-40", "40-60", "60-80"};
-    const double RL_bins[] = { 1e-2, 2e-2, 3e-2, 7.5e-2, 2e-1, 4e-1};
-    // const double RL_bins_end[] = { 2*10e-2, 3*10e-2, 7.5*10e-2, 2*10e-1, 4*10e-1 };
-    const int n_bins = 3;
-    const int n_RLbins = 5;
+    // const double RL_bins[] = { 1e-2, 2e-2, 3e-2, 7.5e-2, 2e-1, 4e-1};
+    // const double RL_bins[3][8] = { { 1e-5, 1e-2, 3e-2, 7e-2, 1.5e-1, 3e-1, 4e-1, 1 }, 
+    //                              { 1e-5, 1e-2, 2.5e-2, 4e-2, 8e-2, 2.5e-1, 4e-1, 1 }, 
+    //                              { 1e-5, 1e-2, 2.5e-2, 3e-2, 4.5e-2, 2e-1, 4e-1, 1 } };
+    const double RL_bins[3][8] = { { 0, 1e-2, 3e-2, 7e-2, 1.5e-1, 3e-1, 4e-1 }, 
+                                 { 0, 1e-2, 2.5e-2, 4e-2, 8e-2, 2.5e-1, 4e-1 }, 
+                                 { 0, 1e-2, 2.5e-2, 3e-2, 4.5e-2, 2e-1, 4e-1 } };
+    const int n_bins = 1; //3;
+    const int n_RLbins = 6; //7; //5;
+
+    TString label1 = "";
+    TString label2 = "";  
+    // vector<TString> label;
+
+    // Jet r value
+    std::string jetR_list[] = { "0.4" };
+    for (std::string jetR : jetR_list) {
+
+        std::string threshold_list[] = { "1.0" }; // "0.15", "0.5"
+        for (std::string threshold : threshold_list) {
+
+            // Names of histograms in the file (quark, charm, gluon)
+
+            const std::string deltap_truth_name = Form("h_corr_deltap_JetPt_Truth_R0.4_%s", threshold.c_str());
+            const std::string deltapt_truth_name = Form("h_corr_deltapt_JetPt_Truth_R0.4_%s", threshold.c_str());
+            const std::string oppcharge_truth_name = Form("h_corr_oppcharge_JetPt_Truth_R0.4_%s", threshold.c_str());
+            const std::string samecharge_truth_name = Form("h_corr_samecharge_JetPt_Truth_R0.4_%s", threshold.c_str());
+            const std::string unweightedRL_truth_name = Form("h_corr_unweightedRL_JetPt_Truth_R0.4_%s", threshold.c_str());
+            const std::string energyweights_truth_name = Form("h_corr_energyweights_JetPt_Truth_R0.4_%s", threshold.c_str());
+            // std::cout << "THRESHOLD NAME TEST" << deltap_truth_name << std::endl;
+
+            const std::string deltap_Weighted_truth_name = Form("h_corr_deltap_Weighted_JetPt_Truth_R0.4_%sScaled", threshold.c_str());
+            const std::string deltapt_Weighted_truth_name = Form("h_corr_deltapt_Weighted_JetPt_Truth_R0.4_%sScaled", threshold.c_str());
+            const std::string oppcharge_Weighted_truth_name = Form("h_corr_oppcharge_Weighted_JetPt_Truth_R0.4_%sScaled", threshold.c_str());
+            const std::string samecharge_Weighted_truth_name = Form("h_corr_samecharge_Weighted_JetPt_Truth_R0.4_%sScaled", threshold.c_str());
+            const std::string unweightedRL_Weighted_truth_name = Form("h_corr_unweightedRL_Weighted_JetPt_Truth_R0.4_%sScaled", threshold.c_str());
+            const std::string energyweights_Weighted_truth_name = Form("h_corr_energyweights_Weighted_JetPt_Truth_R0.4_%sScaled", threshold.c_str());
+            
+            const std::string jet_pt_truth_name = Form("h_jet_pt_JetPt_Truth_R0.4_%sScaled", threshold.c_str());
 
 
+            for (int i = 0; i < n_bins; i++) {
+                cout << "in pt bin" << i << endl;
+                int pt_min = pt_bins[i];
+                int pt_max = pt_bins[i+1];
+                std::string ptname = std::to_string(pt_min) + '-' + std::to_string(pt_max);
+
+                // Output directory
+                std::string outdir = "plots/secondattempt/"+pt_bin_names[i]+"/";//"plots/test/";
+                // Output file for binned results
+                std::string outfile = outdir + "AnalysisResultsFinal" + add_name + ".root";
+                TFile* f_out = new TFile(outfile.c_str(), "RECREATE");
+
+                // define pt related variables
+                TString ptbin = TString::Format("%d #leq #it{p}_{T}^{ch. jet} < %d GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5", pt_min, pt_max);
+                TString ptD = TString::Format("5 #leq #it{p}_{T}^{D^{0}} < %d GeV/#it{c}, #font[122]{|}#it{y}_{D^{0}}#font[122]{|} #leq 0.8", pt_max);
+                
+
+                TCanvas* c_deltap_all = new TCanvas();
+                ProcessCanvas(c_deltap_all);
+                gPad->SetLogy();
+                // c_deltap_all->SetMaximum(1.5);
+
+                TCanvas* c_deltapt_all = new TCanvas();
+                ProcessCanvas(c_deltapt_all);
+                gPad->SetLogy();
+                // c_deltapt_all->SetMaximum(1.5);
+
+                TCanvas* c_charge_all = new TCanvas();
+                ProcessCanvas(c_charge_all);
+                gPad->SetLogx();
+
+                TCanvas* c_energyweights_all = new TCanvas();
+                ProcessCanvas(c_energyweights_all);
+                // gPad->SetLogx();
+
+                TLegend* l; // = new TLegend(0.17, 0.65, 0.5, 0.85);
+                l = new TLegend(0.6, 0.6, 0.8, 0.87); //0.1797168,0.650741,0.4562155,0.8885185,""); //(0.17, 0.4, 0.5, 0.53);
+                l->SetTextSize(0.037);
+                l->SetBorderSize(0);
+
+                TLegend* l2; // = new TLegend(0.17, 0.65, 0.5, 0.85);
+                l2 = new TLegend(0.1797168,0.700741,0.4562155,0.8885185,""); //(0.17, 0.4, 0.5, 0.53);
+                // l2->SetTextSize(0.037);
+                // l2->SetBorderSize(0);
+
+                TLegend* l_right = new TLegend(0.75, 0.5, 0.85, 0.87);
+                l_right->SetTextSize(0.037);
+                l_right->SetBorderSize(0);
+
+                // make histogram array bc otherwise they get overwritten and won't save S M H
+                vector<TH1D*> hcorr_deltap_truth_arr;
+                vector<TH1D*> hcorr_deltapt_truth_arr;
+                vector<TH1D*> hcorr_oppcharge_truth_arr;
+                vector<TH1D*> hcorr_samecharge_truth_arr;
+                vector<TH1D*> hcorr_chargeratio_ENC_truth_arr;
+                vector<TH1D*> hcorr_oppcharge_ENC_truth_arr;
+                vector<TH1D*> hcorr_samecharge_ENC_truth_arr;
+                // vector<TH1D*> hcorr_unweightedRL_truth_arr;
+                vector<TH1D*> hcorr_energyweights_truth_arr;
+                vector<TString> label;
+                TH1D *hdummyRL;
+                TH1D *hdummyRL2;
+                    
+                for (int j=0; j < n_RLbins; j++) {
+
+                    double RL_min = RL_bins[i][j];
+                    double RL_max = RL_bins[i][j+1];
+                    cout << "in RL bin" << j << " with " << RL_min << " - " << RL_max << endl;
+
+                    
+                    double maxy = 0;                    
+
+                    std::string jetRname = "_R" + jetR;
+                    std::string thrname = "_t" + threshold;
+                    std::string RLname = Form("_RL%.3f-%.3f", RL_min, RL_max); 
+                    std::string hist_addname = jetRname + thrname + ptname + RLname;
+                    // cout << "THE HIST ADDNAME IS " << hist_addname << endl;
+                    // cout << "deltsap_truth_name " << deltap_truth_name << endl;
+                    double obs_bins[] = {0.  , 0.05, 0.1 , 0.15, 0.2 , 0.25, 0.3 , 0.35, 0.4 , 0.45, 0.5 ,
+                        0.55, 0.6 , 0.65, 0.7, 0.75, 0.8 , 0.85, 0.9 , 0.95, 1.  };
+                    int n_obs_bins = sizeof(obs_bins) / sizeof(obs_bins[0]) - 1;
+
+                    // Open histograms
+                    TH1D *hcorr_deltap_truth_unnorm = getObsHist(f, deltap_truth_name, jet_pt_truth_name, 
+                                             pt_min, pt_max, i+1, RL_min, RL_max, "h_corr_deltap_Truth" + hist_addname, 
+                                             4, "#Delta p", n_obs_bins, obs_bins, normed,  true);
+                    TH1D *hcorr_deltap_truth_unnorm2 = getObsHist(f, deltap_truth_name, jet_pt_truth_name, 
+                                             pt_min, pt_max, i+1, RL_min, RL_max, "h_corr_deltap_Truth2" + hist_addname, 
+                                             4, "#Delta p", n_obs_bins, obs_bins, normed,  true);
+                    TH1D *hcorr_deltapt_truth_unnorm = getObsHist(f, deltapt_truth_name, jet_pt_truth_name, 
+                                             pt_min, pt_max, i+1, RL_min, RL_max, "h_corr_deltapt_Truth" + hist_addname, 
+                                             4, "#Delta p_{T}", n_obs_bins, obs_bins, normed,  true);
+                    TH1D *hcorr_oppcharge_truth_unnorm = getObsHist(f, oppcharge_truth_name, jet_pt_truth_name, 
+                                             pt_min, pt_max, i+1, RL_min, RL_max, "h_corr_oppcharge_Truth" + hist_addname, 
+                                             4, "q_{1}q_{2}", 0, {}, normed, false);
+                    TH1D *hcorr_samecharge_truth_unnorm = getObsHist(f, samecharge_truth_name, jet_pt_truth_name, 
+                                             pt_min, pt_max, i+1, RL_min, RL_max, "h_corr_samecharge_Truth" + hist_addname, 
+                                             4, "q_{1}q_{2}", 0, {}, normed, false);
+                    TH1D *hcorr_energyweights_truth_unnorm = getObsHist(f, energyweights_truth_name, jet_pt_truth_name, 
+                                             pt_min, pt_max, i+1, RL_min, RL_max, "h_corr_energyweights_Truth" + hist_addname, 
+                                             4, "p_{T,1}p_{T,2} / p_{T, jet}^{2}", 0, {}, normed, true);
+                    
+                    
+
+                    // get jet pT range - no D0 reconstruction, so don't make D0 cuts
+                    // thnsparse axes: 0=jet pt, 1=RL (20 < pt < 40), 2=RL (40 < pt < 60), 3=RL (60 < pt < 80), 4 = observable 
+
+                    
+
+                    // dummy histograms!
+                    THnSparse* hsparsejet_oppcharge_truth_dummy = (THnSparse*) f->Get(oppcharge_truth_name.c_str());
+                    if (j==0) hdummyRL = hsparsejet_oppcharge_truth_dummy->Projection(1);
+                    if (j==0) hdummyRL2 = hsparsejet_oppcharge_truth_dummy->Projection(1);
+
+
+                    //if rebinning
+
+                    // TH1D* hcorr_deltap_truth_tt1 = (TH1D*) hcorr_deltap_truth_tt1_proj->Rebin(n_obs_bins, hcorr_deltap_truth_tt1_proj->GetName(), obs_bins);
+                    // TH1D* hcorr_deltapt_truth_tt1 = (TH1D*) hcorr_deltapt_truth_tt1_proj->Rebin(n_obs_bins, hcorr_deltapt_truth_tt1_proj->GetName(), obs_bins); 
+                    
+                    // TH1D* hcorr_oppcharge_truth_tt1 = (TH1D*) hcorr_oppcharge_truth_tt1_proj->Clone(hcorr_oppcharge_truth_tt1_proj->GetName());
+                    // TH1D* hcorr_samecharge_truth_tt1 = (TH1D*) hcorr_samecharge_truth_tt1_proj->Clone(hcorr_samecharge_truth_tt1_proj->GetName());
+                    // // TH1D* hcorr_unweightedRL_truth_tt1 = (TH1D*) hcorr_unweightedRL_truth_tt1_proj->Clone(hcorr_unweightedRL_truth_tt1_proj->GetName());                
+                    
+
+                    
+
+
+                    // // Find maximum
+                    // maxy = hi->GetMaximum() * 1.1;
+                    // hi->SetMaximum(maxy); 
+
+
+
+
+                    // make a canvas for each pt range
+                    TCanvas* c_deltap = new TCanvas();
+                    ProcessCanvas(c_deltap);
+                    // gPad->SetLogx(); // 
+                    gPad->SetLogy();
+
+                    TCanvas* c_deltapt = new TCanvas();
+                    ProcessCanvas(c_deltapt);
+                    // c_deltapt->cd();
+                    // gPad->SetLogx(); // 
+                    gPad->SetLogy();
+
+                    // TCanvas* c_oppcharge = new TCanvas();
+                    // ProcessCanvas(c_oppcharge);
+                    // // c_oppcharge->cd();
+                    // // gPad->SetLogx(); // gPad->SetLogy();
+
+                    // TCanvas* c_samecharge = new TCanvas();
+                    // ProcessCanvas(c_samecharge);
+                    // // c_samecharge->cd();
+                    // // gPad->SetLogx(); // gPad->SetLogy();
+
+                    TCanvas* c_charge = new TCanvas();
+                    ProcessCanvas(c_charge);
+
+                    TCanvas* c_chargeratio = new TCanvas();
+                    ProcessCanvas(c_chargeratio);
+                    // c_chargeratio->cd();
+                    gPad->SetLogx(); // gPad->SetLogy();
+
+                    TCanvas* c_unweightedRL = new TCanvas();
+                    ProcessCanvas(c_unweightedRL);
+                    // c_unweightedRL->cd();
+                    // gPad->SetLogx(); // gPad->SetLogy();
+
+                    TCanvas* c_energyweights = new TCanvas();
+                    ProcessCanvas(c_energyweights);
+
+
+
+                    
+                    // TLegend* l; // = new TLegend(0.17, 0.65, 0.5, 0.85);
+                    // l = new TLegend(0.1797168,0.400741,0.4562155,0.8885185,""); //(0.17, 0.4, 0.5, 0.53);
+                    // /*
+                    // l->SetTextSize(0.045);
+                    // // TLegend *leg = new TLegend(0.1797168,0.5390741,0.4562155,0.8885185,"");
+                    // l->AddEntry("NULL","PYTHIA 8 Monash 2013","h");
+                    // l->AddEntry("NULL","pp, #sqrt{#it{s}} = 13 TeV","h");
+                    // l->AddEntry("NULL","D^{0} #rightarrow K^{#minus} #pi^{+} and charge conj.","h");
+                    // l->AddEntry("NULL","in charged jets, anti-#it{k}_{T}, #it{R} = 0.4","h");
+                    // l->AddEntry("NULL",ptbin,"h");
+                    // l->AddEntry("NULL",ptD,"h");
+                    // */
+                    // l->SetTextSize(0.037);
+                    // l->SetBorderSize(0);
+                    // l->Draw("same");
+                    
+
+
+
+                    //Format color and style
+                    // int markercolor1 = kRed; //charm
+                    // int markerstyle1 = kFullCircle;
+                    // int markercolor2 = kViolet+2; //gluon
+                    // int markerstyle2 = 33;
+                    // int markercolor3 = kGreen+2; //light
+                    // int markerstyle3 = 21;
+                    // label1 = "R_{L} = " + std::to_string(RL_min) + "-" + std::to_string(RL_max);
+                    // label2 = "gluon-init jets";
+                    // TString label3 = "light-init jets";
+
+                    cout << "HOLA??  " << endl;
+
+                    //print together
+                    hcorr_deltap_truth_arr.push_back((TH1D*) hcorr_deltap_truth_unnorm->Clone(hcorr_deltap_truth_unnorm->GetName()));
+                    hcorr_deltapt_truth_arr.push_back((TH1D*) hcorr_deltapt_truth_unnorm->Clone(hcorr_deltapt_truth_unnorm->GetName()));
+                    hcorr_oppcharge_truth_arr.push_back((TH1D*) hcorr_oppcharge_truth_unnorm->Clone(hcorr_oppcharge_truth_unnorm->GetName()));
+                    hcorr_samecharge_truth_arr.push_back((TH1D*) hcorr_samecharge_truth_unnorm->Clone(hcorr_samecharge_truth_unnorm->GetName()));
+                    // hcorr_unweightedRL_truth_arr.push_back((TH1D*) hcorr_unweightedRL_truth_unnorm->Clone(hcorr_unweightedRL_truth_unnorm->GetName()));
+                    hcorr_energyweights_truth_arr.push_back((TH1D*) hcorr_energyweights_truth_unnorm->Clone(hcorr_energyweights_truth_unnorm->GetName()));
+
+
+                    label.push_back(Form("R_{L} = %.3f-%.3f", RL_min, RL_max));
+
+                    for (int k=0; k < hcorr_deltap_truth_arr[j]->GetNbinsX();k++){
+                        hcorr_deltap_truth_arr[j]->SetBinError(k+1, 0);
+                        hcorr_deltapt_truth_arr[j]->SetBinError(k+1, 0);
+                    }
+
+                    FormatHist(l, hcorr_deltap_truth_arr[j], label[j], colors[j], markers[0], true);
+                    FormatHist(l2, hcorr_deltapt_truth_arr[j], label[j], colors[j], markers[0], true);
+                    FormatHist(l2, hcorr_oppcharge_truth_arr[j], label[j], colors[j], markers[0], false);
+                    FormatHist(l2, hcorr_samecharge_truth_arr[j], label[j], colors[j], markers[2], false);
+                    // FormatHist(l, hcorr_unweightedRL_truth, label[j], colors[j], markers[0]);
+                    FormatHist(l2, hcorr_energyweights_truth_arr[j], label[j], colors[j], markers[0], true);
+                    
+                    // Format histograms for plotting (this order needed to keep legend in order and graphs lookin good)
+                    cout << "hello??  " << endl;
+
+                    c_deltap->cd();
+                    hcorr_deltap_truth_arr[j]->Draw();
+
+                    c_deltapt->cd();
+                    hcorr_deltapt_truth_arr[j]->Draw();
+
+                    // c_oppcharge->cd();
+                    // hcorr_oppcharge_truth_arr[j]->Draw();
+
+                    // c_samecharge->cd();
+                    // hcorr_samecharge_truth_arr[j]->Draw();
+                    c_charge->cd();
+                    hcorr_oppcharge_truth_arr[j]->Draw();
+                    hcorr_samecharge_truth_arr[j]->Draw("same");
+
+                    c_chargeratio->cd();
+                    std::string charge_ratio_name = "hcorr_chargeratio_ENC" + ptname + RLname;
+                    TH1D *hcorr_oppcharg_ENC_truth_unnorm = getObsHist(f, oppcharge_truth_name, jet_pt_truth_name, 
+                                             pt_min, pt_max, i+1, RL_min, RL_max, "h_corr_oppcharge_ENC_Truth" + hist_addname, 
+                                             i+1, "R_{L}", 0, {}, normed, false); //make normalization = 2?
+                    TH1D *hcorr_samecharge_ENC_truth_unnorm = getObsHist(f, samecharge_truth_name, jet_pt_truth_name, 
+                                             pt_min, pt_max, i+1, RL_min, RL_max, "h_corr_samecharge_ENC_Truth" + hist_addname, 
+                                             i+1, "R_{L}", 0, {}, normed, false); //make normalization = 2?
+                    hcorr_oppcharge_ENC_truth_arr.push_back((TH1D*) hcorr_oppcharg_ENC_truth_unnorm->Clone(hcorr_oppcharg_ENC_truth_unnorm->GetName()));
+                    hcorr_samecharge_ENC_truth_arr.push_back((TH1D*) hcorr_samecharge_ENC_truth_unnorm->Clone(hcorr_samecharge_ENC_truth_unnorm->GetName()));
+                    FormatHist(l2, hcorr_oppcharge_ENC_truth_arr[j], label[j], colors[j], markers[0], false);
+                    FormatHist(l2, hcorr_samecharge_ENC_truth_arr[j], label[j], colors[j], markers[2], false);
+
+                    TH1D* hcorr_chargeratio_ENC_truth = (TH1D*) hcorr_oppcharge_ENC_truth_arr[j]->Clone(charge_ratio_name.c_str());
+                    hcorr_chargeratio_ENC_truth->Divide(hcorr_samecharge_ENC_truth_arr[j]);
+                    FormatHist(l2, hcorr_chargeratio_ENC_truth, label[j], colors[j], markers[2]);
+                    hcorr_chargeratio_ENC_truth_arr.push_back((TH1D*) hcorr_chargeratio_ENC_truth->Clone(hcorr_chargeratio_ENC_truth->GetName()));
+                    hcorr_chargeratio_ENC_truth_arr[j]->Draw();
+                    // rp->GetLowYaxis()->SetNdivisions(505);
+                    // c->Update();
+
+                    c_energyweights->cd();
+                    hcorr_energyweights_truth_arr[j]->Draw();
+                    
+
+
+                    // plot the combined graphs
+                    c_deltap_all->cd();
+                    // std::cout << "HERE!!!" << std::endl;
+                    if (j==0) {
+                        cout << "max is " << hcorr_deltap_truth_arr[j]->GetMaximum() << " and " << hcorr_deltap_truth_arr[j]->GetMaximum()*10 << endl;
+                        hcorr_deltap_truth_arr[j]->SetMaximum(hcorr_deltap_truth_arr[j]->GetMaximum()*30); //65);
+                    }
+                    hcorr_deltap_truth_arr[j]->Draw("same");
+                    // c_deltap_all->Modified();
+                    // c_deltap_all->Update();
+                    l->Draw("same");
+
+                    c_deltapt_all->cd();         
+                    if (j==0) {
+                        hcorr_deltapt_truth_arr[j]->SetMaximum(hcorr_deltap_truth_arr[j]->GetMaximum()*10);
+                    }
+                    hcorr_deltapt_truth_arr[j]->Draw("same");
+                    l->Draw("same");
+
+                    c_energyweights_all->cd();
+                    hcorr_energyweights_truth_arr[j]->Draw("same");
+                    l->Draw("same");
+
+                    c_charge_all->cd();
+                    if (j==0) {
+                        c_charge_all->Divide(1,2);                    
+                    }
+                    c_charge_all->cd(1);
+                    if (j==0) {
+                        // gPad->SetLogx();
+                        // FormatHist(l2, hdummyRL, "", colors[j], markers[0]);
+                        hdummyRL->SetMarkerColorAlpha(kBlue, 0);
+                        hdummyRL->SetLineColorAlpha(kRed, 0);
+                        hdummyRL->SetMinimum(0.);
+                        hdummyRL->SetMaximum(3.5);
+                        // hdummyRL->GetXaxis()->SetRangeUser(1e-4, 0.4); //(0.01, 0.4) //TODO: GOT RID OF FOR NOW
+                        hdummyRL->Draw();
+                    }
+                    
+                    hcorr_oppcharge_ENC_truth_arr[j]->Draw("same");
+                    hcorr_samecharge_ENC_truth_arr[j]->Draw("same");
+
+                    hcorr_oppcharge_ENC_truth_arr[j]->SetMarkerColorAlpha(colors[j], 0.6);
+                    hcorr_oppcharge_ENC_truth_arr[j]->SetLineColorAlpha(colors[j], 0.6);
+                    hcorr_samecharge_ENC_truth_arr[j]->SetMarkerColorAlpha(colors[j], 0.6);
+                    hcorr_samecharge_ENC_truth_arr[j]->SetLineColorAlpha(colors[j], 0.6);
+                    l_right->AddEntry(hcorr_oppcharge_ENC_truth_arr[j],label[j]);
+                    // l_right->AddEntry(hcorr_samecharge_ENC_truth_arr[j],label[j]);
+                    
+                    // hcorr_oppcharge_truth_arr[j]->Draw("same");
+                    // hcorr_samecharge_truth_arr[j]->Draw("same");
+
+                    // hcorr_oppcharge_truth_arr[j]->SetMarkerColorAlpha(colors[j], 0.6);
+                    // hcorr_oppcharge_truth_arr[j]->SetLineColorAlpha(colors[j], 0.6);
+                    // hcorr_samecharge_truth_arr[j]->SetMarkerColorAlpha(colors[j], 0.6);
+                    // hcorr_samecharge_truth_arr[j]->SetLineColorAlpha(colors[j], 0.6);
+                    // l_right->AddEntry(hcorr_oppcharge_truth_arr[j],label[j]);
+                    // // l_right->AddEntry(hcorr_samecharge_truth_arr[j],label[j]);
+                    
+                    l_right->Draw("same");
+                    // gPad->BuildLegend();
+
+
+                    c_charge_all->cd(2);
+                    if (j==0) {
+                        // gPad->SetLogx();
+                        hdummyRL2->SetMarkerColorAlpha(kBlue, 0);
+                        hdummyRL2->SetLineColorAlpha(kRed, 0);
+                        hdummyRL2->SetMinimum(0.);
+                        hdummyRL2->SetMaximum(2.5);
+                        // hdummyRL2->GetXaxis()->SetRangeUser(1e-4, 0.4); //(0.01, 0.4) //TODO: GOT RID OF FOR NOW
+                        hdummyRL2->Draw();
+                        drawHoriLine(0.01, 0.4, 1., kBlack);
+                    }
+                    hcorr_chargeratio_ENC_truth_arr[j]->Draw("same");
+
+                    
+
+
+
+
+                    
+                    // cout << "about to format plots" << endl;
+                    // FormatHist(l, hc, label1, markercolor1, markerstyle1);
+                    // if (charmdecays) {
+                    //     l->AddEntry("NULL","          D* decays on","h");
+                    // } else {
+                    //     l->AddEntry("NULL","          D* decays off","h");
+                    // }
+                    // FormatHist(l, hg, label2, markercolor2, markerstyle2);
+                    // FormatHist(l, hl, label3, markercolor3, markerstyle3);
+                    
+
+                    // hc->Draw("L same");
+                    // hg->Draw("L same");
+                    // hl->Draw("L same");
+                    
+                
+
+
+                    // make ratio plot
+                    // auto rp = new TRatioPlot(hD0, hc);
+                    // rp->Draw();
+                    // rp->GetLowYaxis()->SetNdivisions(505);
+                    // c->Update();
+
+
+            
+
+
+                    
+
+
+
+
+                    // draw legend
+                    // l->Draw("same");
+
+                    std::string fname_deltap = outdir + "corrhist_deltap_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
+                    std::string fname_deltapt = outdir + "corrhist_deltapt_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
+                    // std::string fname_oppcharge = outdir + "corrhist_oppcharge_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
+                    // std::string fname_samecharge = outdir + "corrhist_samecharge_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
+                    std::string fname_charge = outdir + "corrhist_charge_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
+                    std::string fname_unweightedRL = outdir + "corrhist_unweightedRL_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
+                    std::string fname_chargeratio = outdir + "corrhist_chargeratio_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
+                    std::string fname_energyweights = outdir + "corrhist_energyweights_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
+
+                    const char* fname_deltapc = fname_deltap.c_str();
+                    const char* fname_deltaptc = fname_deltapt.c_str();
+                    // const char* fname_oppchargec = fname_oppcharge.c_str();
+                    // const char* fname_samechargec = fname_samecharge.c_str();
+                    const char* fname_chargec = fname_charge.c_str();
+                    const char* fname_unweightedRLc = fname_unweightedRL.c_str();
+                    const char* fname_chargeratioc = fname_chargeratio.c_str();
+                    const char* fname_energyweightsc = fname_energyweights.c_str();
+
+                    c_deltap->SaveAs(fname_deltapc);
+                    c_deltapt->SaveAs(fname_deltaptc);
+                    // c_oppcharge->SaveAs(fname_oppchargec);
+                    // c_samecharge->SaveAs(fname_samechargec);
+                    c_charge->SaveAs(fname_chargec);
+                    // c_unweightedRL->SaveAs(fname_unweightedRLc);
+                    c_chargeratio->SaveAs(fname_chargeratioc);
+                    c_energyweights->SaveAs(fname_energyweightsc);
+
+                    delete c_deltap;
+                    delete c_deltapt;
+                    // delete c_oppcharge;
+                    // delete c_samecharge;
+                    delete c_charge;
+                    // delete c_unweightedRL;
+                    delete c_chargeratio;
+                    delete c_energyweights;
+
+                    f_out->cd();
+                    hcorr_deltap_truth_unnorm->Write();
+                    hcorr_deltapt_truth_unnorm->Write();
+                    hcorr_oppcharge_truth_unnorm->Write();
+                    hcorr_samecharge_truth_unnorm->Write();
+                    // hcorr_unweightedRL_truth_unnorm->Write();
+                    hcorr_chargeratio_ENC_truth->Write();
+                    hcorr_energyweights_truth_unnorm->Write();
+
+                    
+                    delete hcorr_deltap_truth_unnorm;
+                    delete hcorr_deltapt_truth_unnorm;
+                    delete hcorr_oppcharge_truth_unnorm;
+                    delete hcorr_samecharge_truth_unnorm;
+                    // delete hcorr_unweightedRL_truth_unnorm;
+                    delete hcorr_chargeratio_ENC_truth;
+                    delete hcorr_energyweights_truth_unnorm;
+
+                    // delete h_pt_jetlevel_clone;
+                    
+
+                
+                } // RL bins loop
+
+                //----------------------------//
+                /*c_charge_all->cd();
+                for (int j=n_RLbins-1; j>=0; j--) {
+                    
+                    // c_charge_all->Divide(1,2);
+                    // c_charge_all->cd(1);
+                    // c_charge_all->cd(2);
+                    // hcorr_chargeratio_truth_tt1_arr[j]->Draw("same");
+                
+                    if (j==4) {
+                        hcorr_oppcharge_truth_tt1_arr[j]->Draw("same");
+                        // hcorr_samecharge_truth_tt1_arr[j]->Draw("same");
+                    }
+                    if (j==4) {
+                        hcorr_oppcharge_truth_tt1_arr[j]->SetMinimum(0.);
+                        hcorr_oppcharge_truth_tt1_arr[j]->SetMaximum(2.); //65);
+                        hcorr_oppcharge_truth_tt1_arr[j]->GetXaxis()->SetLimits(0.01, 0.4);
+                        // hcorr_oppcharge_truth_tt1_arr[j]->SetAxisRange(0.01, 0.4,"X");
+                        // hcorr_oppcharge_truth_tt1_arr[j]->GetXaxis()->SetRangeUser(0.01, 0.4);
+                    }
+                    l->Draw("same");
+                }*/
+                //----------------------------//
+
+                std::string fname_deltap_all = outdir + "corrhist_deltap_all_pt" + ptname + "_R" + jetR + add_name + ".pdf";
+                std::string fname_deltapt_all = outdir + "corrhist_deltapt_all_pt" + ptname + "_R" + jetR + add_name + ".pdf";
+                std::string fname_charge_all = outdir + "corrhist_charge_all_pt" + ptname + "_R" + jetR + add_name + ".pdf";
+                std::string fname_energyweights_all = outdir + "corrhist_energyweights_all_pt" + ptname + "_R" + jetR + add_name + ".pdf";
+                
+                const char* fname_deltapc_all = fname_deltap_all.c_str();
+                const char* fname_deltaptc_all = fname_deltapt_all.c_str();
+                const char* fname_chargec_all = fname_charge_all.c_str();
+                const char* fname_energyweightsc_all = fname_energyweights_all.c_str();
+                
+                c_deltap_all->SaveAs(fname_deltapc_all);
+                c_deltapt_all->SaveAs(fname_deltaptc_all);
+                c_charge_all->SaveAs(fname_chargec_all);
+                c_energyweights_all->SaveAs(fname_energyweightsc_all);
+
+                delete c_deltap_all;
+                delete c_deltapt_all;
+                delete c_charge_all;
+                delete c_energyweights_all;
+
+            } // pT bins loop
+        } // threshold loop
+    } // jetR loop
+}
+
+// ======================================================= //
+//                     MAIN FUNCTION 
+// ======================================================= //
+
+void make_corr_histograms() {
+
+    gStyle->SetOptStat(0);
+    SetStyle();
+    
 
     // Files
     // const char infile[] = "/software/users/blianggi/mypyjetty/analysis/output/100k/AnalysisResultsFinal.root"; //hiccup
-    const char infile[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/pythiagen/byhand/23204141/AnalysisResultsFinal_1percent.root"; //perlmutter, before june 2024
-    // const char infile[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/pythiagen/scaling/26652369??/AnalysisResultsFinal.root"; //perlmutter, after june 2024
+    // const char infile[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/pythiagen/byhand/23204141/AnalysisResultsFinal_1percent.root"; //perlmutter, before june 2024
+    const char infile[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/pythiagen/scaling/28533561/26652369/AnalysisResultsFinal.root"; //perlmutter, after june 2024
+    // const char infile[] = "/global/cfs/cdirs/alice/blianggi/mypyjetty/analysis/testing/AnalysisResults.root";
     // const char infile[] = "/software/users/blianggi/mypyjetty/analysis/output/AnalysisResults.root";
     // std::string indir = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/pythiagen/23121850/";
 
@@ -208,19 +899,26 @@ void make_corr_histograms() {
     //     tree1->Add(filename.c_str());
     // }
 
-    //CONTOL VARIABLES HERE
-    // bool charmdecays = false; // true = charm decays on, false = charm decays off
-    // bool ptrl = true; // true = Plot the pT*RL
 
     TFile* f;
     std::string add_name;
 
-    TString label1 = "";
-    TString label2 = "";  
-    vector<TString> label;
+
+    // CONTOL VARIABLES HERE
+    int normed = 0; // 0 if unnormalized, 1 for self-normalization 
+    bool weighted = false; // true if using "Weighted", false if using unweighted
     
+
+    std::string norm_string = "";
+    if (normed == 0) {
+        norm_string = "_unnormalized";
+    } else if (normed == 1) {
+        norm_string = "_selfnorm";
+    }
+
     f = new TFile(infile, "READ");
-    add_name = "_othercorrel";
+    add_name = "_othercorrel" + norm_string;
+
     // if (ptrl) {
     //     if (charmdecays) {
     //         f = new TFile(infile_ptrl_charmdecaysON, "READ");
@@ -235,547 +933,9 @@ void make_corr_histograms() {
 
     cout << "output name will be " << add_name << endl;
 
-    // Jet r value
-    std::string jetR_list[] = { "0.4" };
-    for (std::string jetR : jetR_list) {
+    plot_histograms(f, add_name, normed, weighted);
 
-        // Names of histograms in the file (quark, charm, gluon)
-        const std::string deltap_truth_tt015_name = "h_corr_deltap2_JetPt_Truth_R0.4_0.15";
-        const std::string deltap_truth_tt005_name = "h_corr_deltap2_JetPt_Truth_R0.4_0.05";
-        const std::string deltap_truth_tt1_name = "h_corr_deltap2_JetPt_Truth_R0.4_1.0";
-
-        const std::string deltapt_truth_tt015_name = "h_corr_deltapt2_JetPt_Truth_R0.4_0.15";
-        const std::string deltapt_truth_tt005_name = "h_corr_deltapt2_JetPt_Truth_R0.4_0.05";
-        const std::string deltapt_truth_tt1_name = "h_corr_deltapt2_JetPt_Truth_R0.4_1.0";
-
-        const std::string oppcharge_truth_tt015_name = "h_corr_oppcharge2_JetPt_Truth_R0.4_0.15";
-        const std::string oppcharge_truth_tt005_name = "h_corr_oppcharge2_JetPt_Truth_R0.4_0.05";
-        const std::string oppcharge_truth_tt1_name = "h_corr_oppcharge2_JetPt_Truth_R0.4_1.0";
-
-        const std::string samecharge_truth_tt015_name = "h_corr_samecharge2_JetPt_Truth_R0.4_0.15";
-        const std::string samecharge_truth_tt005_name = "h_corr_samecharge2_JetPt_Truth_R0.4_0.05";
-        const std::string samecharge_truth_tt1_name = "h_corr_samecharge2_JetPt_Truth_R0.4_1.0";
-
-        const std::string unweightedRL_truth_tt015_name = "h_corr_unweightedRL2_JetPt_Truth_R0.4_0.15";
-        const std::string unweightedRL_truth_tt005_name = "h_corr_unweightedRL2_JetPt_Truth_R0.4_0.05";
-        const std::string unweightedRL_truth_tt1_name = "h_corr_unweightedRL2_JetPt_Truth_R0.4_1.0";
-
-        const std::string jet_pt_truth_tt1_name = "h_jet_pt_JetPt_Truth_R0.4_1.0";
-
-
-        for (int i = 0; i < n_bins; i++) {
-            cout << "in pt bin" << i << endl;
-            int pt_min = pt_bins[i];
-            int pt_max = pt_bins[i+1];
-            std::string ptname = std::to_string(pt_min) + '-' + std::to_string(pt_max);
-
-            // Output directory
-            std::string outdir = "plots/secondattempt/"+pt_bin_names[i]+"/";//"plots/test/";
-            // Output file for binned results
-            std::string outfile = outdir + "AnalysisResultsFinal" + add_name + ".root";
-            TFile* f_out = new TFile(outfile.c_str(), "RECREATE");
-
-            // define pt related variables
-            TString ptbin = TString::Format("%d #leq #it{p}_{T}^{ch. jet} < %d GeV/#it{c}, #font[122]{|}#it{#eta}_{jet}#font[122]{|} #leq 0.5", pt_min, pt_max);
-            TString ptD = TString::Format("5 #leq #it{p}_{T}^{D^{0}} < %d GeV/#it{c}, #font[122]{|}#it{y}_{D^{0}}#font[122]{|} #leq 0.8", pt_max);
-            
-
-            TCanvas* c_deltap_all = new TCanvas();
-            ProcessCanvas(c_deltap_all);
-            // c_deltap_all->SetMaximum(1.5);
-
-            TCanvas* c_deltapt_all = new TCanvas();
-            ProcessCanvas(c_deltapt_all);
-            // c_deltapt_all->SetMaximum(1.5);
-
-            TCanvas* c_charge_all = new TCanvas();
-            ProcessCanvas(c_charge_all);
-            gPad->SetLogx();
-
-            TLegend* l; // = new TLegend(0.17, 0.65, 0.5, 0.85);
-            l = new TLegend(0.1797168,0.650741,0.4562155,0.8885185,""); //(0.17, 0.4, 0.5, 0.53);
-            l->SetTextSize(0.037);
-            l->SetBorderSize(0);
-
-            TLegend* l2; // = new TLegend(0.17, 0.65, 0.5, 0.85);
-            l2 = new TLegend(0.1797168,0.700741,0.4562155,0.8885185,""); //(0.17, 0.4, 0.5, 0.53);
-            // l2->SetTextSize(0.037);
-            // l2->SetBorderSize(0);
-
-            TLegend* l_right = new TLegend(0.75, 0.5, 0.85, 0.87);
-            l_right->SetTextSize(0.037);
-            l_right->SetBorderSize(0);
-
-            // make histogram array bc otherwise they get overwritten and won't save S M H
-            vector<TH1D*> hcorr_deltap_truth_tt1_arr;
-            vector<TH1D*> hcorr_deltapt_truth_tt1_arr;
-            vector<TH1D*> hcorr_oppcharge_truth_tt1_arr;
-            vector<TH1D*> hcorr_samecharge_truth_tt1_arr;
-            vector<TH1D*> hcorr_chargeratio_truth_tt1_arr;
-            TH1D *hdummyRL;
-            TH1D *hdummyRL2;
-                
-            for (int j=0; j < n_RLbins; j++) {
-
-                double RL_min = RL_bins[j];
-                double RL_max = RL_bins[j+1];
-                cout << "in RL bin" << j << " with " << RL_min << " - " << RL_max << endl;
-
-                
-                double maxy = 0;
-
-
-                // Open histograms
-                
-
-                //-------------------------------------------------//
-                // find D0 reconstruction through charm
-                THnSparse* hsparsejet_deltap_truth_tt1 = (THnSparse*) f->Get(deltap_truth_tt1_name.c_str());
-                THnSparse* hsparsejet_deltapt_truth_tt1 = (THnSparse*) f->Get(deltapt_truth_tt1_name.c_str());
-                THnSparse* hsparsejet_oppcharge_truth_tt1 = (THnSparse*) f->Get(oppcharge_truth_tt1_name.c_str());
-                THnSparse* hsparsejet_samecharge_truth_tt1 = (THnSparse*) f->Get(samecharge_truth_tt1_name.c_str());
-                // THnSparse* hsparsejet_unweightedRL_truth_tt1 = (THnSparse*) f->Get(unweightedRL_truth_tt1_name.c_str());
-
-                TH1D* h_pt_tt1_jetlevel = (TH1D*) f->Get(jet_pt_truth_tt1_name.c_str());
-                // cout << "checkpoint 0" << endl;
-
-
-                // for THnSparse: make clone to work with, make cuts, get projection
-                THnSparse *hsparsejet_deltap_truth_tt1_clone = (THnSparse *) hsparsejet_deltap_truth_tt1->Clone("hsparsejet_deltap_truth_tt1_clone");
-                THnSparse *hsparsejet_deltapt_truth_tt1_clone = (THnSparse *) hsparsejet_deltapt_truth_tt1->Clone("hsparsejet_deltapt_truth_tt1_clone");
-                THnSparse *hsparsejet_oppcharge_truth_tt1_clone = (THnSparse *) hsparsejet_oppcharge_truth_tt1->Clone("hsparsejet_oppcharge_truth_tt1_clone");
-                THnSparse *hsparsejet_samecharge_truth_tt1_clone = (THnSparse *) hsparsejet_samecharge_truth_tt1->Clone("hsparsejet_samecharge_truth_tt1_clone");
-                // THnSparse *hsparsejet_unweightedRL_truth_tt1_clone = (THnSparse *) hsparsejet_unweightedRL_truth_tt1->Clone("hsparsejet_unweightedRL_truth_tt1_clone");
-
-                TH1D *h_pt_tt1_jetlevel_clone = (TH1D *) h_pt_tt1_jetlevel->Clone("h_pt_tt1_jetlevel_clone");
-                // cout << "checkpoint 1" << endl;
-                
-
-                // get jet pT range - no D0 reconstruction, so don't make D0 cuts
-                hsparsejet_deltap_truth_tt1_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max); // apply cut on jet pt
-                hsparsejet_deltap_truth_tt1_clone->GetAxis(1)->SetRangeUser(RL_min, RL_max); // apply cut on RL
-                hsparsejet_deltapt_truth_tt1_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max); 
-                hsparsejet_deltapt_truth_tt1_clone->GetAxis(1)->SetRangeUser(RL_min, RL_max);
-                hsparsejet_oppcharge_truth_tt1_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max); 
-                hsparsejet_oppcharge_truth_tt1_clone->GetAxis(1)->SetRangeUser(RL_min, RL_max);
-                hsparsejet_samecharge_truth_tt1_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max); 
-                hsparsejet_samecharge_truth_tt1_clone->GetAxis(1)->SetRangeUser(RL_min, RL_max);
-                // hsparsejet_unweightedRL_truth_tt1_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max); 
-                // hsparsejet_unweightedRL_truth_tt1_clone->GetAxis(1)->SetRangeUser(RL_min, RL_max);
-
-                h_pt_tt1_jetlevel_clone->GetXaxis()->SetRangeUser(pt_min, pt_max); // apply cut on jet pt
-                // cout << "checkpoint 2" << endl;
-                
-
-                // Project onto observable axis
-                TH1D *hcorr_deltap_truth_tt1_proj = hsparsejet_deltap_truth_tt1_clone->Projection(2); //CALL THESE TH1*????
-                TH1D *hcorr_deltapt_truth_tt1_proj = hsparsejet_deltapt_truth_tt1_clone->Projection(2);
-                TH1D *hcorr_oppcharge_truth_tt1_proj = hsparsejet_oppcharge_truth_tt1_clone->Projection(1);
-                TH1D *hcorr_samecharge_truth_tt1_proj = hsparsejet_samecharge_truth_tt1_clone->Projection(1);
-                // TH1D *hcorr_unweightedRL_truth_tt1_proj = hsparsejet_unweightedRL_truth_tt1_clone->Projection(2);
-                if (j==0) hdummyRL = hsparsejet_oppcharge_truth_tt1->Projection(1);
-                if (j==0) hdummyRL2 = hsparsejet_oppcharge_truth_tt1->Projection(1);
-
-                // cout << "checkpoint 3" << endl;
-
-                // Set to appropriate name
-                std::string hname = hcorr_deltap_truth_tt1_proj->GetName();
-                hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_RL" + std::to_string(RL_min) + "-" + std::to_string(RL_max);
-                hcorr_deltap_truth_tt1_proj->SetNameTitle(hname.c_str(), hname.c_str());
-
-                hname = hcorr_deltapt_truth_tt1_proj->GetName();
-                hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_RL" + std::to_string(RL_min) + "-" + std::to_string(RL_max);
-                hcorr_deltapt_truth_tt1_proj->SetNameTitle(hname.c_str(), hname.c_str());
-
-                hname = hcorr_oppcharge_truth_tt1_proj->GetName();
-                hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_RL" + std::to_string(RL_min) + "-" + std::to_string(RL_max);
-                hcorr_oppcharge_truth_tt1_proj->SetNameTitle(hname.c_str(), hname.c_str());
-
-                hname = hcorr_samecharge_truth_tt1_proj->GetName();
-                hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_RL" + std::to_string(RL_min) + "-" + std::to_string(RL_max);
-                hcorr_samecharge_truth_tt1_proj->SetNameTitle(hname.c_str(), hname.c_str());
-
-                // hname = hcorr_unweightedRL_truth_tt1_proj->GetName();
-                // hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_RL" + std::to_string(RL_min) + "-" + std::to_string(RL_max);
-                // hcorr_unweightedRL_truth_tt1_proj->SetNameTitle(hname.c_str(), hname.c_str());
-
-                // cout << "checkpoint 4" << endl;
-
-                // Rebin
-                int n_obs_bins = 20; //50; //-1;
-                //         double obs_bins[] = {1.00000000e-04, 1.25892541e-04, 1.58489319e-04, 1.99526231e-04,
-                // 2.51188643e-04, 3.16227766e-04, 3.98107171e-04, 5.01187234e-04,
-                // 6.30957344e-04, 7.94328235e-04, 1.00000000e-03, 1.25892541e-03,
-                // 1.58489319e-03, 1.99526231e-03, 2.51188643e-03, 3.16227766e-03,
-                // 3.98107171e-03, 5.01187234e-03, 6.30957344e-03, 7.94328235e-03,
-                // 1.00000000e-02, 1.25892541e-02, 1.58489319e-02, 1.99526231e-02,
-                // 2.51188643e-02, 3.16227766e-02, 3.98107171e-02, 5.01187234e-02,
-                // 6.30957344e-02, 7.94328235e-02, 1.00000000e-01, 1.25892541e-01,
-                // 1.58489319e-01, 1.99526231e-01, 2.51188643e-01, 3.16227766e-01,
-                // 3.98107171e-01, 5.01187234e-01, 6.30957344e-01, 7.94328235e-01,
-                // 1.00000000e+00};
-                double obs_bins[] = {0.  , 0.05, 0.1 , 0.15, 0.2 , 0.25, 0.3 , 0.35, 0.4 , 0.45, 0.5 ,
-                    0.55, 0.6 , 0.65, 0.7, 0.75, 0.8 , 0.85, 0.9 , 0.95, 1.  };
-
-
-                //if rebinning
-
-                TH1D* hcorr_deltap_truth_tt1 = (TH1D*) hcorr_deltap_truth_tt1_proj->Rebin(n_obs_bins, hcorr_deltap_truth_tt1_proj->GetName(), obs_bins);
-                TH1D* hcorr_deltapt_truth_tt1 = (TH1D*) hcorr_deltapt_truth_tt1_proj->Rebin(n_obs_bins, hcorr_deltapt_truth_tt1_proj->GetName(), obs_bins); 
-                
-                // TH1D* hcorr_oppcharge_truth_tt1 = (TH1D*) hcorr_oppcharge_truth_tt1_proj->Rebin(n_obs_bins, hcorr_oppcharge_truth_tt1_proj->GetName(), obs_bins);
-                // TH1D* hcorr_samecharge_truth_tt1 = (TH1D*) hcorr_samecharge_truth_tt1_proj->Rebin(n_obs_bins, hcorr_samecharge_truth_tt1_proj->GetName(), obs_bins);
-                // TH1D* hcorr_unweightedRL_truth_tt1 = (TH1D*) hcorr_unweightedRL_truth_tt1_proj->Rebin(n_obs_bins, hcorr_unweightedRL_truth_tt1_proj->GetName(), obs_bins);                
-
-                
-                // TH1D* hcorr_deltap_truth_tt1 = (TH1D*) hcorr_deltap_truth_tt1_proj->Clone(hcorr_deltap_truth_tt1_proj->GetName()); //(hc_name + "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max)).c_str());
-                // TH1D* hcorr_deltapt_truth_tt1 = (TH1D*) hcorr_deltapt_truth_tt1_proj->Clone(hcorr_deltapt_truth_tt1_proj->GetName());
-                
-                TH1D* hcorr_oppcharge_truth_tt1 = (TH1D*) hcorr_oppcharge_truth_tt1_proj->Clone(hcorr_oppcharge_truth_tt1_proj->GetName());
-                TH1D* hcorr_samecharge_truth_tt1 = (TH1D*) hcorr_samecharge_truth_tt1_proj->Clone(hcorr_samecharge_truth_tt1_proj->GetName());
-                // TH1D* hcorr_unweightedRL_truth_tt1 = (TH1D*) hcorr_unweightedRL_truth_tt1_proj->Clone(hcorr_unweightedRL_truth_tt1_proj->GetName());                
-                
-
-                // Find normalization factor
-                double numjets_tt1 = h_pt_tt1_jetlevel_clone->Integral();
-
-                // cout << "checkpoint 5" << endl;
-
-                // Set normalization
-                hcorr_deltap_truth_tt1->Scale(1/numjets_tt1, "width");
-                hcorr_deltapt_truth_tt1->Scale(1/numjets_tt1, "width");
-                hcorr_oppcharge_truth_tt1->Scale(1/numjets_tt1, "width");
-                hcorr_samecharge_truth_tt1->Scale(1/numjets_tt1, "width");
-                // hcorr_unweightedRL_truth_tt1->Scale(1/numjets_tt1, "width");
-
-                // cout << "checkpoint 6" << endl;
-                
-
-
-                // // Find maximum
-                // maxy = hi->GetMaximum() * 1.1;
-                // hi->SetMaximum(maxy); 
-
-
-
-
-                // make a canvas for each pt range
-                TCanvas* c_deltap = new TCanvas();
-                ProcessCanvas(c_deltap);
-                // gPad->SetLogx(); // gPad->SetLogy();
-
-                TCanvas* c_deltapt = new TCanvas();
-                ProcessCanvas(c_deltapt);
-                // c_deltapt->cd();
-                // gPad->SetLogx(); // gPad->SetLogy();
-
-                TCanvas* c_oppcharge = new TCanvas();
-                ProcessCanvas(c_oppcharge);
-                // c_oppcharge->cd();
-                gPad->SetLogx(); // gPad->SetLogy();
-
-                TCanvas* c_samecharge = new TCanvas();
-                ProcessCanvas(c_samecharge);
-                // c_samecharge->cd();
-                gPad->SetLogx(); // gPad->SetLogy();
-
-                TCanvas* c_chargeratio = new TCanvas();
-                ProcessCanvas(c_chargeratio);
-                // c_chargeratio->cd();
-                gPad->SetLogx(); // gPad->SetLogy();
-
-                TCanvas* c_unweightedRL = new TCanvas();
-                ProcessCanvas(c_unweightedRL);
-                // c_unweightedRL->cd();
-                // gPad->SetLogx(); // gPad->SetLogy();
-
-
-
-                
-                // TLegend* l; // = new TLegend(0.17, 0.65, 0.5, 0.85);
-                // l = new TLegend(0.1797168,0.400741,0.4562155,0.8885185,""); //(0.17, 0.4, 0.5, 0.53);
-                // /*
-                // l->SetTextSize(0.045);
-                // // TLegend *leg = new TLegend(0.1797168,0.5390741,0.4562155,0.8885185,"");
-                // l->AddEntry("NULL","PYTHIA 8 Monash 2013","h");
-                // l->AddEntry("NULL","pp, #sqrt{#it{s}} = 13 TeV","h");
-                // l->AddEntry("NULL","D^{0} #rightarrow K^{#minus} #pi^{+} and charge conj.","h");
-                // l->AddEntry("NULL","in charged jets, anti-#it{k}_{T}, #it{R} = 0.4","h");
-                // l->AddEntry("NULL",ptbin,"h");
-                // l->AddEntry("NULL",ptD,"h");
-                // */
-                // l->SetTextSize(0.037);
-                // l->SetBorderSize(0);
-                // l->Draw("same");
-                
-
-
-
-                //Format color and style
-                // int markercolor1 = kRed; //charm
-                // int markerstyle1 = kFullCircle;
-                // int markercolor2 = kViolet+2; //gluon
-                // int markerstyle2 = 33;
-                // int markercolor3 = kGreen+2; //light
-                // int markerstyle3 = 21;
-                // label1 = "R_{L} = " + std::to_string(RL_min) + "-" + std::to_string(RL_max);
-                // label2 = "gluon-init jets";
-                // TString label3 = "light-init jets";
-
-                cout << "HOLA??  " << endl;
-
-                // FormatHist(l, hcorr_deltap_truth_tt1, label[j], colors[j], markers[0]);
-                // FormatHist(l2, hcorr_deltapt_truth_tt1, label[j], colors[j], markers[0]);
-                // FormatHist(l2, hcorr_oppcharge_truth_tt1, label[j], colors[j], markers[0]);
-                // FormatHist(l2, hcorr_samecharge_truth_tt1, label[j], colors[j], markers[2]);
-                // FormatHist(l, hcorr_unweightedRL_truth_tt1, label[j], colors[j], markers[0]);
-
-                cout << "hiiiiii??  " << endl;
-                //print together
-                hcorr_deltap_truth_tt1_arr.push_back((TH1D*) hcorr_deltap_truth_tt1->Clone(hcorr_deltap_truth_tt1->GetName()));
-                hcorr_deltapt_truth_tt1_arr.push_back((TH1D*) hcorr_deltapt_truth_tt1->Clone(hcorr_deltapt_truth_tt1->GetName()));
-                hcorr_oppcharge_truth_tt1_arr.push_back((TH1D*) hcorr_oppcharge_truth_tt1->Clone(hcorr_oppcharge_truth_tt1->GetName()));
-                hcorr_samecharge_truth_tt1_arr.push_back((TH1D*) hcorr_samecharge_truth_tt1->Clone(hcorr_samecharge_truth_tt1->GetName()));
-                
-                label.push_back(Form("R_{L} = %.2f-%.2f", RL_min, RL_max));
-
-                FormatHist(l, hcorr_deltap_truth_tt1_arr[j], label[j], colors[j], markers[0]);
-                FormatHist(l2, hcorr_deltapt_truth_tt1_arr[j], label[j], colors[j], markers[0]);
-                FormatHist(l2, hcorr_oppcharge_truth_tt1_arr[j], label[j], colors[j], markers[0]);
-                FormatHist(l2, hcorr_samecharge_truth_tt1_arr[j], label[j], colors[j], markers[2]);
-                // FormatHist(l, hcorr_unweightedRL_truth_tt1, label[j], colors[j], markers[0]);
-
-                // Format histograms for plotting (this order needed to keep legend in order and graphs lookin good)
-                // hc->GetXaxis()->SetTitle("#it{p}_{T}#it{R}_{L}");
-                // hc->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
-                // hg->GetXaxis()->SetTitle("#it{p}_{T}#it{R}_{L}");
-                // hg->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
-                // hl->GetXaxis()->SetTitle("#it{p}_{T}#it{R}_{L}");
-                // hl->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
-                cout << "hello??  " << endl;
-
-                c_deltap->cd();
-                hcorr_deltap_truth_tt1_arr[j]->Draw();
-
-                c_deltapt->cd();
-                hcorr_deltapt_truth_tt1_arr[j]->Draw();
-
-                c_oppcharge->cd();
-                hcorr_oppcharge_truth_tt1_arr[j]->Draw();
-
-                c_samecharge->cd();
-                hcorr_samecharge_truth_tt1_arr[j]->Draw();
-
-                c_chargeratio->cd();
-                std::string charge_ratio_name = "hcorr_chargeratio_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_RL" + std::to_string(RL_min) + "-" + std::to_string(RL_max);
-                TH1D* hcorr_chargeratio_truth_tt1 = (TH1D*) hcorr_oppcharge_truth_tt1_arr[j]->Clone(charge_ratio_name.c_str());
-                hcorr_chargeratio_truth_tt1->Divide(hcorr_samecharge_truth_tt1_arr[j]);
-                FormatHist(l2, hcorr_chargeratio_truth_tt1, label[j], colors[j], markers[2]);
-                hcorr_chargeratio_truth_tt1_arr.push_back((TH1D*) hcorr_chargeratio_truth_tt1->Clone(hcorr_chargeratio_truth_tt1->GetName()));
-                hcorr_chargeratio_truth_tt1_arr[j]->Draw();
-                // rp->GetLowYaxis()->SetNdivisions(505);
-                // c->Update();
-
-                // plot the combined graphs
-                c_deltap_all->cd();
-                // std::cout << "HERE!!!" << std::endl;
-                hcorr_deltap_truth_tt1_arr[j]->Draw("same");
-                if (j==0) {
-                    hcorr_deltap_truth_tt1_arr[j]->SetMaximum(0.1); //65);
-                }
-                // c_deltap_all->Modified();
-                // c_deltap_all->Update();
-                l->Draw("same");
-
-                c_deltapt_all->cd();
-                hcorr_deltapt_truth_tt1_arr[j]->Draw("same");
-                if (j==0) {
-                    hcorr_deltapt_truth_tt1_arr[j]->SetMaximum(0.1); //65);
-                }
-                l->Draw("same");
-
-                c_charge_all->cd();
-                
-                    // c_charge_all->cd(2);
-                    // hcorr_chargeratio_truth_tt1_arr[j]->Draw("same");
-                if (j==0) {
-                    c_charge_all->Divide(1,2);                    
-                }
-                c_charge_all->cd(1);
-                if (j==0) {
-                    // gPad->SetLogx();
-                    // FormatHist(l2, hdummyRL, "", colors[j], markers[0]);
-                    hdummyRL->SetMarkerColorAlpha(kBlue, 0);
-                    hdummyRL->SetLineColorAlpha(kRed, 0);
-                    hdummyRL->SetMinimum(0.);
-                    hdummyRL->SetMaximum(3.5);
-                    hdummyRL->GetXaxis()->SetRangeUser(1e-4, 0.4); //(0.01, 0.4)
-                    hdummyRL->Draw();
-                }
-                
-                hcorr_oppcharge_truth_tt1_arr[j]->Draw("same");
-                hcorr_samecharge_truth_tt1_arr[j]->Draw("same");
-
-                hcorr_oppcharge_truth_tt1_arr[j]->SetMarkerColorAlpha(colors[j], 0.6);
-                hcorr_oppcharge_truth_tt1_arr[j]->SetLineColorAlpha(colors[j], 0.6);
-                hcorr_samecharge_truth_tt1_arr[j]->SetMarkerColorAlpha(colors[j], 0.6);
-                hcorr_samecharge_truth_tt1_arr[j]->SetLineColorAlpha(colors[j], 0.6);
-                l_right->AddEntry(hcorr_oppcharge_truth_tt1_arr[j],label[j]);
-                // l_right->AddEntry(hcorr_samecharge_truth_tt1_arr[j],label[j]);
-                
-                l_right->Draw("same");
-                // gPad->BuildLegend();
-
-
-                c_charge_all->cd(2);
-                if (j==0) {
-                    // gPad->SetLogx();
-                    hdummyRL2->SetMarkerColorAlpha(kBlue, 0);
-                    hdummyRL2->SetLineColorAlpha(kRed, 0);
-                    hdummyRL2->SetMinimum(0.);
-                    hdummyRL2->SetMaximum(2.5);
-                    hdummyRL2->GetXaxis()->SetRangeUser(1e-4, 0.4); //(0.01, 0.4)
-                    hdummyRL2->Draw();
-                    drawHoriLine(0.01, 0.4, 1., kBlack);
-                }
-                hcorr_chargeratio_truth_tt1_arr[j]->Draw("same");
-
-                
-
-
-
-
-                
-                // cout << "about to format plots" << endl;
-                // FormatHist(l, hc, label1, markercolor1, markerstyle1);
-                // if (charmdecays) {
-                //     l->AddEntry("NULL","          D* decays on","h");
-                // } else {
-                //     l->AddEntry("NULL","          D* decays off","h");
-                // }
-                // FormatHist(l, hg, label2, markercolor2, markerstyle2);
-                // FormatHist(l, hl, label3, markercolor3, markerstyle3);
-                
-
-                // hc->Draw("L same");
-                // hg->Draw("L same");
-                // hl->Draw("L same");
-                
-            
-
-
-                // make ratio plot
-                // auto rp = new TRatioPlot(hD0, hc);
-                // rp->Draw();
-                // rp->GetLowYaxis()->SetNdivisions(505);
-                // c->Update();
-
-
-        
-
-
-                
-
-
-
-
-                // draw legend
-                // l->Draw("same");
-
-                std::string RLname = "_RL" + std::to_string(RL_min) + "-" + std::to_string(RL_max);
-
-                std::string fname_deltap = outdir + "corrhist_deltap_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
-                std::string fname_deltapt = outdir + "corrhist_deltapt_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
-                std::string fname_oppcharge = outdir + "corrhist_oppcharge_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
-                std::string fname_samecharge = outdir + "corrhist_samecharge_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
-                std::string fname_unweightedRL = outdir + "corrhist_unweightedRL_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
-                std::string fname_chargeratio = outdir + "corrhist_chargeratio_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
-
-                const char* fname_deltapc = fname_deltap.c_str();
-                const char* fname_deltaptc = fname_deltapt.c_str();
-                const char* fname_oppchargec = fname_oppcharge.c_str();
-                const char* fname_samechargec = fname_samecharge.c_str();
-                const char* fname_unweightedRLc = fname_unweightedRL.c_str();
-                const char* fname_chargeratioc = fname_chargeratio.c_str();
-
-                c_deltap->SaveAs(fname_deltapc);
-                c_deltapt->SaveAs(fname_deltaptc);
-                c_oppcharge->SaveAs(fname_oppchargec);
-                c_samecharge->SaveAs(fname_samechargec);
-                // c_unweightedRL->SaveAs(fname_unweightedRLc);
-                c_chargeratio->SaveAs(fname_chargeratioc);
-
-                delete c_deltap;
-                delete c_deltapt;
-                delete c_oppcharge;
-                delete c_samecharge;
-                // delete c_unweightedRL;
-                delete c_chargeratio;
-
-                f_out->cd();
-                hcorr_deltap_truth_tt1->Write();
-                hcorr_deltapt_truth_tt1->Write();
-                hcorr_oppcharge_truth_tt1->Write();
-                hcorr_samecharge_truth_tt1->Write();
-                // hcorr_unweightedRL_truth_tt1->Write();
-                hcorr_chargeratio_truth_tt1->Write();
-
-                
-                delete hcorr_deltap_truth_tt1;
-                delete hcorr_deltapt_truth_tt1;
-                delete hcorr_oppcharge_truth_tt1;
-                delete hcorr_samecharge_truth_tt1;
-                // delete hcorr_unweightedRL_truth_tt1;
-                delete hcorr_chargeratio_truth_tt1;
-
-                delete h_pt_tt1_jetlevel_clone;
-                
-
-            
-            } // RL bins loop
-
-            //----------------------------//
-            /*c_charge_all->cd();
-            for (int j=n_RLbins-1; j>=0; j--) {
-                
-                // c_charge_all->Divide(1,2);
-                // c_charge_all->cd(1);
-                // c_charge_all->cd(2);
-                // hcorr_chargeratio_truth_tt1_arr[j]->Draw("same");
-            
-                if (j==4) {
-                    hcorr_oppcharge_truth_tt1_arr[j]->Draw("same");
-                    // hcorr_samecharge_truth_tt1_arr[j]->Draw("same");
-                }
-                if (j==4) {
-                    hcorr_oppcharge_truth_tt1_arr[j]->SetMinimum(0.);
-                    hcorr_oppcharge_truth_tt1_arr[j]->SetMaximum(2.); //65);
-                    hcorr_oppcharge_truth_tt1_arr[j]->GetXaxis()->SetLimits(0.01, 0.4);
-                    // hcorr_oppcharge_truth_tt1_arr[j]->SetAxisRange(0.01, 0.4,"X");
-                    // hcorr_oppcharge_truth_tt1_arr[j]->GetXaxis()->SetRangeUser(0.01, 0.4);
-                }
-                l->Draw("same");
-            }*/
-            //----------------------------//
-
-            std::string fname_deltap_all = outdir + "corrhist_deltap_all_pt" + ptname + "_R" + jetR + add_name + ".pdf";
-            std::string fname_deltapt_all = outdir + "corrhist_deltapt_all_pt" + ptname + "_R" + jetR + add_name + ".pdf";
-            std::string fname_charge_all = outdir + "corrhist_charge_all_pt" + ptname + "_R" + jetR + add_name + ".pdf";
-            
-            const char* fname_deltapc_all = fname_deltap_all.c_str();
-            const char* fname_deltaptc_all = fname_deltapt_all.c_str();
-            const char* fname_chargec_all = fname_charge_all.c_str();
-            
-            c_deltap_all->SaveAs(fname_deltapc_all);
-            c_deltapt_all->SaveAs(fname_deltaptc_all);
-            c_charge_all->SaveAs(fname_chargec_all);
-
-            delete c_deltap_all;
-            delete c_deltapt_all;
-            delete c_charge_all;
-
-        } // pT bins loop
-    } // jetR loop
+    
 
     f->Close();
     delete f;

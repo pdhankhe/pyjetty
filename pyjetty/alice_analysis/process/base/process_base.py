@@ -204,7 +204,7 @@ class ProcessBase(common_base.CommonBase):
     h.Sumw2()
     for i in range(0, dim):
       h.GetAxis(i).SetTitle(title[i])
-      print("BINNINGS", type(binnings[i]), binnings[i])
+      # print("BINNINGS", type(binnings[i]), binnings[i])
       h.SetBinEdges(i, binnings[i])
         
 

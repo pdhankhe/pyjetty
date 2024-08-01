@@ -361,6 +361,16 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
           binnings = (pt_bins, rapi_bins, z_bins)
           self.create_thn_EEC(name, title_truth, dim, binnings) # this will need to be fixed later! - add more dimensions to also include jet pt?
 
+          #Make some blank arrays to be filled if thnsparse - TODO: idk if this is in the right place...
+          self.fsparsepartonJetvalue = array.array( 'd', ( 0, 0, 0, 0, 0 ))
+          self.fsparsejetlevelJetvalue = array.array( 'd', ( 0, 0, 0, 0 ))
+
+          name = 'h_1D{}_JetPt_Truth_R{}_{}'.format(observable, jetR, obs_label)
+          h = ROOT.TH1D(name, name, 200, pt_bins)
+          h.GetXaxis().SetTitle('p_{T,ch jet}')
+          h.GetYaxis().SetTitle('Counts')
+          setattr(self, name, h)
+
           '''name = 'h_{}_JetPt_R{}_{}'.format(observable, jetR, obs_label)
           pt_bins = linbins(0,200,200)
           h = ROOT.TH1D(name, name, 200, pt_bins)
@@ -419,9 +429,7 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
         #   h.GetYaxis().SetTitle('#eta_{ch jet}')
         #   setattr(self, name, h)
 
-        #Make some blank arrays to be filled if thnsparse
-        self.fsparsepartonJetvalue = array.array( 'd', ( 0, 0, 0, 0, 0 ))
-        self.fsparsejetlevelJetvalue = array.array( 'd', ( 0, 0, 0, 0 ))
+        
 
         # Init pair distance histograms (both det and truth level)
         # average track pt bins
@@ -516,98 +524,97 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
   def create_corr_histograms(self, observable, ipoint, jetR, obs_label):
   
     pt_bins = linbins(0,200,200)
-    # RL_bins = logbins(1E-4,1,50)
+    RL_bins = logbins(1E-4,1,50) # for the unweighted??
     ptRL_bins = logbins(1E-3,1E2,60)
-    deltap_bins = linbins(0., 10., 250) #linbins(0, 1., 100) + linbins(1.0, 100., 99)[1:]
+    deltap_bins = linbins(0., 5., 250) #linbins(0, 1., 100) + linbins(1.0, 100., 99)[1:]
     charge_bins = linbins(-1.5, 1.5, 3)
-    weight_bins = linbins(0, 1, 100) #is this how i want to do it??
+    weight_bins = linbins(0., 1., 200) #is this how i want to do it??
 
+    # need different bins for RL depending on pT - as RL bin edges need to match up with the previously determined regions
+    arr_zero = array.array('d', np.zeros(1))
     a1 = np.logspace(np.log10(1E-4),np.log10(1E-2),21) # array from 10^-4 to 10^-2 in 20 bins
-    arr1 = array.array('d', a1) #'f' makes all the numbers weird
-    arr2 = logbins(1E-2,2E-2,5) # gives 5 bins (6 values in array)
-    arr3 = logbins(2E-2,3E-2,5)
-    arr4 = logbins(3E-2,7E-2,5)
-    arr5 = logbins(7E-2,2E-1,5)
-    arr6 = logbins(2E-1,4E-1,5)
-    arr7 = logbins(4E-1,1,5)
-    RL_bins = arr1+arr2[1:]+arr3[1:]+arr4[1:]+arr5[1:]+arr6[1:]+arr7[1:]
+    arr_begin = array.array('d', a1) #'f' makes all the numbers weird
+    arr1_pt2040 = logbins(1E-2,3E-2,5) # gives 5 bins (6 values in array)
+    arr2_pt2040 = logbins(3E-2,7E-2,5)
+    arr3_pt2040 = logbins(7E-2,1.5E-1,5)
+    arr4_pt2040 = logbins(1.5E-1,3E-1,5)
+    arr5_pt2040 = logbins(3E-1,4E-1,5)
+    arr_end = logbins(4E-1,1,5)
+    RL_bins_pt2040 = arr_zero+arr_begin+arr1_pt2040[1:]+arr2_pt2040[1:]+arr3_pt2040[1:]+arr4_pt2040[1:]+arr5_pt2040[1:]+arr_end[1:]
+
+    arr1_pt4060 = logbins(1E-2,2.5E-2,5) # gives 5 bins (6 values in array)
+    arr2_pt4060 = logbins(2.5E-2,4E-2,5)
+    arr3_pt4060 = logbins(4E-2,8E-2,5)
+    arr4_pt4060 = logbins(8E-2,2.5E-1,5)
+    arr5_pt4060 = logbins(2.5E-1,4E-1,5)
+    RL_bins_pt4060 = arr_zero+arr_begin+arr1_pt4060[1:]+arr2_pt4060[1:]+arr3_pt4060[1:]+arr4_pt4060[1:]+arr5_pt4060[1:]+arr_end[1:]
+
+    arr1_pt6080 = logbins(1E-2,2.5E-2,5) # gives 5 bins (6 values in array)
+    arr2_pt6080 = logbins(2.5E-2,3E-2,5)
+    arr3_pt6080 = logbins(3E-2,4.5E-2,5)
+    arr4_pt6080 = logbins(4.5E-2,2E-1,5)
+    arr5_pt6080 = logbins(2E-1,4E-1,5)
+    RL_bins_pt6080 = arr_zero+arr_begin+arr1_pt6080[1:]+arr2_pt6080[1:]+arr3_pt6080[1:]+arr4_pt6080[1:]+arr5_pt6080[1:]+arr_end[1:]
+
+    
     # print("RL BINS HERE!", RL_bins)
 
 
     # Create histograms
     # delta p, truth
-    dim = 3
+    dim = 5
     if (observable == "corr_deltap"):
-      title_truth = ['p_{T,ch jet,truth}', 'R_{L,truth}', '#Deltap_{truth}']
-      title = ['p_{T,ch jet,det}', 'R_{L,det}', '#Deltap_{det}']
+      title_truth = ['p_{T,ch jet,truth}', 'R_{L,truth}_pt2040', 'R_{L,truth}_4060', 'R_{L,truth}_pt6080', '#Deltap_{truth}']
+      title = ['p_{T,ch jet,det}', 'R_{L,det}_pt2040', 'R_{L,det}_pt4060', 'R_{L,det}_pt6080', '#Deltap_{det}']
       obs_bins = deltap_bins
 
     # delta pt, truth
     if (observable == "corr_deltapt"):
-      title_truth = ['p_{T,ch jet,truth}', 'R_{L,truth}', '#Deltap_{T, truth}']
-      title = ['p_{T,ch jet,det}', 'R_{L,det}', '#Deltap_{T, det}']
+      title_truth = ['p_{T,ch jet,truth}', 'R_{L,truth}_pt2040', 'R_{L,truth}_4060', 'R_{L,truth}_pt6080', '#Deltap_{T, truth}']
+      title = ['p_{T,ch jet,det}', 'R_{L,det}_pt2040', 'R_{L,det}_pt4060', 'R_{L,det}_pt6080', '#Deltap_{T, det}']
       obs_bins = deltap_bins
 
     # charge
     if (observable == "corr_samecharge"):
-      title_truth = ['p_{T,ch jet,truth}', 'R_{L,truth}', 'same charge_{truth}']
-      title = ['p_{T,ch jet,det}', 'R_{L,det}', 'same charge_{det}']
+      title_truth = ['p_{T,ch jet,truth}', 'R_{L,truth}_pt2040', 'R_{L,truth}_4060', 'R_{L,truth}_pt6080', 'same charge_{truth}']
+      title = ['p_{T,ch jet,det}', 'R_{L,det}_pt2040', 'R_{L,det}_pt4060', 'R_{L,det}_pt6080', 'same charge_{det}']
       obs_bins = charge_bins
     if (observable == "corr_oppcharge"):
-      title_truth = ['p_{T,ch jet,truth}', 'R_{L,truth}', 'opp charge_{truth}']
-      title = ['p_{T,ch jet,det}', 'R_{L,det}', 'opp charge_{det}']
+      title_truth = ['p_{T,ch jet,truth}', 'R_{L,truth}_pt2040', 'R_{L,truth}_4060', 'R_{L,truth}_pt6080', 'opp charge_{truth}']
+      title = ['p_{T,ch jet,det}', 'R_{L,det}_pt2040', 'R_{L,det}_pt4060', 'R_{L,det}_pt6080', 'opp charge_{det}']
       obs_bins = charge_bins
 
     # unweighted RL
     if (observable == "corr_unweightedRL"):
-      title_truth = ['p_{T,ch jet,truth}', 'R_{L,truth}', 'unweighted R_{L,truth}']
-      title = ['p_{T,ch jet,det}', 'R_{L,det}', 'unweighted R_{L,det}']
+      title_truth = ['p_{T,ch jet,truth}', 'R_{L,truth}_pt2040', 'R_{L,truth}_4060', 'R_{L,truth}_pt6080', 'unweighted R_{L,truth}']
+      title = ['p_{T,ch jet,det}', 'R_{L,det}_pt2040', 'R_{L,det}_pt4060', 'R_{L,det}_pt6080', 'unweighted R_{L,det}']
       obs_bins = RL_bins
-
-    '''# don't do thnsparse anymore
-    name = 'h_{}{}_JetPt_Truth_R{}_{}'.format(observable, ipoint, jetR, obs_label)
-    h = ROOT.TH2D(name, name, 200, pt_bins, len(obs_bins)-1, obs_bins)
-    h.GetXaxis().SetTitle(title_truth[0]) #'p_{T,ch jet}')
-    h.GetYaxis().SetTitle(title_truth[2]) #'R_{L}')
-    setattr(self, name, h)
-
-    name = 'h_{}{}_JetPt_R{}_{}'.format(observable, ipoint, jetR, obs_label)
-    h = ROOT.TH2D(name, name, 200, pt_bins, len(obs_bins)-1, obs_bins)
-    h.GetXaxis().SetTitle(title[0]) #'p_{T,ch jet}')
-    h.GetYaxis().SetTitle(title[2]) #'R_{L}')
-    setattr(self, name, h)
-    '''
-
-#------
-    # dim = 5
-    # pt_bins = linbins(0,200,200)
-    # rapi_bins = np.linspace(-5,5,201)
-    # RL_bins = logbins(1E-4,1,50)
-    # z_bins = np.linspace(0, 1.01, 102)
-
-    # # Truth histograms
-    # name = 'h_{}{}_JetPt_Truth_R{}_{}'.format(observable, pair_type_label, jetR, obs_label)
-    # title = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'D^{0} y', 'D^{0} z', '#it{R}_{L}' ]
-    # binnings = (pt_bins, rapi_bins, z_bins, RL_bins)
-    # self.create_thn(name, title_truth, dim, binnings, obs='rl') # this will need to be fixed later! - add more dimensions to also include jet pt?
-#------
+    
+    # energy weights
+    if (observable == "corr_energyweights"):
+      title_truth = ['p_{T,ch jet,truth}', 'R_{L,truth}_pt2040', 'R_{L,truth}_4060', 'R_{L,truth}_pt6080', 'energy weights_{truth}']
+      title = ['p_{T,ch jet,det}', 'R_{L,det}_pt2040', 'R_{L,det}_pt4060', 'R_{L,det}_pt6080', 'energy weights_{det}']
+      obs_bins = weight_bins
 
 
+
+    # create thnsparses!
+    # unweighted observables
     # name = 'h_{}{}_JetPt_Truth_R{}_{}'.format(observable, ipoint, jetR, obs_label)
     name = 'h_{}_JetPt_Truth_R{}_{}'.format(observable, jetR, obs_label)
-    # print("NAME", name)
-    binnings = (pt_bins, RL_bins, obs_bins)
-    self.create_thn(name, title_truth, dim, binnings) # this will need to be fixed later! - add more dimensions to also include jet pt?
+    # print("NAME OF HIST", name)
+    binnings = (pt_bins, RL_bins_pt2040, RL_bins_pt4060, RL_bins_pt6080, obs_bins)
+    self.create_thn(name, title_truth, dim, binnings)
 
-    # nbins  = [len(pt_bins)-1, len(RL_bins)-1, len(obs_bins)-1]
-    # min = [pt_bins[0],      RL_bins[0],     obs_bins[0]]
-    # max = [pt_bins[-1],     RL_bins[-1],    obs_bins[-1]]
-    # self.create_thn(name, title_truth, dim, nbins, min, max)
+    # weighted observables
+    name = 'h_{}_Weighted_JetPt_Truth_R{}_{}'.format(observable, jetR, obs_label)
+    self.create_thn(name, title_truth, dim, binnings)
 
-    # name = 'h_{}{}_JetPt_R{}_{}'.format(observable, ipoint, jetR, obs_label)
-    # self.create_thn(name, title, dim, nbins, min, max)
-    
+    #Make some blank arrays to be filled if thnsparse
+    self.fsparsepartonJetvalue = array.array( 'd', np.zeros(dim)) #( 0, 0, 0, 0, 0 ))
+    self.fsparsejetlevelJetvalue = array.array( 'd', np.zeros(dim-1)) #() 0, 0, 0, 0 ))
 
+  
 
 
   def get_pair_eff_weights(self, corr_builder, ipoint, constituents):
@@ -689,20 +696,25 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
       jet_pt = jet.perp()
 
     new_corr = ecorrel.CorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut)
+    # print("THERE ARE ", new_corr.correlator(2).rs().size(), "NUM OF ENTRIES IN NEW CORR")
     # save jet level information to thnsparse arrays
     self.fsparsejetlevelJetvalue[0] = jet_pt
     self.fsparsepartonJetvalue[0] = jet_pt
-
-    for part in c_select:
-      self.fsparsejetlevelJetvalue[1] = -99
-      self.fsparsepartonJetvalue[1] = -99
-      self.fsparsejetlevelJetvalue[2] = -99
-      self.fsparsepartonJetvalue[2] = -99
-      self.fsparsejetlevelJetvalue[3] = part.pt()/jet_pt
-      self.fsparsepartonJetvalue[3] = part.pt()/jet_pt
+        
 
     for observable in self.observable_list:
       # print("CP OBSERVABLE", observable)
+
+      if 'ENC' in observable or 'EEC_noweight' in observable or 'EEC_weight2' in observable:
+        for part in c_select:
+          self.fsparsejetlevelJetvalue[1] = -99
+          self.fsparsepartonJetvalue[1] = -99
+          self.fsparsejetlevelJetvalue[2] = -99
+          self.fsparsepartonJetvalue[2] = -99
+          self.fsparsejetlevelJetvalue[3] = -99 #part.pt()/jet_pt
+          self.fsparsepartonJetvalue[3] = -99 #part.pt()/jet_pt
+
+      
       if 'ENC' in observable or 'EEC_noweight' in observable or 'EEC_weight2' in observable:
         for ipoint in range(2, 3):
           if self.ENC_fastsim and (not 'Truth' in hname): # NB: only apply pair efficiency effect for fast sim and det level distributions
@@ -760,6 +772,8 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
       if 'jet_pt' in observable:
         getattr(self, hname.format(observable,obs_label)).Fill(self.fsparsejetlevelJetvalue)
         # getattr(self, hname.format(observable,obs_label)).Fill(jet_pt)
+        getattr(self, hname.format("1D"+observable,obs_label)).Fill(jet_pt)
+ 
       
       # NB: for now, only perform this check on data and full sim
       if 'EEC_detail' in observable and self.ENC_fastsim==False: 
@@ -802,6 +816,11 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
         if (observable == "corr_deltapt"):
           new_obs_corr = othercorrel.OtherCorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "deltapt")
 
+        # p_obs_corr = othercorrel.OtherCorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "deltap")
+        # pt_obs_corr = othercorrel.OtherCorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "deltapt")
+        # for index in range(p_obs_corr.correlator(ipoint).rs().size()):
+          # print("p_obs is ", p_obs_corr.correlator(2).rs()[index], "and pt_obs is ", pt_obs_corr.correlator(2).rs()[index])
+
         # # charge
         # if ("charge" in observable):
         #   # new_obs_corr = othercorrel.OtherCorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "charge")
@@ -811,25 +830,39 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
         if (observable == "corr_unweightedRL"): # this is WRONG, but leave for now
           new_obs_corr = ecorrel.CorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut)
 
+        # print("THERE ARE ", new_obs_corr.correlator(ipoint).rs().size(), "NUM OF ENTRIES IN NEW OBS CORR")
+
         # assuming the length of new_corr is the same as new_obs_corr
-        fsparsejetlevelJetvalue = array.array( 'd', ( 0, 0, 0 ))
-        fsparsejetlevelJetvalue[0] = jet_pt
+        # fsparsejetlevelJetvalue = array.array( 'd', ( 0, 0, 0 ))
+        self.fsparsepartonJetvalue[0] = jet_pt
 
         # print("OBS! HERE!", observable)
+        # Filling histograms here!
         for index in range(new_corr.correlator(ipoint).rs().size()):
-          fsparsejetlevelJetvalue[1] = new_corr.correlator(ipoint).rs()[index]
+          # Fill the RL values here
+          self.fsparsepartonJetvalue[1] = new_corr.correlator(ipoint).rs()[index]
+          self.fsparsepartonJetvalue[2] = new_corr.correlator(ipoint).rs()[index]
+          self.fsparsepartonJetvalue[3] = new_corr.correlator(ipoint).rs()[index]
+          
           if ("charge" in observable):
             samecharge_boolean = self.is_same_charge(new_corr, ipoint, c_select, index)
-            fsparsejetlevelJetvalue[2] = 1 if samecharge_boolean else -1
-            if samecharge_boolean and observable == "corr_samecharge":
-              getattr(self, hname.format(observable,obs_label)).Fill(fsparsejetlevelJetvalue, new_corr.correlator(ipoint).weights()[index])
-            elif not samecharge_boolean and observable == "corr_oppcharge":
-              getattr(self, hname.format(observable,obs_label)).Fill(fsparsejetlevelJetvalue, new_corr.correlator(ipoint).weights()[index])
+            self.fsparsepartonJetvalue[4] = 1 if samecharge_boolean else -1
+            # print("samecharge boolean is", samecharge_boolean, self.fsparsepartonJetvalue[4])
+            if not samecharge_boolean and observable == "corr_samecharge":
+              # print("skipping smae charge", samecharge_boolean)
+              continue
+            if samecharge_boolean and observable == "corr_oppcharge":
+              # print("skipping opp charge", samecharge_boolean)
+              continue
+          elif ("energyweights" in observable):
+            self.fsparsepartonJetvalue[4] = new_corr.correlator(ipoint).weights()[index]
           else:
-            fsparsejetlevelJetvalue[2] = new_obs_corr.correlator(ipoint).rs()[index]
-            getattr(self, hname.format(observable,obs_label)).Fill(fsparsejetlevelJetvalue, new_corr.correlator(ipoint).weights()[index])
-            # getattr(self, hname.format(observable+str(ipoint),obs_label)).Fill(fsparsejetlevelJetvalue, new_corr.correlator(ipoint).weights()[index])
+            self.fsparsepartonJetvalue[4] = new_obs_corr.correlator(ipoint).rs()[index]
 
+          # print("FIlling weighted and then unweighted!!", new_corr.correlator(ipoint).weights()[index])
+          getattr(self, hname.format(observable+"_Weighted",obs_label)).Fill(self.fsparsepartonJetvalue, new_corr.correlator(ipoint).weights()[index])
+          getattr(self, hname.format(observable,obs_label)).Fill(self.fsparsepartonJetvalue)
+            
 
   #---------------------------------------------------------------
   # This function is called per observable per jet subconfigration 

@@ -152,6 +152,11 @@ namespace OtherCorrelators
                 } else if (strcmp(correltype, "deltapt") == 0) {
                     _d12 = fabs(parts[i].pt() - parts[j].pt());
                     // cout << "delta pT: " << parts[i].pt() << " - " << parts[j].pt() << " = " << _d12 << endl;
+                    // cout << "del PERP: " << parts[i].perp() << " - " << parts[j].perp() << " = " << fabs(parts[i].perp() - parts[j].perp()) << endl;
+                    // double testingp1 = sqrt(parts[i].px()*parts[i].px() + parts[i].py()*parts[i].py());
+                    // double testingp2 = sqrt(parts[j].px()*parts[j].px() + parts[j].py()*parts[j].py());
+                    // cout << "del TEST: " << testingp1 << " - " << testingp2 << " = " << testingp1 - testingp2 << endl;
+                    
                 } // else if (correltype == "charge") {
                 //     double q1 = parts[i].python_info().charge; //parts[i].charge();
                 //     double q2 = parts[j].python_info().charge; //parts[j].charge();
@@ -161,11 +166,16 @@ namespace OtherCorrelators
 		
                 double _w2 = 0;
             
-                // _w2 = parts[i].perp() * parts[j].perp() / std::pow(scale, 2);
+                _w2 = parts[i].perp() * parts[j].perp() / std::pow(scale, 2);
                 // _w2 = pow(_w2, power);
 
                 fec[2 - 2]->addwr(_w2, _d12, i, j); // save weight, distance and indices of the pair
-                
+                // if (strcmp(correltype, "deltap") == 0) {
+                //     cout << "TAKE 2delta p:  = " << _d12 << " WEIGHTS " << _w2 << endl;
+                // } else if (strcmp(correltype, "deltapt") == 0) {
+                //     cout << "TAKE 2delta pT: " << parts[i].pt() << " - " << parts[j].pt() << " = " << _d12 << " WEIGHTS " << _w2 << endl;
+                // }
+
                 if (fncmax < 3)
                     continue;
                 

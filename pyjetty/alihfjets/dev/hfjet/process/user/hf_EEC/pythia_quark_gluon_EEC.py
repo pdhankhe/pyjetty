@@ -94,7 +94,6 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 		self.weighted = (bool)(args.weightON) #weightON=True(F) means turn weights on(off)
 		self.leading_parton_pt_cut = args.leadingptcut
 		self.replaceKPpairs = (bool)(args.replaceKP) #replaceKP=True(F) means turn k/pi pairs are('nt) replaced
-		self.gg2ccbar = (bool)(args.onlygg2ccbar) #gg2ccbar=True means only run gg->ccbar process
 		self.hardccbar = (bool)(args.onlyccbar) #hard2ccbar=True means only run hard->ccbar process
 		self.Dstar = (bool)(args.DstarON) #Dstar=True means look at D* EEC, should be run with self.replaceKPpairs=True
 		self.initscat = args.chinitscat #1=hard->ccbar, 2=gg->ccbar, 3=D0->Kpi channel, 4=hard->bbar w/ D0->Kpi, 5=hard->bbar
@@ -562,7 +561,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			# Save PDG code of the parent partons
 			self.parent_ids = [pythia.event[5].id(), pythia.event[6].id()]
 
-			#loop for gluons splitting
+			#loop for gluons splitting - this is wrong!! - not being used, ignore for now
 			fs_parton_3 = fj.PseudoJet(pythia.event[3].px(), pythia.event[3].py(), pythia.event[3].pz(), pythia.event[3].e())
 			fs_parton_4 = fj.PseudoJet(pythia.event[4].px(), pythia.event[4].py(), pythia.event[4].pz(), pythia.event[4].e())
 			self.scatteringpartons = [fs_parton_3, fs_parton_4]
@@ -575,7 +574,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 
 			# parton level
 			if (self.partonlevel):
-				parts_pythia_p = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal], 0, True) # parton level, full jets
+				parts_pythia_p = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal, pythiafjext.kVisible], 0, True) # parton level, full jets
 			else:
 				parts_pythia_p = None
 
@@ -587,41 +586,41 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			# full-hadron level
 			if ( self.use_fulljets == 1 ):
 				if ( self.replaceKPpairs == False ):
-					parts_pythia_h = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal], 0, True)
+					parts_pythia_h = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal, pythiafjext.kVisible], 0, True)
 				else:
-					parts_pythia_h = pythiafjext.vectorize_select_replaceD0(pythia, [pythiafjext.kFinal], 0, True)
+					parts_pythia_h = pythiafjext.vectorize_select_replaceD0(pythia, [pythiafjext.kFinal, pythiafjext.kVisible], 0, True)
 			else:
 				parts_pythia_h = None
 
 
 			#testing
-			# parts_pythia_hch_noreplace = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal, pythiafjext.kCharged], 0, True)
-			# parts_pythia_hch_replaced = pythiafjext.vectorize_select_replaceD0(pythia, [pythiafjext.kFinal, pythiafjext.kCharged], 0, True)
+			# parts_pythia_hch_noreplace = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal, pythiafjext.kVisible, pythiafjext.kCharged], 0, True)
+			# parts_pythia_hch_replaced = pythiafjext.vectorize_select_replaceD0(pythia, [pythiafjext.kFinal, pythiafjext.kVisible, pythiafjext.kCharged], 0, True)
 
 			# charged-hadron level
 			# if ( self.use_fulljets != 1 ):
 			if ( self.replaceKPpairs == False ):
 				if ( self.phimeson ):
-					old_pythia_hch = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal, pythiafjext.kCharged], 0, True)
-					phis_pythia_hch = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal, pythiafjext.kPhi], 0, True)
+					old_pythia_hch = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal, pythiafjext.kVisible, pythiafjext.kCharged], 0, True)
+					phis_pythia_hch = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal, pythiafjext.kVisible, pythiafjext.kPhi], 0, True)
 					parts_pythia_hch = pythiafjext.add_vectors(old_pythia_hch, phis_pythia_hch)
 					# print("There are ", len(old_pythia_hch), "in oph, and ", len(phis_pythia_hch), " in phis", len(parts_pythia_hch), " in parts")
 				else:
-					parts_pythia_hch = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal, pythiafjext.kCharged], 0, True)
+					parts_pythia_hch = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal, pythiafjext.kVisible, pythiafjext.kCharged], 0, True)
 					if (self.charmdecaysOFF and self.use_fulljets == 2 ): # add in the neutral hadrons
-						c_parts_pythia_hch = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal, pythiafjext.kNeutralCharm], 0, True)
+						c_parts_pythia_hch = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal, pythiafjext.kVisible, pythiafjext.kNeutralCharm], 0, True)
 						# print("len", len(parts_pythia_hch), len(c_parts_pythia_hch))
 						parts_pythia_hch = pythiafjext.add_vectors(parts_pythia_hch, c_parts_pythia_hch)
 						# print("new len", len(parts_pythia_hch))
 					elif (self.beautydecaysOFF and self.use_fulljets == 2):  # add in the neutral hadrons
-						b_parts_pythia_hch = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal, pythiafjext.kNeutralBeauty], 0, True)
+						b_parts_pythia_hch = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal, pythiafjext.kVisible, pythiafjext.kNeutralBeauty], 0, True)
 						parts_pythia_hch = pythiafjext.add_vectors(parts_pythia_hch, b_parts_pythia_hch)
 						
 			else: #replace D0->Kpi
 				if ( self.softpion_action != 1):
-					parts_pythia_hch = pythiafjext.vectorize_select_replaceD0(pythia, [pythiafjext.kFinal, pythiafjext.kCharged], 0, True)
+					parts_pythia_hch = pythiafjext.vectorize_select_replaceD0(pythia, [pythiafjext.kFinal, pythiafjext.kVisible, pythiafjext.kCharged], 0, True)
 				else:
-					parts_pythia_hch = pythiafjext.vectorize_select_replaceD0(pythia, [pythiafjext.kFinal, pythiafjext.kCharged], 0, True, True)
+					parts_pythia_hch = pythiafjext.vectorize_select_replaceD0(pythia, [pythiafjext.kFinal, pythiafjext.kVisible, pythiafjext.kCharged], 0, True, True)
 			# print("Size of 1 vector", len(parts_pythia_hch_noreplace))
 			# print("Size of 2 vector", len(parts_pythia_hch_replaced))
 			# print("Size of new vector", len(parts_pythia_hch))
@@ -1342,7 +1341,6 @@ if __name__ == '__main__':
 	parser.add_argument('--weightON', action='store', type=int, default=1, help="'1' turns weights on, '0' turns them off")
 	parser.add_argument('--leadingptcut', action='store', type=float, default=0, help="leading track pt cut")
 	parser.add_argument('--replaceKP', action='store', type=int, default=0, help="'1' replaces the K/pi pairs with D0")
-	parser.add_argument('--onlygg2ccbar', action='store', type=int, default=0, help="'1' runs only gg->ccbar events, '0' runs all events")
 	parser.add_argument('--onlyccbar', action='store', type=int, default=0, help="'1' runs only hard->ccbar events, '0' runs all events")
 	parser.add_argument('--DstarON', action='store', type=int, default=0, help="'1' looks at EEC for D* only")
 	parser.add_argument('--chinitscat', action='store', type=int, default=0, help="'0' runs all events, \
@@ -1356,7 +1354,7 @@ if __name__ == '__main__':
 	parser.add_argument('--giveptRL', action='store', type=int, default=0, help="'1' changes THnSparse to calculate pT*RL (instead of RL)")
 	parser.add_argument('--runphi', action='store', type=int, default=0, help="'1' looks at the phi meson (not allowed to decay)")
 	parser.add_argument('--fulljets', action='store', type=int, default=0, help="'0' runs charged jets, '1' runs full jets, '2' runs charged jets with neutral hadrons")
-	parser.add_argument('--gluspli', action='store', type=int, default=0, help="'1' saves gluon splitting info")
+	parser.add_argument('--gluspli', action='store', type=int, default=0, help="'1' saves gluon splitting info") #not properly implemented
 	parser.add_argument('--parton', action='store', type=int, default=0, help="'1' uses parton level")
 	parser.add_argument('--rigidcone', action='store', type=float, default=-1, help="only uses particle in a rigid cone of specified radius")
 
