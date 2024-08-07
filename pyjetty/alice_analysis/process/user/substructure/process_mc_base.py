@@ -1014,7 +1014,7 @@ class ProcessMCBase(process_base.ProcessBase):
   def analyze_jets(self, jets_truth_selected, jetR,
                    fj_particles_truth_holes = None, rho_bge = 0, fj_particles_truth_cones = None):
   
-    if self.debug_level > 1:
+    if self.debug_level > 1 and self.debug_level != 3:
       print('Number of det-level jets: {}'.format(len(jets_det_selected)))
     
     ''' # i dont care about det-level
