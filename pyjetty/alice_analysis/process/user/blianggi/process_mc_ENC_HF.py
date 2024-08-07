@@ -146,12 +146,12 @@ class ProcessMC_ENC_HF(process_mc_base.ProcessMCBase):
                 name = 'h_{}{}{}_JetPt_Truth_R{}_{}'.format(observable, ipoint, pair_type_label, jetR, obs_label) #pair_type_label is blank for me
                 title_truth = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'D^{0} y', 'D^{0} z', '#it{R}_{L}' ]
                 binnings = [pt_bins, rapi_bins, z_bins, RL_bins]
-                self.create_thn(name, title_truth, dim, binnings, obs='rl')
+                self.create_thn_EEC(name, title_truth, dim, binnings, obs='rl')
 
                 name = 'h_{}{}{}Pt_JetPt_Truth_R{}_{}'.format(observable, ipoint, pair_type_label, jetR, obs_label) # pt scaled histograms (currently only for unmatched jets)
                 title = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'D^{0} y', 'D^{0} z', '#it{p}_{T}#it{R}_{L}' ]
                 binnings = (pt_bins, rapi_bins, z_bins, ptRL_bins)
-                self.create_thn(name, title_truth, dim, binnings, obs='ptrl') 
+                self.create_thn_EEC(name, title_truth, dim, binnings, obs='ptrl') 
                 
             if 'EEC_noweight' in observable or 'EEC_weight2' in observable:
               
@@ -165,7 +165,7 @@ class ProcessMC_ENC_HF(process_mc_base.ProcessMCBase):
               name = 'h_{}{}_JetPt_Truth_R{}_{}'.format(observable, pair_type_label, jetR, obs_label)
               title = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'D^{0} y', 'D^{0} z', '#it{R}_{L}' ]
               binnings = (pt_bins, rapi_bins, z_bins, RL_bins)
-              self.create_thn(name, title_truth, dim, binnings, obs='rl') # this will need to be fixed later! - add more dimensions to also include jet pt?
+              self.create_thn_EEC(name, title_truth, dim, binnings, obs='rl') # this will need to be fixed later! - add more dimensions to also include jet pt?
 
         
         if 'jet_pt' in observable:
@@ -179,7 +179,7 @@ class ProcessMC_ENC_HF(process_mc_base.ProcessMCBase):
           name = 'h_{}_JetPt_Truth_R{}_{}'.format(observable, jetR, obs_label)
           title = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'D^{0} y', 'D^{0} z' ]
           binnings = (pt_bins, rapi_bins, z_bins)
-          self.create_thn(name, title_truth, dim, binnings) # this will need to be fixed later! - add more dimensions to also include jet pt?
+          self.create_thn_EEC(name, title_truth, dim, binnings) # this will need to be fixed later! - add more dimensions to also include jet pt?
 
         #Make some blank arrays to be filled if thnsparse
         self.fsparsepartonJetvalue = array.array( 'd', ( 0, 0, 0, 0, 0 ))
