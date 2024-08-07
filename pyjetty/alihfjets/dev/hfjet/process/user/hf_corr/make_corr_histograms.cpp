@@ -209,9 +209,10 @@ THnSparse * getHistAndClone(TFile *f, std::string histname) {
 void applyCuts(THnSparse *hsparse, int pt_min, int pt_max, int RLaxis, double RL_min, double RL_max, 
                bool EWaxis = false) { //todo: don't need paxis anymore??
 
-    // hsparse->GetAxis(0)->SetRangeUser(pt_min, pt_max);
+    hsparse->GetAxis(0)->SetRangeUser(pt_min, pt_max);
     // cout << "RL AXIS is " << RLaxis << " w RL min: " << RL_min << " & RL max: " << RL_max << endl;
     if (RLaxis != -1) {
+        cout << " here! RL AXIS is " << RLaxis << " w RL min: " << RL_min << " & RL max: " << RL_max << endl;
         hsparse->GetAxis(RLaxis)->SetRangeUser(RL_min, RL_max);
         // hsparse->GetAxis(RLaxis)->SetRangeUser(1e-5, 1.);
         
@@ -225,10 +226,10 @@ void applyCuts(THnSparse *hsparse, int pt_min, int pt_max, int RLaxis, double RL
         
     }
     if (EWaxis) { //energy weight axis
-        hsparse->GetAxis(4)->SetRangeUser(0., 0.5); //0.3);
+        hsparse->GetAxis(4)->SetRangeUser(0., 0.3);
     }
 
-    cout << "CHECK 1A LOOKING AT NUM EMNRTIRES HERE: " << hsparse->GetEntries() << endl;
+    // cout << "CHECK 1A LOOKING AT NUM EMNRTIRES HERE: " << hsparse->GetEntries() << endl;
 
     
 }
@@ -245,24 +246,28 @@ TH1D * getObsHist(TFile *filename, std::string h_name, std::string h_jet_name, i
     THnSparse *hsparse = getHistAndClone(filename, h_name);
     THnSparse *hsparse_jetlevel = getHistAndClone(filename, h_jet_name);
 
-    cout << "CHECK 1 LOOKING AT NUM EMNRTIRES HERE: " << hsparse->GetEntries() << endl;
-    cout << "CHECK 1 LOOKING AT NUM ENTRIES: " << hsparse_jetlevel->GetEntries() << endl;
-    
-    TH1D *testhist = hsparse->Projection(4);
-    cout << "CHECK 0A LOOKING AT NUM EMNRTIRES HERE: " << testhist->GetEntries() << endl;
-    
-    
-    applyCuts(hsparse, pt_min, pt_max, RLaxis, RL_min, RL_max, EWaxis);
-    applyCuts(hsparse_jetlevel, pt_min, pt_max, -1, RL_min, RL_max, false);
+    // cout << "CHECK 1 LOOKING AT NUM EMNRTIRES HERE: " << hsparse->GetEntries() << endl;
+    // cout << "CHECK 1 LOOKING AT NUM ENTRIES: " << hsparse_jetlevel->GetEntries() << endl;
 
-    cout << "CHECK 2 LOOKING AT NUM EMNRTIRES HERE: " << hsparse->GetEntries() << endl;
-    cout << "CHECK 2 LOOKING AT NUM ENTRIES: " << hsparse_jetlevel->GetEntries() << endl;
+    // if (debug)
+    // TH1D *testhist = hsparse->Projection(obsaxis);
+    // cout << "underflow entries: " << testhist->GetBinContent(0) << " & overflow entries:" << testhist->GetBinContent(testhist->GetNbinsX()+1) << endl;
+    // int sum = 0;
+    // for (int aa=0; aa <= testhist->GetNbinsX()+1; aa++) {
+    //     sum += testhist->GetBinContent(aa);
+    // }
+    // cout << " and the total sum is " << sum << endl;
+    // cout << " and the integral is " << testhist->Integral() << " & " << testhist->Integral("width") << endl;
+
+    applyCuts(hsparse, pt_min, pt_max, RLaxis, RL_min, RL_max, EWaxis);
+    applyCuts(hsparse_jetlevel, pt_min, pt_max, -1, RL_min, RL_max, false); //making no cuts on RL to keep it jet level??
+
     
     TH1D *h_proj = hsparse->Projection(obsaxis);
     TH1D *h_proj_jetlevel = hsparse_jetlevel->Projection(0); // jet pt axis
 
-    cout << "CHECK 3 LOOKING AT NUM EMNRTIRES HERE: " << h_proj->GetEntries() << endl;
-    cout << "CHECK 3 LOOKING AT NUM ENTRIES: " << h_proj_jetlevel->GetEntries() << endl;
+    // cout << "CHECK 3 LOOKING AT NUM EMNRTIRES HERE: " << h_proj->GetEntries() << endl;
+    // cout << "CHECK 3 LOOKING AT NUM ENTRIES: " << h_proj_jetlevel->GetEntries() << endl;
     
 
     std::string hname = h_proj->GetName();
@@ -280,7 +285,6 @@ TH1D * getObsHist(TFile *filename, std::string h_name, std::string h_jet_name, i
     // }
     hist = (TH1D*) h_proj->Clone(newhistname.c_str());
     // if (debug)
-    cout << "LOOKING AT NUM EMNRTIRES HERE: " << h_proj->GetEntries() << endl;
     cout << "LOOKING AT NUM BINS: " << hist->GetNbinsX() << endl;
     cout << "LOOKING AT NUM ENTRIES: " << hist->GetEntries() << endl;
 
@@ -289,7 +293,7 @@ TH1D * getObsHist(TFile *filename, std::string h_name, std::string h_jet_name, i
     // }
     // cout << endl;
 
-    //normalize
+    // normalize
     cout << "IS THIS NORMALIZED? " << normalized << endl;
     if (normalized == 1) {
         double numjets = hist->Integral();
@@ -303,10 +307,10 @@ TH1D * getObsHist(TFile *filename, std::string h_name, std::string h_jet_name, i
     // cout << "There are " << h_proj->GetEntries() << " pair entries in this pt bin" << endl;
     // cout << "There are " << h_proj_jetlevel->GetEntries() << " jet entries in this pt bin" << endl;
 
-    hist->GetXaxis()->SetTitle(xtitle.c_str()); //("#it{R}_{L}");
-    // THESE AXES LABELS ARE DEF WRONG!!
-    if (normalized != 0) hist->GetYaxis()->SetTitle( Form("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d%s}", xtitle.c_str()) );
-    else hist->GetYaxis()->SetTitle( Form("#frac{d#it{N}_{EEC}}{d%s}", xtitle.c_str()) ); 
+    // hist->GetXaxis()->SetTitle(xtitle.c_str()); //("#it{R}_{L}");
+    // // THESE AXES LABELS ARE DEF WRONG!!
+    // if (normalized != 0) hist->GetYaxis()->SetTitle( Form("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d%s}", xtitle.c_str()) );
+    // else hist->GetYaxis()->SetTitle( Form("#frac{d#it{N}_{EEC}}{d%s}", xtitle.c_str()) ); 
 
 
     delete hsparse;
@@ -339,12 +343,17 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted) 
     const double RL_bins[3][8] = { { 0, 1e-2, 3e-2, 7e-2, 1.5e-1, 3e-1, 4e-1 }, 
                                  { 0, 1e-2, 2.5e-2, 4e-2, 8e-2, 2.5e-1, 4e-1 }, 
                                  { 0, 1e-2, 2.5e-2, 3e-2, 4.5e-2, 2e-1, 4e-1 } };
-    const int n_bins = 1; //3;
+    const int n_bins = 3;
     const int n_RLbins = 6; //7; //5;
 
     TString label1 = "";
     TString label2 = "";  
     // vector<TString> label;
+
+    std::string weightstr = "";
+    if (weighted == true) {
+        weightstr = "_Weighted";
+    }
 
     // Jet r value
     std::string jetR_list[] = { "0.4" };
@@ -355,21 +364,18 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted) 
 
             // Names of histograms in the file (quark, charm, gluon)
 
-            const std::string deltap_truth_name = Form("h_corr_deltap_JetPt_Truth_R0.4_%s", threshold.c_str());
-            const std::string deltapt_truth_name = Form("h_corr_deltapt_JetPt_Truth_R0.4_%s", threshold.c_str());
-            const std::string oppcharge_truth_name = Form("h_corr_oppcharge_JetPt_Truth_R0.4_%s", threshold.c_str());
-            const std::string samecharge_truth_name = Form("h_corr_samecharge_JetPt_Truth_R0.4_%s", threshold.c_str());
-            const std::string unweightedRL_truth_name = Form("h_corr_unweightedRL_JetPt_Truth_R0.4_%s", threshold.c_str());
-            const std::string energyweights_truth_name = Form("h_corr_energyweights_JetPt_Truth_R0.4_%s", threshold.c_str());
+
+
+            const std::string deltap_truth_name = Form("h_corr_deltap%s_JetPt_Truth_R0.4_%sScaled", weightstr.c_str(), threshold.c_str());
+            const std::string deltapt_truth_name = Form("h_corr_deltapt%s_JetPt_Truth_R0.4_%sScaled", weightstr.c_str(), threshold.c_str());
+            const std::string oppcharge_truth_name = Form("h_corr_oppcharge%s_JetPt_Truth_R0.4_%sScaled", weightstr.c_str(), threshold.c_str());
+            const std::string samecharge_truth_name = Form("h_corr_samecharge%s_JetPt_Truth_R0.4_%sScaled", weightstr.c_str(), threshold.c_str());
+            const std::string unweightedRL_truth_name = Form("h_corr_unweightedRL%s_JetPt_Truth_R0.4_%sScaled", weightstr.c_str(), threshold.c_str());
+            const std::string energyweights_truth_name = Form("h_corr_energyweights%s_JetPt_Truth_R0.4_%sScaled", weightstr.c_str(), threshold.c_str());
             // std::cout << "THRESHOLD NAME TEST" << deltap_truth_name << std::endl;
 
-            const std::string deltap_Weighted_truth_name = Form("h_corr_deltap_Weighted_JetPt_Truth_R0.4_%sScaled", threshold.c_str());
-            const std::string deltapt_Weighted_truth_name = Form("h_corr_deltapt_Weighted_JetPt_Truth_R0.4_%sScaled", threshold.c_str());
-            const std::string oppcharge_Weighted_truth_name = Form("h_corr_oppcharge_Weighted_JetPt_Truth_R0.4_%sScaled", threshold.c_str());
-            const std::string samecharge_Weighted_truth_name = Form("h_corr_samecharge_Weighted_JetPt_Truth_R0.4_%sScaled", threshold.c_str());
-            const std::string unweightedRL_Weighted_truth_name = Form("h_corr_unweightedRL_Weighted_JetPt_Truth_R0.4_%sScaled", threshold.c_str());
-            const std::string energyweights_Weighted_truth_name = Form("h_corr_energyweights_Weighted_JetPt_Truth_R0.4_%sScaled", threshold.c_str());
-            
+            // const std::string deltap_Weighted_truth_name = Form("h_corr_deltap_Weighted_JetPt_Truth_R0.4_%sScaled", threshold.c_str());
+                
             const std::string jet_pt_truth_name = Form("h_jet_pt_JetPt_Truth_R0.4_%sScaled", threshold.c_str());
 
 
@@ -407,6 +413,7 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted) 
                 TCanvas* c_energyweights_all = new TCanvas();
                 ProcessCanvas(c_energyweights_all);
                 // gPad->SetLogx();
+                gPad->SetLogy();
 
                 TLegend* l; // = new TLegend(0.17, 0.65, 0.5, 0.85);
                 l = new TLegend(0.6, 0.6, 0.8, 0.87); //0.1797168,0.650741,0.4562155,0.8885185,""); //(0.17, 0.4, 0.5, 0.53);
@@ -458,13 +465,10 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted) 
                     // Open histograms
                     TH1D *hcorr_deltap_truth_unnorm = getObsHist(f, deltap_truth_name, jet_pt_truth_name, 
                                              pt_min, pt_max, i+1, RL_min, RL_max, "h_corr_deltap_Truth" + hist_addname, 
-                                             4, "#Delta p", n_obs_bins, obs_bins, normed,  true);
-                    TH1D *hcorr_deltap_truth_unnorm2 = getObsHist(f, deltap_truth_name, jet_pt_truth_name, 
-                                             pt_min, pt_max, i+1, RL_min, RL_max, "h_corr_deltap_Truth2" + hist_addname, 
-                                             4, "#Delta p", n_obs_bins, obs_bins, normed,  true);
+                                             4, "#Delta p", n_obs_bins, obs_bins, normed, false);
                     TH1D *hcorr_deltapt_truth_unnorm = getObsHist(f, deltapt_truth_name, jet_pt_truth_name, 
                                              pt_min, pt_max, i+1, RL_min, RL_max, "h_corr_deltapt_Truth" + hist_addname, 
-                                             4, "#Delta p_{T}", n_obs_bins, obs_bins, normed,  true);
+                                             4, "#Delta p_{T}", n_obs_bins, obs_bins, normed, false);
                     TH1D *hcorr_oppcharge_truth_unnorm = getObsHist(f, oppcharge_truth_name, jet_pt_truth_name, 
                                              pt_min, pt_max, i+1, RL_min, RL_max, "h_corr_oppcharge_Truth" + hist_addname, 
                                              4, "q_{1}q_{2}", 0, {}, normed, false);
@@ -474,8 +478,54 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted) 
                     TH1D *hcorr_energyweights_truth_unnorm = getObsHist(f, energyweights_truth_name, jet_pt_truth_name, 
                                              pt_min, pt_max, i+1, RL_min, RL_max, "h_corr_energyweights_Truth" + hist_addname, 
                                              4, "p_{T,1}p_{T,2} / p_{T, jet}^{2}", 0, {}, normed, true);
+
+                    //------------//------------//------------//------------//------------//
+                    /* 
+                    // THnSparse *hsparse_jetlevel = getHistAndClone(filename, h_jet_name);
+                    cout << "RL HERE IS " << RL_min << " - " << RL_max << endl;
+                    THnSparse *hsparse_jetlevel111 = (THnSparse*) f->Get(deltap_truth_name.c_str());
+                    std::string hn = hsparse_jetlevel111->GetName();
+                    hn += "_clone";
+                    cout << "TEST HISTNAME HERE " << hn << endl;
+                    THnSparse *hsparsejetlevel111_clone = (THnSparse *) hsparse_jetlevel111->Clone( hn.c_str() ); //TODO: change this name!
+
+                    hsparsejetlevel111_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max);
+                    // hsparsejetlevel111_clone->GetAxis(1)->SetRangeUser(RL_min, RL_max);
+
+                    cout << "CHECK A LOOKING AT NUM EMNRTIRES HERE: " << hsparsejetlevel111_clone->GetEntries() << endl;
+
+                    TH1D *h_proj_jetlevel111 = hsparsejetlevel111_clone->Projection(0); // jet pt axis
+                    TH1D *h_proj_jetlevel111A = hsparsejetlevel111_clone->Projection(1);
+                    TH1D *h_proj_jetlevel111B = hsparsejetlevel111_clone->Projection(2);
+                    TH1D *h_proj_jetlevel111C = hsparsejetlevel111_clone->Projection(3);
+                    TH1D *h_proj_jetlevel111D = hsparsejetlevel111_clone->Projection(4); // jet pt axis
+
+                    cout << "CHECK B LOOKING AT NUM EMNRTIRES HERE: " << h_proj_jetlevel111->GetEntries() << endl;
+                    cout << "CHECK BA LOOKING AT NUM EMNRTIRES HERE: " << h_proj_jetlevel111A->GetEntries() << endl;
+                    cout << "CHECK BB LOOKING AT NUM EMNRTIRES HERE: " << h_proj_jetlevel111B->GetEntries() << endl;
+                    cout << "CHECK BC LOOKING AT NUM EMNRTIRES HERE: " << h_proj_jetlevel111C->GetEntries() << endl;
+                    cout << "CHECK BD LOOKING AT NUM EMNRTIRES HERE: " << h_proj_jetlevel111D->GetEntries() << endl;
+    
+
+
+                    THnSparse *hsparsejetlevel222_clone = (THnSparse *) hsparse_jetlevel111->Clone( "222" ); //TODO: change this name!
+                    hsparsejetlevel222_clone->GetAxis(0)->SetRangeUser(pt_min, pt_max);
+                    hsparsejetlevel222_clone->GetAxis(1)->SetRangeUser(RL_bins[i][j+1], RL_bins[i][j+2]);
+
+                    cout << "CHECK C LOOKING AT NUM EMNRTIRES HERE: " << hsparsejetlevel222_clone->GetEntries() << endl;
+
+                    TH1D *h_proj_jetlevel222 = hsparsejetlevel222_clone->Projection(0); // jet pt axis
+                    TH1D *h_proj_jetlevel222B = hsparsejetlevel222_clone->Projection(4); // jet pt axis
+
+                    cout << "CHECK D LOOKING AT NUM EMNRTIRES HERE: " << h_proj_jetlevel222->GetEntries() << endl;
+                    cout << "CHECK DB LOOKING AT NUM EMNRTIRES HERE: " << h_proj_jetlevel222B->GetEntries() << endl;
+
+                    delete hsparse_jetlevel111;
+                    delete hsparsejetlevel111_clone;
+                    delete h_proj_jetlevel111;
+                    */
                     
-                    
+                    //------------//------------//------------//------------//------------//
 
                     // get jet pT range - no D0 reconstruction, so don't make D0 cuts
                     // thnsparse axes: 0=jet pt, 1=RL (20 < pt < 40), 2=RL (40 < pt < 60), 3=RL (60 < pt < 80), 4 = observable 
@@ -596,6 +646,9 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted) 
                         hcorr_deltap_truth_arr[j]->SetBinError(k+1, 0);
                         hcorr_deltapt_truth_arr[j]->SetBinError(k+1, 0);
                     }
+                    for (int k=0; k < hcorr_energyweights_truth_arr[j]->GetNbinsX();k++){
+                        hcorr_energyweights_truth_arr[j]->SetBinError(k+1, 0);
+                    }
 
                     FormatHist(l, hcorr_deltap_truth_arr[j], label[j], colors[j], markers[0], true);
                     FormatHist(l2, hcorr_deltapt_truth_arr[j], label[j], colors[j], markers[0], true);
@@ -669,6 +722,7 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted) 
 
                     c_energyweights_all->cd();
                     hcorr_energyweights_truth_arr[j]->Draw("same");
+                    // gPad->SetLogx();
                     l->Draw("same");
 
                     c_charge_all->cd();
@@ -766,14 +820,14 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted) 
                     // draw legend
                     // l->Draw("same");
 
-                    std::string fname_deltap = outdir + "corrhist_deltap_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
-                    std::string fname_deltapt = outdir + "corrhist_deltapt_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
-                    // std::string fname_oppcharge = outdir + "corrhist_oppcharge_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
-                    // std::string fname_samecharge = outdir + "corrhist_samecharge_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
-                    std::string fname_charge = outdir + "corrhist_charge_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
-                    std::string fname_unweightedRL = outdir + "corrhist_unweightedRL_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
-                    std::string fname_chargeratio = outdir + "corrhist_chargeratio_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
-                    std::string fname_energyweights = outdir + "corrhist_energyweights_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
+                    std::string fname_deltap = outdir + "corrhist_deltap" + weightstr + "_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
+                    std::string fname_deltapt = outdir + "corrhist_deltapt" + weightstr + "_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
+                    // std::string fname_oppcharge = outdir + "corrhist_oppcharge" + weightstr + "_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
+                    // std::string fname_samecharge = outdir + "corrhist_samecharge" + weightstr + "_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
+                    std::string fname_charge = outdir + "corrhist_charge" + weightstr + "_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
+                    std::string fname_unweightedRL = outdir + "corrhist_unweightedRL" + weightstr + "_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
+                    std::string fname_chargeratio = outdir + "corrhist_chargeratio" + weightstr + "_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
+                    std::string fname_energyweights = outdir + "corrhist_energyweights" + weightstr + "_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
 
                     const char* fname_deltapc = fname_deltap.c_str();
                     const char* fname_deltaptc = fname_deltapt.c_str();
@@ -788,7 +842,7 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted) 
                     c_deltapt->SaveAs(fname_deltaptc);
                     // c_oppcharge->SaveAs(fname_oppchargec);
                     // c_samecharge->SaveAs(fname_samechargec);
-                    c_charge->SaveAs(fname_chargec);
+                    if (normed == 0) c_charge->SaveAs(fname_chargec);
                     // c_unweightedRL->SaveAs(fname_unweightedRLc);
                     c_chargeratio->SaveAs(fname_chargeratioc);
                     c_energyweights->SaveAs(fname_energyweightsc);
@@ -850,10 +904,10 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted) 
                 }*/
                 //----------------------------//
 
-                std::string fname_deltap_all = outdir + "corrhist_deltap_all_pt" + ptname + "_R" + jetR + add_name + ".pdf";
-                std::string fname_deltapt_all = outdir + "corrhist_deltapt_all_pt" + ptname + "_R" + jetR + add_name + ".pdf";
-                std::string fname_charge_all = outdir + "corrhist_charge_all_pt" + ptname + "_R" + jetR + add_name + ".pdf";
-                std::string fname_energyweights_all = outdir + "corrhist_energyweights_all_pt" + ptname + "_R" + jetR + add_name + ".pdf";
+                std::string fname_deltap_all = outdir + "corrhist_deltap" + weightstr + "_all_pt" + ptname + "_R" + jetR + add_name + ".pdf";
+                std::string fname_deltapt_all = outdir + "corrhist_deltapt" + weightstr + "_all_pt" + ptname + "_R" + jetR + add_name + ".pdf";
+                std::string fname_charge_all = outdir + "corrhist_charge" + weightstr + "_all_pt" + ptname + "_R" + jetR + add_name + ".pdf";
+                std::string fname_energyweights_all = outdir + "corrhist_energyweights" + weightstr + "_all_pt" + ptname + "_R" + jetR + add_name + ".pdf";
                 
                 const char* fname_deltapc_all = fname_deltap_all.c_str();
                 const char* fname_deltaptc_all = fname_deltapt_all.c_str();
@@ -887,11 +941,8 @@ void make_corr_histograms() {
 
     // Files
     // const char infile[] = "/software/users/blianggi/mypyjetty/analysis/output/100k/AnalysisResultsFinal.root"; //hiccup
-    // const char infile[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/pythiagen/byhand/23204141/AnalysisResultsFinal_1percent.root"; //perlmutter, before june 2024
-    const char infile[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/pythiagen/scaling/28533561/26652369/AnalysisResultsFinal.root"; //perlmutter, after june 2024
-    // const char infile[] = "/global/cfs/cdirs/alice/blianggi/mypyjetty/analysis/testing/AnalysisResults.root";
-    // const char infile[] = "/software/users/blianggi/mypyjetty/analysis/output/AnalysisResults.root";
-    // std::string indir = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/pythiagen/23121850/";
+    const char infile[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/pythiagen/scaling/28855690/26652369/AnalysisResultsFinal.root"; //perlmutter, after june 2024
+    // const char infile[] = "/Volumes/NO NAME/AnalysisResultsFinal.root"; //local
 
     // auto tree1 = new TChain("tree1");
     // for (int ifile=1; ifile<=10; file++) {
@@ -905,7 +956,7 @@ void make_corr_histograms() {
 
 
     // CONTOL VARIABLES HERE
-    int normed = 0; // 0 if unnormalized, 1 for self-normalization 
+    int normed = 1; // 0 if unnormalized, 1 for self-normalization 
     bool weighted = false; // true if using "Weighted", false if using unweighted
     
 
@@ -918,24 +969,15 @@ void make_corr_histograms() {
 
     f = new TFile(infile, "READ");
     add_name = "_othercorrel" + norm_string;
-
-    // if (ptrl) {
-    //     if (charmdecays) {
-    //         f = new TFile(infile_ptrl_charmdecaysON, "READ");
-    //         add_name = "_cgl_ptrl_charmdecaysON.pdf";
-    //     } else {
-    //         f = new TFile(infile_ptrl_charmdecaysOFF, "READ");
-    //         add_name = "_cgl_ptrl_charmdecaysOFF.pdf";
-    //     }
-    // } else {
-    //     cout << "This didn't work because no files are defined" << endl;
-    // }
-
     cout << "output name will be " << add_name << endl;
 
+    // plot unweighted hists
     plot_histograms(f, add_name, normed, weighted);
 
-    
+    // plot weighted hists
+    plot_histograms(f, add_name, normed, true);
+
+
 
     f->Close();
     delete f;

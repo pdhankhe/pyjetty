@@ -58,10 +58,10 @@ class ProcessMCBase(process_base.ProcessBase):
   #---------------------------------------------------------------
   # Constructor
   #---------------------------------------------------------------
-  def __init__(self, input_file='', config_file='', output_dir='', event_start_offset=0, dstar=0, debug_level=0, **kwargs):
+  def __init__(self, input_file='', config_file='', output_dir='', save_tuples=1, event_start_offset=0, dstar=0, debug_level=0, **kwargs):
   
     # Initialize base class
-    super(ProcessMCBase, self).__init__(input_file, config_file, output_dir, event_start_offset, dstar, debug_level, **kwargs)
+    super(ProcessMCBase, self).__init__(input_file, config_file, output_dir, save_tuples, event_start_offset, dstar, debug_level, **kwargs)
     
     # Initialize configuration
     self.initialize_config()

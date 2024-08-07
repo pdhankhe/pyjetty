@@ -34,11 +34,12 @@ class ProcessBase(common_base.CommonBase):
   #---------------------------------------------------------------
   # Constructor
   #---------------------------------------------------------------
-  def __init__(self, input_file='', config_file='', output_dir='', event_start_offset=0, dstar=0, debug_level=0, **kwargs):
+  def __init__(self, input_file='', config_file='', output_dir='', save_tuples=1, event_start_offset=0, dstar=0, debug_level=0, **kwargs):
     super(ProcessBase, self).__init__(**kwargs)
     self.input_file = input_file
     self.config_file = config_file
     self.output_dir = output_dir
+    self.save_tuples = save_tuples
     self.event_start_offset = event_start_offset
     self.dstar = dstar
     self.debug_level = debug_level # (0 = no debug info, 1 = some debug info, 2 = all debug info)

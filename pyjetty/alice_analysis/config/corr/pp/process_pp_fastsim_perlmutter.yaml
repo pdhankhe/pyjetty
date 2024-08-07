@@ -10,7 +10,7 @@
 # The process step is intended to loop over all observables simultaneously
 # The analysis step is intended to run for a single observable block
 
-process_observables: ['jet_ENC_RL', 'jet_EEC_noweight_RL', 'jet_pt', 'corr_deltap', 'corr_deltapt', 'corr_samecharge', 'corr_oppcharge', 'corr_unweightedRL', 'corr_energyweights'] # 'corr_jet_pt', 'jet_EEC_weight2_RL', can add jet_E3C_RL later
+process_observables: ['jet_ENC_RL', 'jet_EEC_noweight_RL', 'jet_pt', 'corr_deltap', 'corr_deltapt', 'corr_samecharge', 'corr_oppcharge', 'corr_energyweights'] #, 'corr_baryonmeson'] # 'corr_unweightedRL', 'corr_jet_pt', 'jet_EEC_weight2_RL', can add jet_E3C_RL later
 jetR: [0.4] #, 0.5] only focusing on jet R = 0.4 for now
 jet_matching_distance: 0.6        # Match jets with deltaR < jet_matching_distance*jetR
 reject_tracks_fraction: 0.0

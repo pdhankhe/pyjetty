@@ -53,10 +53,10 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
   #---------------------------------------------------------------
   # Constructor
   #---------------------------------------------------------------
-  def __init__(self, input_file='', config_file='', output_dir='', debug_level=0, **kwargs):
+  def __init__(self, input_file='', config_file='', output_dir='', save_tuples=1, debug_level=0, **kwargs):
   
     # Initialize base class
-    super(ProcessMC_ENC, self).__init__(input_file, config_file, output_dir, debug_level, **kwargs)
+    super(ProcessMC_ENC, self).__init__(input_file, config_file, output_dir, save_tuples, debug_level, **kwargs)
     
     self.observable = self.observable_list[0]
 
@@ -371,6 +371,10 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
           h.GetYaxis().SetTitle('Counts')
           setattr(self, name, h)
 
+          name = 'h_JETINFO{}_JetPt_Truth_R{}_{}'.format(observable, jetR, obs_label)
+          tn = ROOT.TNtuple(name, name, "jet_pt:total_num_const:num_const_aftercut")
+          setattr(self, name, tn)
+
           '''name = 'h_{}_JetPt_R{}_{}'.format(observable, jetR, obs_label)
           pt_bins = linbins(0,200,200)
           h = ROOT.TH1D(name, name, 200, pt_bins)
@@ -491,7 +495,11 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
         # self.new_observables = ["deltap", "deltapt", "charge", "unweightedRL"]
         # print("OBS_LABEL", obs_label)
         if "corr" in observable:
-          self.create_corr_histograms(observable, ipoint, jetR, obs_label)
+          if self.save_tuples == 1:
+            self.create_corr_tuples(observable, ipoint, jetR, obs_label)
+          else:
+            self.create_corr_histograms(observable, ipoint, jetR, obs_label)
+          
           
 
   #---------------------------------------------------------------
@@ -529,6 +537,7 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
     deltap_bins = linbins(0., 5., 250) #linbins(0, 1., 100) + linbins(1.0, 100., 99)[1:]
     charge_bins = linbins(-1.5, 1.5, 3)
     weight_bins = linbins(0., 1., 200) #is this how i want to do it??
+    baryonmeson_bins = linbins(0., 5., 200)
 
     # need different bins for RL depending on pT - as RL bin edges need to match up with the previously determined regions
     arr_zero = array.array('d', np.zeros(1))
@@ -596,6 +605,12 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
       title = ['p_{T,ch jet,det}', 'R_{L,det}_pt2040', 'R_{L,det}_pt4060', 'R_{L,det}_pt6080', 'energy weights_{det}']
       obs_bins = weight_bins
 
+      # baryon-to-meson ratio
+    if (observable == "corr_baryonmeson"):
+      title_truth = ['p_{T,ch jet,truth}', 'R_{L,truth}_pt2040', 'R_{L,truth}_4060', 'R_{L,truth}_pt6080', 'baryon:meson_{truth}']
+      title = ['p_{T,ch jet,det}', 'R_{L,det}_pt2040', 'R_{L,det}_pt4060', 'R_{L,det}_pt6080', 'baryon:meson_{det}']
+      obs_bins = baryonmeson_bins
+
 
 
     # create thnsparses!
@@ -615,7 +630,12 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
     self.fsparsejetlevelJetvalue = array.array( 'd', np.zeros(dim-1)) #() 0, 0, 0, 0 ))
 
   
+  def create_corr_tuples(self, observable, ipoint, jetR, obs_label):
+    name = 'h_{}_JetPt_Truth_R{}_{}'.format(observable, jetR, obs_label)
+    tn = ROOT.TNtuple(name, name, "jet_pt:RL:obs:weights")
+    setattr(self, name, tn)
 
+    self.fsparsepartonJetvalue_tuple = array.array( 'd', np.zeros(4)) #4 to match the number of axes
 
   def get_pair_eff_weights(self, corr_builder, ipoint, constituents):
     # NB: currently applying the pair eff weight to both 2 point correlator and higher point correlators. Need to check if the same pair efficiency effect still work well for higher point correlators
@@ -682,6 +702,9 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
         break
       c_select.append(c) # NB: use the break statement since constituents are already sorted
     
+    print("CHARGE HERE")
+    print([c.python_info().charge for c in c_select])
+
     if self.ENC_pair_cut and (not 'Truth' in hname):
       dphi_cut = -9999 # means no dphi cut
       deta_cut = 0.008
@@ -773,6 +796,8 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
         getattr(self, hname.format(observable,obs_label)).Fill(self.fsparsejetlevelJetvalue)
         # getattr(self, hname.format(observable,obs_label)).Fill(jet_pt)
         getattr(self, hname.format("1D"+observable,obs_label)).Fill(jet_pt)
+
+        getattr(self, hname.format("JETINFO"+observable, obs_label)).Fill(jet_pt, len(constituents), len(c_select))
  
       
       # NB: for now, only perform this check on data and full sim
@@ -830,23 +855,36 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
         if (observable == "corr_unweightedRL"): # this is WRONG, but leave for now
           new_obs_corr = ecorrel.CorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut)
 
+        if (observable == "corr_baryonmeson"):
+          new_obs_corr = 0 # TODO: IDK YETTTT
+
         # print("THERE ARE ", new_obs_corr.correlator(ipoint).rs().size(), "NUM OF ENTRIES IN NEW OBS CORR")
 
         # assuming the length of new_corr is the same as new_obs_corr
         # fsparsejetlevelJetvalue = array.array( 'd', ( 0, 0, 0 ))
-        self.fsparsepartonJetvalue[0] = jet_pt
+        if self.save_tuples == 0:
+          self.fsparsepartonJetvalue[0] = jet_pt
+        else:
+          self.fsparsepartonJetvalue_tuple[0] = jet_pt
+          
 
         # print("OBS! HERE!", observable)
         # Filling histograms here!
         for index in range(new_corr.correlator(ipoint).rs().size()):
           # Fill the RL values here
-          self.fsparsepartonJetvalue[1] = new_corr.correlator(ipoint).rs()[index]
-          self.fsparsepartonJetvalue[2] = new_corr.correlator(ipoint).rs()[index]
-          self.fsparsepartonJetvalue[3] = new_corr.correlator(ipoint).rs()[index]
+          if self.save_tuples == 0:
+            self.fsparsepartonJetvalue[1] = new_corr.correlator(ipoint).rs()[index]
+            self.fsparsepartonJetvalue[2] = new_corr.correlator(ipoint).rs()[index]
+            self.fsparsepartonJetvalue[3] = new_corr.correlator(ipoint).rs()[index]
+          else:
+            self.fsparsepartonJetvalue_tuple[1] = new_corr.correlator(ipoint).rs()[index]
           
           if ("charge" in observable):
             samecharge_boolean = self.is_same_charge(new_corr, ipoint, c_select, index)
-            self.fsparsepartonJetvalue[4] = 1 if samecharge_boolean else -1
+            if self.save_tuples == 0:
+              self.fsparsepartonJetvalue[4] = 1 if samecharge_boolean else -1
+            else:
+              self.fsparsepartonJetvalue_tuple[2] = 1 if samecharge_boolean else -1
             # print("samecharge boolean is", samecharge_boolean, self.fsparsepartonJetvalue[4])
             if not samecharge_boolean and observable == "corr_samecharge":
               # print("skipping smae charge", samecharge_boolean)
@@ -855,14 +893,28 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
               # print("skipping opp charge", samecharge_boolean)
               continue
           elif ("energyweights" in observable):
-            self.fsparsepartonJetvalue[4] = new_corr.correlator(ipoint).weights()[index]
+            if self.save_tuples == 0:
+              self.fsparsepartonJetvalue[4] = new_corr.correlator(ipoint).weights()[index]
+            else:
+              self.fsparsepartonJetvalue_tuple[2] = new_corr.correlator(ipoint).weights()[index]
           else:
-            self.fsparsepartonJetvalue[4] = new_obs_corr.correlator(ipoint).rs()[index]
+            if self.save_tuples == 0:
+              self.fsparsepartonJetvalue[4] = new_obs_corr.correlator(ipoint).rs()[index]
+            else:
+              self.fsparsepartonJetvalue_tuple[2] = new_obs_corr.correlator(ipoint).rs()[index]
+          
+          if self.save_tuples == 1:
+            self.fsparsepartonJetvalue_tuple[3] = new_corr.correlator(ipoint).weights()[index]
 
           # print("FIlling weighted and then unweighted!!", new_corr.correlator(ipoint).weights()[index])
-          getattr(self, hname.format(observable+"_Weighted",obs_label)).Fill(self.fsparsepartonJetvalue, new_corr.correlator(ipoint).weights()[index])
-          getattr(self, hname.format(observable,obs_label)).Fill(self.fsparsepartonJetvalue)
-            
+          if self.save_tuples == 0:
+            getattr(self, hname.format(observable,obs_label)).Fill(self.fsparsepartonJetvalue)
+            getattr(self, hname.format(observable+"_Weighted",obs_label)).Fill(self.fsparsepartonJetvalue, new_corr.correlator(ipoint).weights()[index])
+          else:
+            getattr(self, hname.format(observable,obs_label)).Fill(self.fsparsepartonJetvalue_tuple[0],
+                                                                   self.fsparsepartonJetvalue_tuple[1],
+                                                                   self.fsparsepartonJetvalue_tuple[2],
+                                                                   self.fsparsepartonJetvalue_tuple[3])
 
   #---------------------------------------------------------------
   # This function is called per observable per jet subconfigration 
@@ -1165,6 +1217,10 @@ if __name__ == '__main__':
                       type=str, metavar='outputDir',
                       default='./TestOutput',
                       help='Output directory for output to be written to')
+  parser.add_argument('-t', '--saveTuples', action='store',
+                      type=int, metavar='saveTuples',
+                      default=1,
+                      help='Save correlations as tuples if 1 (otherwise save as histograms if 0)')
   
   # Parse the arguments
   args = parser.parse_args()
@@ -1173,6 +1229,7 @@ if __name__ == '__main__':
   print('inputFile: \'{0}\''.format(args.inputFile))
   print('configFile: \'{0}\''.format(args.configFile))
   print('ouputDir: \'{0}\"'.format(args.outputDir))
+  print('saveTuples: \'{0}\"'.format(args.saveTuples))
 
   # If invalid inputFile is given, exit
   if not os.path.exists(args.inputFile):
@@ -1184,5 +1241,5 @@ if __name__ == '__main__':
     print('File \"{0}\" does not exist! Exiting!'.format(args.configFile))
     sys.exit(0)
 
-  analysis = ProcessMC_ENC(input_file=args.inputFile, config_file=args.configFile, output_dir=args.outputDir)
+  analysis = ProcessMC_ENC(input_file=args.inputFile, config_file=args.configFile, output_dir=args.outputDir, save_tuples=args.saveTuples)
   analysis.process_mc()
