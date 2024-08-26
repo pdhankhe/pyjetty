@@ -56,9 +56,11 @@ module load herwig_with_deps
 cd /software/users/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/generation
 if [ "$SAVE_D0" = true ] ; then
     echo 'Running with saving D0!'
+    echo "python hepmc2antuple_tn.py -i $INPUT_FILE -o $OUTPUT_DIR/AnalysisResultsGen.root -g herwig --no-progress-bar -d"
     python hepmc2antuple_tn.py -i $INPUT_FILE -o $OUTPUT_DIR/AnalysisResultsGen.root -g herwig --no-progress-bar -d
 else
     echo 'Running inclusive'
+    echo "python hepmc2antuple_tn.py -i $INPUT_FILE -o $OUTPUT_DIR/AnalysisResultsGen.root -g herwig --no-progress-bar"
     python hepmc2antuple_tn.py -i $INPUT_FILE -o $OUTPUT_DIR/AnalysisResultsGen.root -g herwig --no-progress-bar
 fi
 
