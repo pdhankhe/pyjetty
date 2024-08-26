@@ -95,6 +95,43 @@ void FormatHist(TLegend *l, TH1 *hist, TString text, int markercolor=1, int mark
     return;
 }
 
+void FormatGraph(TGraph *gr, TString xtitle, TString ytitle, double markersize=1.5, int markerstyle=20,
+                 int markercolor=kBlack, double markeralpha=1.0) // TString text, int markercolor=1, int markerstyle=8, double linealpha=1., bool drawline=false) 
+{
+    gr->SetMarkerSize(markersize);
+    gr->SetMarkerStyle(markerstyle);
+    gr->SetMarkerColorAlpha(markercolor, markeralpha);
+    // hist->SetMarkerColorAlpha(markercolor, 0);
+
+    // hist->SetFillStyle(0);
+    // hist->SetLineColorAlpha(markercolor, linealpha);
+    // hist->SetFillColor(markercolor);
+    // hist->SetLineStyle(1);
+    // hist->SetLineWidth(3);
+    
+    // l->AddEntry(hist, text, "pl");
+
+    gr->GetXaxis()->SetTitle(xtitle);
+    gr->GetYaxis()->SetTitle(ytitle);
+
+	//gPad->SetTickx(); 
+	//gPad->SetTicky(); 
+	// h->SetLineWidth(2);
+	gr->GetYaxis()->SetTitleOffset(1.05); 
+	gr->GetYaxis()->SetTitleSize(0.06); //(0.042);
+	gr->GetYaxis()->SetLabelSize(0.05); //(0.042);
+	gr->GetYaxis()->SetLabelFont(42);
+	gr->GetXaxis()->SetLabelFont(42);
+	gr->GetYaxis()->SetTitleFont(42);
+	gr->GetXaxis()->SetTitleFont(42);
+	gr->GetXaxis()->SetTitleOffset(1.0);
+	gr->GetXaxis()->SetTitleSize(0.06); //(0.042);
+	gr->GetXaxis()->SetLabelSize(0.05); //(0.042);
+
+
+    return;
+}
+
 // ptrl is a boolean that says whether ptRL is being plotted (instead of RL)
 // --> controls where the cutoff is to not look for the max point
 //checkExtra is how many point-to-point slopes after finding a decreasing slope I want to check
@@ -238,7 +275,7 @@ void applyCuts(THnSparse *hsparse, int pt_min, int pt_max, int RLaxis, double RL
 //usually obsaxis is 3, but in new histograms it is 4. For jet level histograms, use 0.
 TH1D * getObsHist(TFile *filename, std::string h_name, std::string h_jet_name, int pt_min, int pt_max, 
                   int RLaxis, double RL_min, double RL_max, std::string newhistname, int obsaxis, std::string xtitle,
-                  int n_rebin_bins, double rebinbins[], int normalized=0, bool EWaxis=false) {
+                  int normalized=0, bool scalebyRLbinwidth=false, double RL_bin_width=1.0, bool EWaxis=false, bool debug=false) { //int n_rebin_bins, double rebinbins[]
     
     cout << "HNAME is " << h_name << endl;
     cout << "RL AXIS is " << RLaxis << " w RL min: " << RL_min << " & RL max: " << RL_max << endl;
@@ -284,14 +321,19 @@ TH1D * getObsHist(TFile *filename, std::string h_name, std::string h_jet_name, i
     //     hist = (TH1D*) h_proj->Clone(newhistname.c_str());
     // }
     hist = (TH1D*) h_proj->Clone(newhistname.c_str());
-    // if (debug)
-    cout << "LOOKING AT NUM BINS: " << hist->GetNbinsX() << endl;
-    cout << "LOOKING AT NUM ENTRIES: " << hist->GetEntries() << endl;
+    if (debug) {
+        cout << "LOOKING AT NUM BINS: " << hist->GetNbinsX() << endl;
+        cout << "LOOKING AT NUM ENTRIES: " << hist->GetEntries() << endl;
+    }
 
     // for (int i=0; i<hist->GetNbinsX(); i++) {
     //     cout << hist->GetBinContent(i) << " ";
     // }
     // cout << endl;
+    
+    // scale by RL bin width if momentum/energy weight bin
+
+    if (scalebyRLbinwidth) hist->Scale(RL_bin_width);
 
     // normalize
     cout << "IS THIS NORMALIZED? " << normalized << endl;
@@ -322,11 +364,47 @@ TH1D * getObsHist(TFile *filename, std::string h_name, std::string h_jet_name, i
 
 }
 
+void plot_combined_graphs(TCanvas *can_all, vector<TH1D*> h_arr, TLegend *l, 
+                          int pt_max, bool mom_axis, double RL_bin_width[],
+                          bool debug=false) {
+
+    // go into canvas
+    can_all->cd();
+
+    // if momentum axis, adjust x bounds accordingly
+    size_t length = h_arr.size();
+    for (int j=0; j<length; j++) {
+        if (mom_axis) {
+            h_arr[j]->Rebin(4);
+            h_arr[j]->GetXaxis()->SetRangeUser(0, pt_max+5);
+            // h_arr[j]->Scale(RL_bin_width[j]); // this needs to be done before normalization
+        }
+    }
+
+    // set maximum based on maximum of all curves
+    double max = 0;
+    for (int j=0; j<length; j++) {
+        double max_cand = h_arr[j]->GetMaximum();
+        if (max_cand > max) max = max_cand;
+    }
+    if (debug) cout << "max is " << max << " which goes to " << max*1.5 << endl;
+    h_arr[0]->SetMaximum( max * 1.5 );
+
+    // draw!
+    for (int j=0; j<length; j++) {
+        h_arr[j]->Draw("same");
+    }
+
+    // can_all->Modified();
+    // can_all->Update();
+    l->Draw("same");
+}
+
 // ======================================================= //
 //                   2ND MAIN FUNCTION 
 // ======================================================= //
 
-void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted) {
+void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted, bool include_RL0) {
 
     Double_t markers[10] = {kFullCircle, kFullSquare, kFullDiamond, kFullTriangleUp, kFullStar, kOpenCircle, kOpenTriangleUp, kOpenDiamond, kOpenSquare, kOpenStar};
     Double_t marker_size = 1.5;
@@ -340,11 +418,41 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted) 
     // const double RL_bins[3][8] = { { 1e-5, 1e-2, 3e-2, 7e-2, 1.5e-1, 3e-1, 4e-1, 1 }, 
     //                              { 1e-5, 1e-2, 2.5e-2, 4e-2, 8e-2, 2.5e-1, 4e-1, 1 }, 
     //                              { 1e-5, 1e-2, 2.5e-2, 3e-2, 4.5e-2, 2e-1, 4e-1, 1 } };
-    const double RL_bins[3][8] = { { 0, 1e-2, 3e-2, 7e-2, 1.5e-1, 3e-1, 4e-1 }, 
-                                 { 0, 1e-2, 2.5e-2, 4e-2, 8e-2, 2.5e-1, 4e-1 }, 
-                                 { 0, 1e-2, 2.5e-2, 3e-2, 4.5e-2, 2e-1, 4e-1 } };
     const int n_bins = 3;
-    const int n_RLbins = 6; //7; //5;
+    double RL_bins[3][8] = {{0}, {0}, {0}};
+    double RL_bin_width[8] = {0};
+    int n_RLbins = 0;
+    double temp[3][8] = { { 0, 1e-2, 3e-2, 7e-2, 1.5e-1, 3e-1, 4e-1, 1 }, 
+                          { 0, 1e-2, 2.5e-2, 4e-2, 8e-2, 2.5e-1, 4e-1, 1 }, 
+                          { 0, 1e-2, 2.5e-2, 3e-2, 4.5e-2, 2e-1, 4e-1, 1 } };   
+    if (include_RL0) {
+        for (int i = 0; i < 3; ++i) {
+            for (int j = 0; j < 7; ++j) {
+                RL_bins[i][j] = temp[i][j];
+                RL_bin_width[j] = temp[i][j+1] - temp[i][j];
+            }
+        }
+        n_RLbins = 6; //7; //5;
+    } else {
+        for (int i = 0; i < 3; ++i) {
+            // cout << "--- HERE LIES PT " << i << endl; 
+            for (int j = 0; j < 6; ++j) {
+                RL_bins[i][j] = temp[i][j+1];
+                RL_bin_width[j] = temp[i][j+2] - temp[i][j+1];
+                // cout << "RL BIN WIDTH HERE" << RL_bins[i][j] << endl;
+                // cout << " AND DIFF " << RL_bin_width[j] << endl;
+            }
+        }
+        n_RLbins = 5;
+        
+        int temp_colors[16];
+        std::copy(colors, colors + 16, temp_colors);
+        for (int icol = 0; icol < 8; ++icol) {
+            if ( icol < 7 ) colors[icol] = temp_colors[icol+1];
+            else if ( icol == 7 ) colors[icol] = temp_colors[0]; 
+        }
+    }
+    
 
     TString label1 = "";
     TString label2 = "";  
@@ -355,6 +463,18 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted) 
         weightstr = "_Weighted";
     }
 
+    std::string norm_string = "";
+    if (normed == 0) {
+        norm_string = "_unnormalized";
+    } else if (normed == 1) {
+        norm_string = "_selfnorm";
+    }
+
+    std::string RL0_string = "";
+    if (include_RL0) RL0_string = "_withRL0";
+
+    add_name += norm_string + RL0_string;
+
     // Jet r value
     std::string jetR_list[] = { "0.4" };
     for (std::string jetR : jetR_list) {
@@ -362,19 +482,15 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted) 
         std::string threshold_list[] = { "1.0" }; // "0.15", "0.5"
         for (std::string threshold : threshold_list) {
 
-            // Names of histograms in the file (quark, charm, gluon)
-
-
-
+            // Names of histograms in the file
             const std::string deltap_truth_name = Form("h_corr_deltap%s_JetPt_Truth_R0.4_%sScaled", weightstr.c_str(), threshold.c_str());
             const std::string deltapt_truth_name = Form("h_corr_deltapt%s_JetPt_Truth_R0.4_%sScaled", weightstr.c_str(), threshold.c_str());
             const std::string oppcharge_truth_name = Form("h_corr_oppcharge%s_JetPt_Truth_R0.4_%sScaled", weightstr.c_str(), threshold.c_str());
             const std::string samecharge_truth_name = Form("h_corr_samecharge%s_JetPt_Truth_R0.4_%sScaled", weightstr.c_str(), threshold.c_str());
             const std::string unweightedRL_truth_name = Form("h_corr_unweightedRL%s_JetPt_Truth_R0.4_%sScaled", weightstr.c_str(), threshold.c_str());
             const std::string energyweights_truth_name = Form("h_corr_energyweights%s_JetPt_Truth_R0.4_%sScaled", weightstr.c_str(), threshold.c_str());
+            const std::string baryonmeson_truth_name = Form("h_corr_baryonmeson%s_JetPt_Truth_R0.4_%sScaled", weightstr.c_str(), threshold.c_str());
             // std::cout << "THRESHOLD NAME TEST" << deltap_truth_name << std::endl;
-
-            // const std::string deltap_Weighted_truth_name = Form("h_corr_deltap_Weighted_JetPt_Truth_R0.4_%sScaled", threshold.c_str());
                 
             const std::string jet_pt_truth_name = Form("h_jet_pt_JetPt_Truth_R0.4_%sScaled", threshold.c_str());
 
@@ -386,7 +502,7 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted) 
                 std::string ptname = std::to_string(pt_min) + '-' + std::to_string(pt_max);
 
                 // Output directory
-                std::string outdir = "plots/secondattempt/"+pt_bin_names[i]+"/";//"plots/test/";
+                std::string outdir = "plots/thirdattempt/"+pt_bin_names[i]+"/";//"plots/test/";
                 // Output file for binned results
                 std::string outfile = outdir + "AnalysisResultsFinal" + add_name + ".root";
                 TFile* f_out = new TFile(outfile.c_str(), "RECREATE");
@@ -399,26 +515,36 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted) 
                 TCanvas* c_deltap_all = new TCanvas();
                 ProcessCanvas(c_deltap_all);
                 gPad->SetLogy();
-                // c_deltap_all->SetMaximum(1.5);
 
                 TCanvas* c_deltapt_all = new TCanvas();
                 ProcessCanvas(c_deltapt_all);
                 gPad->SetLogy();
-                // c_deltapt_all->SetMaximum(1.5);
 
                 TCanvas* c_charge_all = new TCanvas();
                 ProcessCanvas(c_charge_all);
                 gPad->SetLogx();
+
+                TCanvas* c_chargeratio_all = new TCanvas();
+                ProcessCanvas(c_chargeratio_all);
+                // gPad->SetLogx();
 
                 TCanvas* c_energyweights_all = new TCanvas();
                 ProcessCanvas(c_energyweights_all);
                 // gPad->SetLogx();
                 gPad->SetLogy();
 
+                TCanvas* c_baryonmeson_all = new TCanvas();
+                ProcessCanvas(c_baryonmeson_all);
+
                 TLegend* l; // = new TLegend(0.17, 0.65, 0.5, 0.85);
-                l = new TLegend(0.6, 0.6, 0.8, 0.87); //0.1797168,0.650741,0.4562155,0.8885185,""); //(0.17, 0.4, 0.5, 0.53);
+                l = new TLegend(0.58, 0.6, 0.78, 0.87); //0.1797168,0.650741,0.4562155,0.8885185,""); //(0.17, 0.4, 0.5, 0.53);
                 l->SetTextSize(0.037);
                 l->SetBorderSize(0);
+
+                TLegend* l_bottomleft; // = new TLegend(0.17, 0.65, 0.5, 0.85);
+                l_bottomleft = new TLegend(0.2, 0.2, 0.4, 0.47); //0.1797168,0.650741,0.4562155,0.8885185,""); //(0.17, 0.4, 0.5, 0.53);
+                l_bottomleft->SetTextSize(0.037);
+                l_bottomleft->SetBorderSize(0);
 
                 TLegend* l2; // = new TLegend(0.17, 0.65, 0.5, 0.85);
                 l2 = new TLegend(0.1797168,0.700741,0.4562155,0.8885185,""); //(0.17, 0.4, 0.5, 0.53);
@@ -439,9 +565,14 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted) 
                 vector<TH1D*> hcorr_samecharge_ENC_truth_arr;
                 // vector<TH1D*> hcorr_unweightedRL_truth_arr;
                 vector<TH1D*> hcorr_energyweights_truth_arr;
+                vector<TH1D*> hcorr_baryonmeson_truth_arr;
                 vector<TString> label;
                 TH1D *hdummyRL;
                 TH1D *hdummyRL2;
+                double y_chargeratio_arr[n_RLbins];
+                double y_baryonbaryon_arr[n_RLbins];
+                double y_baryonmeson_arr[n_RLbins];
+                double y_mesonmeson_arr[n_RLbins];
                     
                 for (int j=0; j < n_RLbins; j++) {
 
@@ -458,26 +589,39 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted) 
                     std::string hist_addname = jetRname + thrname + ptname + RLname;
                     // cout << "THE HIST ADDNAME IS " << hist_addname << endl;
                     // cout << "deltsap_truth_name " << deltap_truth_name << endl;
-                    double obs_bins[] = {0.  , 0.05, 0.1 , 0.15, 0.2 , 0.25, 0.3 , 0.35, 0.4 , 0.45, 0.5 ,
-                        0.55, 0.6 , 0.65, 0.7, 0.75, 0.8 , 0.85, 0.9 , 0.95, 1.  };
-                    int n_obs_bins = sizeof(obs_bins) / sizeof(obs_bins[0]) - 1;
+                    // double obs_rebins[] = {0.  , 0.05, 0.1 , 0.15, 0.2 , 0.25, 0.3 , 0.35, 0.4 , 0.45, 0.5 ,
+                    //     0.55, 0.6 , 0.65, 0.7, 0.75, 0.8 , 0.85, 0.9 , 0.95, 1.  };
+                    // double obs_rebins[] = { 0.,   1.,   2.,   3.,   4.,   5.,   6.,   7.,   8.,   9.,  10.,
+                                        // 11.,  12.,  13.,  14.,  15.,  16.,  17.,  18.,  19.,  20.,  21.,
+                                        // 22.,  23.,  24.,  25.,  26.,  27.,  28.,  29.,  30.,  31.,  32.,
+                                        // 33.,  34.,  35.,  36.,  37.,  38.,  39.,  40.,  41.,  42.,  43.,
+                                        // 44.,  45.,  46.,  47.,  48.,  49.,  50.,  51.,  52.,  53.,  54.,
+                                        // 55.,  56.,  57.,  58.,  59.,  60.,  61.,  62.,  63.,  64.,  65.,
+                                        // 66.,  67.,  68.,  69.,  70.,  71.,  72.,  73.,  74.,  75.,  76.,
+                                        // 77.,  78.,  79.,  80.,  81.,  82.,  83.,  84.,  85.,  86.,  87.,
+                                        // 88.,  89.,  90.,  91.,  92.,  93.,  94.,  95.,  96.,  97.,  98.,
+                                        // 99., 100. };
+                    // int n_obs_rebins = sizeof(obs_rebins) / sizeof(obs_rebins[0]) - 1;
 
                     // Open histograms
-                    TH1D *hcorr_deltap_truth_unnorm = getObsHist(f, deltap_truth_name, jet_pt_truth_name, 
+                    TH1D *hcorr_deltap_truth = getObsHist(f, deltap_truth_name, jet_pt_truth_name, 
                                              pt_min, pt_max, i+1, RL_min, RL_max, "h_corr_deltap_Truth" + hist_addname, 
-                                             4, "#Delta p", n_obs_bins, obs_bins, normed, false);
-                    TH1D *hcorr_deltapt_truth_unnorm = getObsHist(f, deltapt_truth_name, jet_pt_truth_name, 
+                                             4, "#Delta p", normed, true, RL_bin_width[j], false);
+                    TH1D *hcorr_deltapt_truth = getObsHist(f, deltapt_truth_name, jet_pt_truth_name, 
                                              pt_min, pt_max, i+1, RL_min, RL_max, "h_corr_deltapt_Truth" + hist_addname, 
-                                             4, "#Delta p_{T}", n_obs_bins, obs_bins, normed, false);
-                    TH1D *hcorr_oppcharge_truth_unnorm = getObsHist(f, oppcharge_truth_name, jet_pt_truth_name, 
+                                             4, "#Delta p_{T}", normed, true, RL_bin_width[j], false);
+                    TH1D *hcorr_oppcharge_truth = getObsHist(f, oppcharge_truth_name, jet_pt_truth_name, 
                                              pt_min, pt_max, i+1, RL_min, RL_max, "h_corr_oppcharge_Truth" + hist_addname, 
-                                             4, "q_{1}q_{2}", 0, {}, normed, false);
-                    TH1D *hcorr_samecharge_truth_unnorm = getObsHist(f, samecharge_truth_name, jet_pt_truth_name, 
+                                             4, "q_{1}q_{2}", normed, false, 1, false);
+                    TH1D *hcorr_samecharge_truth = getObsHist(f, samecharge_truth_name, jet_pt_truth_name, 
                                              pt_min, pt_max, i+1, RL_min, RL_max, "h_corr_samecharge_Truth" + hist_addname, 
-                                             4, "q_{1}q_{2}", 0, {}, normed, false);
-                    TH1D *hcorr_energyweights_truth_unnorm = getObsHist(f, energyweights_truth_name, jet_pt_truth_name, 
+                                             4, "q_{1}q_{2}", normed, false, 1, false);
+                    TH1D *hcorr_energyweights_truth = getObsHist(f, energyweights_truth_name, jet_pt_truth_name, 
                                              pt_min, pt_max, i+1, RL_min, RL_max, "h_corr_energyweights_Truth" + hist_addname, 
-                                             4, "p_{T,1}p_{T,2} / p_{T, jet}^{2}", 0, {}, normed, true);
+                                             4, "p_{T,1}p_{T,2} / p_{T, jet}^{2}", normed, true, RL_bin_width[j], true);
+                    TH1D *hcorr_baryonmeson_truth = getObsHist(f, baryonmeson_truth_name, jet_pt_truth_name, 
+                                             pt_min, pt_max, i+1, RL_min, RL_max, "h_corr_baryonmeson_Truth" + hist_addname, 
+                                             4, "baryon/meson pairs", normed, false, 1, false);
 
                     //------------//------------//------------//------------//------------//
                     /* 
@@ -632,13 +776,13 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted) 
                     cout << "HOLA??  " << endl;
 
                     //print together
-                    hcorr_deltap_truth_arr.push_back((TH1D*) hcorr_deltap_truth_unnorm->Clone(hcorr_deltap_truth_unnorm->GetName()));
-                    hcorr_deltapt_truth_arr.push_back((TH1D*) hcorr_deltapt_truth_unnorm->Clone(hcorr_deltapt_truth_unnorm->GetName()));
-                    hcorr_oppcharge_truth_arr.push_back((TH1D*) hcorr_oppcharge_truth_unnorm->Clone(hcorr_oppcharge_truth_unnorm->GetName()));
-                    hcorr_samecharge_truth_arr.push_back((TH1D*) hcorr_samecharge_truth_unnorm->Clone(hcorr_samecharge_truth_unnorm->GetName()));
+                    hcorr_deltap_truth_arr.push_back((TH1D*) hcorr_deltap_truth->Clone(hcorr_deltap_truth->GetName()));
+                    hcorr_deltapt_truth_arr.push_back((TH1D*) hcorr_deltapt_truth->Clone(hcorr_deltapt_truth->GetName()));
+                    hcorr_oppcharge_truth_arr.push_back((TH1D*) hcorr_oppcharge_truth->Clone(hcorr_oppcharge_truth->GetName()));
+                    hcorr_samecharge_truth_arr.push_back((TH1D*) hcorr_samecharge_truth->Clone(hcorr_samecharge_truth->GetName()));
                     // hcorr_unweightedRL_truth_arr.push_back((TH1D*) hcorr_unweightedRL_truth_unnorm->Clone(hcorr_unweightedRL_truth_unnorm->GetName()));
-                    hcorr_energyweights_truth_arr.push_back((TH1D*) hcorr_energyweights_truth_unnorm->Clone(hcorr_energyweights_truth_unnorm->GetName()));
-
+                    hcorr_energyweights_truth_arr.push_back((TH1D*) hcorr_energyweights_truth->Clone(hcorr_energyweights_truth->GetName()));
+                    hcorr_baryonmeson_truth_arr.push_back((TH1D*) hcorr_baryonmeson_truth->Clone(hcorr_baryonmeson_truth->GetName()));
 
                     label.push_back(Form("R_{L} = %.3f-%.3f", RL_min, RL_max));
 
@@ -650,8 +794,12 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted) 
                         hcorr_energyweights_truth_arr[j]->SetBinError(k+1, 0);
                     }
 
+                    // format histograms here
+                    // regarding the legends - l is the default (top right)
+                    // l_bottomleft is in the bottom left 
+                    // only need to add one set of observables to legend - the rest get sent to l2 as the "rubbish legend" that doesn't get plotted
                     FormatHist(l, hcorr_deltap_truth_arr[j], label[j], colors[j], markers[0], true);
-                    FormatHist(l2, hcorr_deltapt_truth_arr[j], label[j], colors[j], markers[0], true);
+                    FormatHist(l_bottomleft, hcorr_deltapt_truth_arr[j], label[j], colors[j], markers[0], true);
                     FormatHist(l2, hcorr_oppcharge_truth_arr[j], label[j], colors[j], markers[0], false);
                     FormatHist(l2, hcorr_samecharge_truth_arr[j], label[j], colors[j], markers[2], false);
                     // FormatHist(l, hcorr_unweightedRL_truth, label[j], colors[j], markers[0]);
@@ -679,10 +827,10 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted) 
                     std::string charge_ratio_name = "hcorr_chargeratio_ENC" + ptname + RLname;
                     TH1D *hcorr_oppcharg_ENC_truth_unnorm = getObsHist(f, oppcharge_truth_name, jet_pt_truth_name, 
                                              pt_min, pt_max, i+1, RL_min, RL_max, "h_corr_oppcharge_ENC_Truth" + hist_addname, 
-                                             i+1, "R_{L}", 0, {}, normed, false); //make normalization = 2?
+                                             i+1, "R_{L}", normed, false, 1, false); //make normalization = 2?
                     TH1D *hcorr_samecharge_ENC_truth_unnorm = getObsHist(f, samecharge_truth_name, jet_pt_truth_name, 
                                              pt_min, pt_max, i+1, RL_min, RL_max, "h_corr_samecharge_ENC_Truth" + hist_addname, 
-                                             i+1, "R_{L}", 0, {}, normed, false); //make normalization = 2?
+                                             i+1, "R_{L}", normed, false, 1, false); //make normalization = 2?
                     hcorr_oppcharge_ENC_truth_arr.push_back((TH1D*) hcorr_oppcharg_ENC_truth_unnorm->Clone(hcorr_oppcharg_ENC_truth_unnorm->GetName()));
                     hcorr_samecharge_ENC_truth_arr.push_back((TH1D*) hcorr_samecharge_ENC_truth_unnorm->Clone(hcorr_samecharge_ENC_truth_unnorm->GetName()));
                     FormatHist(l2, hcorr_oppcharge_ENC_truth_arr[j], label[j], colors[j], markers[0], false);
@@ -700,38 +848,30 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted) 
                     hcorr_energyweights_truth_arr[j]->Draw();
                     
 
+                    // do combined graphs now!
+                    
+                    // this one has RL bin on the x axis, and y axis is #opp-sign-pairs/#same-sign-pairs
+                    // later will save to c_chargeratio_all
+                    double num_opp = hcorr_oppcharge_truth_arr[j]->GetBinContent(hcorr_oppcharge_truth_arr[j]->FindBin(-1));
+                    double num_same = hcorr_samecharge_truth_arr[j]->GetBinContent(hcorr_samecharge_truth_arr[j]->FindBin(1));
+                    y_chargeratio_arr[j] = num_opp/num_same;
 
-                    // plot the combined graphs
-                    c_deltap_all->cd();
-                    // std::cout << "HERE!!!" << std::endl;
-                    if (j==0) {
-                        cout << "max is " << hcorr_deltap_truth_arr[j]->GetMaximum() << " and " << hcorr_deltap_truth_arr[j]->GetMaximum()*10 << endl;
-                        hcorr_deltap_truth_arr[j]->SetMaximum(hcorr_deltap_truth_arr[j]->GetMaximum()*30); //65);
-                    }
-                    hcorr_deltap_truth_arr[j]->Draw("same");
-                    // c_deltap_all->Modified();
-                    // c_deltap_all->Update();
-                    l->Draw("same");
+                    //save baryon/meson pairs info
+                    // 1 = p+p, 0 = p+pi, -1 = pi+pi, 2 = any other pairs
+                    y_baryonbaryon_arr[j] = hcorr_baryonmeson_truth->GetBinContent(hcorr_baryonmeson_truth->FindBin(1));
+                    y_baryonmeson_arr[j] = hcorr_baryonmeson_truth->GetBinContent(hcorr_baryonmeson_truth->FindBin(0));
+                    y_mesonmeson_arr[j] = hcorr_baryonmeson_truth->GetBinContent(hcorr_baryonmeson_truth->FindBin(-1));
+                    
 
-                    c_deltapt_all->cd();         
-                    if (j==0) {
-                        hcorr_deltapt_truth_arr[j]->SetMaximum(hcorr_deltap_truth_arr[j]->GetMaximum()*10);
-                    }
-                    hcorr_deltapt_truth_arr[j]->Draw("same");
-                    l->Draw("same");
 
-                    c_energyweights_all->cd();
-                    hcorr_energyweights_truth_arr[j]->Draw("same");
-                    // gPad->SetLogx();
-                    l->Draw("same");
-
+                    // this one has charge EECs split into colors of RL bin
                     c_charge_all->cd();
                     if (j==0) {
                         c_charge_all->Divide(1,2);                    
                     }
                     c_charge_all->cd(1);
                     if (j==0) {
-                        // gPad->SetLogx();
+                        gPad->SetLogx();
                         // FormatHist(l2, hdummyRL, "", colors[j], markers[0]);
                         hdummyRL->SetMarkerColorAlpha(kBlue, 0);
                         hdummyRL->SetLineColorAlpha(kRed, 0);
@@ -767,7 +907,7 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted) 
 
                     c_charge_all->cd(2);
                     if (j==0) {
-                        // gPad->SetLogx();
+                        gPad->SetLogx();
                         hdummyRL2->SetMarkerColorAlpha(kBlue, 0);
                         hdummyRL2->SetLineColorAlpha(kRed, 0);
                         hdummyRL2->SetMinimum(0.);
@@ -820,14 +960,14 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted) 
                     // draw legend
                     // l->Draw("same");
 
-                    std::string fname_deltap = outdir + "corrhist_deltap" + weightstr + "_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
-                    std::string fname_deltapt = outdir + "corrhist_deltapt" + weightstr + "_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
-                    // std::string fname_oppcharge = outdir + "corrhist_oppcharge" + weightstr + "_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
-                    // std::string fname_samecharge = outdir + "corrhist_samecharge" + weightstr + "_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
-                    std::string fname_charge = outdir + "corrhist_charge" + weightstr + "_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
-                    std::string fname_unweightedRL = outdir + "corrhist_unweightedRL" + weightstr + "_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
-                    std::string fname_chargeratio = outdir + "corrhist_chargeratio" + weightstr + "_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
-                    std::string fname_energyweights = outdir + "corrhist_energyweights" + weightstr + "_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
+                    std::string fname_deltap = outdir + "individuals/corrhist_deltap" + weightstr + "_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
+                    std::string fname_deltapt = outdir + "individuals/corrhist_deltapt" + weightstr + "_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
+                    // std::string fname_oppcharge = outdir + "individuals/corrhist_oppcharge" + weightstr + "_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
+                    // std::string fname_samecharge = outdir + "individuals/corrhist_samecharge" + weightstr + "_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
+                    std::string fname_charge = outdir + "individuals/corrhist_charge" + weightstr + "_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
+                    std::string fname_unweightedRL = outdir + "individuals/corrhist_unweightedRL" + weightstr + "_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
+                    std::string fname_chargeratio = outdir + "individuals/corrhist_chargeratio" + weightstr + "_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
+                    std::string fname_energyweights = outdir + "individuals/corrhist_energyweights" + weightstr + "_pt" + ptname + RLname + "_R" + jetR + add_name + ".pdf";
 
                     const char* fname_deltapc = fname_deltap.c_str();
                     const char* fname_deltaptc = fname_deltapt.c_str();
@@ -844,7 +984,7 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted) 
                     // c_samecharge->SaveAs(fname_samechargec);
                     if (normed == 0) c_charge->SaveAs(fname_chargec);
                     // c_unweightedRL->SaveAs(fname_unweightedRLc);
-                    c_chargeratio->SaveAs(fname_chargeratioc);
+                    if (normed == 0) c_chargeratio->SaveAs(fname_chargeratioc);
                     c_energyweights->SaveAs(fname_energyweightsc);
 
                     delete c_deltap;
@@ -857,22 +997,24 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted) 
                     delete c_energyweights;
 
                     f_out->cd();
-                    hcorr_deltap_truth_unnorm->Write();
-                    hcorr_deltapt_truth_unnorm->Write();
-                    hcorr_oppcharge_truth_unnorm->Write();
-                    hcorr_samecharge_truth_unnorm->Write();
+                    hcorr_deltap_truth->Write();
+                    hcorr_deltapt_truth->Write();
+                    hcorr_oppcharge_truth->Write();
+                    hcorr_samecharge_truth->Write();
                     // hcorr_unweightedRL_truth_unnorm->Write();
                     hcorr_chargeratio_ENC_truth->Write();
-                    hcorr_energyweights_truth_unnorm->Write();
+                    hcorr_energyweights_truth->Write();
+                    hcorr_baryonmeson_truth->Write();
 
                     
-                    delete hcorr_deltap_truth_unnorm;
-                    delete hcorr_deltapt_truth_unnorm;
-                    delete hcorr_oppcharge_truth_unnorm;
-                    delete hcorr_samecharge_truth_unnorm;
+                    delete hcorr_deltap_truth;
+                    delete hcorr_deltapt_truth;
+                    delete hcorr_oppcharge_truth;
+                    delete hcorr_samecharge_truth;
                     // delete hcorr_unweightedRL_truth_unnorm;
                     delete hcorr_chargeratio_ENC_truth;
-                    delete hcorr_energyweights_truth_unnorm;
+                    delete hcorr_energyweights_truth;
+                    delete hcorr_baryonmeson_truth;
 
                     // delete h_pt_jetlevel_clone;
                     
@@ -904,25 +1046,101 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted) 
                 }*/
                 //----------------------------//
 
+                // plot the combined graphs
+                plot_combined_graphs(c_deltap_all, hcorr_deltap_truth_arr, l_bottomleft, pt_max, true, RL_bin_width);
+                plot_combined_graphs(c_deltapt_all, hcorr_deltapt_truth_arr, l_bottomleft, pt_max, true, RL_bin_width);
+                plot_combined_graphs(c_energyweights_all, hcorr_energyweights_truth_arr, l, pt_max, false, RL_bin_width);
+
+
+
+                c_chargeratio_all->cd();
+                TGraph *g = new TGraph(n_RLbins, RL_bins[i], y_chargeratio_arr); 
+                FormatGraph(g, "R_{L}", "# opp sign pairs / # same sign pairs", 1.0, 20, kBlack, 0);
+                g->Draw("AP");
+                // std::vector<TGraph*> graph_inds;
+                for (int j=0; j<n_RLbins; j++) {
+                    double x_temp[1] = {RL_bins[i][j]};
+                    double y_temp[1] = {y_chargeratio_arr[j]};
+                    // divide by the bin width??
+                    // y_temp[0] /= RL_bin_width[j];
+                    // TGraph *g_ind = new TGraph(1, &RL_bins[i][j], &y_chargeratio_arr[j]); //RL_bins[i] + j, y_chargeratio_arr + j); // gives what I thought would be TGraph(1, RL_bins[i][j], y_chargeratioarr[j]), but this syntax is wrong
+                    TGraph *g_ind = new TGraph(1, x_temp, y_temp); //RL_bins[i] + j, y_chargeratio_arr + j); // gives what I thought would be TGraph(1, RL_bins[i][j], y_chargeratioarr[j]), but this syntax is wrong
+                    FormatGraph(g_ind, "R_{L}", "# opp sign pairs / # same sign pairs", 1.0, 20, colors[j], 1.0);
+                    // graph_inds.push_back(g_ind);
+                    g_ind->Draw("P same");
+                    // cout << "the items here are " << RL_bins[i][j] << " vs " << RL_bins[i]+j << " and " << y_chargeratio_arr[j] << " vs " << y_chargeratio_arr + j << endl;
+                }
+                
+                l->Draw("same");
+
+
+                // do baryons + mesons
+                c_baryonmeson_all->cd();
+                TGraph *g_bb = new TGraph(n_RLbins, RL_bins[i], y_baryonbaryon_arr); 
+                TGraph *g_bm = new TGraph(n_RLbins, RL_bins[i], y_baryonmeson_arr); 
+                TGraph *g_mm = new TGraph(n_RLbins, RL_bins[i], y_mesonmeson_arr); 
+                FormatGraph(g_bb, "R_{L}", "# of pairs", 1.0, 20, kBlack, 0);
+                // FormatGraph(g_bm, "R_{L}", "# of pairs", 1.0, kFullStar, kBlack, 0); 
+                // FormatGraph(g_mm, "R_{L}", "# of pairs", 1.0, kFullSquare, kBlack, 0);
+
+                double max_bm = 0;
+                for (int j=0; j<n_RLbins; j++) {
+                    double max_bm_temp = hcorr_baryonmeson_truth_arr[j]->GetMaximum();
+                    if (max_bm_temp > max_bm) max_bm = max_bm_temp;
+                }
+                g_bb->SetMaximum( max_bm * 1.2 );
+                g_bb->Draw("AP");
+                // g_bm->Draw("P same");
+                // g_mm->Draw("P same");
+
+                for (int j=0; j<n_RLbins; j++) {
+                    double x_temp[1] = {RL_bins[i][j]};
+                    double y_bb_temp[1] = {y_baryonbaryon_arr[j]};
+                    double y_bm_temp[1] = {y_baryonmeson_arr[j]};
+                    double y_mm_temp[1] = {y_mesonmeson_arr[j]};
+                    // TGraph *g_ind = new TGraph(1, &RL_bins[i][j], &y_chargeratio_arr[j]); //RL_bins[i] + j, y_chargeratio_arr + j); // gives what I thought would be TGraph(1, RL_bins[i][j], y_chargeratioarr[j]), but this syntax is wrong
+                    TGraph *g_bb_ind = new TGraph(1, x_temp, y_bb_temp); //RL_bins[i] + j, y_chargeratio_arr + j); // gives what I thought would be TGraph(1, RL_bins[i][j], y_chargeratioarr[j]), but this syntax is wrong
+                    TGraph *g_bm_ind = new TGraph(1, x_temp, y_bm_temp);
+                    TGraph *g_mm_ind = new TGraph(1, x_temp, y_mm_temp);
+                    FormatGraph(g_bb_ind, "R_{L}", "# of pairs", 1.5, 20, colors[j], 1.0);
+                    FormatGraph(g_bm_ind, "R_{L}", "# of pairs", 1.5, kFullStar, colors[j], 1.0);
+                    FormatGraph(g_mm_ind, "R_{L}", "# of pairs", 1.5, kFullSquare, colors[j], 1.0);
+                    g_bb_ind->Draw("P same");
+                    g_bm_ind->Draw("P same");
+                    g_mm_ind->Draw("P same");
+                }
+                l->Draw("same");
+                
+
+
+                // save combined plots as pdfs
                 std::string fname_deltap_all = outdir + "corrhist_deltap" + weightstr + "_all_pt" + ptname + "_R" + jetR + add_name + ".pdf";
                 std::string fname_deltapt_all = outdir + "corrhist_deltapt" + weightstr + "_all_pt" + ptname + "_R" + jetR + add_name + ".pdf";
                 std::string fname_charge_all = outdir + "corrhist_charge" + weightstr + "_all_pt" + ptname + "_R" + jetR + add_name + ".pdf";
+                std::string fname_chargeratio_all = outdir + "corrhist_chargeratio" + weightstr + "_all_pt" + ptname + "_R" + jetR + add_name + ".pdf";
                 std::string fname_energyweights_all = outdir + "corrhist_energyweights" + weightstr + "_all_pt" + ptname + "_R" + jetR + add_name + ".pdf";
+                std::string fname_baryonmeson_all = outdir + "corrhist_baryonmeson" + weightstr + "_all_pt" + ptname + "_R" + jetR + add_name + ".pdf";
                 
                 const char* fname_deltapc_all = fname_deltap_all.c_str();
                 const char* fname_deltaptc_all = fname_deltapt_all.c_str();
                 const char* fname_chargec_all = fname_charge_all.c_str();
+                const char* fname_chargeratioc_all = fname_chargeratio_all.c_str();
                 const char* fname_energyweightsc_all = fname_energyweights_all.c_str();
+                const char* fname_baryonmesonc_all = fname_baryonmeson_all.c_str();
                 
                 c_deltap_all->SaveAs(fname_deltapc_all);
                 c_deltapt_all->SaveAs(fname_deltaptc_all);
                 c_charge_all->SaveAs(fname_chargec_all);
+                if (normed == 0) c_chargeratio_all->SaveAs(fname_chargeratioc_all);
                 c_energyweights_all->SaveAs(fname_energyweightsc_all);
+                if (normed == 0) c_baryonmeson_all->SaveAs(fname_baryonmesonc_all);
 
                 delete c_deltap_all;
                 delete c_deltapt_all;
                 delete c_charge_all;
+                delete c_chargeratio_all;
                 delete c_energyweights_all;
+                delete c_baryonmeson_all;
 
             } // pT bins loop
         } // threshold loop
@@ -933,7 +1151,7 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted) 
 //                     MAIN FUNCTION 
 // ======================================================= //
 
-void make_corr_histograms() {
+void old_make_corr_histograms() {
 
     gStyle->SetOptStat(0);
     SetStyle();
@@ -941,7 +1159,7 @@ void make_corr_histograms() {
 
     // Files
     // const char infile[] = "/software/users/blianggi/mypyjetty/analysis/output/100k/AnalysisResultsFinal.root"; //hiccup
-    const char infile[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/pythiagen/scaling/28855690/26652369/AnalysisResultsFinal.root"; //perlmutter, after june 2024
+    const char infile[] = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/pythiagen/scaling/29459876/26652369/AnalysisResultsFinal.root"; //perlmutter, after june 2024
     // const char infile[] = "/Volumes/NO NAME/AnalysisResultsFinal.root"; //local
 
     // auto tree1 = new TChain("tree1");
@@ -956,26 +1174,29 @@ void make_corr_histograms() {
 
 
     // CONTOL VARIABLES HERE
-    int normed = 1; // 0 if unnormalized, 1 for self-normalization 
-    bool weighted = false; // true if using "Weighted", false if using unweighted
-    
+    // normed is 0 if unnormalized, 1 for self-normalization 
+    // weighted is true if using "Weighted", false if using unweighted
+    bool include_RL0 = false;
 
-    std::string norm_string = "";
-    if (normed == 0) {
-        norm_string = "_unnormalized";
-    } else if (normed == 1) {
-        norm_string = "_selfnorm";
-    }
 
     f = new TFile(infile, "READ");
-    add_name = "_othercorrel" + norm_string;
+    add_name = "_othercorrel";
     cout << "output name will be " << add_name << endl;
 
+    // first do unnormalized
+    int normed = 0;
     // plot unweighted hists
-    plot_histograms(f, add_name, normed, weighted);
-
+    plot_histograms(f, add_name, normed, false, include_RL0);
     // plot weighted hists
-    plot_histograms(f, add_name, normed, true);
+    plot_histograms(f, add_name, normed, true, include_RL0);
+
+
+    // now do self-normalized
+    normed = 1;
+    // plot unweighted hists
+    plot_histograms(f, add_name, normed, false, include_RL0);
+    // plot weighted hists
+    plot_histograms(f, add_name, normed, true, include_RL0);
 
 
 

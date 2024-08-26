@@ -372,8 +372,39 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
           setattr(self, name, h)
 
           name = 'h_JETINFO{}_JetPt_Truth_R{}_{}'.format(observable, jetR, obs_label)
-          tn = ROOT.TNtuple(name, name, "jet_pt:total_num_const:num_const_aftercut")
+          tn = ROOT.TNtuple(name, name, "jet_pt:total_num_const:num_const_aftercut:total_num_baryons:num_baryons_aftercut:total_num_mesons:num_mesons_aftercut")
+          # tn = ROOT.TTree(name, name)
+
+          # # Define variables
+          # self.tree_jet_pt = array.array('f', [0.0])
+          # self.tree_total_num_const = array.array('i', [0])
+          # self.tree_num_const_aftercut = array.array('i', [0])
+          # self.tree_total_num_baryons = array.array('i', [0])
+          # self.tree_num_baryons_aftercut = array.array('i', [0])
+          # self.tree_total_num_mesons = array.array('i', [0])
+          # self.tree_num_mesons_aftercut = array.array('i', [0])
+
+          # # Create branches
+          # tn.Branch("tree_jet_pt", self.tree_jet_pt, "tree_jet_pt/F")
+          # tn.Branch("tree_total_num_const", self.tree_total_num_const, "tree_total_num_const/I")
+          # tn.Branch("tree_num_const_aftercut", self.tree_num_const_aftercut, "tree_num_const_aftercut/I")
+          # tn.Branch("tree_total_num_baryons", self.tree_total_num_baryons, "tree_total_num_baryons/I")
+          # tn.Branch("tree_num_baryons_aftercut", self.tree_num_baryons_aftercut, "tree_num_baryons_aftercut/I")
+          # tn.Branch("tree_total_num_mesons", self.tree_total_num_mesons, "tree_total_num_mesons/I")
+          # tn.Branch("tree_num_mesons_aftercut", self.tree_num_mesons_aftercut, "tree_num_mesons_aftercut/I")
+
           setattr(self, name, tn)
+
+          # filename = "AnalysisResults.root"
+          # branchdict = {"tree_jet_pt": float, "tree_total_num_const": int, "tree_num_const_aftercut": int, "tree_total_num_baryons": float}
+          # with uproot.recreate(self.output_dir + filename) as f:
+            # f.mktree(name=name, branch_types=branchdict, title=name)
+          
+          # outputfilename = os.path.join(self.output_dir, 'AnalysisResults.root')
+          # fout = ROOT.TFile(outputfilename, 'UPDATE')
+          # fout.cd()
+          # testtn = ROOT.TNtuple("testtn", "testtn", "x:y:z")
+          # setattr(self, "testtn", testtn)
 
           '''name = 'h_{}_JetPt_R{}_{}'.format(observable, jetR, obs_label)
           pt_bins = linbins(0,200,200)
@@ -534,10 +565,10 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
     pt_bins = linbins(0,200,200)
     RL_bins = logbins(1E-4,1,50) # for the unweighted??
     ptRL_bins = logbins(1E-3,1E2,60)
-    deltap_bins = linbins(0., 5., 250) #linbins(0, 1., 100) + linbins(1.0, 100., 99)[1:]
+    deltap_bins = linbins(0., 100., 500) #5., 250) #linbins(0, 1., 100) + linbins(1.0, 100., 99)[1:]
     charge_bins = linbins(-1.5, 1.5, 3)
     weight_bins = linbins(0., 1., 200) #is this how i want to do it??
-    baryonmeson_bins = linbins(0., 5., 200)
+    baryonmeson_bins = linbins(-5,5,10) #linbins(0., 5., 200)??
 
     # need different bins for RL depending on pT - as RL bin edges need to match up with the previously determined regions
     arr_zero = array.array('d', np.zeros(1))
@@ -611,6 +642,18 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
       title = ['p_{T,ch jet,det}', 'R_{L,det}_pt2040', 'R_{L,det}_pt4060', 'R_{L,det}_pt6080', 'baryon:meson_{det}']
       obs_bins = baryonmeson_bins
 
+      name = 'h_{}_JetPt_Truth_R{}_{}'.format("baryon", jetR, obs_label)
+      h_b = ROOT.TH2D(name, name, 200, pt_bins, 200, pt_bins) # "jet_pt:baryon_pt"
+      h_b.GetXaxis().SetTitle('p_{T,ch jet}')
+      h_b.GetYaxis().SetTitle('p_{T, baryon}')
+      setattr(self, name, h_b)
+      name = 'h_{}_JetPt_Truth_R{}_{}'.format("meson", jetR, obs_label)
+      h_m = ROOT.TH2D(name, name, 200, pt_bins, 200, pt_bins) # "jet_pt:meson_pt"
+      h_m.GetXaxis().SetTitle('p_{T,ch jet}')
+      h_m.GetYaxis().SetTitle('p_{T, meson}')
+      setattr(self, name, h_m)
+
+
 
 
     # create thnsparses!
@@ -632,10 +675,20 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
   
   def create_corr_tuples(self, observable, ipoint, jetR, obs_label):
     name = 'h_{}_JetPt_Truth_R{}_{}'.format(observable, jetR, obs_label)
-    tn = ROOT.TNtuple(name, name, "jet_pt:RL:obs:weights")
+    tn = ROOT.TNtuple(name, name, "jet_pt:RL:obs:weights") #don't need weights for each observable?? I'll worry about this another time
+    tn.SetAutoFlush(1000)
     setattr(self, name, tn)
+    
+    if ("baryonmeson" in observable):
+      name = 'h_{}_JetPt_Truth_R{}_{}'.format("baryon", jetR, obs_label)
+      tn_b = ROOT.TNtuple(name, name, "jet_pt:baryon_pt")
+      setattr(self, name, tn_b)
+      name = 'h_{}_JetPt_Truth_R{}_{}'.format("meson", jetR, obs_label)
+      tn_m = ROOT.TNtuple(name, name, "jet_pt:meson_pt")
+      setattr(self, name, tn_m)
 
     self.fsparsepartonJetvalue_tuple = array.array( 'd', np.zeros(4)) #4 to match the number of axes
+
 
   def get_pair_eff_weights(self, corr_builder, ipoint, constituents):
     # NB: currently applying the pair eff weight to both 2 point correlator and higher point correlators. Need to check if the same pair efficiency effect still work well for higher point correlators
@@ -667,6 +720,27 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
       return True
     else:
       return False
+
+  # returns:
+  # 1 if baryon+baryon (proton + proton)
+  # 0 if baryon+meson (proton + pion)
+  # -1 if meson+meson (pion + pion)
+  # 2 if any other particles
+  def is_pair_baryonmeson(self, corr_builder, ipoint, constituents, index):
+    part1 = int(corr_builder.correlator(ipoint).indices1()[index])
+    part2 = int(corr_builder.correlator(ipoint).indices2()[index])
+    pid1 = int(constituents[part1].python_info().particle_pid)
+    pid2 = int(constituents[part2].python_info().particle_pid)
+
+    if abs(pid1) == 2212 and abs(pid2) == 2212:
+      return 1
+    elif abs(pid1) == 211 and abs(pid2) == 211:
+      return -1
+    elif (abs(pid1) == 2212 and abs(pid2) == 211) or (abs(pid1) == 211 and abs(pid2) == 2212):
+      return 0
+    else:
+      return 2
+    
   
   def check_pair_type(self, corr_builder, ipoint, constituents, index):
     part1 = int(corr_builder.correlator(ipoint).indices1()[index])
@@ -697,13 +771,31 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
     c_select = fj.vectorPJ()
     trk_thrd = obs_setting
 
+    num_baryons_tot = 0
+    num_mesons_tot = 0
+    num_baryons_aftercut = 0
+    num_mesons_aftercut = 0
+
     for c in constituents:
+      pid = c.python_info().particle_pid
+      if abs(pid) == 2212: #proton
+        num_baryons_tot+=1
+      elif abs(pid) == 211: #pion
+        num_mesons_tot+=1
+
       if c.pt() < trk_thrd:
         break
       c_select.append(c) # NB: use the break statement since constituents are already sorted
+
+      if abs(pid) == 2212: #proton
+        num_baryons_aftercut+=1
+      elif abs(pid) == 211: #pion
+        num_mesons_aftercut+=1
     
-    print("CHARGE HERE")
-    print([c.python_info().charge for c in c_select])
+    if (self.debug_level == 3):
+      print("CHARGE and PID HERE")
+      print([c.python_info().charge for c in c_select])
+      print([c.python_info().particle_pid for c in c_select])
 
     if self.ENC_pair_cut and (not 'Truth' in hname):
       dphi_cut = -9999 # means no dphi cut
@@ -797,8 +889,20 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
         # getattr(self, hname.format(observable,obs_label)).Fill(jet_pt)
         getattr(self, hname.format("1D"+observable,obs_label)).Fill(jet_pt)
 
-        getattr(self, hname.format("JETINFO"+observable, obs_label)).Fill(jet_pt, len(constituents), len(c_select))
- 
+        getattr(self, hname.format("JETINFO"+observable, obs_label)).Fill(jet_pt, len(constituents), len(c_select), num_baryons_tot, num_baryons_aftercut, num_mesons_tot, num_mesons_aftercut)
+        # self.tree_jet_pt = jet_pt
+        # self.tree_total_num_const = len(constituents)
+        # self.tree_num_const_aftercut = len(c_select)
+        # self.tree_total_num_baryons = num_baryons_tot
+        # self.tree_num_baryons_aftercut = num_baryons_aftercut
+        # self.tree_total_num_mesons = num_mesons_tot
+        # self.tree_num_mesons_aftercut = num_mesons_aftercut
+        # getattr(self, hname.format("JETINFO"+observable, obs_label)).Fill()
+
+        # for i in range(100000):
+        #   getattr(self, "testtn").Fill(5,5,-1)
+        #   getattr(self, "testtn").Fill(5,5,12)
+        #   getattr(self, "testtn").Fill(1,5,0)
       
       # NB: for now, only perform this check on data and full sim
       if 'EEC_detail' in observable and self.ENC_fastsim==False: 
@@ -825,6 +929,7 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
             getattr(self, hname.format(observable,obs_label)).Fill(jet_pt, new_corr.correlator(ipoint).rs()[index])
           else:
             getattr(self, hname.format(observable,obs_label)).Fill(jet_pt, new_corr.correlator(ipoint).rs()[index], new_corr.correlator(ipoint).weights()[index])
+      
       # print("BLAHBLAHHHH", observable, "AND", str(ipoint), "AND", obs_label, "AND", hname.format(observable+str(ipoint),obs_label))
       # correlation histograms 
       if 'corr' in observable :
@@ -856,7 +961,13 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
           new_obs_corr = ecorrel.CorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut)
 
         if (observable == "corr_baryonmeson"):
-          new_obs_corr = 0 # TODO: IDK YETTTT
+          # new_obs_corr = 0 # TODO: IDK YETTTT
+          for c in constituents:
+            pid = c.python_info().particle_pid
+            if abs(pid) == 2212: #proton
+              getattr(self, hname.format("baryon",obs_label)).Fill(jet_pt, c.pt())
+            elif abs(pid) == 211: #pion
+              getattr(self, hname.format("meson",obs_label)).Fill(jet_pt, c.pt())
 
         # print("THERE ARE ", new_obs_corr.correlator(ipoint).rs().size(), "NUM OF ENTRIES IN NEW OBS CORR")
 
@@ -864,6 +975,7 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
         # fsparsejetlevelJetvalue = array.array( 'd', ( 0, 0, 0 ))
         if self.save_tuples == 0:
           self.fsparsepartonJetvalue[0] = jet_pt
+          # self.tree_jet_pt[0] = jet_pt
         else:
           self.fsparsepartonJetvalue_tuple[0] = jet_pt
           
@@ -897,6 +1009,12 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
               self.fsparsepartonJetvalue[4] = new_corr.correlator(ipoint).weights()[index]
             else:
               self.fsparsepartonJetvalue_tuple[2] = new_corr.correlator(ipoint).weights()[index]
+          elif ("baryonmeson" in observable):
+            baryonmeson_quantity = self.is_pair_baryonmeson(new_corr, ipoint, c_select, index)
+            if self.save_tuples == 0:
+              self.fsparsepartonJetvalue[4] = baryonmeson_quantity
+            else:
+              self.fsparsepartonJetvalue_tuple[2] = baryonmeson_quantity
           else:
             if self.save_tuples == 0:
               self.fsparsepartonJetvalue[4] = new_obs_corr.correlator(ipoint).rs()[index]
@@ -915,6 +1033,7 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
                                                                    self.fsparsepartonJetvalue_tuple[1],
                                                                    self.fsparsepartonJetvalue_tuple[2],
                                                                    self.fsparsepartonJetvalue_tuple[3])
+    # fout.Close()
 
   #---------------------------------------------------------------
   # This function is called per observable per jet subconfigration 

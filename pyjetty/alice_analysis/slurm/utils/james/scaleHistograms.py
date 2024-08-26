@@ -92,6 +92,9 @@ def scaleHistograms(configFile, remove_unscaled):
 def ScaleAllHistograms(obj, scaleFactor, f, verbose, bRemoveOutliers=False, limit=2, nBinsThreshold=4, pTHardBin=0, EndPtHardBin=20, taskName=""):
   
   # Set Sumw2 if not already done
+  if obj.InheritsFrom(ROOT.TNtuple.Class()):
+    return
+  
   if obj.InheritsFrom(ROOT.THnBase.Class()):
     if obj.GetSumw2() is 0:
       obj.Sumw2()

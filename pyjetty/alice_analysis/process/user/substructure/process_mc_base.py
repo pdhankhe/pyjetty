@@ -649,7 +649,7 @@ class ProcessMCBase(process_base.ProcessBase):
             # print(ecorr_user_info)
             
           else:
-            ecorr_user_info.particle_pid = -99
+            ecorr_user_info.particle_pid = particles_pid_truth[index]
             ecorr_user_info.particle_rap = -99
             ecorr_user_info.particle_mid = -99
 
@@ -691,8 +691,8 @@ class ProcessMCBase(process_base.ProcessBase):
         # FIX ME: should treat long lived charged particle differently (check how the existing fast herwig and pythia handles it)
         fj_particles_truth_ch = fj.vectorPJ()
         for part in fj_particles_truth:
-          # if part.python_info().charge!=0: # only use charged particles
-          fj_particles_truth_ch.append(part)
+          if part.python_info().charge!=0: # only use charged particles
+            fj_particles_truth_ch.append(part)
         cs_truth = fj.ClusterSequence(fj_particles_truth_ch, jet_def)
       else:
         cs_truth = fj.ClusterSequence(fj_particles_truth, jet_def)

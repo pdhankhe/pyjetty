@@ -492,6 +492,10 @@ class ProcessBase(common_base.CommonBase):
       # Write all ROOT histograms and trees to file
       types = (ROOT.TH1, ROOT.THnBase, ROOT.TTree)
       if isinstance(obj, types):
+        if isinstance(obj, ROOT.TTree):
+          print("in here!!!", obj.GetEntries(), attr)
+          obj.SetAutoSave(1000)
+          fout.Write()
         obj.Write()
   
     fout.Close()
