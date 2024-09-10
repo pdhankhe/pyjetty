@@ -157,6 +157,10 @@ namespace OtherCorrelators
                     // double testingp2 = sqrt(parts[j].px()*parts[j].px() + parts[j].py()*parts[j].py());
                     // cout << "del TEST: " << testingp1 << " - " << testingp2 << " = " << testingp1 - testingp2 << endl;
                     
+                } else if (strcmp(correltype, "deltapl") == 0) {
+                    _d12 = fabs(parts[i].pz() - parts[j].pz());  
+                    // std::cout << "PL " << fabs(parts[i].pz() - parts[j].pz()) << std::endl;
+                    // std::cout << "PT " << fabs(parts[i].pt() - parts[j].pt()) << std::endl;
                 } // else if (correltype == "charge") {
                 //     double q1 = parts[i].python_info().charge; //parts[i].charge();
                 //     double q2 = parts[j].python_info().charge; //parts[j].charge();

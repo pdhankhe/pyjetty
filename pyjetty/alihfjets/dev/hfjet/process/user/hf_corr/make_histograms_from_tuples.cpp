@@ -468,7 +468,7 @@ void make_histograms_from_tuples() {
 
     // Files
     // const char infile[] = "/software/users/blianggi/mypyjetty/analysis/output/100k/AnalysisResultsFinal.root"; //hiccup
-    const std::string indir = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/pythiagen/histograms/29160880/ntuples/26652369"; //perlmutter, after june 2024
+    const std::string indir = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/pythiagen/histograms/30177519/ntuples/26652369"; //perlmutter, after june 2024
     const std::string infilename = "AnalysisResults.root";
     // const char infile[] = "/Volumes/NO NAME/AnalysisResultsFinal.root"; //local
 
@@ -482,8 +482,10 @@ void make_histograms_from_tuples() {
     std::string energyweights_name = "h_corr_energyweights_JetPt_Truth_R0.4_1.0";
     std::string oppcharge_name = "h_corr_oppcharge_JetPt_Truth_R0.4_1.0";
     std::string samecharge_name = "h_corr_samecharge_JetPt_Truth_R0.4_1.0";
+    std::string baryon_name = "h_baryon_JetPt_Truth_R0.4_1.0";
+    std::string meson_name = "h_meson_JetPt_Truth_R0.4_1.0";
 
-    std::string jet1D_name = "h_1Djet_pt_JetPt_Truth_R0.4_1.0;10"; // this one is a histogram
+    std::string jet1D_name = "h_1Djet_pt_JetPt_Truth_R0.4_1.0"; // this one is a histogram
 
     std::string deltap_str = "deltap";
 

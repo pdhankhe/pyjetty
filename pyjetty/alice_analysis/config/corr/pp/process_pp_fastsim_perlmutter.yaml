@@ -10,7 +10,7 @@
 # The process step is intended to loop over all observables simultaneously
 # The analysis step is intended to run for a single observable block
 
-process_observables: ['jet_ENC_RL', 'jet_EEC_noweight_RL', 'jet_pt', 'corr_deltap', 'corr_deltapt', 'corr_samecharge', 'corr_oppcharge', 'corr_energyweights', 'corr_baryonmeson'] # 'corr_unweightedRL', 'corr_jet_pt', 'jet_EEC_weight2_RL', can add jet_E3C_RL later
+process_observables: ['jet_ENC_RL', 'jet_EEC_noweight_RL', 'jet_pt', 'corr_beg', 'corr_deltap', 'corr_deltapt', 'corr_deltapl', 'corr_samecharge', 'corr_oppcharge', 'corr_energyweights', 'corr_baryonmeson', 'corr_end'] # 'corr_unweightedRL', 'corr_jet_pt', 'jet_EEC_weight2_RL', can add jet_E3C_RL later
 jetR: [0.4] #, 0.5] only focusing on jet R = 0.4 for now
 jet_matching_distance: 0.6        # Match jets with deltaR < jet_matching_distance*jetR
 reject_tracks_fraction: 0.0
@@ -243,6 +243,28 @@ corr_deltapt:
   # config3:
   #   trk_thrd: 0.15
 
+
+# Observable block
+corr_deltapl:
+
+  common_settings:
+    xtitle: '#it{R_{L}}'
+    ytitle: '#Deltap_{L}'
+    pt_bins_reported: [20, 40, 60, 80]
+    max_reg_param: 10
+    plot_overlay_list:
+      - ['config1', 'config2', 'config3']
+
+  # config1:
+  #   trk_thrd: 0.5
+
+  config2:
+    trk_thrd: 1.0
+
+  # config3:
+  #   trk_thrd: 0.15
+
+
 # Observable block
 corr_samecharge:
 
@@ -329,6 +351,47 @@ corr_baryonmeson:
   common_settings:
     xtitle: '#it{R_{L}}'
     ytitle: 'baryon:meson'
+    pt_bins_reported: [20, 40, 60, 80]
+    max_reg_param: 10
+    plot_overlay_list:
+      - ['config1', 'config2', 'config3']
+
+  # config1:
+  #   trk_thrd: 0.5
+
+  config2:
+    trk_thrd: 1.0
+
+  # config3:
+  #   trk_thrd: 0.15
+
+# Observable block
+corr_beg:
+
+  common_settings:
+    xtitle: '#it{R_{L}}'
+    ytitle: '#Deltap_{T}'
+    pt_bins_reported: [20, 40, 60, 80]
+    max_reg_param: 10
+    plot_overlay_list:
+      - ['config1', 'config2', 'config3']
+
+  # config1:
+  #   trk_thrd: 0.5
+
+  config2:
+    trk_thrd: 1.0
+
+  # config3:
+  #   trk_thrd: 0.15
+
+
+# Observable block
+corr_end:
+
+  common_settings:
+    xtitle: '#it{R_{L}}'
+    ytitle: '#Deltap_{T}'
     pt_bins_reported: [20, 40, 60, 80]
     max_reg_param: 10
     plot_overlay_list:

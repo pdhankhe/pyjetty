@@ -458,7 +458,7 @@ void make_qg_plots_randomother() {
             hD03_proj->SetNameTitle(hname.c_str(), hname.c_str());
 
             hname = hD0_fulljet_proj->GetName();
-            hname += "_pt_3/2_" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
+            hname += "_pt_3over2_" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
             hD0_fulljet_proj->SetNameTitle(hname.c_str(), hname.c_str());
 
             hname = hcharm_proj->GetName();
@@ -482,7 +482,7 @@ void make_qg_plots_randomother() {
             TH1* hD01 = (TH1*) hD01_proj->Clone( hD01_proj->GetName() );
             TH1* hD02 = (TH1*) hD02_proj->Clone( hD02_proj->GetName() );
             TH1* hD03 = (TH1*) hD03_proj->Clone( hD03_proj->GetName() );
-            TH1* hD0_fulljet = (TH1*) hD0_fulljet_proj->Clone ( hD0_fulljet_proj->GetName() );
+            TH1* hD0_fulljet = (TH1*) hD0_fulljet_proj->Clone( hD0_fulljet_proj->GetName() );
             TH1* hc = (TH1*) hcharm_proj->Clone( hcharm_proj->GetName() );
             TH1* hc_nothnsparse = (TH1*) hc_nothnsparse_proj->Clone( hc_nothnsparse_proj->GetName() );
             cout << "Rebin done" << endl;
@@ -666,9 +666,32 @@ void make_qg_plots_randomother() {
                 if (plot_case == 4) {
                     f_out->cd();
                     hratio->Write();
+                    cout << "hD0 name " << hD0->GetName() << endl;
+                    cout << "hD0_fulljet name " << hD0_fulljet->GetName() << endl;
+                    hD0->Write();
+                    hD0_fulljet->Write();
                 }
 
             }
+
+            delete hD0;
+            delete hD0_fulljet;
+
+            delete hD0_proj;
+            delete hc1D_jet;
+            delete hD01_proj;
+            delete hc1D1_jet;
+            delete hD02_proj;
+            delete hc1D2_jet;
+            delete hD03_proj;
+            delete hc1D3_jet;
+
+            delete hD0_fulljet_proj;
+            delete hD0_fulljet_jet;
+
+            delete hcharm_proj;
+            delete hcharm_jet;
+            delete hc_nothnsparse_proj;
             
             std::string fname = outdir + "QG_comp_pt" + std::to_string(pt_min) + '-' + std::to_string(pt_max) + "_R" + jetR + add_name + "_plotcase" + std::to_string(plot_case) + ".pdf";
             const char* fnamec = fname.c_str();

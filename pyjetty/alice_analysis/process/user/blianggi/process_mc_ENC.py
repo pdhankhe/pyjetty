@@ -114,6 +114,8 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
   #---------------------------------------------------------------
   def initialize_user_output_objects_R(self, jetR):
 
+    self.fout.cd()
+
     for observable in self.observable_list:
       print("HISTOGRAM OBSERVABLE", observable)
 
@@ -527,7 +529,19 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
         # print("OBS_LABEL", obs_label)
         if "corr" in observable:
           if self.save_tuples == 1:
-            self.create_corr_tuples(observable, ipoint, jetR, obs_label)
+            if observable == "corr_beg":
+              self.tuple_obs_string = "jet_pt:RL:weights"
+              # setattr(self, 'tuple_obs_string', tuple_obs_string)  
+              
+            elif observable == "corr_end": #only purpose of this observable is to signify the end
+              name = 'tn_pairlevel_Truth_R{}_{}'.format(jetR, obs_label)
+              tn = ROOT.TNtuple(name, name, self.tuple_obs_string) #don't need weights for each observable?? I'll worry about this another time
+              setattr(self, name, tn)
+              self.fsparsepartonJetvalue_tuple = array.array( 'd', np.zeros(18)) #18 to match the number of axes
+            
+            else:
+              self.create_corr_tuples(observable, jetR, obs_label)
+
           else:
             self.create_corr_histograms(observable, ipoint, jetR, obs_label)
           
@@ -566,6 +580,7 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
     RL_bins = logbins(1E-4,1,50) # for the unweighted??
     ptRL_bins = logbins(1E-3,1E2,60)
     deltap_bins = linbins(0., 100., 500) #5., 250) #linbins(0, 1., 100) + linbins(1.0, 100., 99)[1:]
+    deltapl_bins = linbins(0., 2.5, 250)
     charge_bins = linbins(-1.5, 1.5, 3)
     weight_bins = linbins(0., 1., 200) #is this how i want to do it??
     baryonmeson_bins = linbins(-5,5,10) #linbins(0., 5., 200)??
@@ -614,6 +629,12 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
       title = ['p_{T,ch jet,det}', 'R_{L,det}_pt2040', 'R_{L,det}_pt4060', 'R_{L,det}_pt6080', '#Deltap_{T, det}']
       obs_bins = deltap_bins
 
+    # delta pt, truth
+    if (observable == "corr_deltapl"):
+      title_truth = ['p_{T,ch jet,truth}', 'R_{L,truth}_pt2040', 'R_{L,truth}_4060', 'R_{L,truth}_pt6080', '#Deltap_{L, truth}']
+      title = ['p_{T,ch jet,det}', 'R_{L,det}_pt2040', 'R_{L,det}_pt4060', 'R_{L,det}_pt6080', '#Deltap_{L, det}']
+      obs_bins = deltap_bins #deltapl_bins
+
     # charge
     if (observable == "corr_samecharge"):
       title_truth = ['p_{T,ch jet,truth}', 'R_{L,truth}_pt2040', 'R_{L,truth}_4060', 'R_{L,truth}_pt6080', 'same charge_{truth}']
@@ -642,16 +663,16 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
       title = ['p_{T,ch jet,det}', 'R_{L,det}_pt2040', 'R_{L,det}_pt4060', 'R_{L,det}_pt6080', 'baryon:meson_{det}']
       obs_bins = baryonmeson_bins
 
-      name = 'h_{}_JetPt_Truth_R{}_{}'.format("baryon", jetR, obs_label)
-      h_b = ROOT.TH2D(name, name, 200, pt_bins, 200, pt_bins) # "jet_pt:baryon_pt"
-      h_b.GetXaxis().SetTitle('p_{T,ch jet}')
-      h_b.GetYaxis().SetTitle('p_{T, baryon}')
-      setattr(self, name, h_b)
-      name = 'h_{}_JetPt_Truth_R{}_{}'.format("meson", jetR, obs_label)
-      h_m = ROOT.TH2D(name, name, 200, pt_bins, 200, pt_bins) # "jet_pt:meson_pt"
-      h_m.GetXaxis().SetTitle('p_{T,ch jet}')
-      h_m.GetYaxis().SetTitle('p_{T, meson}')
-      setattr(self, name, h_m)
+      # name = 'h_{}_JetPt_Truth_R{}_{}'.format("baryon", jetR, obs_label)
+      # h_b = ROOT.TH2D(name, name, 200, pt_bins, 200, pt_bins) # "jet_pt:baryon_pt"
+      # h_b.GetXaxis().SetTitle('p_{T,ch jet}')
+      # h_b.GetYaxis().SetTitle('p_{T, baryon}')
+      # setattr(self, name, h_b)
+      # name = 'h_{}_JetPt_Truth_R{}_{}'.format("meson", jetR, obs_label)
+      # h_m = ROOT.TH2D(name, name, 200, pt_bins, 200, pt_bins) # "jet_pt:meson_pt"
+      # h_m.GetXaxis().SetTitle('p_{T,ch jet}')
+      # h_m.GetYaxis().SetTitle('p_{T, meson}')
+      # setattr(self, name, h_m)
 
 
 
@@ -672,22 +693,78 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
     self.fsparsepartonJetvalue = array.array( 'd', np.zeros(dim)) #( 0, 0, 0, 0, 0 ))
     self.fsparsejetlevelJetvalue = array.array( 'd', np.zeros(dim-1)) #() 0, 0, 0, 0 ))
 
+
+    #make 2D histogram in thnsparse as well
+    if (observable == "corr_energyweights"):
+      name = 'h_ptvsenergyweights_JetPt_Truth_R{}_{}'.format(jetR, obs_label)
+      title_truth = ['p_{T,ch jet,truth}', 'R_{L,truth}_pt2040', 'R_{L,truth}_4060', 'R_{L,truth}_pt6080', '#Deltap_{T, truth}', 'energy weights_{truth}']
+      title = ['p_{T,ch jet,det}', 'R_{L,det}_pt2040', 'R_{L,det}_pt4060', 'R_{L,det}_pt6080', '#Deltap_{T, det}', 'energy weights_{det}']
+      obs_bins = deltap_bins
+
+      binnings = (pt_bins, RL_bins_pt2040, RL_bins_pt4060, RL_bins_pt6080, deltap_bins, weight_bins)
+      self.create_thn(name, title_truth, 6, binnings)
+
+      self.fsparsearray = array.array( 'd', np.zeros(6))
+
+      # h = ROOT.TH2D(name, name, 500, deltap_bins, 200, weight_bins)
+      # h.GetXaxis().SetTitle('p_{T}')
+      # h.GetYaxis().SetTitle('p_{T,1}p_{T,2} / p_{T, jet}^{2}')
+      # setattr(self, name, h)
+
   
-  def create_corr_tuples(self, observable, ipoint, jetR, obs_label):
-    name = 'h_{}_JetPt_Truth_R{}_{}'.format(observable, jetR, obs_label)
-    tn = ROOT.TNtuple(name, name, "jet_pt:RL:obs:weights") #don't need weights for each observable?? I'll worry about this another time
-    tn.SetAutoFlush(1000)
-    setattr(self, name, tn)
+  def create_corr_tuples(self, observable, jetR, obs_label):
+    # tn.SetAutoFlush(1000)
+    if observable == "corr_energyweights":
+      return
+    
+    if observable.startswith("corr_"):
+      obs_string = observable[5:] #cut out the "corr_"
+      if observable == "corr_samecharge":
+        obs_string = "q1q2"
+    
+    if observable == "corr_oppcharge":
+      return
+
+    # tuple_obs_string = getattr(self, 'tuple_obs_string') 
+    self.tuple_obs_string += ":" + obs_string
+
+    if observable == "corr_deltap":
+      self.tuple_obs_string += ":p1"
+      self.tuple_obs_string += ":p2"
+    elif observable == "corr_deltapt":
+      self.tuple_obs_string += ":pt1"
+      self.tuple_obs_string += ":pt2"
+    elif observable == "corr_deltapl":
+      self.tuple_obs_string += ":pl1"
+      self.tuple_obs_string += ":pl2"
+    elif observable == "corr_samecharge":
+      self.tuple_obs_string += ":q1"
+      self.tuple_obs_string += ":q2"
+    elif observable == "corr_baryonmeson":
+      self.tuple_obs_string += ":pid1"
+      self.tuple_obs_string += ":pid2"
+
+    # setattr(self, 'tuple_obs_string', tuple_obs_string) 
+    
+    # add a branch to the ntuple
+    # tn_name = 'tn_pairlevel_Truth_R{}_{}'.format(jetR, obs_label)
+    # obs_vec = ROOT.std.vector('float')()
+    # getattr(self, tn_name).Branch(obs_string, obs_vec)
+
+    # if observable == "corr_deltap": #doesn't work because the other branches don't update with Fill(), need to update the value array
+    #   value = array.array('f', [0])  # 'f' stands for float, single-element array
+    #   # Add a branch to the tree
+    #   tn.Branch("myBranch", value, obs_string)
+
     
     if ("baryonmeson" in observable):
-      name = 'h_{}_JetPt_Truth_R{}_{}'.format("baryon", jetR, obs_label)
+      name = 'tn_{}_JetPt_Truth_R{}_{}'.format("baryon", jetR, obs_label)
       tn_b = ROOT.TNtuple(name, name, "jet_pt:baryon_pt")
       setattr(self, name, tn_b)
-      name = 'h_{}_JetPt_Truth_R{}_{}'.format("meson", jetR, obs_label)
+      name = 'tn_{}_JetPt_Truth_R{}_{}'.format("meson", jetR, obs_label)
       tn_m = ROOT.TNtuple(name, name, "jet_pt:meson_pt")
       setattr(self, name, tn_m)
 
-    self.fsparsepartonJetvalue_tuple = array.array( 'd', np.zeros(4)) #4 to match the number of axes
 
 
   def get_pair_eff_weights(self, corr_builder, ipoint, constituents):
@@ -720,6 +797,45 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
       return True
     else:
       return False
+    
+  def charge_p1p2(self, corr_builder, ipoint, constituents, index):
+    part1 = int(corr_builder.correlator(ipoint).indices1()[index])
+    part2 = int(corr_builder.correlator(ipoint).indices2()[index])
+    q1 = int(constituents[part1].python_info().charge)
+    q2 = int(constituents[part2].python_info().charge)
+
+    return q1, q2
+    
+
+  def mom_p1p2(self, corr_builder, ipoint, constituents, index):
+    part1 = int(corr_builder.correlator(ipoint).indices1()[index])
+    part2 = int(corr_builder.correlator(ipoint).indices2()[index])
+    p1x = constituents[part1].px()
+    p1y = constituents[part1].py()
+    p1z = constituents[part1].pz()
+    p2x = constituents[part2].px()
+    p2y = constituents[part2].py()
+    p2z = constituents[part2].pz()
+    p1 = np.sqrt(p1x*p1x + p1y*p1y + p1z*p1z)
+    p2 = np.sqrt(p2x*p2x + p2y*p2y + p2z*p2z)
+
+    return p1, p2
+  
+  def transmom_p1p2(self, corr_builder, ipoint, constituents, index):
+    part1 = int(corr_builder.correlator(ipoint).indices1()[index])
+    part2 = int(corr_builder.correlator(ipoint).indices2()[index])
+    pt1 = constituents[part1].pt()
+    pt2 = constituents[part2].pt()
+
+    return pt1, pt2
+  
+  def longmom_p1p2(self, corr_builder, ipoint, constituents, index):
+    part1 = int(corr_builder.correlator(ipoint).indices1()[index])
+    part2 = int(corr_builder.correlator(ipoint).indices2()[index])
+    pl1 = constituents[part1].pz()
+    pl2 = constituents[part2].pz()
+
+    return pl1, pl2
 
   # returns:
   # 1 if baryon+baryon (proton + proton)
@@ -740,6 +856,15 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
       return 0
     else:
       return 2
+    
+    
+  def charge_bm1bm2(self, corr_builder, ipoint, constituents, index):
+    part1 = int(corr_builder.correlator(ipoint).indices1()[index])
+    part2 = int(corr_builder.correlator(ipoint).indices2()[index])
+    pid1 = int(constituents[part1].python_info().particle_pid)
+    pid2 = int(constituents[part2].python_info().particle_pid)
+
+    return pid1, pid2
     
   
   def check_pair_type(self, corr_builder, ipoint, constituents, index):
@@ -766,32 +891,18 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
   #---------------------------------------------------------------
   def fill_observable_histograms(self, hname, jet, jet_groomed_lund, jetR, obs_setting,
                                  grooming_setting, obs_label, jet_pt_ungroomed):
+    
     # For ENC in PbPb, jet_pt_ungroomed stores the corrected jet pT
     constituents = fj.sorted_by_pt(jet.constituents())
     c_select = fj.vectorPJ()
     trk_thrd = obs_setting
 
-    num_baryons_tot = 0
-    num_mesons_tot = 0
-    num_baryons_aftercut = 0
-    num_mesons_aftercut = 0
-
     for c in constituents:
-      pid = c.python_info().particle_pid
-      if abs(pid) == 2212: #proton
-        num_baryons_tot+=1
-      elif abs(pid) == 211: #pion
-        num_mesons_tot+=1
-
       if c.pt() < trk_thrd:
         break
       c_select.append(c) # NB: use the break statement since constituents are already sorted
 
-      if abs(pid) == 2212: #proton
-        num_baryons_aftercut+=1
-      elif abs(pid) == 211: #pion
-        num_mesons_aftercut+=1
-    
+
     if (self.debug_level == 3):
       print("CHARGE and PID HERE")
       print([c.python_info().charge for c in c_select])
@@ -809,6 +920,13 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
       jet_pt = jet_pt_ungroomed
     else:
       jet_pt = jet.perp()
+
+    # Fill 1D jet pt histogram regardless
+    getattr(self, hname.format("1Djet_pt",obs_label)).Fill(jet_pt)
+
+    # Do not fill rest of histograms if trying to save as ntuples
+    if self.save_tuples == 1:
+      return
 
     new_corr = ecorrel.CorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut)
     # print("THERE ARE ", new_corr.correlator(2).rs().size(), "NUM OF ENTRIES IN NEW CORR")
@@ -887,22 +1005,8 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
       if 'jet_pt' in observable:
         getattr(self, hname.format(observable,obs_label)).Fill(self.fsparsejetlevelJetvalue)
         # getattr(self, hname.format(observable,obs_label)).Fill(jet_pt)
-        getattr(self, hname.format("1D"+observable,obs_label)).Fill(jet_pt)
+        # getattr(self, hname.format("1D"+observable,obs_label)).Fill(jet_pt)
 
-        getattr(self, hname.format("JETINFO"+observable, obs_label)).Fill(jet_pt, len(constituents), len(c_select), num_baryons_tot, num_baryons_aftercut, num_mesons_tot, num_mesons_aftercut)
-        # self.tree_jet_pt = jet_pt
-        # self.tree_total_num_const = len(constituents)
-        # self.tree_num_const_aftercut = len(c_select)
-        # self.tree_total_num_baryons = num_baryons_tot
-        # self.tree_num_baryons_aftercut = num_baryons_aftercut
-        # self.tree_total_num_mesons = num_mesons_tot
-        # self.tree_num_mesons_aftercut = num_mesons_aftercut
-        # getattr(self, hname.format("JETINFO"+observable, obs_label)).Fill()
-
-        # for i in range(100000):
-        #   getattr(self, "testtn").Fill(5,5,-1)
-        #   getattr(self, "testtn").Fill(5,5,12)
-        #   getattr(self, "testtn").Fill(1,5,0)
       
       # NB: for now, only perform this check on data and full sim
       if 'EEC_detail' in observable and self.ENC_fastsim==False: 
@@ -935,105 +1039,221 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
       if 'corr' in observable :
         # print("OBS! HERE!", observable)
 
+        if (observable == "corr_beg" or observable == "corr_end"):
+          continue
+        # if (observable == "corr_end" and self.save_tuples == 0):
+        #   continue
+
         if (observable == "corr_deltap"):
           # print("what is this name1", hname.format(observable + pair_type_label,obs_label))
           # getattr(self, hname.format(observable,obs_label)).Fill(jet_pt, ??)
-
-          # ecorrel.CorrelatorBuilder
           new_obs_corr = othercorrel.OtherCorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "deltap")
           
         # delta pt, truth
-        if (observable == "corr_deltapt"):
+        if (observable == "corr_deltapt" or observable == "corr_energyweights"):
           new_obs_corr = othercorrel.OtherCorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "deltapt")
 
-        # p_obs_corr = othercorrel.OtherCorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "deltap")
-        # pt_obs_corr = othercorrel.OtherCorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "deltapt")
-        # for index in range(p_obs_corr.correlator(ipoint).rs().size()):
-          # print("p_obs is ", p_obs_corr.correlator(2).rs()[index], "and pt_obs is ", pt_obs_corr.correlator(2).rs()[index])
-
-        # # charge
-        # if ("charge" in observable):
-        #   # new_obs_corr = othercorrel.OtherCorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "charge")
-        #   self.is_same_charge(new_corr, ipoint, c_select, index)
+        # delta pl, truth
+        if (observable == "corr_deltapl"):
+          new_obs_corr = othercorrel.OtherCorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "deltapl")
 
         # unweighted RL
         if (observable == "corr_unweightedRL"): # this is WRONG, but leave for now
           new_obs_corr = ecorrel.CorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut)
 
-        if (observable == "corr_baryonmeson"):
-          # new_obs_corr = 0 # TODO: IDK YETTTT
-          for c in constituents:
-            pid = c.python_info().particle_pid
-            if abs(pid) == 2212: #proton
-              getattr(self, hname.format("baryon",obs_label)).Fill(jet_pt, c.pt())
-            elif abs(pid) == 211: #pion
-              getattr(self, hname.format("meson",obs_label)).Fill(jet_pt, c.pt())
-
         # print("THERE ARE ", new_obs_corr.correlator(ipoint).rs().size(), "NUM OF ENTRIES IN NEW OBS CORR")
 
         # assuming the length of new_corr is the same as new_obs_corr
         # fsparsejetlevelJetvalue = array.array( 'd', ( 0, 0, 0 ))
-        if self.save_tuples == 0:
-          self.fsparsepartonJetvalue[0] = jet_pt
-          # self.tree_jet_pt[0] = jet_pt
-        else:
-          self.fsparsepartonJetvalue_tuple[0] = jet_pt
+        self.fsparsepartonJetvalue[0] = jet_pt
           
 
         # print("OBS! HERE!", observable)
         # Filling histograms here!
         for index in range(new_corr.correlator(ipoint).rs().size()):
           # Fill the RL values here
-          if self.save_tuples == 0:
-            self.fsparsepartonJetvalue[1] = new_corr.correlator(ipoint).rs()[index]
-            self.fsparsepartonJetvalue[2] = new_corr.correlator(ipoint).rs()[index]
-            self.fsparsepartonJetvalue[3] = new_corr.correlator(ipoint).rs()[index]
-          else:
-            self.fsparsepartonJetvalue_tuple[1] = new_corr.correlator(ipoint).rs()[index]
+          self.fsparsepartonJetvalue[1] = new_corr.correlator(ipoint).rs()[index]
+          self.fsparsepartonJetvalue[2] = new_corr.correlator(ipoint).rs()[index]
+          self.fsparsepartonJetvalue[3] = new_corr.correlator(ipoint).rs()[index]
           
           if ("charge" in observable):
             samecharge_boolean = self.is_same_charge(new_corr, ipoint, c_select, index)
-            if self.save_tuples == 0:
-              self.fsparsepartonJetvalue[4] = 1 if samecharge_boolean else -1
-            else:
-              self.fsparsepartonJetvalue_tuple[2] = 1 if samecharge_boolean else -1
             # print("samecharge boolean is", samecharge_boolean, self.fsparsepartonJetvalue[4])
             if not samecharge_boolean and observable == "corr_samecharge":
-              # print("skipping smae charge", samecharge_boolean)
               continue
             if samecharge_boolean and observable == "corr_oppcharge":
-              # print("skipping opp charge", samecharge_boolean)
               continue
+            self.fsparsepartonJetvalue[4] = 1 if samecharge_boolean else -1
           elif ("energyweights" in observable):
-            if self.save_tuples == 0:
-              self.fsparsepartonJetvalue[4] = new_corr.correlator(ipoint).weights()[index]
-            else:
-              self.fsparsepartonJetvalue_tuple[2] = new_corr.correlator(ipoint).weights()[index]
+            self.fsparsepartonJetvalue[4] = new_corr.correlator(ipoint).weights()[index]
+            # save 2D histogram here as well
+            # getattr(self, hname.format("ptvsenergyweights",obs_label)).Fill(new_obs_corr.correlator(ipoint).rs()[index], new_corr.correlator(ipoint).weights()[index])
+            self.fsparsearray[0] = self.fsparsepartonJetvalue[0]
+            self.fsparsearray[1] = self.fsparsepartonJetvalue[1]
+            self.fsparsearray[2] = self.fsparsepartonJetvalue[2]
+            self.fsparsearray[3] = self.fsparsepartonJetvalue[3]
+            self.fsparsearray[4] = new_obs_corr.correlator(ipoint).rs()[index]
+            self.fsparsearray[5] = new_corr.correlator(ipoint).weights()[index]
+            getattr(self, hname.format("ptvsenergyweights",obs_label)).Fill(self.fsparsearray)
           elif ("baryonmeson" in observable):
             baryonmeson_quantity = self.is_pair_baryonmeson(new_corr, ipoint, c_select, index)
-            if self.save_tuples == 0:
-              self.fsparsepartonJetvalue[4] = baryonmeson_quantity
-            else:
-              self.fsparsepartonJetvalue_tuple[2] = baryonmeson_quantity
+            self.fsparsepartonJetvalue[4] = baryonmeson_quantity
           else:
-            if self.save_tuples == 0:
-              self.fsparsepartonJetvalue[4] = new_obs_corr.correlator(ipoint).rs()[index]
-            else:
-              self.fsparsepartonJetvalue_tuple[2] = new_obs_corr.correlator(ipoint).rs()[index]
-          
-          if self.save_tuples == 1:
-            self.fsparsepartonJetvalue_tuple[3] = new_corr.correlator(ipoint).weights()[index]
+            self.fsparsepartonJetvalue[4] = new_obs_corr.correlator(ipoint).rs()[index]
+            
 
           # print("FIlling weighted and then unweighted!!", new_corr.correlator(ipoint).weights()[index])
-          if self.save_tuples == 0:
-            getattr(self, hname.format(observable,obs_label)).Fill(self.fsparsepartonJetvalue)
-            getattr(self, hname.format(observable+"_Weighted",obs_label)).Fill(self.fsparsepartonJetvalue, new_corr.correlator(ipoint).weights()[index])
-          else:
-            getattr(self, hname.format(observable,obs_label)).Fill(self.fsparsepartonJetvalue_tuple[0],
-                                                                   self.fsparsepartonJetvalue_tuple[1],
-                                                                   self.fsparsepartonJetvalue_tuple[2],
-                                                                   self.fsparsepartonJetvalue_tuple[3])
-    # fout.Close()
+          getattr(self, hname.format(observable,obs_label)).Fill(self.fsparsepartonJetvalue)
+          getattr(self, hname.format(observable+"_Weighted",obs_label)).Fill(self.fsparsepartonJetvalue, new_corr.correlator(ipoint).weights()[index])
+          
+
+
+
+#---------------------------------------------------------------
+  # This function is called once for each jet subconfiguration
+  # Fill 2D histogram of (pt, obs)
+  #---------------------------------------------------------------
+  def fill_observable_tuples(self, hname, jet, jet_groomed_lund, jetR, obs_setting,
+                                 grooming_setting, obs_label, jet_pt_ungroomed):
+
+    ipoint = 2
+    
+    # For ENC in PbPb, jet_pt_ungroomed stores the corrected jet pT
+    constituents = fj.sorted_by_pt(jet.constituents())
+    c_select = fj.vectorPJ()
+    trk_thrd = obs_setting
+
+    num_baryons_tot = 0
+    num_mesons_tot = 0
+    num_baryons_aftercut = 0
+    num_mesons_aftercut = 0
+
+    for c in constituents:
+      pid = c.python_info().particle_pid
+      if abs(pid) == 2212: #proton
+        num_baryons_tot+=1
+      elif abs(pid) == 211: #pion
+        num_mesons_tot+=1
+
+      if c.pt() < trk_thrd:
+        break
+      c_select.append(c) # NB: use the break statement since constituents are already sorted
+
+      if abs(pid) == 2212: #proton
+        num_baryons_aftercut+=1
+      elif abs(pid) == 211: #pion
+        num_mesons_aftercut+=1
+    
+    if (self.debug_level == 3):
+      print("CHARGE and PID HERE")
+      print([c.python_info().charge for c in c_select])
+      print([c.python_info().particle_pid for c in c_select])
+
+    if self.ENC_pair_cut and (not 'Truth' in hname):
+      dphi_cut = -9999 # means no dphi cut
+      deta_cut = 0.008
+    else:
+      dphi_cut = -9999
+      deta_cut = -9999
+
+    # NB: use jet_pt_ungroomed instead of jet.perp() for PbPb, which include the UE subtraction
+    if self.do_rho_subtraction:
+      jet_pt = jet_pt_ungroomed
+    else:
+      jet_pt = jet.perp()
+
+    # Fill jet level tuples here - doesn't need to be done on an observable level bc this function is called per jet
+    # if 'jet_pt' in observable:
+    getattr(self, hname.format("JETINFOjet_pt", obs_label)).Fill(jet_pt, len(constituents), len(c_select), num_baryons_tot, num_baryons_aftercut, num_mesons_tot, num_mesons_aftercut)
+    baryon_tn_name = hname.format("baryon",obs_label)
+    baryon_tn_name = "tn" + baryon_tn_name[1:]
+    meson_tn_name = hname.format("meson",obs_label)
+    meson_tn_name = "tn" + meson_tn_name[1:]
+    for c in constituents:
+      pid = c.python_info().particle_pid
+      if abs(pid) == 2212: #proton
+        getattr(self, baryon_tn_name).Fill(jet_pt, c.pt())
+      elif abs(pid) == 211: #pion
+        getattr(self, meson_tn_name).Fill(jet_pt, c.pt())
+
+
+    # after this point, saving tuples that are pair level
+    if self.save_tuples == 0:
+      return
+
+    # get pair level arrays
+    new_corr = ecorrel.CorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut)
+    deltap_obs_corr = othercorrel.OtherCorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "deltap")
+    deltapt_obs_corr = othercorrel.OtherCorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "deltapt")
+    deltapl_obs_corr = othercorrel.OtherCorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "deltapl")
+    # print("THERE ARE ", new_corr.correlator(2).rs().size(), "NUM OF ENTRIES IN NEW CORR")
+
+    # save jet pt - because it is a jet quantity (not pair)
+    self.fsparsepartonJetvalue_tuple[0] = jet_pt
+    print("indices 0:",self.fsparsepartonJetvalue_tuple[0] )
+
+    # loop through the pairs
+    for index in range(new_corr.correlator(ipoint).rs().size()):
+      for observable in self.observable_list:
+        # print("CP OBSERVABLE", observable)
+        
+        # Fill pair level tuple here
+        if (observable == "corr_beg" or observable == "corr_oppcharge" or observable == "jet_EEC_noweight_RL" or observable == "jet_pt"):
+          continue
+        
+        elif 'ENC' in observable:
+          # Fill the RL values here
+          self.fsparsepartonJetvalue_tuple[1] = new_corr.correlator(ipoint).rs()[index]
+          print("indices 1:",self.fsparsepartonJetvalue_tuple[1] )
+        
+        elif "energyweights" in observable:
+          self.fsparsepartonJetvalue_tuple[2] = new_corr.correlator(ipoint).weights()[index]
+          print("indices 2:",self.fsparsepartonJetvalue_tuple[2] )
+
+        elif observable == 'corr_deltap':
+          self.fsparsepartonJetvalue_tuple[3] = deltap_obs_corr.correlator(ipoint).rs()[index]
+          p1, p2 = self.mom_p1p2(new_corr, ipoint, c_select, index)
+          self.fsparsepartonJetvalue_tuple[4] = p1
+          self.fsparsepartonJetvalue_tuple[5] = p2
+          print("indices 3, 4, 5:",self.fsparsepartonJetvalue_tuple[3], self.fsparsepartonJetvalue_tuple[4], self.fsparsepartonJetvalue_tuple[5] )
+
+        elif observable == 'corr_deltapt':
+          self.fsparsepartonJetvalue_tuple[6] = deltapt_obs_corr.correlator(ipoint).rs()[index]
+          pt1, pt2 = self.transmom_p1p2(new_corr, ipoint, c_select, index)
+          self.fsparsepartonJetvalue_tuple[7] = pt1
+          self.fsparsepartonJetvalue_tuple[8] = pt2
+          print("indices 6, 7, 8:",self.fsparsepartonJetvalue_tuple[6], self.fsparsepartonJetvalue_tuple[7], self.fsparsepartonJetvalue_tuple[8] )
+          
+        elif observable == 'corr_deltapl':
+          self.fsparsepartonJetvalue_tuple[9] = deltapl_obs_corr.correlator(ipoint).rs()[index]
+          pl1, pl2 = self.longmom_p1p2(new_corr, ipoint, c_select, index)
+          self.fsparsepartonJetvalue_tuple[10] = pl1
+          self.fsparsepartonJetvalue_tuple[11] = pl2
+          print("indices 9, 10, 11:",self.fsparsepartonJetvalue_tuple[9], self.fsparsepartonJetvalue_tuple[10], self.fsparsepartonJetvalue_tuple[11] )
+
+        elif observable == 'corr_samecharge':
+          samecharge_boolean = self.is_same_charge(new_corr, ipoint, c_select, index)
+          self.fsparsepartonJetvalue_tuple[12] = 1 if samecharge_boolean else -1
+          q1, q2 = self.charge_p1p2(new_corr, ipoint, c_select, index)
+          self.fsparsepartonJetvalue_tuple[13] = q1
+          self.fsparsepartonJetvalue_tuple[14] = q2
+          print("indices 12, 13, 14:",self.fsparsepartonJetvalue_tuple[12], self.fsparsepartonJetvalue_tuple[13], self.fsparsepartonJetvalue_tuple[14] )
+
+        elif observable == "corr_baryonmeson":
+          baryonmeson_quantity = self.is_pair_baryonmeson(new_corr, ipoint, c_select, index)
+          self.fsparsepartonJetvalue_tuple[15] = baryonmeson_quantity
+          pid1, pid2 = self.charge_bm1bm2(new_corr, ipoint, c_select, index)
+          self.fsparsepartonJetvalue_tuple[16] = pid1
+          self.fsparsepartonJetvalue_tuple[17] = pid2
+          print("indices 15, 16, 17:",self.fsparsepartonJetvalue_tuple[15], self.fsparsepartonJetvalue_tuple[16], self.fsparsepartonJetvalue_tuple[17] )
+
+        elif 'end' in observable:
+          print("IN CORR_END WRITING", self.fsparsepartonJetvalue_tuple)
+          print("IN CORR_END WRITING", self.fsparsepartonJetvalue_tuple[0])
+          getattr(self, 'tn_pairlevel_Truth_R{}_{}'.format(jetR, obs_label)).Fill(np.array(list(self.fsparsepartonJetvalue_tuple), dtype='float32'))
+
+        
+
 
   #---------------------------------------------------------------
   # This function is called per observable per jet subconfigration 

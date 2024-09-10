@@ -1203,6 +1203,8 @@ class ProcessMCBase(process_base.ProcessBase):
       # print("filling here!")
       self.fill_observable_histograms(hname, jet, jet_groomed_lund, jetR, obs_setting,
                                       grooming_setting, obs_label, jet_pt)
+      self.fill_observable_tuples(hname, jet, jet_groomed_lund, jetR, obs_setting,
+                                      grooming_setting, obs_label, jet_pt)
   
   def find_parts_around_jet(self, parts, jet, cone_R):
     # select particles around jet axis

@@ -53,8 +53,8 @@ class ProcessBase(common_base.CommonBase):
       
     # Create output file
     outputfilename = os.path.join(self.output_dir, 'AnalysisResults.root')
-    fout = ROOT.TFile(outputfilename, 'recreate')
-    fout.Close()
+    self.fout = ROOT.TFile(outputfilename, 'recreate')
+    # fout.Close()
 
     # Initialize utils class
     self.utils = process_utils.ProcessUtils()
@@ -122,6 +122,8 @@ class ProcessBase(common_base.CommonBase):
   #---------------------------------------------------------------
   def create_thn_EEC(self, name, title, dim, binnings=[], obs=''): # note: binnings should be given as (ptbins, rapi bins, obs bins)
 
+    self.fout.cd()
+    
     pt_bins = binnings[0]
     rapi_bins = binnings[1]
     z_bins = binnings[2] #TODO: FIX THIS FOR OTHER CORRELATOR OBSERVABLES
@@ -188,7 +190,6 @@ class ProcessBase(common_base.CommonBase):
 
   def create_thn(self, name, title, dim, binnings=[]): # note: binnings could be given as (ptbins, rapi bins, obs bins)
 
-
     nbins = [len(x)-1 for x in binnings]
     print("NBINS", nbins)
 
@@ -201,6 +202,7 @@ class ProcessBase(common_base.CommonBase):
     nbins_array = array('i', nbins) #('i', nbins_arr)
     xmin_array = array('d', xmin) #('d', xmin_arr)
     xmax_array = array('d', xmax) #('d', xmax_arr)
+    self.fout.cd()
     h = ROOT.THnSparseD(name, name, dim, nbins_array, xmin_array, xmax_array)
     h.Sumw2()
     for i in range(0, dim):
@@ -481,41 +483,41 @@ class ProcessBase(common_base.CommonBase):
   #---------------------------------------------------------------
   def save_output_objects(self):
     
-    outputfilename = os.path.join(self.output_dir, 'AnalysisResults.root')
-    fout = ROOT.TFile(outputfilename, 'update')
-    fout.cd()
+    # outputfilename = os.path.join(self.output_dir, 'AnalysisResults.root')
+    # fout = ROOT.TFile(outputfilename, 'update')
+    # fout.cd()
     
     for attr in dir(self):
       
       obj = getattr(self, attr)
 
       # Write all ROOT histograms and trees to file
-      types = (ROOT.TH1, ROOT.THnBase, ROOT.TTree)
+      types = (ROOT.TH1, ROOT.THnBase) #, ROOT.TNtuple)
       if isinstance(obj, types):
-        if isinstance(obj, ROOT.TTree):
-          print("in here!!!", obj.GetEntries(), attr)
-          obj.SetAutoSave(1000)
-          fout.Write()
+        print("what are we writing", obj.GetName())
+        self.fout.cd()
         obj.Write()
   
-    fout.Close()
+    print("tryinmg to write file")
+    self.fout.Write()
+    self.fout.Close()
 
   #---------------------------------------------------------------
   # Save all THn and TH3, and remove them as class attributes (to clear memory)
   #---------------------------------------------------------------
   def save_thn_th3_objects(self):
     
-    outputfilename = os.path.join(self.output_dir, 'AnalysisResults.root')
-    fout = ROOT.TFile(outputfilename, 'update')
-    fout.cd()
+    # outputfilename = os.path.join(self.output_dir, 'AnalysisResults.root')
+    # fout = ROOT.TFile(outputfilename, 'update')
+    self.fout.cd()
     
-    for attr in dir(self):
+    # for attr in dir(self):
       
-      obj = getattr(self, attr)
+    #   obj = getattr(self, attr)
       
-      types = (ROOT.TH3, ROOT.THnBase)
-      if isinstance(obj, types):
-        obj.Write()
-        delattr(self, attr)
+    #   types = (ROOT.TH3, ROOT.THnBase)
+    #   if isinstance(obj, types):
+    #     obj.Write()
+    #     delattr(self, attr)
 
-    fout.Close()
+    # self.fout.Close()

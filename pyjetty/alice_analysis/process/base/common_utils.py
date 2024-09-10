@@ -68,6 +68,8 @@ class CommonUtils(common_base.CommonBase):
       return [obs_config_dict[name]['trk_thrd'] for name in obs_subconfig_list]
     elif observable == 'corr_deltapt':
       return [obs_config_dict[name]['trk_thrd'] for name in obs_subconfig_list]
+    elif observable == 'corr_deltapl':
+      return [obs_config_dict[name]['trk_thrd'] for name in obs_subconfig_list]
     elif observable == 'corr_samecharge':
       return [obs_config_dict[name]['trk_thrd'] for name in obs_subconfig_list]
     elif observable == 'corr_oppcharge':
@@ -77,6 +79,10 @@ class CommonUtils(common_base.CommonBase):
     elif observable == 'corr_energyweights':
       return [obs_config_dict[name]['trk_thrd'] for name in obs_subconfig_list]
     elif observable == 'corr_baryonmeson':
+      return [obs_config_dict[name]['trk_thrd'] for name in obs_subconfig_list]
+    elif observable == 'corr_beg':
+      return [obs_config_dict[name]['trk_thrd'] for name in obs_subconfig_list]
+    elif observable == 'corr_end':
       return [obs_config_dict[name]['trk_thrd'] for name in obs_subconfig_list]
 
 
