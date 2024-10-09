@@ -377,6 +377,7 @@ void make_inclusive_sherpa_herwig_plots_write() {
                     // Find normalization factor and set normalization
                     double numjets_D0 = hjetpt->Integral();
                     hD0_EEC->Scale(1/numjets_D0, "width");
+                    cout << "numDtaggedjets from hist after cuts " << hjetpt->GetEntries() << endl;
                     // hD0_EEC_ptrl->Scale(1/numjets_D0, "width");
                     // hD0_EEC_noweight->Scale(1/numjets_D0, "width");
 

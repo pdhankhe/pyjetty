@@ -382,6 +382,7 @@ void make_sherpa_plots_write() {
                     hD0_EEC->Scale(1/numjets_D0, "width");
                     hD0_EEC_ptrl->Scale(1/numjets_D0, "width");
                     hD0_EEC_noweight->Scale(1/numjets_D0, "width");
+                    cout << "numDtaggedjets from hist after cuts " << hjetpt->GetEntries() << endl;
 
 
                     //Format color and style
