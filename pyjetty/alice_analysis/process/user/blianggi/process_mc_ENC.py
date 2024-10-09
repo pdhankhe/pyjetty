@@ -1190,7 +1190,7 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
 
     # save jet pt - because it is a jet quantity (not pair)
     self.fsparsepartonJetvalue_tuple[0] = jet_pt
-    print("indices 0:",self.fsparsepartonJetvalue_tuple[0] )
+    # print("indices 0:",self.fsparsepartonJetvalue_tuple[0] )
 
     # loop through the pairs
     for index in range(new_corr.correlator(ipoint).rs().size()):
@@ -1204,32 +1204,32 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
         elif 'ENC' in observable:
           # Fill the RL values here
           self.fsparsepartonJetvalue_tuple[1] = new_corr.correlator(ipoint).rs()[index]
-          print("indices 1:",self.fsparsepartonJetvalue_tuple[1] )
+          # print("indices 1:",self.fsparsepartonJetvalue_tuple[1] )
         
         elif "energyweights" in observable:
           self.fsparsepartonJetvalue_tuple[2] = new_corr.correlator(ipoint).weights()[index]
-          print("indices 2:",self.fsparsepartonJetvalue_tuple[2] )
+          # print("indices 2:",self.fsparsepartonJetvalue_tuple[2] )
 
         elif observable == 'corr_deltap':
           self.fsparsepartonJetvalue_tuple[3] = deltap_obs_corr.correlator(ipoint).rs()[index]
           p1, p2 = self.mom_p1p2(new_corr, ipoint, c_select, index)
           self.fsparsepartonJetvalue_tuple[4] = p1
           self.fsparsepartonJetvalue_tuple[5] = p2
-          print("indices 3, 4, 5:",self.fsparsepartonJetvalue_tuple[3], self.fsparsepartonJetvalue_tuple[4], self.fsparsepartonJetvalue_tuple[5] )
+          # print("indices 3, 4, 5:",self.fsparsepartonJetvalue_tuple[3], self.fsparsepartonJetvalue_tuple[4], self.fsparsepartonJetvalue_tuple[5] )
 
         elif observable == 'corr_deltapt':
           self.fsparsepartonJetvalue_tuple[6] = deltapt_obs_corr.correlator(ipoint).rs()[index]
           pt1, pt2 = self.transmom_p1p2(new_corr, ipoint, c_select, index)
           self.fsparsepartonJetvalue_tuple[7] = pt1
           self.fsparsepartonJetvalue_tuple[8] = pt2
-          print("indices 6, 7, 8:",self.fsparsepartonJetvalue_tuple[6], self.fsparsepartonJetvalue_tuple[7], self.fsparsepartonJetvalue_tuple[8] )
+          # print("indices 6, 7, 8:",self.fsparsepartonJetvalue_tuple[6], self.fsparsepartonJetvalue_tuple[7], self.fsparsepartonJetvalue_tuple[8] )
           
         elif observable == 'corr_deltapl':
           self.fsparsepartonJetvalue_tuple[9] = deltapl_obs_corr.correlator(ipoint).rs()[index]
           pl1, pl2 = self.longmom_p1p2(new_corr, ipoint, c_select, index)
           self.fsparsepartonJetvalue_tuple[10] = pl1
           self.fsparsepartonJetvalue_tuple[11] = pl2
-          print("indices 9, 10, 11:",self.fsparsepartonJetvalue_tuple[9], self.fsparsepartonJetvalue_tuple[10], self.fsparsepartonJetvalue_tuple[11] )
+          # print("indices 9, 10, 11:",self.fsparsepartonJetvalue_tuple[9], self.fsparsepartonJetvalue_tuple[10], self.fsparsepartonJetvalue_tuple[11] )
 
         elif observable == 'corr_samecharge':
           samecharge_boolean = self.is_same_charge(new_corr, ipoint, c_select, index)
@@ -1237,7 +1237,7 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
           q1, q2 = self.charge_p1p2(new_corr, ipoint, c_select, index)
           self.fsparsepartonJetvalue_tuple[13] = q1
           self.fsparsepartonJetvalue_tuple[14] = q2
-          print("indices 12, 13, 14:",self.fsparsepartonJetvalue_tuple[12], self.fsparsepartonJetvalue_tuple[13], self.fsparsepartonJetvalue_tuple[14] )
+          # print("indices 12, 13, 14:",self.fsparsepartonJetvalue_tuple[12], self.fsparsepartonJetvalue_tuple[13], self.fsparsepartonJetvalue_tuple[14] )
 
         elif observable == "corr_baryonmeson":
           baryonmeson_quantity = self.is_pair_baryonmeson(new_corr, ipoint, c_select, index)
@@ -1245,11 +1245,11 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
           pid1, pid2 = self.charge_bm1bm2(new_corr, ipoint, c_select, index)
           self.fsparsepartonJetvalue_tuple[16] = pid1
           self.fsparsepartonJetvalue_tuple[17] = pid2
-          print("indices 15, 16, 17:",self.fsparsepartonJetvalue_tuple[15], self.fsparsepartonJetvalue_tuple[16], self.fsparsepartonJetvalue_tuple[17] )
+          # print("indices 15, 16, 17:",self.fsparsepartonJetvalue_tuple[15], self.fsparsepartonJetvalue_tuple[16], self.fsparsepartonJetvalue_tuple[17] )
 
         elif 'end' in observable:
-          print("IN CORR_END WRITING", self.fsparsepartonJetvalue_tuple)
-          print("IN CORR_END WRITING", self.fsparsepartonJetvalue_tuple[0])
+          # print("IN CORR_END WRITING", self.fsparsepartonJetvalue_tuple)
+          # print("IN CORR_END WRITING", self.fsparsepartonJetvalue_tuple[0])
           getattr(self, 'tn_pairlevel_Truth_R{}_{}'.format(jetR, obs_label)).Fill(np.array(list(self.fsparsepartonJetvalue_tuple), dtype='float32'))
 
         

@@ -214,10 +214,10 @@ void make_herwig_pythia_comparison() {
 
     // note: these two files include both weighted and unweighted EECs. herwig includes ptrl, pythia does not.
      //FOR WHEN WEIGHTED/UNWEIGHTED IN SAME FILE
-    const char infile_herwig_D0_all[] = "/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_EEC/herwig/AnalysisResultsFinal_herwig.root";
-    const char infile_pythia_D0[] = "/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_EEC/plots/final/AnalysisResultsFinalcomparison_all.root";
-    const char infile_pythia_D0wDstar[] = "/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_EEC/plots/final/AnalysisResultsFinal_afteranalysis_Dstar_plotcase3.root";
-    const char infile_sherpa_D0[] = "/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_EEC/sherpa/AnalysisResultsFinal_sherpa.root";
+    const char infile_herwig_D0_all[] = "/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/storage/herwig/AnalysisResultsFinal_herwig.root";
+    const char infile_pythia_D0[] = "/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/storage/pythia/AnalysisResultsFinalcomparison_all.root";
+    const char infile_pythia_D0wDstar[] = "/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/storage/pythia/AnalysisResultsFinal_afteranalysis_Dstar_plotcase3.root";
+    const char infile_sherpa_D0[] = "/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/storage/sherpa/AnalysisResultsFinal_sherpa.root";
     
     //Mateusz's files
     const char infile_sherpa_m_charm_jetpt_10_ahadic[] = "/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_EEC/sherpa/mateusz/hadded_list__charm_13TeV_jetpt_10_ana_eec.txt_h.root";
@@ -239,7 +239,7 @@ void make_herwig_pythia_comparison() {
     // 4 = adding in Mateusz's sherpa to sherpa vs herwig vs pythia D0 and also Mateusz's inclusive 5 GeV cut
     
     //CONTOL VARIABLES HERE
-    int plot_case = 4;
+    int plot_case = 2;
     bool logstring = false;
 
     TString label1 = "";
@@ -299,7 +299,7 @@ void make_herwig_pythia_comparison() {
     int markercolor8 = kViolet+8; //sherpa D0 c_jetpt15_lund
     int markerstyle8 = kFullStar;
     
-    label1 ="PYTHIA"; // "PYTHIA primordial D0-tagged"; //, c-init jets";
+    label1 ="PYTHIA 8"; // "PYTHIA primordial D0-tagged"; //, c-init jets";
     TString label2 = "PYTHIA all D0-tagged"; //, c-init jets";
     TString label3 = "Herwig"; //"Herwig primordial D0-tagged";
     TString label4 = "Herwig all D0-tagged";
@@ -532,18 +532,25 @@ void make_herwig_pythia_comparison() {
         // Open histograms
 
 
-        l = new TLegend(0.1797168,0.400741,0.4562155,0.8885185,""); //(0.17, 0.4, 0.5, 0.53);
-        l->SetTextSize(0.045);
+        l = new TLegend(0.1797168,0.6400741,0.4562155,0.8885185,""); //(0.17, 0.4, 0.5, 0.53);
+        l->SetTextSize(0.037);
+        l->SetBorderSize(0);
         // TLegend *leg = new TLegend(0.1797168,0.5390741,0.4562155,0.8885185,"");
         l->AddEntry("NULL","PYTHIA 8 Monash 2013, Herwig7, Sherpa2","h");
         l->AddEntry("NULL","pp, #sqrt{#it{s}} = 13 TeV","h");
         l->AddEntry("NULL","D^{0} #rightarrow K^{#minus} #pi^{+} and charge conj.","h");
-        l->AddEntry("NULL","in charged jets, anti-#it{k}_{T}, #it{R} = 0.4","h");
+        l->AddEntry("NULL","anti-#it{k}_{T} ch. jets, #it{R} = 0.4","h");
         l->AddEntry("NULL",ptbin,"h");
-        l->AddEntry("NULL",ptD,"h");
         l->SetTextSize(0.037);
         l->SetBorderSize(0);
         // l->Draw("same");
+
+        TLegend *l_main2 = new TLegend(0.1797168,0.375741,0.4562155,0.625,""); //(0.17, 0.4, 0.5, 0.53);
+        // l->SetTextSize(0.045);
+        l_main2->SetTextSize(0.037);
+        l_main2->SetBorderSize(0);
+        l_main2->AddEntry("NULL",ptD,"h");
+        
 
         TLegend* l_fake = new TLegend(0.,0.,0.1,0.1,"");
 
@@ -582,25 +589,38 @@ void make_herwig_pythia_comparison() {
 
         // Format histograms for plotting (this order needed to keep legend in order and graphs lookin good)
         hD0_pythia->GetXaxis()->SetTitle("#it{R}_{L}");
-        hD0_pythia->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
+        // hD0_pythia->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
+        hD0_pythia->GetYaxis()->SetTitle("#Sigma_{EEC}(#it{R}_{L})");
         hD0wDstar_pythia->GetXaxis()->SetTitle("#it{R}_{L}");
-        hD0wDstar_pythia->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
+        // hD0wDstar_pythia->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
+        hD0wDstar_pythia->GetYaxis()->SetTitle("#Sigma_{EEC}(#it{R}_{L})");
         hD0_herwig->GetXaxis()->SetTitle("#it{R}_{L}");
-        hD0_herwig->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
+        // hD0_herwig->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
+        hD0_herwig->GetYaxis()->SetTitle("#Sigma_{EEC}(#it{R}_{L})");
         hD0wDstar_herwig->GetXaxis()->SetTitle("#it{R}_{L}");
-        hD0wDstar_herwig->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
+        // hD0wDstar_herwig->GetYaxis()->SetTitle("#frac{1}{#it{N}_{jet}} #times #frac{d#it{N}_{EEC}}{d#it{R}_{L}}");
+        hD0wDstar_herwig->GetYaxis()->SetTitle("#Sigma_{EEC}(#it{R}_{L})");
         // not bothering formatting sherpa
 
         hD0_z_pythia->GetXaxis()->SetTitle("D^{0} z");
         
         cout << "about to format D0" << endl;
+
+        int n_rebin_bins = 25;
+        double rebin_bins[] = {1.00000000e-04, 1.44543977e-04, 2.08929613e-04, 3.01995172e-04,
+                               4.36515832e-04, 6.30957344e-04, 9.12010839e-04, 1.31825674e-03,
+                               1.90546072e-03, 2.75422870e-03, 3.98107171e-03, 5.75439937e-03,
+                               8.31763771e-03, 1.20226443e-02, 1.73780083e-02, 2.51188643e-02,
+                               3.63078055e-02, 5.24807460e-02, 7.58577575e-02, 1.09647820e-01,
+                               1.58489319e-01, 2.29086765e-01, 3.31131121e-01, 4.78630092e-01,
+                               6.91830971e-01, 1.00000000e+00};
         
         
-        FormatHist(l, hD0_pythia, label1, markercolor1, markerstyle1, 0.80); //FormatHist(l, hD0, "D^{0}-tagged, c-init jets", kMagenta+3, kOpenSquare);
-        FormatHist(l, hD0_herwig, label3, markercolor3, markerstyle3, 0.80);
+        FormatHist(l_main2, hD0_pythia, label1, markercolor1, markerstyle1, 0.80); //FormatHist(l, hD0, "D^{0}-tagged, c-init jets", kMagenta+3, kOpenSquare);
+        FormatHist(l_main2, hD0_herwig, label3, markercolor3, markerstyle3, 0.80);
         if (plot_case == 1) {
-            FormatHist(l, hD0wDstar_pythia, label2, markercolor2, markerstyle2, 0.80);
-            FormatHist(l, hD0wDstar_herwig, label4, markercolor4, markerstyle4, 0.80);
+            FormatHist(l_main2, hD0wDstar_pythia, label2, markercolor2, markerstyle2, 0.80);
+            FormatHist(l_main2, hD0wDstar_herwig, label4, markercolor4, markerstyle4, 0.80);
         }
         if (plot_case >= 2) {
             for (int j=0; j < hc_jetpt10_sherpa->GetNbinsX();j++){
@@ -608,12 +628,30 @@ void make_herwig_pythia_comparison() {
                 hc_jetpt10_lund_sherpa->SetBinError(j+1, 0);
                 hc_jetpt15_sherpa->SetBinError(j+1, 0);
                 hc_jetpt15_lund_sherpa->SetBinError(j+1, 0);
+
             }
 
+            hc_jetpt10_sherpa->Rebin(2);
+            hc_jetpt10_lund_sherpa->Rebin(2);
+            hc_jetpt15_sherpa->Rebin(2);
+            hc_jetpt15_lund_sherpa->Rebin(2);
+
+            hc_jetpt10_sherpa->Scale(0.5);
+            hc_jetpt10_lund_sherpa->Scale(0.5);
+            hc_jetpt15_sherpa->Scale(0.5);
+            hc_jetpt15_lund_sherpa->Scale(0.5);
+
+            hD0_pythia->GetXaxis()->SetRangeUser(1e-3,1);
+            hD0_herwig->GetXaxis()->SetRangeUser(1e-3,1);
+            hc_jetpt10_sherpa->GetXaxis()->SetRangeUser(1e-3,1);
+            hc_jetpt10_lund_sherpa->GetXaxis()->SetRangeUser(1e-3,1);
+            hc_jetpt15_sherpa->GetXaxis()->SetRangeUser(1e-3,1);
+            hc_jetpt15_lund_sherpa->GetXaxis()->SetRangeUser(1e-3,1);
+            
             // FormatHistwithLine(l, hc_jetpt10_sherpa, label5, markercolor5, markerstyle5, 0.80);
             // FormatHistwithLine(l, hc_jetpt10_lund_sherpa, label6, markercolor6, markerstyle6, 0.80);
-            FormatHistwithLine(l, hc_jetpt15_sherpa, label7, markercolor7, markerstyle7, 0.80);
-            FormatHistwithLine(l, hc_jetpt15_lund_sherpa, label8, markercolor8, markerstyle8, 0.80);
+            FormatHistwithLine(l_main2, hc_jetpt15_sherpa, label7, markercolor7, markerstyle7, 0.80);
+            FormatHistwithLine(l_main2, hc_jetpt15_lund_sherpa, label8, markercolor8, markerstyle8, 0.80);
             
         }
         if (plot_case >= 3) {
@@ -625,11 +663,11 @@ void make_herwig_pythia_comparison() {
                     hi_jetpt10_lund_sherpa_mateusz->SetBinError(j+1, 0);
                 }
 
-                FormatHistwithLine(l, hc_jetpt10_ahadic_sherpa_mateusz, "0.6 * Mateusz Sherpa Ahadic D-jet", kRed, 1, 0.80);
-                FormatHistwithLine(l, hc_jetpt10_lund_sherpa_mateusz, "0.6 * Mateusz Sherpa Lund D-jet", kRed, 2, 0.80);
+                FormatHistwithLine(l_main2, hc_jetpt10_ahadic_sherpa_mateusz, "0.6 * Mateusz Sherpa Ahadic D-jet", kRed, 1, 0.80);
+                FormatHistwithLine(l_main2, hc_jetpt10_lund_sherpa_mateusz, "0.6 * Mateusz Sherpa Lund D-jet", kRed, 2, 0.80);
                 if (plot_case == 4) {
-                    FormatHistwithLine(l, hi_jetpt10_ahadic_sherpa_mateusz, "0.6 * Mateusz Sherpa Ahadic inclusive p_{T}^{lead}>5 GeV/c", kBlack, 1, 0.80);
-                    FormatHistwithLine(l, hi_jetpt10_lund_sherpa_mateusz, "0.6 * Mateusz Sherpa Lund inclusive p_{T}^{lead}>5 GeV/c", kBlack, 2, 0.80);
+                    FormatHistwithLine(l_main2, hi_jetpt10_ahadic_sherpa_mateusz, "0.6 * Mateusz Sherpa Ahadic inclusive p_{T}^{lead}>5 GeV/c", kBlack, 1, 0.80);
+                    FormatHistwithLine(l_main2, hi_jetpt10_lund_sherpa_mateusz, "0.6 * Mateusz Sherpa Lund inclusive p_{T}^{lead}>5 GeV/c", kBlack, 2, 0.80);
                 }
             } else if (pt_min == 15) {
                 for (int j=0; j < hc_jetpt15_ahadic_sherpa_mateusz->GetNbinsX();j++){
@@ -638,11 +676,11 @@ void make_herwig_pythia_comparison() {
                     hi_jetpt15_ahadic_sherpa_mateusz->SetBinError(j+1, 0);
                     hi_jetpt15_lund_sherpa_mateusz->SetBinError(j+1, 0);
                 }
-                FormatHistwithLine(l, hc_jetpt15_ahadic_sherpa_mateusz, "0.6 * Mateusz Sherpa Ahadic D-jet", kRed, 1, 0.80);
-                FormatHistwithLine(l, hc_jetpt15_lund_sherpa_mateusz, "0.6 * Mateusz Sherpa Lund D-jet", kRed, 2, 0.80);
+                FormatHistwithLine(l_main2, hc_jetpt15_ahadic_sherpa_mateusz, "0.6 * Mateusz Sherpa Ahadic D-jet", kRed, 1, 0.80);
+                FormatHistwithLine(l_main2, hc_jetpt15_lund_sherpa_mateusz, "0.6 * Mateusz Sherpa Lund D-jet", kRed, 2, 0.80);
                 if (plot_case == 4) {
-                    FormatHistwithLine(l, hi_jetpt15_ahadic_sherpa_mateusz, "0.6 * Mateusz Sherpa Ahadic inclusive p_{T}^{lead}>5 GeV/c", kBlack, 1, 0.80);
-                    FormatHistwithLine(l, hi_jetpt15_lund_sherpa_mateusz, "0.6 * Mateusz Sherpa Lund inclusive p_{T}^{lead}>5 GeV/c", kBlack, 2, 0.80);
+                    FormatHistwithLine(l_main2, hi_jetpt15_ahadic_sherpa_mateusz, "0.6 * Mateusz Sherpa Ahadic inclusive p_{T}^{lead}>5 GeV/c", kBlack, 1, 0.80);
+                    FormatHistwithLine(l_main2, hi_jetpt15_lund_sherpa_mateusz, "0.6 * Mateusz Sherpa Lund inclusive p_{T}^{lead}>5 GeV/c", kBlack, 2, 0.80);
                 }
             }
         }
@@ -696,6 +734,7 @@ void make_herwig_pythia_comparison() {
         
 
         l->Draw("same");
+        l_main2->Draw("same");
         
         
         double hD0_pythia_top_binpos = findTopOfCurve(hD0_pythia, 1, 0.08);

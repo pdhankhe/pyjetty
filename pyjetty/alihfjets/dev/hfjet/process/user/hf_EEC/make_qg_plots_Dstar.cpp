@@ -221,6 +221,7 @@ void make_qg_plots_Dstar() {
     // 6 = compare D* (norm with (D0+D*)) with soft pion + D0 correlations - DONE
     // 7 = compare D* (norm with (D0+D*)) with just soft pion correlations
     // 8 = compare D0 (norm with D0) with the D0 feeddown
+    // 50 = put cases 2,3,4,7 into one 4-panel plot --> go to new file make_qg_plots_Dstar_4panelplot.cpp
 
     //CONTOL VARIABLES HERE
     int plot_case = 3;

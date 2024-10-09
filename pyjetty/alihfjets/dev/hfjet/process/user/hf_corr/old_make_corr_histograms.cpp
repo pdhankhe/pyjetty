@@ -248,7 +248,7 @@ THnSparse * getHistAndClone(TFile *f, std::string histname) {
 
 
 void applyCuts(THnSparse *hsparse, int pt_min, int pt_max, int RLaxis, double RL_min, double RL_max, 
-               bool EWaxis = false) { //todo: don't need paxis anymore??
+               bool EWaxis = false, bool BM_ENC = false, double bm_num = 0.) { //todo: don't need paxis anymore??
 
     hsparse->GetAxis(0)->SetRangeUser(pt_min, pt_max);
     // cout << "RL AXIS is " << RLaxis << " w RL min: " << RL_min << " & RL max: " << RL_max << endl;
@@ -270,6 +270,10 @@ void applyCuts(THnSparse *hsparse, int pt_min, int pt_max, int RLaxis, double RL
         hsparse->GetAxis(4)->SetRangeUser(0., 0.3);
     }
 
+    if (BM_ENC) {
+        hsparse->GetAxis(4)->SetRangeUser(bm_num, bm_num+1); //i.e. if baryon-baryon, should get bin that is set at 1.
+    }
+
     // cout << "CHECK 1A LOOKING AT NUM EMNRTIRES HERE: " << hsparse->GetEntries() << endl;
 
     
@@ -279,7 +283,8 @@ void applyCuts(THnSparse *hsparse, int pt_min, int pt_max, int RLaxis, double RL
 //usually obsaxis is 3, but in new histograms it is 4. For jet level histograms, use 0.
 TH1D * getObsHist(TFile *filename, std::string h_name, std::string h_jet_name, int pt_min, int pt_max, 
                   int RLaxis, double RL_min, double RL_max, std::string newhistname, int obsaxis, std::string xtitle,
-                  int normalized=0, bool scalebyRLbinwidth=false, double RL_bin_width=1.0, bool EWaxis=false, bool debug=false) { //int n_rebin_bins, double rebinbins[]
+                  int normalized=0, bool scalebyRLbinwidth=false, double RL_bin_width=1.0, bool EWaxis=false, 
+                  bool BM_ENC=false, double bm_num=0., bool debug=false) { //int n_rebin_bins, double rebinbins[]
     
     cout << "------HNAME is " << h_name << endl;
     cout << "RL AXIS is " << RLaxis << " w RL min: " << RL_min << " & RL max: " << RL_max << endl;
@@ -300,8 +305,8 @@ TH1D * getObsHist(TFile *filename, std::string h_name, std::string h_jet_name, i
     // cout << " and the total sum is " << sum << endl;
     // cout << " and the integral is " << testhist->Integral() << " & " << testhist->Integral("width") << endl;
 
-    applyCuts(hsparse, pt_min, pt_max, RLaxis, RL_min, RL_max, EWaxis);
-    applyCuts(hsparse_jetlevel, pt_min, pt_max, -1, RL_min, RL_max, false); //making no cuts on RL to keep it jet level??
+    applyCuts(hsparse, pt_min, pt_max, RLaxis, RL_min, RL_max, EWaxis, BM_ENC, bm_num);
+    applyCuts(hsparse_jetlevel, pt_min, pt_max, -1, RL_min, RL_max, false, BM_ENC, bm_num); //making no cuts on RL to keep it jet level??
 
     
     TH1D *h_proj = hsparse->Projection(obsaxis);
@@ -809,6 +814,13 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted, 
                     TCanvas* c_energyweights = new TCanvas();
                     ProcessCanvas(c_energyweights);
 
+                    TCanvas* c_bb_ENC = new TCanvas();
+                    ProcessCanvas(c_bb_ENC);
+                    TCanvas* c_bm_ENC = new TCanvas();
+                    ProcessCanvas(c_bm_ENC);
+                    TCanvas* c_mm_ENC = new TCanvas();
+                    ProcessCanvas(c_mm_ENC);
+
                     
                     // Open histograms
                     TH1D *hcorr_deltap_truth = getObsHist(f, deltap_truth_name, jet_pt_truth_name, 
@@ -835,14 +847,27 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted, 
 
                     TH1D *hcorr_oppcharg_ENC_truth_unnorm = getObsHist(f, oppcharge_truth_name, jet_pt_truth_name, 
                                              pt_min, pt_max, i+1, RL_min, RL_max, "h_corr_oppcharge_ENC_Truth" + hist_addname, 
-                                             i+1, "R_{L}", normed, true, RL_bin_width[i][j], false); //make normalization = 2?
+                                             i+1, "R_{L}", normed, false, RL_bin_width[i][j], false); //make normalization = 2?
                     TH1D *hcorr_samecharge_ENC_truth_unnorm = getObsHist(f, samecharge_truth_name, jet_pt_truth_name, 
                                              pt_min, pt_max, i+1, RL_min, RL_max, "h_corr_samecharge_ENC_Truth" + hist_addname, 
-                                             i+1, "R_{L}", normed, true, RL_bin_width[i][j], false); //make normalization = 2?
+                                             i+1, "R_{L}", normed, false, RL_bin_width[i][j], false); //make normalization = 2?
                     TH2D *hcorr_deltaptvsEW_truth = get2DHist(f, deltaptvsEW_truth_name, jet_pt_truth_name,
                                                pt_min, pt_max, i+1, RL_min, RL_max, "h_corr_deltaptvsEW" + hist_addname,
                                                4, 5, "#Delta p_{T}", "p_{T,1}p_{T,2} / p_{T, jet}^{2}", normed, true, 
                                                RL_bin_width[i][j]);
+                    TH1D *hcorr_baryonbaryon_ENC_truth_unnorm = getObsHist(f, baryonmeson_truth_name, jet_pt_truth_name, 
+                                             pt_min, pt_max, i+1, RL_min, RL_max, "h_corr_baryonbaryon_ENC_Truth" + hist_addname, 
+                                             i+1, "R_{L}", normed, false, RL_bin_width[i][j], false,
+                                             true, 1); //make normalization = 2?
+                    TH1D *hcorr_baryonmeson_ENC_truth_unnorm = getObsHist(f, baryonmeson_truth_name, jet_pt_truth_name, 
+                                             pt_min, pt_max, i+1, RL_min, RL_max, "h_corr_samecharge_baryonmeson_Truth" + hist_addname, 
+                                             i+1, "R_{L}", normed, false, RL_bin_width[i][j], false,
+                                             true, 0); //make normalization = 2?
+                    TH1D *hcorr_mesonmeson_ENC_truth_unnorm = getObsHist(f, baryonmeson_truth_name, jet_pt_truth_name, 
+                                             pt_min, pt_max, i+1, RL_min, RL_max, "h_corr_samecharge_mesonmeson_Truth" + hist_addname, 
+                                             i+1, "R_{L}", normed, false, RL_bin_width[i][j], false,
+                                             true, -1); //make normalization = 2?
+                    
 
                     //------------//------------//------------//------------//------------//
                     // make fits
@@ -974,7 +999,18 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted, 
 
                     c_energyweights->cd();
                     hcorr_energyweights_truth_arr[j]->Draw();
-                    
+
+                    c_bb_ENC->cd();
+                    hcorr_baryonbaryon_ENC_truth_unnorm->Draw();
+
+                    c_bm_ENC->cd();
+                    hcorr_baryonmeson_ENC_truth_unnorm->Draw();
+
+                    c_mm_ENC->cd();
+                    hcorr_mesonmeson_ENC_truth_unnorm->Draw();
+
+
+                    // ======================================================================= //
 
                     // do combined graphs now!
                     
@@ -1096,7 +1132,9 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted, 
                     save_del_canvas(c_energyweights, outdir, "energyweights", normstring_dir, weightstr, "", ptname, RLname, jetR, add_name, true);
                     
                     save_del_canvas(c_deltapt_vs_ew, outdir, "deltaptvsEW", normstring_dir, weightstr, "", ptname, RLname, jetR, add_name, true);
-
+                    save_del_canvas(c_bb_ENC, outdir, "bb_ENC", normstring_dir, weightstr, "", ptname, RLname, jetR, add_name, true);
+                    save_del_canvas(c_bm_ENC, outdir, "bm_ENC", normstring_dir, weightstr, "", ptname, RLname, jetR, add_name, true);
+                    save_del_canvas(c_mm_ENC, outdir, "mm_ENC", normstring_dir, weightstr, "", ptname, RLname, jetR, add_name, true);
 
                     // delete expfit;
 
