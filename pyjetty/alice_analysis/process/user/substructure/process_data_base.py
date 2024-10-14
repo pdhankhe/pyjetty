@@ -38,6 +38,7 @@ import fjcontrib
 # Analysis utilities
 from pyjetty.alice_analysis.process.base import process_io
 from pyjetty.alice_analysis.process.base import process_base
+from pyjetty.alice_analysis.process.base import jet_info
 from pyjetty.mputils import CEventSubtractor
 
 # Prevent ROOT from stealing focus when plotting
@@ -73,6 +74,66 @@ class ProcessDataBase(process_base.ProcessBase):
       self.is_pp = False
     else:
       self.is_pp = True
+
+
+    # ======= FROM WENQING'S CODE =======
+    if 'ENC_pair_cut' in config:
+        self.ENC_pair_cut = config['ENC_pair_cut']
+    else:
+        self.ENC_pair_cut = False
+    if 'ENC_pair_like' in config:
+        self.ENC_pair_like = config['ENC_pair_like']
+    else:
+        self.ENC_pair_like = False
+    if 'ENC_pair_unlike' in config:
+        self.ENC_pair_unlike = config['ENC_pair_unlike']
+    else:
+        self.ENC_pair_unlike = False
+
+    if 'do_rho_subtraction' in config:
+      self.do_rho_subtraction = config['do_rho_subtraction']
+    else:
+      self.do_rho_subtraction = False
+
+    if 'do_perpcone' in config:
+      self.do_perpcone = config['do_perpcone']
+    else:
+      self.do_perpcone = False
+    if 'static_perpcone' in config:
+        self.static_perpcone = config['static_perpcone']
+    else:
+        self.static_perpcone = True # NB: set default to rigid cone (less fluctuations)
+      
+    if 'do_jetcone' in config:
+      self.do_jetcone = config['do_jetcone']
+    else:
+      self.do_jetcone = False
+    if self.do_jetcone and 'jetcone_R_list' in config:
+      self.jetcone_R_list = config['jetcone_R_list']
+    else:
+      self.jetcone_R_list = [0.4] # NB: set default value to 0.4
+    if 'do_only_jetcone' in config:
+      self.do_only_jetcone = config['do_only_jetcone']
+    else:
+      self.do_only_jetcone = False
+
+    # if only processing dijets 
+    if 'leading_jet' in config:
+      self.leading_jet = config['leading_jet']
+    else:
+      self.leading_jet = False
+    if 'subleading_jet' in config:
+      self.subleading_jet = config['subleading_jet']
+    else:
+      self.subleading_jet = False
+
+    # NB: safeguard, make sure to only process one type at a time
+    if (self.leading_jet and (not self.subleading_jet)) or ((not self.leading_jet) and self.subleading_jet):
+      self.is_dijet = True
+      self.xj_interval = 0.2
+    else:
+      self.is_dijet = False
+    # ===================================
 
     # Whether or not to require jets to contain a track with some leading track pT
     self.min_leading_track_pT = config["min_leading_track_pT"] if "min_leading_track_pT" in config else None
@@ -192,6 +253,7 @@ class ProcessDataBase(process_base.ProcessBase):
     fj.ClusterSequence.print_banner()
     print()
     self.event_number = 0
+    self.jet_number = -1 # so that jet counting starts at 0
 
     # Do jet-finding and fill histograms
     for fj_particles in self.df_fjparticles:
@@ -221,6 +283,16 @@ class ProcessDataBase(process_base.ProcessBase):
     if self.debug_level > 1:
       print('-------------------------------------------------')
       print('event {}'.format(self.event_number))
+
+      # for index in range( len(fj_particles) ):
+      #   if fj_particles[index].has_user_info():
+      #     ecorr_user_info = fj_particles[index].python_info()
+      #   else:
+      #     # note: goes into here!!
+      #     ecorr_user_info = jet_info.JetInfo()
+      #   ecorr_user_info.particle_truth = fj_particles[index]
+      #   ecorr_user_info.charge = particles_charge_truth[index]
+          
 
     if len(fj_particles) > 1:
       if np.abs(fj_particles[0].pt() - fj_particles[1].pt()) <  1e-10:
@@ -296,7 +368,9 @@ class ProcessDataBase(process_base.ProcessBase):
       suffix = ''
 
     # Loop through jets and call user function to fill histos
-    for jet in jets_selected:
+    for ijet,jet in enumerate(jets_selected):
+      self.jet_number += 1 #starts counting jets at 0
+      self.ijet = ijet
       self.analyze_accepted_jet(jet, jetR, suffix)
 
   #---------------------------------------------------------------
@@ -318,25 +392,30 @@ class ProcessDataBase(process_base.ProcessBase):
         hZ.Fill(jet_pt_ungroomed, z)
 
     # Loop through each jet subconfiguration (i.e. subobservable / grooming setting)
-    for observable in self.observable_list:
-      for i in range(len(self.obs_settings[observable])):
+    # for observable in self.observable_list:
+      # print("OBSERVABLE", observable)
+    observable = self.observable_list[0]
+    for i in range(len(self.obs_settings[observable])):
+      # print(observable, "OBS SETTING", self.obs_settings[observable][i])
 
-        obs_setting = self.obs_settings[observable][i]
-        grooming_setting = self.obs_grooming_settings[observable][i]
-        obs_label = self.utils.obs_label(obs_setting, grooming_setting)
+      obs_setting = self.obs_settings[observable][i]
+      grooming_setting = self.obs_grooming_settings[observable][i]
+      obs_label = self.utils.obs_label(obs_setting, grooming_setting)
 
-        # Groom jet, if applicable
-        if grooming_setting:
-          gshop = fjcontrib.GroomerShop(jet, jetR, self.reclustering_algorithm)
-          jet_groomed_lund = self.utils.groom(gshop, grooming_setting, jetR)
-          if not jet_groomed_lund:
-            continue
-        else:
-          jet_groomed_lund = None
+      # Groom jet, if applicable
+      if grooming_setting:
+        gshop = fjcontrib.GroomerShop(jet, jetR, self.reclustering_algorithm)
+        jet_groomed_lund = self.utils.groom(gshop, grooming_setting, jetR)
+        if not jet_groomed_lund:
+          continue
+      else:
+        jet_groomed_lund = None
 
-        # Call user function to fill histograms
-        self.fill_jet_histograms(observable, jet, jet_groomed_lund, jetR, obs_setting,
-                                 grooming_setting, obs_label, jet_pt_ungroomed, suffix)
+      # Call user function to fill histograms
+      # self.fill_jet_histograms(observable, jet, jet_groomed_lund, jetR, obs_setting,
+      #                          grooming_setting, obs_label, jet_pt_ungroomed, suffix)
+      self.fill_jet_histograms(jet, jet_groomed_lund, jetR, obs_setting,
+                                grooming_setting, obs_label, jet_pt_ungroomed, suffix)
 
   #---------------------------------------------------------------
   # This function is called once

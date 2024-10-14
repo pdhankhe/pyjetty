@@ -25,6 +25,7 @@ import fjext
 
 # Base class
 from pyjetty.alice_analysis.process.base import common_base
+from pyjetty.alice_analysis.process.base import jet_info
 
 ################################################################
 class ProcessIO(common_base.CommonBase):
@@ -86,6 +87,8 @@ class ProcessIO(common_base.CommonBase):
           self.track_columns += ['ParticleMCIndex']
         else:
           self.track_columns += ['ParticlePID']
+    else:
+      self.track_columns += ['ParticleCharge']
     print("USE D0 INFO IS SET TO", self.use_D0_info)
     if self.use_D0_info:
       print("entering here????")
@@ -500,6 +503,13 @@ class ProcessIO(common_base.CommonBase):
     fj_particles = fjext.vectorize_pt_eta_phi_m(
       df_tracks_accepted['ParticlePt'].values, df_tracks_accepted['ParticleEta'].values,
       df_tracks_accepted['ParticlePhi'].values, m_array, user_index_offset)
+
+    # add for dEEC:
+    if not self.is_ENC:
+      for i, charge in enumerate(df_tracks_accepted['ParticleCharge'].values):
+        jetinfo = jet_info.JetInfo()
+        jetinfo.charge = charge
+        fj_particles[i].set_python_info(jetinfo)
 
 
     return fj_particles
