@@ -45,9 +45,10 @@ void SetStyle(Bool_t graypalette=true) {
 
 }
 
-TH1D * getObs1DHistFromTChain(TChain *chain, std::string branch_name, int num_bins, int pt_min, int pt_max, double RL_min, double RL_max) {
+TH1D * getObs1DHistFromTChain(TChain *chain, std::string branch_name, int num_bins, double hist_xmin, double hist_xmax,
+                              int pt_min, int pt_max, double RL_min, double RL_max) {
     
-    TH1D * hist1D = new TH1D(Form("%s_hist", branch_name.c_str()), Form("%s_hist", branch_name.c_str()), num_bins, 0, pt_max+5);
+    TH1D * hist1D = new TH1D(Form("%s_hist", branch_name.c_str()), Form("%s_hist", branch_name.c_str()), num_bins, hist_xmin, hist_xmax);
     chain->Draw(Form("%s>>%s_hist", branch_name.c_str(), branch_name.c_str()), Form("jet_pt >= %d && jet_pt < %d && RL >= %f && RL < %f", pt_min, pt_max, RL_min, RL_max), "e");
 //    chain->Draw(Form("%s>>%s_hist", branch_name.c_str(), branch_name.c_str()), Form("jet_pt >= 20 && jet_pt < 40 && RL > 0.01 && RL < 0.4"), "e");
 
@@ -157,7 +158,7 @@ void analyze_data_tuples() {
     
     // now look at observables and make histograms
     // don't separate by pt or RL bin
-    TH1D * jetpt_hist = getObs1DHistFromTChain(JETINFO_tree, "jet_pt", 250, 0, 200, 1e-4, 1.0);
+    TH1D * jetpt_hist = getObs1DHistFromTChain(JETINFO_tree, "jet_pt", 250, 0, 200, 0, 200, 1e-4, 1.0);
     TCanvas *can_jetpt = new TCanvas();
     draw_save_del_hists(can_jetpt, jetpt_hist, "jetpt", weightstr + jetRname + thrname);
     
@@ -178,11 +179,11 @@ void analyze_data_tuples() {
             if (debug) cout << " in RL bin" << j << " with " << RL_min << " - " << RL_max << endl;
             
             // get histograms
-            TH1D * deltap_hist = getObs1DHistFromTChain(PAIRINFO_tree, "deltap", 250, pt_min, pt_max, RL_min, RL_max);
+            TH1D * deltap_hist = getObs1DHistFromTChain(PAIRINFO_tree, "deltap", 250, 0, pt_max+5, pt_min, pt_max, RL_min, RL_max);
             cout << "checkpoint 1 " << deltap_hist->GetEntries() << endl;
-            TH1D * deltapt_hist = getObs1DHistFromTChain(PAIRINFO_tree, "deltapt", 250, pt_min, pt_max, RL_min, RL_max);
-            TH1D * deltapl_hist = getObs1DHistFromTChain(PAIRINFO_tree, "deltapl", 250, pt_min, pt_max, RL_min, RL_max);
-            TH1D * energyweight_hist = getObs1DHistFromTChain(PAIRINFO_tree, "weights", 250, pt_min, pt_max, RL_min, RL_max);
+            TH1D * deltapt_hist = getObs1DHistFromTChain(PAIRINFO_tree, "deltapt", 250, 0, pt_max+5, pt_min, pt_max, RL_min, RL_max);
+            TH1D * deltapl_hist = getObs1DHistFromTChain(PAIRINFO_tree, "deltapl", 250, 0, pt_max+5, pt_min, pt_max, RL_min, RL_max);
+            TH1D * energyweight_hist = getObs1DHistFromTChain(PAIRINFO_tree, "weights", 250, 0, 1.0, pt_min, pt_max, RL_min, RL_max);
             
 
 
