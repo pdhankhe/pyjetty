@@ -1,6 +1,7 @@
 // ROOT macro to take correlation tuples and turn them into histograms
 // Beatrice Liang-Gilman (beatrice_lg@berkeley.edu)
 
+/* NOTICE!! This script will be decommisioned!!! Should be deleted soon!! */
 
 using namespace std;
 

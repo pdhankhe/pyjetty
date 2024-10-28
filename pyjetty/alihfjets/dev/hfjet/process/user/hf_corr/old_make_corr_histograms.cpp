@@ -251,6 +251,7 @@ void applyCuts(THnSparse *hsparse, int pt_min, int pt_max, int RLaxis, double RL
                bool EWaxis = false, bool BM_ENC = false, double bm_num = 0.) { //todo: don't need paxis anymore??
 
     hsparse->GetAxis(0)->SetRangeUser(pt_min, pt_max);
+    // cout << "hello  " << BM_ENC << "//" << bm_num << endl;
     // cout << "RL AXIS is " << RLaxis << " w RL min: " << RL_min << " & RL max: " << RL_max << endl;
     if (RLaxis != -1) {
         cout << " here! RL AXIS is " << RLaxis << " w RL min: " << RL_min << " & RL max: " << RL_max << endl;
@@ -306,7 +307,7 @@ TH1D * getObsHist(TFile *filename, std::string h_name, std::string h_jet_name, i
     // cout << " and the integral is " << testhist->Integral() << " & " << testhist->Integral("width") << endl;
 
     applyCuts(hsparse, pt_min, pt_max, RLaxis, RL_min, RL_max, EWaxis, BM_ENC, bm_num);
-    applyCuts(hsparse_jetlevel, pt_min, pt_max, -1, RL_min, RL_max, false, BM_ENC, bm_num); //making no cuts on RL to keep it jet level??
+    applyCuts(hsparse_jetlevel, pt_min, pt_max, -1, RL_min, RL_max, false, false, bm_num); //making no cuts on RL to keep it jet level??
 
     
     TH1D *h_proj = hsparse->Projection(obsaxis);
@@ -369,6 +370,30 @@ TH1D * getObsHist(TFile *filename, std::string h_name, std::string h_jet_name, i
 
 }
 
+// get r_c
+double getRcFromHists(TH1D *hist_oppsign, TH1D *hist_samesign) {
+    // do i need to scale by the RL bin width here?? - I think this would be redundant.
+    // if both like sign bin and unlike sign get scaled by RL bin width, then the ratio still stays the same
+
+    // cout << "ENTRIES FOR SAME SIGH " << hist_samesign->GetEntries() << endl;
+    // cout << "ENTRIES FOR OPP SIGH " << hist_oppsign->GetEntries() << endl;
+    // cout << "BINS FOR SAME SIGH " << hist_samesign->GetNbinsX() << endl;
+    // cout << "BINS FOR OPP SIGH " << hist_oppsign->GetNbinsX() << endl;
+
+    // get # of like sign and # of unlike sign
+    double num_likesign = hist_samesign->GetBinContent(3); //hist_samesign->FindBin(1));
+    double num_unlikesign = hist_oppsign->GetBinContent(1); //hist_oppsign->FindBin(-1));
+    // (if debug) cout << "num like sign " << num_likesign << " num unlike sign " << num_unlikesign << endl;
+
+    // calculate the rc value for this pt & RL bin
+    double rc = (double)(num_likesign - num_unlikesign) / (double)(num_likesign + num_unlikesign);
+    //if (debug) cout << "and that makes rc " << rc << endl;
+    if (num_likesign + num_unlikesign == 0) rc = 0;
+
+    return rc;
+}
+
+
 // get 2D observable histogram
 TH2D * get2DHist(TFile *filename, std::string h_name, std::string h_jet_name, int pt_min, int pt_max,
                  int RLaxis, double RL_min, double RL_max, std::string newhistname, int xaxis_axis, int yaxis_int,
@@ -425,13 +450,206 @@ TH2D * get2DHist(TFile *filename, std::string h_name, std::string h_jet_name, in
     return hist2D;
 }
 
-void fix_up_2D(TH2D * hist2D, double bounds[], double ptmax) {
+void fix_up_2D(TH2D * hist2D, double bounds[], double ptmax, std::string xtitle, std::string ytitle) {
 
     hist2D->GetXaxis()->SetRangeUser(0, ptmax);
     hist2D->GetZaxis()->SetRangeUser(bounds[0], bounds[1]);
 
+    // label axes
+    hist2D->GetXaxis()->SetLabelFont(42);
+    hist2D->GetXaxis()->SetTitleFont(42);
+    hist2D->GetXaxis()->SetTitleSize(0.06); //(0.042);
+    hist2D->GetXaxis()->SetTitleOffset(1.0);
+	hist2D->GetXaxis()->SetLabelSize(0.05);
+    hist2D->GetXaxis()->SetTitle(xtitle.c_str());
+
+    hist2D->GetYaxis()->SetLabelFont(42);
+	hist2D->GetYaxis()->SetTitleFont(42);
+    // if (obs_name_y == "weights") {
+    //     hist2D->GetYaxis()->SetTitleSize(0.035);
+    //     hist2D->GetYaxis()->SetTitleOffset(1.5);
+    // } else {
+        hist2D->GetYaxis()->SetTitleSize(0.05); //0.06 //(0.042);
+        hist2D->GetYaxis()->SetTitleOffset(1.0);
+    // }
+    hist2D->GetYaxis()->SetLabelSize(0.05); //(0.042);
+    hist2D->GetYaxis()->SetTitle(ytitle.c_str());
+
 }
 
+// imported function from data
+TGraph * MakeFormatGraph(vector<double> xvals, vector<double> yvals, int markercolor, double markeralpha,
+                  int markerstyle, std::string xtitle, std::string ytitle, std::string obs_name) {
+    TGraph * graph = new TGraph(xvals.size(), xvals.data(), yvals.data());
+    graph->SetTitle(Form("Charge Ratio;%s;%s", xtitle.c_str(), ytitle.c_str())); // Set the title and axis labels
+
+    // Set graph styles
+    graph->SetLineColorAlpha(markercolor, markeralpha);
+    graph->SetMarkerColorAlpha(markercolor, markeralpha);
+    graph->SetMarkerStyle(markerstyle);
+    graph->SetMarkerSize(1.5);
+
+    // axes
+    graph->GetXaxis()->SetLabelFont(42);
+    graph->GetXaxis()->SetTitleFont(42);
+	graph->GetXaxis()->SetTitleSize(0.06); //(0.042);
+    graph->GetXaxis()->SetTitleOffset(1.0);
+	graph->GetXaxis()->SetLabelSize(0.05);
+    // graph->GetXaxis()->SetTitle(xtitle.c_str());
+
+    graph->GetYaxis()->SetLabelFont(42);
+	graph->GetYaxis()->SetTitleFont(42);
+    graph->GetYaxis()->SetTitleOffset(1.05); 
+	graph->GetYaxis()->SetTitleSize(0.06); //(0.042);
+	graph->GetYaxis()->SetLabelSize(0.05); //(0.042);
+    // graph->GetYaxis()->SetTitle(ytitle.c_str());
+
+
+    return graph;
+}
+
+
+// another function imported from data analysis code
+void plot_rc(vector<vector<double>>& RL_vals, vector<vector<double>>& rc_vals, vector<double>& ptcenter_bins,
+             Double_t *colors, Double_t *markers) {
+            //  TLegend& leg_RLbins, TLegend& leg_ptbins) {
+    
+    vector<TGraph *> rc_graphs_func_of_RL;
+    vector<TGraph *> rc_graphs_func_of_pT;
+    vector<vector<TGraph*>> rc_graphs_func_of_RL_ind;
+    vector<vector<TGraph*>> rc_graphs_func_of_pT_ind;
+    std::string outdir = "plots/thirdattempt"; // + ptbin_name + "/";//"plots/test/";
+    std::string fname_func_of_RL_out = outdir + "/corrhist_rc_func_of_RL.pdf"; // could add jetR and threshold info later??, maybe not needed tho 
+    std::string fname_func_of_pT_out = outdir + "/corrhist_rc_func_of_pT.pdf";
+
+    TLegend leg_RLbins(0.2, 0.6, 0.4, 0.85); 
+    TLegend leg_ptbins(0.5, 0.7, 0.65, 0.85); 
+
+    leg_RLbins.SetTextSize(0.037);
+    leg_RLbins.SetBorderSize(0);
+    leg_ptbins.SetTextSize(0.037);
+    leg_ptbins.SetBorderSize(0);
+
+    // delete hist;
+
+    // get graphs of r_c as a function of RL
+    // loop over pt bins
+    for ( int i = 0; i < ptcenter_bins.size(); i++ ) { 
+
+        // for graphs as a function of RL
+        TGraph *g = new TGraph(RL_vals[i].size(), RL_vals[i].data(), rc_vals[i].data());
+        g->SetMarkerStyle(markers[i]);
+        g->SetMarkerSize(1.5);
+        g->SetMarkerColorAlpha(kBlack, 1.0);
+        vector<TGraph*> ind_temp_vec;
+
+        for (int j=0; j<RL_vals[i].size(); j++){
+            int k=j+1;
+            TGraph *g_ind = new TGraph(1, &RL_vals[i][j], &rc_vals[i][j]);
+            g_ind->SetMarkerColorAlpha(colors[j], 1.0);
+            g_ind->SetMarkerSize(1.5);
+            g_ind->SetMarkerStyle(markers[i]);
+            ind_temp_vec.push_back(g_ind);
+            
+            if (i==0) {
+                leg_RLbins.AddEntry(g_ind, Form("R_{L} bin %d", j+1), "P");
+            }
+        }
+        rc_graphs_func_of_RL.push_back(g); 
+        rc_graphs_func_of_RL_ind.push_back(ind_temp_vec); 
+        
+        // Should fix what gets subbed into %d so it is more flexible if the bins are not 20 GeV big?
+        leg_ptbins.AddEntry(g, Form("p_{T} = %d-%d", (int)ptcenter_bins[i]-10, (int)ptcenter_bins[i]+10), "P");
+         
+
+    }
+
+    // plot r_c as a function of RL
+    TCanvas *can_func_of_RL = new TCanvas("can_func_of_RL", "can_func_of_RL", 750, 500);
+    can_func_of_RL->cd();
+    for ( int i = 0; i < ptcenter_bins.size(); i++ ) {
+        // rc_graphs_func_of_RL[i]->SetMarkerSize(1.0);
+        // rc_graphs_func_of_RL[i]->SetMarkerStyle(markers[i]);
+        if ( i == 0 ) {
+            rc_graphs_func_of_RL[i]->SetMinimum(-0.3);  // Lower y limit
+            rc_graphs_func_of_RL[i]->SetMaximum(0.1); 
+            rc_graphs_func_of_RL[i]->GetXaxis()->SetTitle("R_{L} bin center"); 
+            rc_graphs_func_of_RL[i]->GetYaxis()->SetTitle("r_{c}"); 
+            rc_graphs_func_of_RL[i]->Draw("AP");
+        } // else {
+        //     rc_graphs_func_of_RL[i]->Draw("P SAME");
+        // }
+
+        for (int j = 0; j < RL_vals[0].size(); j++) {
+            rc_graphs_func_of_RL_ind[i][j]->Draw("P SAME");
+        }
+    }
+    leg_RLbins.Draw("same");
+    leg_ptbins.Draw("same");
+    can_func_of_RL->SaveAs(fname_func_of_RL_out.c_str());
+    delete can_func_of_RL;
+
+    //========================================================
+
+    // get graphs of r_c as a function of pT
+    vector<vector<double>> rc_vals_func_of_pT;
+    // loop over RL bins
+    for ( int j = 0; j < RL_vals[0].size(); j++ ) {
+        vector<double> temp_vec;
+        vector<TGraph*> ind_temp_vec;
+
+        // save values into appropriate vectors
+        for ( int i = 0; i < ptcenter_bins.size(); i++ ) { 
+            temp_vec.push_back(rc_vals[i][j]);
+            
+            int k=j+1;
+            TGraph *g_ind = new TGraph(1, &ptcenter_bins[i], &rc_vals[i][j]);
+            g_ind->SetMarkerColorAlpha(colors[j], 1.0);
+            g_ind->SetMarkerSize(1.5);
+            g_ind->SetMarkerStyle(markers[i]);
+            ind_temp_vec.push_back(g_ind);
+        }
+        rc_vals_func_of_pT.push_back(temp_vec);
+        rc_graphs_func_of_pT_ind.push_back(ind_temp_vec);  
+
+        // for graphs as a function of RL
+        TGraph *g = new TGraph(ptcenter_bins.size(), ptcenter_bins.data(), rc_vals_func_of_pT[j].data());
+        for (int aa = 0; aa < ptcenter_bins.size(); aa++) {
+            // cout << "studying pt=" << ptcenter_bins[aa] << " // " << rc_vals_func_of_pT[j][aa] << endl;
+        }
+        rc_graphs_func_of_pT.push_back(g); 
+    }
+    
+    // plot r_c as a function of pT
+    TCanvas *can_func_of_pT = new TCanvas("can_func_of_pT", "can_func_of_pT", 750, 500);
+    can_func_of_pT->cd();
+    for ( int j = 0; j < RL_vals[0].size(); j++ ) {
+        int k = j+1;
+        // rc_graphs_func_of_pT[j]->SetMarkerSize(1.0);
+        // rc_graphs_func_of_pT[j]->SetMarkerStyle(markers[0]);
+        rc_graphs_func_of_pT[j]->SetMarkerColorAlpha(colors[j], 0.0);
+        if ( j == 0 ) {
+            rc_graphs_func_of_pT[j]->SetMinimum(-0.3);  // Lower y limit
+            rc_graphs_func_of_pT[j]->SetMaximum(0.1); 
+            rc_graphs_func_of_pT[j]->GetXaxis()->SetTitle("p_{T} bin center"); 
+            rc_graphs_func_of_pT[j]->GetYaxis()->SetTitle("r_{c}"); 
+            rc_graphs_func_of_pT[j]->Draw("AP");
+        } // else { 
+        //     rc_graphs_func_of_pT[j]->Draw("P SAME");
+        // }
+
+        for (int i = 0; i < ptcenter_bins.size(); i++) {
+            rc_graphs_func_of_pT_ind[j][i]->Draw("P SAME");
+        }
+    }
+    leg_RLbins.Draw("same");
+    leg_ptbins.Draw("same");
+    can_func_of_pT->SaveAs(fname_func_of_pT_out.c_str());
+    delete can_func_of_pT;
+
+
+
+}
 
 
 // make a clone for the fit
@@ -636,6 +854,11 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted, 
 
     add_name += norm_string + RL0_string;
 
+    //variables
+    vector<vector<double>> RL_vals;
+    vector<vector<double>> rc_vals;
+    vector<double> ptcenter_bins;
+
     // Jet r value
     std::string jetR_list[] = { "0.4" };
     for (std::string jetR : jetR_list) {
@@ -661,6 +884,7 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted, 
                 cout << "in pt bin" << i << endl;
                 int pt_min = pt_bins[i];
                 int pt_max = pt_bins[i+1];
+                ptcenter_bins.push_back( (pt_min+pt_max)/2 );
                 std::string ptname = "_pt" + std::to_string(pt_min) + '-' + std::to_string(pt_max);
 
                 // Output directory
@@ -744,6 +968,9 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted, 
                 // vector<TH1D*> hcorr_unweightedRL_truth_arr;
                 vector<TH1D*> hcorr_energyweights_truth_arr;
                 vector<TH1D*> hcorr_baryonmeson_truth_arr;
+
+                vector<double> rc_vec;
+                vector<double> RLcenters_vec;
 
                 vector<TString> label;
                 TH1D *hdummyRL;
@@ -867,6 +1094,16 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted, 
                                              pt_min, pt_max, i+1, RL_min, RL_max, "h_corr_samecharge_mesonmeson_Truth" + hist_addname, 
                                              i+1, "R_{L}", normed, false, RL_bin_width[i][j], false,
                                              true, -1); //make normalization = 2?
+
+                    double rc_value;
+                    if (normed == 0) {
+                        rc_value = getRcFromHists(hcorr_oppcharge_truth, hcorr_samecharge_truth);
+                        cout << "RC VALUE IS" << rc_value << endl;
+                        if (normed == 0) {
+                            rc_vec.push_back(rc_value);
+                            RLcenters_vec.push_back( (RL_min+RL_max)/2 );
+                        }
+                    }
                     
 
                     //------------//------------//------------//------------//------------//
@@ -973,7 +1210,11 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted, 
                     c_deltapt_vs_ew->cd();
                     // gStyle->SetPadRightMargin(0.15);
                     gPad->SetLogz();
-                    fix_up_2D(hcorr_deltaptvsEW_truth, ptvsew_normbounds[normed], pt_max);
+
+                    std::string ytitle_norm = "#frac{1}{#DeltaR_{L}} ";
+                    if (normed == 1) ytitle_norm = "#frac{1}{N_{pair}#DeltaR_{L}} ";
+                    else if (normed == 2) ytitle_norm = "#frac{1}{N_{jet}#DeltaR_{L}} ";
+                    fix_up_2D(hcorr_deltaptvsEW_truth, ptvsew_normbounds[normed], pt_max, ytitle_norm + "#Deltap_{T}", ytitle_norm + "p_{T,1}p_{T,2} / p_{T,jet}^{2}");
                     hcorr_deltaptvsEW_truth->Draw("colz");
 
 
@@ -1198,6 +1439,34 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted, 
 
 
 
+                // make graphs
+                if (normed == 0) {
+                    TCanvas *can_rc = new TCanvas("can_rc", "can_rc", 900, 500);
+                    ProcessCanvas(can_rc);
+                    TGraph *gr_rc = MakeFormatGraph(RLcenters_vec, rc_vec, kBlack, 1.0, markers[0], "R_{L}", "r_{c}", "rc");
+                    // cout << "size of RLcenters_vec " << RLcenters_vec.size() << endl;
+                    // for (int aa=0; aa<RLcenters_vec.size(); aa++) {
+                    //     cout << " " << RLcenters_vec[0];
+                    // }
+                    // cout << "size of rc_vec " << rc_vec.size() << endl;
+                    // for (int aa=0; aa<rc_vec.size(); aa++) {
+                    //     cout << " " << rc_vec[0];
+                    // }
+                    can_rc->cd();
+                    gr_rc->Draw("ALP");
+                    f_out->cd();
+                    gr_rc->Write();
+                    std::string fname_rc_out = outdir + "individuals/rc/corrhist_rc_all" + ptname + "_R" + jetR + add_name + ".pdf";
+                    can_rc->SaveAs(fname_rc_out.c_str());
+                    
+                    // draw_save_del_hists(f_out, can_rc, gr_rc, "rc", ptname, norm_string, hist_all_addname, false, false);
+                    
+                    
+                    // save vectors here
+                    RL_vals.push_back(RLcenters_vec);
+                    rc_vals.push_back(rc_vec);
+                }
+
                 c_chargeratio_all->cd();
                 TGraph *g = new TGraph(n_RLbins, RL_bin_centers[i], y_chargeratio_arr); 
                 FormatGraph(g, l2, "", "R_{L}", "# opp sign pairs / # same sign pairs", 1.0, 20, kBlack, 0);
@@ -1320,6 +1589,18 @@ void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted, 
             } // pT bins loop
         } // threshold loop
     } // jetR loop
+
+    // plot r_c as a function of RL
+    if (normed == 0) {
+        cout << "checkpoint 4" << endl;
+        cout << "size of RL_vals " << RL_vals.size() << endl;
+        cout << "size of RL_vals[0] " << RL_vals[0].size() << endl;
+        cout << "size of rc_vals " << rc_vals.size() << endl;
+        cout << "size of rc_vals[0] " << rc_vals[0].size() << endl;
+        cout << "size of ptcenter_bins " << ptcenter_bins.size() << endl;
+
+        plot_rc(RL_vals, rc_vals, ptcenter_bins, colors, markers); //, leg_RLbins, leg_ptbins);
+    }
 }
 
 // ======================================================= //
@@ -1362,24 +1643,24 @@ void old_make_corr_histograms() {
     int normed = 0;
     // plot unweighted hists
     plot_histograms(f, add_name, normed, false, include_RL0);
-    // plot weighted hists
-    plot_histograms(f, add_name, normed, true, include_RL0);
+    // // plot weighted hists
+    // plot_histograms(f, add_name, normed, true, include_RL0);
 
 
-    // now do self-normalized
-    normed = 1;
-    // plot unweighted hists
-    plot_histograms(f, add_name, normed, false, include_RL0);
-    // plot weighted hists
-    plot_histograms(f, add_name, normed, true, include_RL0);
+    // // now do self-normalized
+    // normed = 1;
+    // // plot unweighted hists
+    // plot_histograms(f, add_name, normed, false, include_RL0);
+    // // plot weighted hists
+    // plot_histograms(f, add_name, normed, true, include_RL0);
 
 
-    // now do normalize by # of jets
-    normed = 2;
-    // plot unweighted hists
-    plot_histograms(f, add_name, normed, false, include_RL0);
-    // plot weighted hists
-    plot_histograms(f, add_name, normed, true, include_RL0);
+    // // now do normalize by # of jets
+    // normed = 2;
+    // // plot unweighted hists
+    // plot_histograms(f, add_name, normed, false, include_RL0);
+    // // plot weighted hists
+    // plot_histograms(f, add_name, normed, true, include_RL0);
 
 
 
