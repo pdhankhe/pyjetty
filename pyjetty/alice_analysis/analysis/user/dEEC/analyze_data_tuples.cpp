@@ -191,8 +191,8 @@ void Format2DHist(TH2D *hist2D, TH1D *jetpt_hist, std::string norm_string, std::
     // label axes
     hist2D->GetXaxis()->SetLabelFont(42);
     hist2D->GetXaxis()->SetTitleFont(42);
-    hist2D->GetXaxis()->SetTitleSize(0.06); //(0.042);
-    hist2D->GetXaxis()->SetTitleOffset(1.0);
+    hist2D->GetXaxis()->SetTitleSize(0.04); //(0.042);
+    hist2D->GetXaxis()->SetTitleOffset(1.3);
 	hist2D->GetXaxis()->SetLabelSize(0.05);
     hist2D->GetXaxis()->SetTitle(xtitle.c_str());
 
@@ -203,7 +203,7 @@ void Format2DHist(TH2D *hist2D, TH1D *jetpt_hist, std::string norm_string, std::
     //     hist2D->GetYaxis()->SetTitleOffset(1.5);
     // } else {
         hist2D->GetYaxis()->SetTitleSize(0.04); //0.06 //(0.042);
-        hist2D->GetYaxis()->SetTitleOffset(1.4);
+        hist2D->GetYaxis()->SetTitleOffset(1.3);
     // }
     hist2D->GetYaxis()->SetLabelSize(0.04); //(0.042);
     hist2D->GetYaxis()->SetTitle(ytitle.c_str());
@@ -254,6 +254,7 @@ void draw_save_del_hists(TFile *fout, TCanvas *can, TObject* obj, std::string ob
     if (logy) gPad->SetLogy();
 
     if (TH2* hist2D = dynamic_cast<TH2*>(obj)) { // put this first bc TH2 is a subclass of TH1!! (and it will go into the other loop :( )
+        gPad->SetRightMargin(0.12);
         if (logz) gPad->SetLogz();
         can->SetFillColor(kWhite);
         hist2D->Draw("COLZ");
