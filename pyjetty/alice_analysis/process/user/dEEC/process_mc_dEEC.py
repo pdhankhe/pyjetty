@@ -61,7 +61,7 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
     self.observable = self.observable_list[0]
 
     if self.ENC_fastsim:
-      # self.pair_eff_file = ROOT.TFile.Open(self.pair_eff_file,"READ")
+      self.pair_eff_file = ROOT.TFile.Open(self.pair_eff_file,"READ")
       # self.dpbin = 5
       # self.dp_lo = [0, 0.1, 0.2, 0.4, 1]
       # self.dp_hi = [0.1, 0.2, 0.4, 1, 2]
@@ -69,9 +69,9 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
       self.dp_lo = [0, 0.02, 0.06, 0.1, 0.14, 0.2, 0.3, 0.4, 0.6, 1]
       self.dp_hi = [0.02, 0.06, 0.1, 0.14, 0.2, 0.3, 0.4, 0.6, 1, 2]
       self.h1d_eff_vs_dR_in_dq_over_p = []
-      # for idp in range(self.dpbin):
-      #     hname = 'h1d_eff_vs_dR_in_dq_over_p_{}'.format(idp)
-      #     self.h1d_eff_vs_dR_in_dq_over_p.append( ROOT.TH1D(self.pair_eff_file.Get(hname)) )
+      for idp in range(self.dpbin):
+          hname = 'h1d_eff_vs_dR_in_dq_over_p_{}'.format(idp)
+          self.h1d_eff_vs_dR_in_dq_over_p.append( ROOT.TH1D(self.pair_eff_file.Get(hname)) )
 
   #---------------------------------------------------------------
   # Determine pair efficiency with the pair
@@ -744,7 +744,7 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
           getattr(self, hname.format("1D"+observable,obs_label)).Fill(jet_pt)
           getattr(self, hname.format('Nconst', obs_label)).Fill(jet_pt, nconst_jet) 
 
-          getattr(self, 'tn_JETINFOjet_pt_R{}_{}'.format(jetR, obs_label)).Fill(self.event_number, self.jet_number, self.ijet, jet_pt, len(constituents), nconst_jet, leadq_subleadq, leading_q, subleading_q, num_baryons_tot, num_baryons_aftercut, num_mesons_tot, num_mesons_aftercut)
+          getattr(self, 'tn_JETINFOjet_pt_Truth_R{}_{}'.format(jetR, obs_label)).Fill(self.event_number, self.jet_number, self.ijet, jet_pt, len(constituents), nconst_jet, leadq_subleadq, leading_q, subleading_q, num_baryons_tot, num_baryons_aftercut, num_mesons_tot, num_mesons_aftercut)
 
 
         
