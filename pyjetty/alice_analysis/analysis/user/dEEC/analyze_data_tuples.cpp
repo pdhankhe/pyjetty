@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <cmath>
 
 using namespace std;
 
@@ -98,13 +99,37 @@ double getRcFromTChain(TChain *chain, std::string branch_name, int num_bins, dou
     // get # of like sign and # of unlike sign
     int num_likesign = hist_charge->GetBinContent(hist_charge->FindBin(1));
     int num_unlikesign = hist_charge->GetBinContent(hist_charge->FindBin(-1));
-    //if (debug) cout << "num like sign " << num_likesign << " num unlike sign " << num_unlikesign << endl;
+    // if (debug) cout << "num like sign " << num_likesign << " num unlike sign " << num_unlikesign << endl;
 
     // calculate the rc value for this pt & RL bin
     double rc = (double)(num_likesign - num_unlikesign) / (double)(num_likesign + num_unlikesign);
     //if (debug) cout << "and that makes rc " << rc << endl;
 
     return rc;
+}
+
+/* Get the r_c from TChain */
+double getRcErr(TChain *chain, std::string branch_name, int num_bins, double hist_xmin, double hist_xmax,
+                              int pt_min, int pt_max, double RL_min, double RL_max) 
+{
+    // draw regular charge histogram, where like sign = +1, and unlike sign = -1
+    TH1D *hist_charge = new TH1D("hist_charge", "hist_charge", num_bins, hist_xmin, hist_xmax);
+    chain->Draw("q1q2>>hist_charge", Form("jet_pt >= %d && jet_pt < %d && RL >= %f && RL < %f", pt_min, pt_max, RL_min, RL_max), "e");
+
+    // do i need to scale by the RL bin width here?? - I think this would be redundant.
+    // if both like sign bin and unlike sign get scaled by RL bin width, then the ratio still stays the same
+
+    // get # of like sign and # of unlike sign
+    double num_likesign = hist_charge->GetBinContent(hist_charge->FindBin(1));
+    double num_unlikesign = hist_charge->GetBinContent(hist_charge->FindBin(-1));
+
+    // calculate the rc error for this pt & RL bin
+    double num_totalpairs = num_likesign + num_unlikesign;
+    double rc_err = ( 2 * sqrt( num_totalpairs * num_likesign * num_unlikesign ) ) / (num_totalpairs * num_totalpairs);
+
+    cout << "RC ERR IN FUNC IS " << rc_err << endl;
+        
+    return rc_err;
 }
 
 /* get a typical 2D histogram from the TChain */
@@ -210,10 +235,10 @@ void Format2DHist(TH2D *hist2D, TH1D *jetpt_hist, std::string norm_string, std::
 }
 
 
-TGraph * MakeFormatGraph(vector<double> xvals, vector<double> yvals, int markercolor, double markeralpha,
+TGraphErrors * MakeFormatGraph(vector<double> xvals, vector<double> yvals, int markercolor, double markeralpha,
                   int markerstyle, std::string xtitle, std::string ytitle, std::string obs_name) {
 
-    TGraph * graph = new TGraph(xvals.size(), xvals.data(), yvals.data());
+    TGraphErrors * graph = new TGraphErrors(xvals.size(), xvals.data(), yvals.data());
     graph->SetTitle(Form("Charge Ratio;%s;%s", xtitle.c_str(), ytitle.c_str())); // Set the title and axis labels
 
     // Set graph styles
@@ -260,10 +285,10 @@ void draw_save_del_hists(TFile *fout, TCanvas *can, TObject* obj, std::string ob
         hist2D->Draw("COLZ");
     } else if (TH1* hist = dynamic_cast<TH1*>(obj)) {
         hist->Draw();
-    } else if (TGraph* graph = dynamic_cast<TGraph*>(obj)) {
+    } else if (TGraphErrors* graph = dynamic_cast<TGraphErrors*>(obj)) {
         graph->Draw("ALP");
     } else {
-        cout << "Error: Unsupported object type. Only TH1, TGraph, and TH2 are supported." << endl;
+        cout << "Error: Unsupported object type. Only TH1, TGraphErrors, and TH2 are supported." << endl;
     }
     // hist->Draw();
 
@@ -378,13 +403,23 @@ void plotandsave_combined_hists(TCanvas *can_all, vector<TH1D*> h_vec, TLegend *
 //                   SPECIFIC FUNCTIONS
 // ======================================================= //
 
-void plot_rc(vector<vector<double>>& RL_vals, vector<vector<double>>& rc_vals, vector<double>& ptcenter_bins) {
+void plot_rc(vector<vector<double>>& RL_vals, vector<vector<double>>& rc_vals, vector<double>& ptcenter_bins,
+             vector<vector<double>> rc_errors) {
             //  TLegend& leg_RLbins, TLegend& leg_ptbins) {
     
-    vector<TGraph *> rc_graphs_func_of_RL;
-    vector<TGraph *> rc_graphs_func_of_pT;
-    vector<vector<TGraph*>> rc_graphs_func_of_RL_ind;
-    vector<vector<TGraph*>> rc_graphs_func_of_pT_ind;
+    vector<TGraphErrors *> rc_graphs_func_of_RL;
+    vector<TGraphErrors *> rc_graphs_func_of_pT;
+    vector<vector<TGraphErrors*>> rc_graphs_func_of_RL_ind;
+    vector<vector<TGraphErrors*>> rc_graphs_func_of_pT_ind;
+
+    vector<double> RL_err;
+    vector<double> pt_err;
+    for (int i=0; i<ptcenter_bins.size(); i++) pt_err.push_back(0);
+    for (int j=0; j<RL_vals[0].size(); j++) RL_err.push_back(0);
+
+    cout <<" RL_err size " << RL_err.size() << endl;
+    cout <<" pt_err size " << pt_err.size() << endl;
+
     std::string outdir = "plots/data_firstattempt"; // + ptbin_name + "/";//"plots/test/";
     std::string fname_func_of_RL_out = outdir + "/corrhist_rc_func_of_RL.pdf"; // could add jetR and threshold info later??, maybe not needed tho 
     std::string fname_func_of_pT_out = outdir + "/corrhist_rc_func_of_pT.pdf";
@@ -404,16 +439,19 @@ void plot_rc(vector<vector<double>>& RL_vals, vector<vector<double>>& rc_vals, v
     for ( int i = 0; i < ptcenter_bins.size(); i++ ) { 
 
         // for graphs as a function of RL
-        TGraph *g = new TGraph(RL_vals[i].size(), RL_vals[i].data(), rc_vals[i].data());
+        TGraphErrors *g = new TGraphErrors(RL_vals[i].size(), RL_vals[i].data(), rc_vals[i].data(), RL_err.data(), rc_errors[i].data());
         g->SetMarkerStyle(markers[i]);
         g->SetMarkerSize(1.5);
         g->SetMarkerColorAlpha(kBlack, 1.0);
-        vector<TGraph*> ind_temp_vec;
+        g->SetLineColorAlpha(kBlack, 1.0);
+        vector<TGraphErrors*> ind_temp_vec;
 
         for (int j=0; j<RL_vals[i].size(); j++){
             int k=j+1;
-            TGraph *g_ind = new TGraph(1, &RL_vals[i][j], &rc_vals[i][j]);
+            TGraphErrors *g_ind = new TGraphErrors(1, &RL_vals[i][j], &rc_vals[i][j], &RL_err[j], &rc_errors[i][j]);
+            cout << "i: " << i << " j: " << j << " err: " << rc_errors[i][j] << endl;
             g_ind->SetMarkerColorAlpha(colors[k], 1.0);
+            g_ind->SetLineColorAlpha(colors[k], 1.0);
             g_ind->SetMarkerSize(1.5);
             g_ind->SetMarkerStyle(markers[i]);
             ind_temp_vec.push_back(g_ind);
@@ -460,27 +498,33 @@ void plot_rc(vector<vector<double>>& RL_vals, vector<vector<double>>& rc_vals, v
 
     // get graphs of r_c as a function of pT
     vector<vector<double>> rc_vals_func_of_pT;
+    vector<vector<double>> rc_err_vals_func_of_pT;
     // loop over RL bins
     for ( int j = 0; j < RL_vals[0].size(); j++ ) {
         vector<double> temp_vec;
-        vector<TGraph*> ind_temp_vec;
+        vector<TGraphErrors*> ind_temp_vec;
+        vector<double> err_temp_vec;
 
         // save values into appropriate vectors
         for ( int i = 0; i < ptcenter_bins.size(); i++ ) { 
             temp_vec.push_back(rc_vals[i][j]);
+            err_temp_vec.push_back(rc_errors[i][j]);
             
             int k=j+1;
-            TGraph *g_ind = new TGraph(1, &ptcenter_bins[i], &rc_vals[i][j]);
+            TGraphErrors *g_ind = new TGraphErrors(1, &ptcenter_bins[i], &rc_vals[i][j], &pt_err[i], &rc_errors[i][j]);
+            cout << "i: " << i << " j: " << j << " err: " << rc_errors[i][j] << endl;
             g_ind->SetMarkerColorAlpha(colors[k], 1.0);
+            g_ind->SetLineColorAlpha(colors[k], 1.0);
             g_ind->SetMarkerSize(1.5);
             g_ind->SetMarkerStyle(markers[i]);
             ind_temp_vec.push_back(g_ind);
         }
         rc_vals_func_of_pT.push_back(temp_vec);
-        rc_graphs_func_of_pT_ind.push_back(ind_temp_vec);  
+        rc_err_vals_func_of_pT.push_back(err_temp_vec);
+        rc_graphs_func_of_pT_ind.push_back(ind_temp_vec); 
 
         // for graphs as a function of RL
-        TGraph *g = new TGraph(ptcenter_bins.size(), ptcenter_bins.data(), rc_vals_func_of_pT[j].data());
+        TGraphErrors *g = new TGraphErrors(ptcenter_bins.size(), ptcenter_bins.data(), rc_vals_func_of_pT[j].data(), pt_err.data(), rc_err_vals_func_of_pT[j].data());
         for (int aa = 0; aa < ptcenter_bins.size(); aa++) {
             // cout << "studying pt=" << ptcenter_bins[aa] << " // " << rc_vals_func_of_pT[j][aa] << endl;
         }
@@ -525,7 +569,7 @@ void plot_rc(vector<vector<double>>& RL_vals, vector<vector<double>>& rc_vals, v
 void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree, 
              TFile *f_out, std::string weightstr, std::string jetRname, std::string thrname,
              std::string norm_string, int pt_min, int pt_max, const double RL_bins[], int n_RLbins, 
-             vector<vector<double>>& RL_vals, vector<vector<double>>& rc_vals,
+             vector<vector<double>>& RL_vals, vector<vector<double>>& rc_vals, vector<vector<double>>& rc_errors,
              bool include_RL0, bool include_RL1, bool debug, bool debug2) {
     
     std::string ptname = to_string(pt_min) + "-" + to_string(pt_max);
@@ -549,6 +593,7 @@ void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
     vector<TH1D*> weights_vec;
     // vector<TH1D*> q1q2_vec;
     vector<double> rc_vec;
+    vector<double> rc_err_vec;
     vector<double> RLcenters_vec;
 
     TLegend *leg = new TLegend(0.6, 0.6, 0.85, 0.87);
@@ -580,9 +625,12 @@ void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
         TH1D * weights_hist = getObs1DHistFromTChain(PAIRINFO_tree, "weights", 50, 0, 0.3, pt_min, pt_max, RL_min, RL_max);
         
         double rc_value = 0.0;
+        double rc_err = 0.0;
         if (norm_string == "unnormalized") {
             TH1D * q1q2_hist = getObs1DHistFromTChain(PAIRINFO_tree, "q1q2", 50, 0, 0.3, pt_min, pt_max, RL_min, RL_max);
             rc_value = getRcFromTChain(PAIRINFO_tree, "rc", 6, -3, 3, pt_min, pt_max, RL_min, RL_max);
+            rc_err = getRcErr(PAIRINFO_tree, "rc", 6, -3, 3, pt_min, pt_max, RL_min, RL_max);
+            cout << "RC ERR IS " << rc_err << "(pt_min=" << pt_min << ", j=" << j << ")" <<endl;
         }
 
         int nbins_2D = 50;
@@ -598,6 +646,7 @@ void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
         
         if (norm_string == "unnormalized") {
             rc_vec.push_back(rc_value);
+            rc_err_vec.push_back(rc_err);
             RLcenters_vec.push_back( (RL_min+RL_max)/2 );
         }
 
@@ -648,13 +697,14 @@ void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
     if (norm_string == "unnormalized") {
         TCanvas *can_rc = new TCanvas();
         ProcessCanvas(can_rc);
-        TGraph *gr_rc = MakeFormatGraph(RLcenters_vec, rc_vec, kBlack, 1.0, markers[0], "R_{L}", "r_{c}", "rc");
+        TGraphErrors *gr_rc = MakeFormatGraph(RLcenters_vec, rc_vec, kBlack, 1.0, markers[0], "R_{L}", "r_{c}", "rc");
         draw_save_del_hists(f_out, can_rc, gr_rc, "rc", ptname, norm_string, hist_all_addname, false, false);
         
         
         // save vectors here
         RL_vals.push_back(RLcenters_vec);
         rc_vals.push_back(rc_vec);
+        rc_errors.push_back(rc_err_vec);
     }
 }
 
@@ -693,6 +743,7 @@ void analyze(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
     vector<vector<double>> RL_vals;
     vector<vector<double>> rc_vals;
     vector<double> ptcenter_bins;
+    vector<vector<double>> rc_errors;
 
 
     // needs to be separated by pt and RL bin
@@ -702,7 +753,7 @@ void analyze(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
         ptcenter_bins.push_back( (pt_min+pt_max)/2 );
            
         if (debug) cout << " in pt bin" << i << " with " << pt_min << " - " << pt_max << endl;
-        analyze_ptbin(JETINFO_tree, PAIRINFO_tree, f_out, weightstr, jetRname, thrname, norm_string, pt_min, pt_max, RL_bins[i], n_RLbins, RL_vals, rc_vals, include_RL0, include_RL1, debug, debug2);
+        analyze_ptbin(JETINFO_tree, PAIRINFO_tree, f_out, weightstr, jetRname, thrname, norm_string, pt_min, pt_max, RL_bins[i], n_RLbins, RL_vals, rc_vals, rc_errors, include_RL0, include_RL1, debug, debug2);
         
     }
 
@@ -716,7 +767,7 @@ void analyze(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
         cout << "size of rc_vals[0] " << rc_vals[0].size() << endl;
         cout << "size of ptcenter_bins " << ptcenter_bins.size() << endl;
 
-        plot_rc(RL_vals, rc_vals, ptcenter_bins); //, leg_RLbins, leg_ptbins);
+        plot_rc(RL_vals, rc_vals, ptcenter_bins, rc_errors); //, leg_RLbins, leg_ptbins);
     }
     
 
@@ -831,11 +882,11 @@ void analyze_data_tuples() {
     norm_string = "unnormalized";
     analyze(JETINFO_tree, PAIRINFO_tree, f_out, weightstr, jetRname, thrname, norm_string, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1, debug, debug2);
     
-    norm_string = "self_normalized";
-    analyze(JETINFO_tree, PAIRINFO_tree, f_out, weightstr, jetRname, thrname, norm_string, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1, debug, debug2);
+    // norm_string = "self_normalized";
+    // analyze(JETINFO_tree, PAIRINFO_tree, f_out, weightstr, jetRname, thrname, norm_string, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1, debug, debug2);
     
-    norm_string = "norm_by_jets";
-    analyze(JETINFO_tree, PAIRINFO_tree, f_out, weightstr, jetRname, thrname, norm_string, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1, debug, debug2);
+    // norm_string = "norm_by_jets";
+    // analyze(JETINFO_tree, PAIRINFO_tree, f_out, weightstr, jetRname, thrname, norm_string, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1, debug, debug2);
     
 
 
