@@ -519,6 +519,7 @@ class ProcessMCBase(process_base.ProcessBase):
     print()
         
     self.event_number = 0
+    self.jet_number = -1 # so that jet counting starts at 0
     
     for jetR in self.jetR_list:
       if not self.dry_run:
@@ -1034,7 +1035,10 @@ class ProcessMCBase(process_base.ProcessBase):
     ''' 
   
     # Fill truth-level jet histograms (before matching)
-    for jet_truth in jets_truth_selected:
+    for ijet,jet_truth in enumerate(jets_truth_selected):
+
+      self.jet_number += 1 #starts counting jets at 0
+      self.ijet = ijet
 
       leading_parton = fj.sorted_by_pt(jet_truth.constituents())[0]
       leading_parton_pt = leading_parton.pt()
@@ -1202,8 +1206,6 @@ class ProcessMCBase(process_base.ProcessBase):
       # Call user function to fill histograms
       # print("filling here!")
       self.fill_observable_histograms(hname, jet, jet_groomed_lund, jetR, obs_setting,
-                                      grooming_setting, obs_label, jet_pt)
-      self.fill_observable_tuples(hname, jet, jet_groomed_lund, jetR, obs_setting,
                                       grooming_setting, obs_label, jet_pt)
   
   def find_parts_around_jet(self, parts, jet, cone_R):

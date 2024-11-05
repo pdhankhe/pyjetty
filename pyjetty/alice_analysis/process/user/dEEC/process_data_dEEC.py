@@ -43,7 +43,7 @@ def logbins(xmin, xmax, nbins):
   return arr
 
 ################################################################
-class ProcessData_ENC(process_data_base.ProcessDataBase):
+class ProcessData_dEEC(process_data_base.ProcessDataBase):
 
   #---------------------------------------------------------------
   # Constructor
@@ -54,7 +54,7 @@ class ProcessData_ENC(process_data_base.ProcessDataBase):
     # print(sys.modules)
 
     # Initialize base class
-    super(ProcessData_ENC, self).__init__(input_file, config_file, output_dir, debug_level, **kwargs)
+    super(ProcessData_dEEC, self).__init__(input_file, config_file, output_dir, debug_level, **kwargs)
     
     self.observable = self.observable_list[0]
 
@@ -725,5 +725,5 @@ if __name__ == '__main__':
     print('File \"{0}\" does not exist! Exiting!'.format(args.configFile))
     sys.exit(0)
 
-  analysis = ProcessData_ENC(input_file=args.inputFile, config_file=args.configFile, output_dir=args.outputDir)
+  analysis = ProcessData_dEEC(input_file=args.inputFile, config_file=args.configFile, output_dir=args.outputDir)
   analysis.process_data()

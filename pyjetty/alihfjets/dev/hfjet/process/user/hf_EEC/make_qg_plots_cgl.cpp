@@ -220,6 +220,8 @@ TH1D * getObsHist(TFile *filename, std::string h_name, std::string h_jet_name,
     TH1D *h_proj = hsparse->Projection(obsaxis);
     TH1D *h_proj_jetlevel = hsparse_jetlevel->Projection(0); // jet pt axis
 
+    cout << "HNAME " << h_name << " num jets: " << h_proj_jetlevel->GetEntries() << endl;
+
     std::string hname = h_proj->GetName();
     hname += "_pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max);
     h_proj->SetNameTitle(hname.c_str(), hname.c_str());
@@ -605,7 +607,7 @@ void make_qg_plots_cgl() {
     // 30: plot l vs g jets in 20-40
     // 31: plot inclusive with sum of .8g + .2l, and normalized by Njet(g+l)
     // 32: plot inclusive with sum of .5g + .5l
-    int plot_case = 30;
+    int plot_case = 1;
 
     // std::vector<TFile*> files;
     std::string add_name;
@@ -804,6 +806,7 @@ void make_qg_plots_cgl() {
             TH1D *h_charmdecaysOFF_i = getObsHist(f_charmdecaysOFF, hi_name, hi_jet_name, pt_min, pt_max, d0_pt_cuts[i], "h_charmdecaysOFF_i" + pt_name, false, 4);
             TH1D *h_c_enhanced_charmdecaysOFF_c = getObsHist(f_c_enhanced_charmdecaysOFF, hc_name, hc_jet_name, pt_min, pt_max, d0_pt_cuts[i], "h_c_enhanced_charmdecaysOFF_c" + pt_name, false, 3);
             
+            cout << "NEXT 3... CHARM DECAYS ON!" << endl;
             TH1D *h_charmdecaysON_g = getObsHist(f_charmdecaysON, hg_name, hg_jet_name, pt_min, pt_max, d0_pt_cuts[i], "h_charmdecaysON_g" + pt_name, false, 4);
             TH1D *h_charmdecaysON_l = getObsHist(f_charmdecaysON, hl_name, hl_jet_name, pt_min, pt_max, d0_pt_cuts[i], "h_charmdecaysON_l" + pt_name, false, 4);
             TH1D *h_charmdecaysON_i = getObsHist(f_charmdecaysON, hi_name, hi_jet_name, pt_min, pt_max, d0_pt_cuts[i], "h_charmdecaysON_i" + pt_name, false, 4);
@@ -835,6 +838,7 @@ void make_qg_plots_cgl() {
             TH1D *h_c_enhanced_charmdecaysOFF_chargedjets_and_neutralhadrons_c = getObsHist(f_c_enhanced_charmdecaysOFF_chargedjets_and_neutralhadrons, hc_name, hc_jet_name, pt_min, pt_max, d0_pt_cuts[i], "h_c_enhanced_charmdecaysOFF_chargedjets_and_neutralhadrons_c" + pt_name, false, 4);
             TH1D *h_b_enhanced_beautydecaysOFF_chargedjets_and_neutralhadrons_b = getObsHist(f_b_enhanced_beautydecaysOFF_chargedjets_and_neutralhadrons, hb_name, hb_jet_name, pt_min, pt_max, d0_pt_cuts[i], "h_b_enhanced_beautydecaysOFF_chargedjets_and_neutralhadrons_b" + pt_name, false, 4);
 
+            cout << "NEXT 3... CHARM DECAYS ON LEAD PT 5 GEV!" << endl;
             TH1D *h_charmdecaysON_leadpt5_g = getObsHist(f_charmdecaysON_leadpt5, hg_name, hg_jet_name, pt_min, pt_max, 5, "h_charmdecaysON_leadpt5_g" + pt_name, false, 4);
             TH1D *h_charmdecaysON_leadpt5_l = getObsHist(f_charmdecaysON_leadpt5, hl_name, hl_jet_name, pt_min, pt_max, 5, "h_charmdecaysON_leadpt5_l" + pt_name, false, 4);
             TH1D *h_charmdecaysON_leadpt5_i = getObsHist(f_charmdecaysON_leadpt5, hi_name, hi_jet_name, pt_min, pt_max, 5, "h_charmdecaysON_leadpt5_i" + pt_name, false, 4);
