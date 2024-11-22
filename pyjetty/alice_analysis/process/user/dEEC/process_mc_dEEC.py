@@ -581,6 +581,9 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
     return pid1, pid2
   
   def get_leadsublead_q1q2(self, constituents):
+    if (len(constituents) == 0):
+      return -90 # case where there are no constituents
+
     lead_q = constituents[0].python_info().charge
     if (len(constituents) >= 2):
       sublead_q = constituents[1].python_info().charge
@@ -725,10 +728,14 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
 
       if 'jet_pt' in observable:
 
+        # print("constituents:", len(constituents), "c_select:", len(c_select), "jetpt:", jet_pt)
         leadq_subleadq = self.get_leadsublead_q1q2(c_select)
-        leading_q = constituents[0].python_info().charge
-        if (len(constituents) >= 2):
-          subleading_q = constituents[1].python_info().charge
+        if (len(c_select) == 0):
+          leading_q = -99
+        else:
+          leading_q = c_select[0].python_info().charge
+        if (len(c_select) >= 2):
+          subleading_q = c_select[1].python_info().charge
         else:
           subleading_q = -99
 
@@ -811,7 +818,7 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
           baryon_tn_name = "tn" + baryon_tn_name[1:]
           meson_tn_name = hname.format("meson",obs_label)
           meson_tn_name = "tn" + meson_tn_name[1:]
-          for c in constituents:
+          for c in c_select: #constituents:
             pid = c.python_info().particle_pid
             if abs(pid) == 2212: #proton
               getattr(self, baryon_tn_name).Fill(jet_pt, c.pt())

@@ -346,6 +346,9 @@ class ProcessData_dEEC(process_data_base.ProcessDataBase):
     return pl1, pl2
   
   def get_leadsublead_q1q2(self, constituents):
+    if (len(constituents) == 0):
+      return -90 # case where there are no constituents
+    
     lead_q = constituents[0].python_info().charge
     if (len(constituents) >= 2):
       sublead_q = constituents[1].python_info().charge
@@ -454,9 +457,12 @@ class ProcessData_dEEC(process_data_base.ProcessDataBase):
         
         # if observable == "corr_rc": # doesn't need this
         leadq_subleadq = self.get_leadsublead_q1q2(c_select)
-        leading_q = constituents[0].python_info().charge
-        if (len(constituents) >= 2):
-          subleading_q = constituents[1].python_info().charge
+        if (len(c_select) == 0):
+          leading_q = -99
+        else:
+          leading_q = c_select[0].python_info().charge
+        if (len(c_select) >= 2):
+          subleading_q = c_select[1].python_info().charge
         else:
           subleading_q = -99
         # print("indices 15, 16, 17:",self.fsparsepartonJetvalue_tuple[15], self.fsparsepartonJetvalue_tuple[16], self.fsparsepartonJetvalue_tuple[17] )   

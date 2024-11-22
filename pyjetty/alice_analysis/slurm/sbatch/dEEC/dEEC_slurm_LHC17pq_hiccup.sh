@@ -37,3 +37,10 @@ do
   FILE=$(sed -n "$JOB_N"p $FILE_PATHS)
   srun dEEC_LHC17pq_hiccup.sh $FILE $SLURM_ARRAY_JOB_ID $SLURM_ARRAY_TASK_ID
 done
+
+# Move stdout to appropriate folder
+OUTPUT_BASEPATH="/rstorage/alice"
+OUTPUT_PREFIX="AnalysisResults/blianggi/dEEC/$SLURM_ARRAY_JOB_ID"
+
+mkdir -p $OUTPUT_BASEPATH/$OUTPUT_PREFIX/slurm-output
+mv $OUTPUT_BASEPATH/AnalysisResults/blianggi/dEEC/slurm-${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}.out $OUTPUT_BASEPATH/$OUTPUT_PREFIX/slurm-output

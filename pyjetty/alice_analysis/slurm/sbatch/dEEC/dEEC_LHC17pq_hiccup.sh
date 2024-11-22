@@ -43,7 +43,3 @@ module list
 # Run python script via pipenv
 cd /software/users/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/
 python process/user/dEEC/process_data_dEEC.py -c config/dEEC/pp/process_pp.yaml -f $INPUT_FILE -o $OUTPUT_DIR
-
-# Move stdout to appropriate folder
-mkdir -p $OUTPUT_BASEPATH/$OUTPUT_PREFIX/slurm-output
-mv $OUTPUT_BASEPATH/AnalysisResults/blianggi/dEEC/slurm-${JOB_ID}_${TASK_ID}.out $OUTPUT_BASEPATH/$OUTPUT_PREFIX/slurm-output

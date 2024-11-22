@@ -71,57 +71,50 @@ void ProcessCanvas(TCanvas *Canvas, bool moveright=false) {
 }
 
 /* get a typical 1D histogram from the TChain */
-TH1D * getObs1DHistFromTChain(TChain *chain, std::string branch_name, int num_bins, double hist_xmin, double hist_xmax,
-                              int pt_min, int pt_max, double RL_min, double RL_max) {
+TH1D * getObs1DHist(TFile *file_in, std::string hist_name, int pt_min=-1, int pt_max=-1) {
     
-    TH1D * hist1D = new TH1D(Form("%s_hist", branch_name.c_str()), Form("%s_hist", branch_name.c_str()), num_bins, hist_xmin, hist_xmax);
-    if ( branch_name == "jet_pt" || branch_name == "total_num_const" || branch_name == "num_const_aftercut") {
-        chain->Draw(Form("%s>>%s_hist", branch_name.c_str(), branch_name.c_str()), Form("jet_pt >= %d && jet_pt < %d", pt_min, pt_max), "e");
-    } else {
-        chain->Draw(Form("%s>>%s_hist", branch_name.c_str(), branch_name.c_str()), Form("jet_pt >= %d && jet_pt < %d && RL >= %f && RL < %f", pt_min, pt_max, RL_min, RL_max), "e");
-    }
-//    chain->Draw(Form("%s>>%s_hist", branch_name.c_str(), branch_name.c_str()), Form("jet_pt >= 20 && jet_pt < 40 && RL > 0.01 && RL < 0.4"), "e");
+    file_in->cd();
+    
+    TH1D* hist1D = (TH1D*)gDirectory->Get(hist_name.c_str());
 
+    if (pt_min != -1) {
+        hist1D->GetXaxis()->SetRangeUser(pt_min, pt_max);
+    }
+    
     return hist1D;
 }
 
 /* Get the r_c from TChain */
-double getRcFromTChain(TChain *chain, std::string branch_name, int num_bins, double hist_xmin, double hist_xmax,
-                              int pt_min, int pt_max, double RL_min, double RL_max) 
+double getRc(TH1D *h_q1q2) 
 {
-    // draw regular charge histogram, where like sign = +1, and unlike sign = -1
-    TH1D *hist_charge = new TH1D("hist_charge", "hist_charge", num_bins, hist_xmin, hist_xmax);
-    chain->Draw("q1q2>>hist_charge", Form("jet_pt >= %d && jet_pt < %d && RL >= %f && RL < %f", pt_min, pt_max, RL_min, RL_max), "e");
-
     // do i need to scale by the RL bin width here?? - I think this would be redundant.
     // if both like sign bin and unlike sign get scaled by RL bin width, then the ratio still stays the same
 
     // get # of like sign and # of unlike sign
-    int num_likesign = hist_charge->GetBinContent(hist_charge->FindBin(1));
-    int num_unlikesign = hist_charge->GetBinContent(hist_charge->FindBin(-1));
-    // if (debug) cout << "num like sign " << num_likesign << " num unlike sign " << num_unlikesign << endl;
+    double num_likesign = h_q1q2->GetBinContent(h_q1q2->FindBin(1));
+    double num_unlikesign = h_q1q2->GetBinContent(h_q1q2->FindBin(-1));
+    // if (debug) 
+    cout << "num like sign " << num_likesign << " num unlike sign " << num_unlikesign << endl;
 
     // calculate the rc value for this pt & RL bin
     double rc = (double)(num_likesign - num_unlikesign) / (double)(num_likesign + num_unlikesign);
-    //if (debug) cout << "and that makes rc " << rc << endl;
+    //if (debug) 
+    cout << "and that makes rc " << rc << endl;
+
+    // if (num_likesign == num_unlikesign) rc = 0;
 
     return rc;
 }
 
 /* Get the r_c from TChain */
-double getRcErr(TChain *chain, std::string branch_name, int num_bins, double hist_xmin, double hist_xmax,
-                              int pt_min, int pt_max, double RL_min, double RL_max) 
+double getRcErr(TH1D *h_q1q2) 
 {
-    // draw regular charge histogram, where like sign = +1, and unlike sign = -1
-    TH1D *hist_charge = new TH1D("hist_charge", "hist_charge", num_bins, hist_xmin, hist_xmax);
-    chain->Draw("q1q2>>hist_charge", Form("jet_pt >= %d && jet_pt < %d && RL >= %f && RL < %f", pt_min, pt_max, RL_min, RL_max), "e");
-
     // do i need to scale by the RL bin width here?? - I think this would be redundant.
     // if both like sign bin and unlike sign get scaled by RL bin width, then the ratio still stays the same
 
     // get # of like sign and # of unlike sign
-    double num_likesign = hist_charge->GetBinContent(hist_charge->FindBin(1));
-    double num_unlikesign = hist_charge->GetBinContent(hist_charge->FindBin(-1));
+    double num_likesign = h_q1q2->GetBinContent(h_q1q2->FindBin(1));
+    double num_unlikesign = h_q1q2->GetBinContent(h_q1q2->FindBin(-1));
 
     // calculate the rc error for this pt & RL bin
     double num_totalpairs = num_likesign + num_unlikesign;
@@ -133,13 +126,10 @@ double getRcErr(TChain *chain, std::string branch_name, int num_bins, double his
 }
 
 /* get a typical 2D histogram from the TChain */
-TH2D * getObs2DHistFromTChain(TChain *chain, std::string branch_name_x, std::string branch_name_y,
-                              int num_bins_x, double hist_xmin, double hist_xmax,
-                              int num_bins_y, double hist_ymin, double hist_ymax,
-                              int pt_min, int pt_max, double RL_min, double RL_max) {
+TH2D * getObs2DHist(std::string branch_name_x, std::string branch_name_y, std::string hist_addname) {
     
-    TH2D * hist2D = new TH2D(Form("%s_vs_%s_hist", branch_name_y.c_str(), branch_name_x.c_str()), Form("%s_vs_%s_hist", branch_name_y.c_str(), branch_name_x.c_str()), num_bins_x, hist_xmin, hist_xmax, num_bins_y, hist_ymin, hist_ymax);
-    chain->Draw(Form("%s:%s>>%s_vs_%s_hist", branch_name_y.c_str(), branch_name_x.c_str(), branch_name_y.c_str(), branch_name_x.c_str()), Form("jet_pt >= %d && jet_pt < %d && RL >= %f && RL < %f", pt_min, pt_max, RL_min, RL_max)); //, "colz");
+    std::string hist_name = "h_" + branch_name_x + "_vs_" + branch_name_y + hist_addname;
+    TH2D* hist2D = (TH2D*)gDirectory->Get(hist_name.c_str());
     
     return hist2D;
 }
@@ -148,8 +138,12 @@ TH2D * getObs2DHistFromTChain(TChain *chain, std::string branch_name_x, std::str
 /* Format and adjust histograms */
 void Format1DHist(TH1D *hist, TH1D *jetpt_hist, std::string norm_string, int markercolor, double markeralpha,
                   int markerstyle, std::string xtitle, std::string ytitle, TLegend& leg, TString leg_text, 
-                  std::string obs_name="") {
+                  bool drawline=false, double linealpha=1., std::string obs_name="") {
 
+    std::string new_name = std::string(hist->GetName()) + norm_string;
+    hist->SetNameTitle(new_name.c_str(), new_name.c_str());
+    // hist->SetName(Form("%s_%s", hist->GetName().c_str(), norm_string.c_str()));
+    
     // normalization
     if ( norm_string == "self_normalized" ) {
         double selfnorm_value = hist->Integral();
@@ -165,6 +159,21 @@ void Format1DHist(TH1D *hist, TH1D *jetpt_hist, std::string norm_string, int mar
     hist->SetMarkerColorAlpha(markercolor, markeralpha);
     hist->SetMarkerStyle(markerstyle);
     hist->SetMarkerSize(1.5);
+    if (drawline) {
+
+        for (int k=0; k < hist->GetNbinsX(); k++){
+            hist->SetBinError(k+1, 0);
+        }
+
+        hist->SetMarkerStyle(20);
+        hist->SetMarkerColorAlpha(markercolor, 0);
+
+        hist->SetFillStyle(0);
+        hist->SetLineColorAlpha(markercolor, linealpha);
+        hist->SetFillColor(markercolor);
+        hist->SetLineStyle(1);
+        hist->SetLineWidth(3);
+    }
 
     // axes
     hist->GetXaxis()->SetLabelFont(42);
@@ -196,6 +205,9 @@ void Format2DHist(TH2D *hist2D, TH1D *jetpt_hist, std::string norm_string, std::
 
     double ptvsew_normbounds[3][2] = { { 0, 500 }, { 1e-2, 5e2 }, { 1e-4, 2e2 }}; //TODO: make this less pt specific?
     // also TODO: potentially set all lower boundaries to 0 for data??
+
+    std::string new_name = std::string(hist2D->GetName()) + norm_string;
+    hist2D->SetNameTitle(new_name.c_str(), new_name.c_str());
 
     // normalization
     int norm_index = 0;
@@ -301,7 +313,7 @@ void draw_save_del_hists(TFile *fout, TCanvas *can, TObject* obj, std::string ob
 
     
 
-    std::string outdir = "plots/data_firstattempt"; // + ptbin_name + "/";//"plots/test/";
+    std::string outdir = "plots/pythia_secondattempt"; // + ptbin_name + "/";//"plots/test/";
     std::string add_dir = "";
     if (obs_name != "jet_pt" && obs_name != "total_num_const" && obs_name != "num_const_aftercut") {
         if (obs_name == "rc") add_dir = "/" + ptname + "/" + norm_string + "/" + obs_name;
@@ -389,7 +401,7 @@ void plotandsave_combined_hists(TCanvas *can_all, vector<TH1D*> h_vec, TLegend *
     l->Draw("same");
 
     //save as PDF
-    std::string outdir = "plots/data_firstattempt/"; // + ptbin_name + "/";//"plots/test/";
+    std::string outdir = "plots/pythia_secondattempt/"; // + ptbin_name + "/";//"plots/test/";
     std::string add_dir = ptname + "/" + norm_string + "/" + obs_name;
     std::string fname_out = outdir + add_dir + "/corrhist_" + obs_name + "_ALL" + hist_addname + ".pdf";
     can_all->SaveAs(fname_out.c_str());
@@ -420,7 +432,7 @@ void plot_rc(vector<vector<double>>& RL_vals, vector<vector<double>>& rc_vals, v
     cout <<" RL_err size " << RL_err.size() << endl;
     cout <<" pt_err size " << pt_err.size() << endl;
 
-    std::string outdir = "plots/data_firstattempt"; // + ptbin_name + "/";//"plots/test/";
+    std::string outdir = "plots/pythia_secondattempt"; // + ptbin_name + "/";//"plots/test/";
     std::string fname_func_of_RL_out = outdir + "/corrhist_rc_func_of_RL.pdf"; // could add jetR and threshold info later??, maybe not needed tho 
     std::string fname_func_of_pT_out = outdir + "/corrhist_rc_func_of_pT.pdf";
 
@@ -566,8 +578,7 @@ void plot_rc(vector<vector<double>>& RL_vals, vector<vector<double>>& rc_vals, v
 //                     SOME FUNCTIONS
 // ======================================================= //
 
-void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree, 
-             TFile *f_out, std::string weightstr, std::string jetRname, std::string thrname,
+void analyze_ptbin(TFile *file_in, TFile *f_out, std::string weightstr, std::string jetRname, std::string thrname,
              std::string norm_string, int pt_min, int pt_max, const double RL_bins[], int n_RLbins, 
              vector<vector<double>>& RL_vals, vector<vector<double>>& rc_vals, vector<vector<double>>& rc_errors,
              bool include_RL0, bool include_RL1, bool debug, bool debug2) {
@@ -615,27 +626,32 @@ void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
         std::string RLname_leg = Form("RL = %.3f-%.3f", RL_min, RL_max);
         std::string hist_addname = weightstr + jetRname + thrname + "_pt" + ptname + RLname;
         if (debug) cout << " in RL bin" << j << " with " << RL_min << " - " << RL_max << endl;
+
+        std::string h_addname = Form("_R0.4_t1.0_pt%s%sScaled", ptname.c_str(), RLname.c_str());
+        std::string h_addname_notscaled = Form("_R0.4_t1.0_pt%s%s", ptname.c_str(), RLname.c_str());
         
         // get histograms
-        TH1D * jetpt_inptbin_hist = getObs1DHistFromTChain(JETINFO_tree, "jet_pt", 100, 0, 200, pt_min, pt_max, 0, 0);
-        TH1D * deltap_hist = getObs1DHistFromTChain(PAIRINFO_tree, "deltap", 50, 0, pt_max+5, pt_min, pt_max, RL_min, RL_max);
+        TH1D * jetpt_inptbin_hist = getObs1DHist(file_in, "jet_pt_histScaled", pt_min, pt_max); 
+        TH1D * deltap_hist = getObs1DHist(file_in, "h_deltap" + h_addname);
         cout << "checkpoint 1 " << deltap_hist->GetEntries() << endl;
-        TH1D * deltapt_hist = getObs1DHistFromTChain(PAIRINFO_tree, "deltapt", 50, 0, pt_max+5, pt_min, pt_max, RL_min, RL_max);
-        TH1D * deltapl_hist = getObs1DHistFromTChain(PAIRINFO_tree, "deltapl", 50, 0, pt_max/2, pt_min, pt_max, RL_min, RL_max);
-        TH1D * weights_hist = getObs1DHistFromTChain(PAIRINFO_tree, "weights", 50, 0, 0.3, pt_min, pt_max, RL_min, RL_max);
+        TH1D * deltapt_hist = getObs1DHist(file_in, "h_deltapt" + h_addname);
+        TH1D * deltapl_hist = getObs1DHist(file_in, "h_deltapl" + h_addname);
+        TH1D * weights_hist = getObs1DHist(file_in, "h_weights" + h_addname);
         
         double rc_value = 0.0;
         double rc_err = 0.0;
         if (norm_string == "unnormalized") {
-            TH1D * q1q2_hist = getObs1DHistFromTChain(PAIRINFO_tree, "q1q2", 50, 0, 0.3, pt_min, pt_max, RL_min, RL_max);
-            rc_value = getRcFromTChain(PAIRINFO_tree, "rc", 6, -3, 3, pt_min, pt_max, RL_min, RL_max);
-            rc_err = getRcErr(PAIRINFO_tree, "rc", 6, -3, 3, pt_min, pt_max, RL_min, RL_max);
+            TH1D * q1q2_hist = getObs1DHist(file_in, "h_q1q2" + h_addname_notscaled);
+            // TH1D * q1q2_hist_notscaled = getObs1DHist(file_in, "h_q1q2" + h_addname_notscaled);
+            rc_value = getRc(q1q2_hist);
+            rc_err = getRcErr(q1q2_hist);
+            cout << "RC VAL IS " << rc_value << "(pt_min=" << pt_min << ", j=" << j << ")" <<endl;
             cout << "RC ERR IS " << rc_err << "(pt_min=" << pt_min << ", j=" << j << ")" <<endl;
         }
 
-        int nbins_2D = 50;
-        if (pt_min == 40 || pt_min == 60) nbins_2D = 30;
-        TH2D * weights_vs_deltapt_hist2D = getObs2DHistFromTChain(PAIRINFO_tree, "deltapt", "weights", nbins_2D, 0, pt_max+5, nbins_2D, 0, 0.3, pt_min, pt_max, RL_min, RL_max);
+        // int nbins_2D = 50;
+        // if (pt_min == 40 || pt_min == 60) nbins_2D = 30;
+        TH2D * weights_vs_deltapt_hist2D = getObs2DHist("deltapt", "weights", h_addname);
 
 
         // push to vectors
@@ -651,10 +667,10 @@ void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
         }
 
         // format histograms in vector
-        Format1DHist(deltap_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#Deltap", ytitle_norm + "#frac{dN}{d#Deltap}", *leg, RLname_leg);
-        Format1DHist(deltapt_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#Deltap_{T}", ytitle_norm + "#frac{dN}{d#Deltap_{T}}", *leg_dummy, RLname_leg);
-        Format1DHist(deltapl_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#Deltap_{L}", ytitle_norm + "#frac{dN}{d#Deltap_{L}}", *leg_dummy, RLname_leg);
-        Format1DHist(weights_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#frac{p_{T,1}p_{T,2}}{p_{T,jet}^{2}}", ytitle_norm + "#frac{dN}{d[EW]}", *leg_dummy, RLname_leg, "weights");
+        Format1DHist(deltap_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#Deltap", ytitle_norm + "#frac{dN}{d#Deltap}", *leg, RLname_leg, true, 1.0);
+        Format1DHist(deltapt_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#Deltap_{T}", ytitle_norm + "#frac{dN}{d#Deltap_{T}}", *leg_dummy, RLname_leg, true, 1.0);
+        Format1DHist(deltapl_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#Deltap_{L}", ytitle_norm + "#frac{dN}{d#Deltap_{L}}", *leg_dummy, RLname_leg, true, 1.0);
+        Format1DHist(weights_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#frac{p_{T,1}p_{T,2}}{p_{T,jet}^{2}}", ytitle_norm + "#frac{dN}{d[EW]}", *leg_dummy, RLname_leg, true, 1.0, "weights");
         
         Format2DHist(weights_vs_deltapt_hist2D, jetpt_inptbin_hist, norm_string, ytitle_norm + "#Deltap_{T}", ytitle_norm + "p_{T,1}p_{T,2} / p_{T,jet}^{2}", true, RL_bin_width[j], "deltapt", "weights");
 
@@ -710,27 +726,29 @@ void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
 
 
 //TODO: do something about norm_string!!
-void analyze(TChain * JETINFO_tree, TChain * PAIRINFO_tree, 
-             TFile *f_out, std::string weightstr, std::string jetRname, std::string thrname,
+void analyze(std::string infile_name, TFile *f_out, std::string weightstr, std::string jetRname, std::string thrname,
              std::string norm_string, const int pt_bins[], int n_bins, const double RL_bins[][8], int n_RLbins,
              bool include_RL0, bool include_RL1, bool debug, bool debug2 ) {
 
-    
+    TFile *file_in = TFile::Open(infile_name.c_str(), "READ");
+    file_in->cd();
+    // f_out->cd();
+
     // now look at observables and make histograms
-    // don't separate by pt or RL bin
     if (norm_string == "unnormalized") {
-        TH1D * jetpt_hist = getObs1DHistFromTChain(JETINFO_tree, "jet_pt", 200, 0, 200, 0, 200, 0, 0);
-        jetpt_hist->GetXaxis()->SetTitle("p_{T,jet}");
+        TH1D * jetpt_hist = getObs1DHist(file_in, "jet_pt_histScaled");
+        cout << "jetpt hist " << jetpt_hist->GetEntries() << endl;
+        // jetpt_hist->GetXaxis()->SetTitle("p_{T,jet}");
         TCanvas *can_jetpt = new TCanvas();
         draw_save_del_hists(f_out, can_jetpt, jetpt_hist, "jet_pt", "", "", weightstr + jetRname + thrname, false, true);
     
-        TH1D * jet_const = getObs1DHistFromTChain(JETINFO_tree, "total_num_const", 20, 0, 20, 0, 200, 0, 0);
-        jet_const->GetXaxis()->SetTitle("Number Constituents (total)");
+        TH1D * jet_const = getObs1DHist(file_in, "total_num_const_histScaled");
+        // jet_const->GetXaxis()->SetTitle("Number Constituents (total)");
         TCanvas *can_numconst = new TCanvas();
         draw_save_del_hists(f_out, can_numconst, jet_const, "total_num_const", "", "", weightstr + jetRname + thrname, false, true);
     
-        TH1D * jet_const_aftercut = getObs1DHistFromTChain(JETINFO_tree, "num_const_aftercut", 20, 0, 20, 0, 200, 0, 0);
-        jet_const_aftercut->GetXaxis()->SetTitle("Number Constituents (after threshold cut)");
+        TH1D * jet_const_aftercut = getObs1DHist(file_in, "num_const_aftercut_histScaled");
+        // jet_const_aftercut->GetXaxis()->SetTitle("Number Constituents (after threshold cut)");
         TCanvas *can_numconst_aftercut = new TCanvas();
         draw_save_del_hists(f_out, can_numconst_aftercut, jet_const_aftercut, "num_const_aftercut", "", "", weightstr + jetRname + thrname, false, true);
     
@@ -753,7 +771,7 @@ void analyze(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
         ptcenter_bins.push_back( (pt_min+pt_max)/2 );
            
         if (debug) cout << " in pt bin" << i << " with " << pt_min << " - " << pt_max << endl;
-        analyze_ptbin(JETINFO_tree, PAIRINFO_tree, f_out, weightstr, jetRname, thrname, norm_string, pt_min, pt_max, RL_bins[i], n_RLbins, RL_vals, rc_vals, rc_errors, include_RL0, include_RL1, debug, debug2);
+        analyze_ptbin(file_in, f_out, weightstr, jetRname, thrname, norm_string, pt_min, pt_max, RL_bins[i], n_RLbins, RL_vals, rc_vals, rc_errors, include_RL0, include_RL1, debug, debug2);
         
     }
 
@@ -780,7 +798,7 @@ void analyze(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
 //                     MAIN FUNCTION
 // ======================================================= //
 
-void analyze_data_tuples() {
+void plot_pythia_histograms() {
     gStyle->SetOptStat(0);
     SetStyle();
     
@@ -789,17 +807,22 @@ void analyze_data_tuples() {
     bool debug2 = false;
     
     // ntuple/histogram names
-    std::string JETINFO_name = "tn_JETINFO_R0.4_1.0";
-    std::string PAIRINFO_name = "tn_pairlevel_R0.4_1.0";
-    std::string jet1D_name = "h_1Djet_pt_JetPt_R0.4_1.0"; // this one is a histogram
-        
+    // std::string JETINFO_truth_name = "tn_JETINFOjet_pt_Truth_R0.4_1.0";
+    // std::string PAIRINFO_truth_name = "tn_pairlevel_Truth_R0.4_1.0";
+    std::string jet1D_truth_name = "h_1Djet_pt_JetPt_Truth_R0.4_1.0"; // this one is a histogram
+
+    
+
+
+
     // filenames
-    std::string filename = Form("~/Documents/research/othercorrelations/data_ntuples/AnalysisResults_0001.root");
-    std::string base_filepath_perly = Form("/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/31843529");
-    std::string base_filepath_hic = Form("/rstorage/alice/AnalysisResults/blianggi/dEEC/442528");
+    // std::string filename = Form("~/Documents/research/othercorrelations/data_ntuples/AnalysisResults_0001.root"); //local; this one is data though
+    // std::string base_filepath_perly = Form("/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/31843529/");
+    std::string base_filepath_hic = Form("/software/users/blianggi/");
     
     // Output file for binned results
-    std::string root_outfile = "datahists/DataHists.root"; //plots/ntuples/DataHists.root"; //FinalDataHists.root
+    std::string root_infile = base_filepath_hic + "mypyjetty/pyjetty/pyjetty/alice_analysis/analysis/user/dEEC/histograms_from_tuples/RawHistsAfterScaling.root"; //plots/ntuples/DataHists.root"; //FinalDataHists.root
+    std::string root_outfile = base_filepath_hic + "mypyjetty/pyjetty/pyjetty/alice_analysis/analysis/user/dEEC/histograms_from_tuples/FinalRawHistsAfterScaling.root"; //plots/ntuples/DataHists.root"; //FinalDataHists.root
     TFile* f_out = new TFile(root_outfile.c_str(), "RECREATE");
     std::string add_name = ""; //"_othercorrel";
 
@@ -824,75 +847,29 @@ void analyze_data_tuples() {
     bool include_RL0 = false;
     bool include_RL1 = false;
     
-    // initializing objects
-    TChain *JETINFO_tree = new TChain("JETINFO_tree");
-    TChain *PAIRINFO_tree = new TChain("PAIRINFO_tree");
 
-    // ====================================================================================
-    /*------------------------------------------------------------
-    //----------------------- NTUPLE INFO ------------------------
-    JETINFO: jet_pt; total_num_const; num_const_aftercut; total_num_baryons; num_baryons_aftercut; total_num_mesons; num_mesons_aftercut
-    PAIRINFO: jet_pt; RL; weights; deltap; p1; p2; deltapt; pt1; pt2; deltapl; pl1; pl2; q1q2; q1; q2; baryonmeson; pid1; pid2
-    baryon: jet_pt; baryon_pt
-    meson: jet_pt; meson_pt
-    //----------------------------------------------------------*/
-    
-    
-    // make TChains
-    std::ifstream filelist("/software/users/blianggi/mypyjetty/dEEC/filelist_datatuples_434384_shortname.txt");
-    if (!filelist.is_open()) {
-        std::cerr << "Error: Could not open /software/users/blianggi/mypyjetty/dEEC/filelist_datatuples_434384_shortname.txt" << std::endl;
-        return;
-    }
-
-    std::string ntuple_filename;
     int filecounter = 0;
-    int filecounter_cutoff = -1; //total: 7601
+    int filecounter_cutoff = 500; //total: 5000
     // Loop through each line in filelist
-    while (std::getline(filelist, ntuple_filename)) {
 
-        if (filecounter == filecounter_cutoff) break;
-
-        std::string JETINFO_fulltreename = Form("%s/%s/%s", base_filepath_hic.c_str(), ntuple_filename.c_str(), JETINFO_name.c_str());
-        JETINFO_tree->Add(JETINFO_fulltreename.c_str());
-        
-        std::string PAIRINFO_fulltreename = Form("%s/%s/%s", base_filepath_hic.c_str(), ntuple_filename.c_str(), PAIRINFO_name.c_str()); //TODO: this needs to be fixed on perly
-        PAIRINFO_tree->Add(PAIRINFO_fulltreename.c_str());
-
-        if (debug) {
-            if (filecounter%100 == 0) {
-                cout << "num JETINFO tree entries " << JETINFO_tree->GetEntries() << endl;
-                cout << "num PAIRINFO tree entries " << PAIRINFO_tree->GetEntries() << endl;
-            }
-        }
-        
-
-        filecounter++;
-    }
-
-    // Close the filelist.txt file
-    filelist.close();
             
     // ====================================================================================
 
-    // debug
-    if (debug2) PAIRINFO_tree->Print();
-    
+
     // analyze for plots
     norm_string = "unnormalized";
-    analyze(JETINFO_tree, PAIRINFO_tree, f_out, weightstr, jetRname, thrname, norm_string, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1, debug, debug2);
+    analyze(root_infile, f_out, weightstr, jetRname, thrname, norm_string, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1, debug, debug2);
     
     norm_string = "self_normalized";
-    analyze(JETINFO_tree, PAIRINFO_tree, f_out, weightstr, jetRname, thrname, norm_string, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1, debug, debug2);
+    analyze(root_infile, f_out, weightstr, jetRname, thrname, norm_string, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1, debug, debug2);
     
     norm_string = "norm_by_jets";
-    analyze(JETINFO_tree, PAIRINFO_tree, f_out, weightstr, jetRname, thrname, norm_string, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1, debug, debug2);
+    analyze(root_infile, f_out, weightstr, jetRname, thrname, norm_string, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1, debug, debug2);
     
 
 
     // delete objects after saving for new pt-hat bin
-    delete JETINFO_tree;
-    delete PAIRINFO_tree;
+
 
     f_out->Close();
     
@@ -900,3 +877,115 @@ void analyze_data_tuples() {
 }
 
 
+
+
+// PROCESS
+/*
+- open the file
+- loop through pt bins and RL bins
+- get the observable hists for each pt/RL bin
+    - these should already be scaled by the RL bin width, and now by the pt-hat cross section
+- now they need to go through ALL the normalizations (and rennamed appropriately)
+- also idk if the colors and formatting are good but at this point that should be done
+- then the individuals get saved (both pdf and root file)
+- things should be saved to vectors at some point here too
+- and outside of the RL bins loop, the ones together get saved
+*/
+
+// examples of scaled hists: 
+/*
+KEY: TH1F     hNeventsScaled;1        hNevents
+  KEY: TH1D     jet_pt_histScaled;1     jet_pt_hist
+  KEY: TH1D     total_num_const_histScaled;1    total_num_const_hist
+  KEY: TH1D     num_const_aftercut_histScaled;1 num_const_aftercut_hist
+  KEY: TH1D     h_deltap_R0.4_t1.0_pt20-40_RL0.010-0.030Scaled;1        h_deltap_R0.4_t1.0_pt20-40_RL0.010-0.030
+  KEY: TH1D     h_deltapt_R0.4_t1.0_pt20-40_RL0.010-0.030Scaled;1       h_deltapt_R0.4_t1.0_pt20-40_RL0.010-0.030
+  KEY: TH1D     h_deltapl_R0.4_t1.0_pt20-40_RL0.010-0.030Scaled;1       h_deltapl_R0.4_t1.0_pt20-40_RL0.010-0.030
+  KEY: TH1D     h_weights_R0.4_t1.0_pt20-40_RL0.010-0.030Scaled;1       h_weights_R0.4_t1.0_pt20-40_RL0.010-0.030
+  KEY: TH2D     h_deltapt_vs_weights_R0.4_t1.0_pt20-40_RL0.010-0.030Scaled;1    h_deltapt_vs_weights_R0.4_t1.0_pt20-40_RL0.010-0.030
+  KEY: TH1D     h_q1q2_R0.4_t1.0_pt20-40_RL0.010-0.030Scaled;1  h_q1q2_R0.4_t1.0_pt20-40_RL0.010-0.030
+  KEY: TH1D     h_deltap_R0.4_t1.0_pt20-40_RL0.030-0.070Scaled;1        h_deltap_R0.4_t1.0_pt20-40_RL0.030-0.070
+  KEY: TH1D     h_deltapt_R0.4_t1.0_pt20-40_RL0.030-0.070Scaled;1       h_deltapt_R0.4_t1.0_pt20-40_RL0.030-0.070
+  KEY: TH1D     h_deltapl_R0.4_t1.0_pt20-40_RL0.030-0.070Scaled;1       h_deltapl_R0.4_t1.0_pt20-40_RL0.030-0.070
+  KEY: TH1D     h_weights_R0.4_t1.0_pt20-40_RL0.030-0.070Scaled;1       h_weights_R0.4_t1.0_pt20-40_RL0.030-0.070
+  KEY: TH2D     h_deltapt_vs_weights_R0.4_t1.0_pt20-40_RL0.030-0.070Scaled;1    h_deltapt_vs_weights_R0.4_t1.0_pt20-40_RL0.030-0.070
+  KEY: TH1D     h_q1q2_R0.4_t1.0_pt20-40_RL0.030-0.070Scaled;1  h_q1q2_R0.4_t1.0_pt20-40_RL0.030-0.070
+  KEY: TH1D     h_deltap_R0.4_t1.0_pt20-40_RL0.070-0.150Scaled;1        h_deltap_R0.4_t1.0_pt20-40_RL0.070-0.150
+  KEY: TH1D     h_deltapt_R0.4_t1.0_pt20-40_RL0.070-0.150Scaled;1       h_deltapt_R0.4_t1.0_pt20-40_RL0.070-0.150
+  KEY: TH1D     h_deltapl_R0.4_t1.0_pt20-40_RL0.070-0.150Scaled;1       h_deltapl_R0.4_t1.0_pt20-40_RL0.070-0.150
+  KEY: TH1D     h_weights_R0.4_t1.0_pt20-40_RL0.070-0.150Scaled;1       h_weights_R0.4_t1.0_pt20-40_RL0.070-0.150
+  KEY: TH2D     h_deltapt_vs_weights_R0.4_t1.0_pt20-40_RL0.070-0.150Scaled;1    h_deltapt_vs_weights_R0.4_t1.0_pt20-40_RL0.070-0.150
+  KEY: TH1D     h_q1q2_R0.4_t1.0_pt20-40_RL0.070-0.150Scaled;1  h_q1q2_R0.4_t1.0_pt20-40_RL0.070-0.150
+  KEY: TH1D     h_deltap_R0.4_t1.0_pt20-40_RL0.150-0.300Scaled;1        h_deltap_R0.4_t1.0_pt20-40_RL0.150-0.300
+  KEY: TH1D     h_deltapt_R0.4_t1.0_pt20-40_RL0.150-0.300Scaled;1       h_deltapt_R0.4_t1.0_pt20-40_RL0.150-0.300
+  KEY: TH1D     h_deltapl_R0.4_t1.0_pt20-40_RL0.150-0.300Scaled;1       h_deltapl_R0.4_t1.0_pt20-40_RL0.150-0.300
+  KEY: TH1D     h_weights_R0.4_t1.0_pt20-40_RL0.150-0.300Scaled;1       h_weights_R0.4_t1.0_pt20-40_RL0.150-0.300
+  KEY: TH2D     h_deltapt_vs_weights_R0.4_t1.0_pt20-40_RL0.150-0.300Scaled;1    h_deltapt_vs_weights_R0.4_t1.0_pt20-40_RL0.150-0.300
+  KEY: TH1D     h_q1q2_R0.4_t1.0_pt20-40_RL0.150-0.300Scaled;1  h_q1q2_R0.4_t1.0_pt20-40_RL0.150-0.300
+  KEY: TH1D     h_deltap_R0.4_t1.0_pt20-40_RL0.300-0.400Scaled;1        h_deltap_R0.4_t1.0_pt20-40_RL0.300-0.400
+  KEY: TH1D     h_deltapt_R0.4_t1.0_pt20-40_RL0.300-0.400Scaled;1       h_deltapt_R0.4_t1.0_pt20-40_RL0.300-0.400
+  KEY: TH1D     h_deltapl_R0.4_t1.0_pt20-40_RL0.300-0.400Scaled;1       h_deltapl_R0.4_t1.0_pt20-40_RL0.300-0.400
+  KEY: TH1D     h_weights_R0.4_t1.0_pt20-40_RL0.300-0.400Scaled;1       h_weights_R0.4_t1.0_pt20-40_RL0.300-0.400
+  KEY: TH2D     h_deltapt_vs_weights_R0.4_t1.0_pt20-40_RL0.300-0.400Scaled;1    h_deltapt_vs_weights_R0.4_t1.0_pt20-40_RL0.300-0.400
+  KEY: TH1D     h_q1q2_R0.4_t1.0_pt20-40_RL0.300-0.400Scaled;1  h_q1q2_R0.4_t1.0_pt20-40_RL0.300-0.400
+  KEY: TH1D     h_deltap_R0.4_t1.0_pt40-60_RL0.010-0.025Scaled;1        h_deltap_R0.4_t1.0_pt40-60_RL0.010-0.025
+  KEY: TH1D     h_deltapt_R0.4_t1.0_pt40-60_RL0.010-0.025Scaled;1       h_deltapt_R0.4_t1.0_pt40-60_RL0.010-0.025
+  KEY: TH1D     h_deltapl_R0.4_t1.0_pt40-60_RL0.010-0.025Scaled;1       h_deltapl_R0.4_t1.0_pt40-60_RL0.010-0.025
+  KEY: TH1D     h_weights_R0.4_t1.0_pt40-60_RL0.010-0.025Scaled;1       h_weights_R0.4_t1.0_pt40-60_RL0.010-0.025
+  KEY: TH2D     h_deltapt_vs_weights_R0.4_t1.0_pt40-60_RL0.010-0.025Scaled;1    h_deltapt_vs_weights_R0.4_t1.0_pt40-60_RL0.010-0.025
+  KEY: TH1D     h_q1q2_R0.4_t1.0_pt40-60_RL0.010-0.025Scaled;1  h_q1q2_R0.4_t1.0_pt40-60_RL0.010-0.025
+  KEY: TH1D     h_deltap_R0.4_t1.0_pt40-60_RL0.025-0.040Scaled;1        h_deltap_R0.4_t1.0_pt40-60_RL0.025-0.040
+  KEY: TH1D     h_deltapt_R0.4_t1.0_pt40-60_RL0.025-0.040Scaled;1       h_deltapt_R0.4_t1.0_pt40-60_RL0.025-0.040
+  KEY: TH1D     h_deltapl_R0.4_t1.0_pt40-60_RL0.025-0.040Scaled;1       h_deltapl_R0.4_t1.0_pt40-60_RL0.025-0.040
+  KEY: TH1D     h_weights_R0.4_t1.0_pt40-60_RL0.025-0.040Scaled;1       h_weights_R0.4_t1.0_pt40-60_RL0.025-0.040
+  KEY: TH2D     h_deltapt_vs_weights_R0.4_t1.0_pt40-60_RL0.025-0.040Scaled;1    h_deltapt_vs_weights_R0.4_t1.0_pt40-60_RL0.025-0.040
+  KEY: TH1D     h_q1q2_R0.4_t1.0_pt40-60_RL0.025-0.040Scaled;1  h_q1q2_R0.4_t1.0_pt40-60_RL0.025-0.040
+  KEY: TH1D     h_deltap_R0.4_t1.0_pt40-60_RL0.040-0.080Scaled;1        h_deltap_R0.4_t1.0_pt40-60_RL0.040-0.080
+  KEY: TH1D     h_deltapt_R0.4_t1.0_pt40-60_RL0.040-0.080Scaled;1       h_deltapt_R0.4_t1.0_pt40-60_RL0.040-0.080
+  KEY: TH1D     h_deltapl_R0.4_t1.0_pt40-60_RL0.040-0.080Scaled;1       h_deltapl_R0.4_t1.0_pt40-60_RL0.040-0.080
+  KEY: TH1D     h_weights_R0.4_t1.0_pt40-60_RL0.040-0.080Scaled;1       h_weights_R0.4_t1.0_pt40-60_RL0.040-0.080
+  KEY: TH2D     h_deltapt_vs_weights_R0.4_t1.0_pt40-60_RL0.040-0.080Scaled;1    h_deltapt_vs_weights_R0.4_t1.0_pt40-60_RL0.040-0.080
+  KEY: TH1D     h_q1q2_R0.4_t1.0_pt40-60_RL0.040-0.080Scaled;1  h_q1q2_R0.4_t1.0_pt40-60_RL0.040-0.080
+  KEY: TH1D     h_deltap_R0.4_t1.0_pt40-60_RL0.080-0.250Scaled;1        h_deltap_R0.4_t1.0_pt40-60_RL0.080-0.250
+  KEY: TH1D     h_deltapt_R0.4_t1.0_pt40-60_RL0.080-0.250Scaled;1       h_deltapt_R0.4_t1.0_pt40-60_RL0.080-0.250
+  KEY: TH1D     h_deltapl_R0.4_t1.0_pt40-60_RL0.080-0.250Scaled;1       h_deltapl_R0.4_t1.0_pt40-60_RL0.080-0.250
+  KEY: TH1D     h_weights_R0.4_t1.0_pt40-60_RL0.080-0.250Scaled;1       h_weights_R0.4_t1.0_pt40-60_RL0.080-0.250
+  KEY: TH2D     h_deltapt_vs_weights_R0.4_t1.0_pt40-60_RL0.080-0.250Scaled;1    h_deltapt_vs_weights_R0.4_t1.0_pt40-60_RL0.080-0.250
+  KEY: TH1D     h_q1q2_R0.4_t1.0_pt40-60_RL0.080-0.250Scaled;1  h_q1q2_R0.4_t1.0_pt40-60_RL0.080-0.250
+  KEY: TH1D     h_deltap_R0.4_t1.0_pt40-60_RL0.250-0.400Scaled;1        h_deltap_R0.4_t1.0_pt40-60_RL0.250-0.400
+  KEY: TH1D     h_deltapt_R0.4_t1.0_pt40-60_RL0.250-0.400Scaled;1       h_deltapt_R0.4_t1.0_pt40-60_RL0.250-0.400
+  KEY: TH1D     h_deltapl_R0.4_t1.0_pt40-60_RL0.250-0.400Scaled;1       h_deltapl_R0.4_t1.0_pt40-60_RL0.250-0.400
+  KEY: TH1D     h_weights_R0.4_t1.0_pt40-60_RL0.250-0.400Scaled;1       h_weights_R0.4_t1.0_pt40-60_RL0.250-0.400
+  KEY: TH2D     h_deltapt_vs_weights_R0.4_t1.0_pt40-60_RL0.250-0.400Scaled;1    h_deltapt_vs_weights_R0.4_t1.0_pt40-60_RL0.250-0.400
+  KEY: TH1D     h_q1q2_R0.4_t1.0_pt40-60_RL0.250-0.400Scaled;1  h_q1q2_R0.4_t1.0_pt40-60_RL0.250-0.400
+  KEY: TH1D     h_deltap_R0.4_t1.0_pt60-80_RL0.010-0.025Scaled;1        h_deltap_R0.4_t1.0_pt60-80_RL0.010-0.025
+  KEY: TH1D     h_deltapt_R0.4_t1.0_pt60-80_RL0.010-0.025Scaled;1       h_deltapt_R0.4_t1.0_pt60-80_RL0.010-0.025
+  KEY: TH1D     h_deltapl_R0.4_t1.0_pt60-80_RL0.010-0.025Scaled;1       h_deltapl_R0.4_t1.0_pt60-80_RL0.010-0.025
+  KEY: TH1D     h_weights_R0.4_t1.0_pt60-80_RL0.010-0.025Scaled;1       h_weights_R0.4_t1.0_pt60-80_RL0.010-0.025
+  KEY: TH2D     h_deltapt_vs_weights_R0.4_t1.0_pt60-80_RL0.010-0.025Scaled;1    h_deltapt_vs_weights_R0.4_t1.0_pt60-80_RL0.010-0.025
+  KEY: TH1D     h_q1q2_R0.4_t1.0_pt60-80_RL0.010-0.025Scaled;1  h_q1q2_R0.4_t1.0_pt60-80_RL0.010-0.025
+  KEY: TH1D     h_deltap_R0.4_t1.0_pt60-80_RL0.025-0.030Scaled;1        h_deltap_R0.4_t1.0_pt60-80_RL0.025-0.030
+  KEY: TH1D     h_deltapt_R0.4_t1.0_pt60-80_RL0.025-0.030Scaled;1       h_deltapt_R0.4_t1.0_pt60-80_RL0.025-0.030
+  KEY: TH1D     h_deltapl_R0.4_t1.0_pt60-80_RL0.025-0.030Scaled;1       h_deltapl_R0.4_t1.0_pt60-80_RL0.025-0.030
+  KEY: TH1D     h_weights_R0.4_t1.0_pt60-80_RL0.025-0.030Scaled;1       h_weights_R0.4_t1.0_pt60-80_RL0.025-0.030
+  KEY: TH2D     h_deltapt_vs_weights_R0.4_t1.0_pt60-80_RL0.025-0.030Scaled;1    h_deltapt_vs_weights_R0.4_t1.0_pt60-80_RL0.025-0.030
+  KEY: TH1D     h_q1q2_R0.4_t1.0_pt60-80_RL0.025-0.030Scaled;1  h_q1q2_R0.4_t1.0_pt60-80_RL0.025-0.030
+  KEY: TH1D     h_deltap_R0.4_t1.0_pt60-80_RL0.030-0.045Scaled;1        h_deltap_R0.4_t1.0_pt60-80_RL0.030-0.045
+  KEY: TH1D     h_deltapt_R0.4_t1.0_pt60-80_RL0.030-0.045Scaled;1       h_deltapt_R0.4_t1.0_pt60-80_RL0.030-0.045
+  KEY: TH1D     h_deltapl_R0.4_t1.0_pt60-80_RL0.030-0.045Scaled;1       h_deltapl_R0.4_t1.0_pt60-80_RL0.030-0.045
+  KEY: TH1D     h_weights_R0.4_t1.0_pt60-80_RL0.030-0.045Scaled;1       h_weights_R0.4_t1.0_pt60-80_RL0.030-0.045
+  KEY: TH2D     h_deltapt_vs_weights_R0.4_t1.0_pt60-80_RL0.030-0.045Scaled;1    h_deltapt_vs_weights_R0.4_t1.0_pt60-80_RL0.030-0.045
+  KEY: TH1D     h_q1q2_R0.4_t1.0_pt60-80_RL0.030-0.045Scaled;1  h_q1q2_R0.4_t1.0_pt60-80_RL0.030-0.045
+  KEY: TH1D     h_deltap_R0.4_t1.0_pt60-80_RL0.045-0.200Scaled;1        h_deltap_R0.4_t1.0_pt60-80_RL0.045-0.200
+  KEY: TH1D     h_deltapt_R0.4_t1.0_pt60-80_RL0.045-0.200Scaled;1       h_deltapt_R0.4_t1.0_pt60-80_RL0.045-0.200
+  KEY: TH1D     h_deltapl_R0.4_t1.0_pt60-80_RL0.045-0.200Scaled;1       h_deltapl_R0.4_t1.0_pt60-80_RL0.045-0.200
+  KEY: TH1D     h_weights_R0.4_t1.0_pt60-80_RL0.045-0.200Scaled;1       h_weights_R0.4_t1.0_pt60-80_RL0.045-0.200
+  KEY: TH2D     h_deltapt_vs_weights_R0.4_t1.0_pt60-80_RL0.045-0.200Scaled;1    h_deltapt_vs_weights_R0.4_t1.0_pt60-80_RL0.045-0.200
+  KEY: TH1D     h_q1q2_R0.4_t1.0_pt60-80_RL0.045-0.200Scaled;1  h_q1q2_R0.4_t1.0_pt60-80_RL0.045-0.200
+  KEY: TH1D     h_deltap_R0.4_t1.0_pt60-80_RL0.200-0.400Scaled;1        h_deltap_R0.4_t1.0_pt60-80_RL0.200-0.400
+  KEY: TH1D     h_deltapt_R0.4_t1.0_pt60-80_RL0.200-0.400Scaled;1       h_deltapt_R0.4_t1.0_pt60-80_RL0.200-0.400
+  KEY: TH1D     h_deltapl_R0.4_t1.0_pt60-80_RL0.200-0.400Scaled;1       h_deltapl_R0.4_t1.0_pt60-80_RL0.200-0.400
+  KEY: TH1D     h_weights_R0.4_t1.0_pt60-80_RL0.200-0.400Scaled;1       h_weights_R0.4_t1.0_pt60-80_RL0.200-0.400
+  KEY: TH2D     h_deltapt_vs_weights_R0.4_t1.0_pt60-80_RL0.200-0.400Scaled;1    h_deltapt_vs_weights_R0.4_t1.0_pt60-80_RL0.200-0.400
+  KEY: TH1D     h_q1q2_R0.4_t1.0_pt60-80_RL0.200-0.400Scaled;1  h_q1q2_R0.4_t1.0_pt60-80_RL0.200-0.400
+*/
