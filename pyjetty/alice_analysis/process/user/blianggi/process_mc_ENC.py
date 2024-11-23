@@ -575,6 +575,9 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
     # setattr(self, name, h)
   
   def create_corr_histograms(self, observable, ipoint, jetR, obs_label):
+
+    if (observable == "corr_beg" or observable == "corr_end"):
+      return
   
     pt_bins = linbins(0,200,200)
     RL_bins = logbins(1E-4,1,50) # for the unweighted??
@@ -636,14 +639,18 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
       obs_bins = deltap_bins #deltapl_bins
 
     # charge
-    if (observable == "corr_samecharge"):
+    # if (observable == "corr_samecharge"):
+    if (observable == "corr_charge"):
       title_truth = ['p_{T,ch jet,truth}', 'R_{L,truth}_pt2040', 'R_{L,truth}_4060', 'R_{L,truth}_pt6080', 'same charge_{truth}']
       title = ['p_{T,ch jet,det}', 'R_{L,det}_pt2040', 'R_{L,det}_pt4060', 'R_{L,det}_pt6080', 'same charge_{det}']
       obs_bins = charge_bins
-    if (observable == "corr_oppcharge"):
+      # if (observable == "corr_oppcharge"):
       title_truth = ['p_{T,ch jet,truth}', 'R_{L,truth}_pt2040', 'R_{L,truth}_4060', 'R_{L,truth}_pt6080', 'opp charge_{truth}']
       title = ['p_{T,ch jet,det}', 'R_{L,det}_pt2040', 'R_{L,det}_pt4060', 'R_{L,det}_pt6080', 'opp charge_{det}']
       obs_bins = charge_bins
+
+    if (observable == "corr_rc"):
+      return
 
     # unweighted RL
     if (observable == "corr_unweightedRL"):
@@ -1079,10 +1086,14 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
           if ("charge" in observable):
             samecharge_boolean = self.is_same_charge(new_corr, ipoint, c_select, index)
             # print("samecharge boolean is", samecharge_boolean, self.fsparsepartonJetvalue[4])
-            if not samecharge_boolean and observable == "corr_samecharge":
-              continue
-            if samecharge_boolean and observable == "corr_oppcharge":
-              continue
+            # if not samecharge_boolean and observable == "corr_samecharge":
+            #   continue
+            # if samecharge_boolean and observable == "corr_oppcharge":
+            #   continue
+            if samecharge_boolean:
+              charge_obsname = "corr_samecharge"
+            else:
+              charge_obsname = "corr_oppcharge"
             self.fsparsepartonJetvalue[4] = 1 if samecharge_boolean else -1
           elif ("energyweights" in observable):
             self.fsparsepartonJetvalue[4] = new_corr.correlator(ipoint).weights()[index]
@@ -1103,8 +1114,12 @@ class ProcessMC_ENC(process_mc_base.ProcessMCBase):
             
 
           # print("FIlling weighted and then unweighted!!", new_corr.correlator(ipoint).weights()[index])
-          getattr(self, hname.format(observable,obs_label)).Fill(self.fsparsepartonJetvalue)
-          getattr(self, hname.format(observable+"_Weighted",obs_label)).Fill(self.fsparsepartonJetvalue, new_corr.correlator(ipoint).weights()[index])
+          if ("charge" in observable):
+            getattr(self, hname.format(charge_obsname,obs_label)).Fill(self.fsparsepartonJetvalue)
+            getattr(self, hname.format(charge_obsname+"_Weighted",obs_label)).Fill(self.fsparsepartonJetvalue, new_corr.correlator(ipoint).weights()[index])
+          else:
+            getattr(self, hname.format(observable,obs_label)).Fill(self.fsparsepartonJetvalue)
+            getattr(self, hname.format(observable+"_Weighted",obs_label)).Fill(self.fsparsepartonJetvalue, new_corr.correlator(ipoint).weights()[index])
           
 
 

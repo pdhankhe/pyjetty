@@ -10,7 +10,8 @@
 #SBATCH --exclude=nid004104,nid004160,nid004149
 #SBATCH --output=/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/slurm-%A_%a.out
 
-FILE_PATHS='/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/generators/pythia_alice/tree_fastsim/1143757/files.txt'
+# FILE_PATHS='/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/generators/pythia_alice/tree_fastsim/1143757/files.txt' #5 TeV
+FILE_PATHS='/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/pythiagen/tree_gen/26652369/files.txt' #13 TeV
 NFILES=$(wc -l < $FILE_PATHS)
 echo "N files to process: ${NFILES}"
 
