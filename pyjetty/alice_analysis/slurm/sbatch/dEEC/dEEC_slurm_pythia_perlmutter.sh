@@ -3,7 +3,7 @@
 #SBATCH --job-name="processpythia_dEECs"
 #SBATCH --nodes=1 --ntasks=1 --cpus-per-task=1
 #SBATCH --account=alice
-#SBATCH --qos=regular
+#SBATCH --qos=shared
 #SBATCH --constraint=cpu
 #SBATCH --time=12:00:00
 #SBATCH --array=1-640
