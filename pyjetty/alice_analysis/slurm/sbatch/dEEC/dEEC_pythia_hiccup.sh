@@ -26,6 +26,13 @@ else
   echo "Wrong command line arguments"
 fi
 
+if [ "$4" != "" ]; then
+  TUPLES=$4
+  echo "Tuples: $TUPLES"
+else
+  echo "Wrong command line arguments"
+fi
+
 # Define output path from relevant sub-path of input file
 OUTPUT_BASEPATH="/rstorage/alice"
 OUTPUT_PREFIX="AnalysisResults/blianggi/dEEC/$JOB_ID"
@@ -42,7 +49,11 @@ module list
 
 # Run python script via pipenv
 cd /software/users/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/
-python process/user/dEEC/process_mc_dEEC.py -c config/dEEC/pp/process_pp_fastsim_hiccup.yaml -f $INPUT_FILE -o $OUTPUT_DIR
+if [ "$TUPLES" == true ]; then
+  python process/user/dEEC/process_mc_dEEC.py -c config/dEEC/pp/process_pp_fastsim_hiccup.yaml -f $INPUT_FILE -o $OUTPUT_DIR
+else
+  python process/user/dEEC/process_mc_dEEC_histograms.py -c config/dEEC/pp/process_pp_fastsim_hiccup.yaml -f $INPUT_FILE -o $OUTPUT_DIR
+fi
 
 # # Move stdout to appropriate folder
 # mkdir -p $OUTPUT_BASEPATH/$OUTPUT_PREFIX/slurm-output

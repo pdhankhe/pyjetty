@@ -1,4 +1,4 @@
-// ROOT macro to take correlation tuples and turn them into histograms
+// ROOT macro to plot pythia histograms that were taken from correlation tuples and have been scaled
 // Beatrice Liang-Gilman (beatrice_lg@berkeley.edu)
 
 #include <iostream>
@@ -821,8 +821,8 @@ void plot_pythia_histograms() {
     std::string base_filepath_hic = Form("/software/users/blianggi/");
     
     // Output file for binned results
-    std::string root_infile = base_filepath_hic + "mypyjetty/pyjetty/pyjetty/alice_analysis/analysis/user/dEEC/histograms_from_tuples/RawHistsAfterScaling.root"; //plots/ntuples/DataHists.root"; //FinalDataHists.root
-    std::string root_outfile = base_filepath_hic + "mypyjetty/pyjetty/pyjetty/alice_analysis/analysis/user/dEEC/histograms_from_tuples/FinalRawHistsAfterScaling.root"; //plots/ntuples/DataHists.root"; //FinalDataHists.root
+    std::string root_infile = base_filepath_hic + "mypyjetty/storage/dEEC/rootfiles/hists_from_tupes/histograms_from_tuples_5TeV/RawHistsAfterScaling.root"; //plots/ntuples/DataHists.root"; //FinalDataHists.root
+    std::string root_outfile = base_filepath_hic + "mypyjetty/storage/dEEC/rootfiles/hists_from_tupes/histograms_from_tuples_5TeV/FinalRawHistsAfterScaling.root"; //plots/ntuples/DataHists.root"; //FinalDataHists.root
     TFile* f_out = new TFile(root_outfile.c_str(), "RECREATE");
     std::string add_name = ""; //"_othercorrel";
 

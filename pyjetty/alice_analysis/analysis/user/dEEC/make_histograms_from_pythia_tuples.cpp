@@ -202,8 +202,8 @@ void Format2DHist(TH2D *hist2D, TH1D *jetpt_hist, std::string xtitle, std::strin
     double ptvsew_normbounds[3][2] = { { 0, 500 }, { 1e-2, 5e2 }, { 1e-4, 2e2 }}; //TODO: make this less pt specific?
     // also TODO: potentially set all lower boundaries to 0 for data??
 
-    hist2D->SetTitle(Form("h_%s_vs_%s%s", obs_name_x.c_str(), obs_name_y.c_str(), hist_addname.c_str()));
-    hist2D->SetName(Form("h_%s_vs_%s%s", obs_name_x.c_str(), obs_name_y.c_str(), hist_addname.c_str()));
+    hist2D->SetTitle(Form("h_%s_vs_%s%s", obs_name_y.c_str(), obs_name_x.c_str(), hist_addname.c_str()));
+    hist2D->SetName(Form("h_%s_vs_%s%s", obs_name_y.c_str(), obs_name_x.c_str(), hist_addname.c_str()));
 
     // normalization
     int norm_index = 0;
@@ -717,7 +717,7 @@ void make_histograms_from_pythia_tuples() {
     for ( int a = 17; a <= n_pthat_bins; a++ ) {
 
         // Output file for binned results
-        std::string root_outfile = Form("histograms_from_tuples/%d/RawHists_%d.root", a, a); //plots/ntuples/DataHists.root"; //FinalDataHists.root
+        std::string root_outfile = Form("/software/users/blianggi/mypyjetty/storage/dEEC/rootfiles/hists_from_tupes/histograms_from_tuples_5GeV/%d/RawHists_%d.root", a, a); //plots/ntuples/DataHists.root"; //FinalDataHists.root
         TFile* f_out = new TFile(root_outfile.c_str(), "RECREATE");
         std::string add_name = ""; //"_othercorrel";
 

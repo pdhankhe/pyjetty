@@ -15,8 +15,12 @@ fi
 
 pushd .
 
-mkdir -p plots
-cd plots
+cd /software/users/blianggi/mypyjetty/storage/dEEC/plots
+
+mkdir -p /software/users/blianggi/mypyjetty/storage/dEEC/rootfiles/$1
+
+# mkdir -p plots
+# cd plots
 
 mkdir -p $1
 cd $1

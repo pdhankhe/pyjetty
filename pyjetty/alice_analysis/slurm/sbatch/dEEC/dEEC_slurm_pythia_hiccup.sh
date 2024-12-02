@@ -11,6 +11,8 @@ FILE_PATHS='/rstorage/generators/pythia_alice/tree_fastsim/1143757/files.txt'
 NFILES=$(wc -l < $FILE_PATHS)
 echo "N files to process: ${NFILES}"
 
+TUPLES=false
+
 # Currently we have 8 nodes * 20 cores active
 FILES_PER_JOB=5 #$(( $NFILES / 1000 + 1 ))
 echo "Files per job: $FILES_PER_JOB"
@@ -34,7 +36,7 @@ do
   
   # FILE=/global/cfs/projectdirs/alice/alicepro/hiccup$(sed -n "$JOB_N"p $FILE_PATHS)
   FILE=$(sed -n "$JOB_N"p $FILE_PATHS)
-  srun dEEC_pythia_hiccup.sh $FILE $SLURM_ARRAY_JOB_ID $SLURM_ARRAY_TASK_ID
+  srun dEEC_pythia_hiccup.sh $FILE $SLURM_ARRAY_JOB_ID $SLURM_ARRAY_TASK_ID $TUPLES
 done
 
 # Move stdout to appropriate folder

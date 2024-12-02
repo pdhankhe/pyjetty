@@ -1,4 +1,4 @@
-// ROOT macro to take correlation tuples and turn them into histograms
+// ROOT macro to analyze and plot data tuples 
 // Beatrice Liang-Gilman (beatrice_lg@berkeley.edu)
 
 #include <iostream>
@@ -12,6 +12,9 @@ using namespace std;
 Double_t colors[16] = {kGray, kMagenta, kGreen+2, kBlue, kOrange+1, kViolet+1, kRed, kYellow+1, kCyan+1};
 Double_t markers[10] = {kFullCircle, kFullSquare, kFullDiamond, kFullTriangleUp, kFullStar, kOpenCircle, kOpenTriangleUp, kOpenDiamond, kOpenSquare, kOpenStar};
 Double_t marker_size = 1.5;
+
+std::string attempt_dir = "data_firstattempt";
+std::string outdir = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir;
 
 void SetStyle(Bool_t graypalette=true) {
     cout << "Setting style!" << endl;
@@ -148,7 +151,10 @@ TH2D * getObs2DHistFromTChain(TChain *chain, std::string branch_name_x, std::str
 /* Format and adjust histograms */
 void Format1DHist(TH1D *hist, TH1D *jetpt_hist, std::string norm_string, int markercolor, double markeralpha,
                   int markerstyle, std::string xtitle, std::string ytitle, TLegend& leg, TString leg_text, 
-                  std::string obs_name="") {
+                  std::string obs_name="", std::string hist_addname="") {
+
+    hist->SetTitle(Form("h_%s%s", obs_name.c_str(), hist_addname.c_str()));
+    hist->SetName(Form("h_%s%s", obs_name.c_str(), hist_addname.c_str()));
 
     // normalization
     if ( norm_string == "self_normalized" ) {
@@ -192,10 +198,13 @@ void Format1DHist(TH1D *hist, TH1D *jetpt_hist, std::string norm_string, int mar
 }
 
 void Format2DHist(TH2D *hist2D, TH1D *jetpt_hist, std::string norm_string, std::string xtitle, std::string ytitle, 
-                  bool scalebyRLbinwidth, double RL_bin_width, std::string obs_name_x, std::string obs_name_y) {
+                  bool scalebyRLbinwidth, double RL_bin_width, std::string obs_name_x, std::string obs_name_y, std::string hist_addname="") {
 
     double ptvsew_normbounds[3][2] = { { 0, 500 }, { 1e-2, 5e2 }, { 1e-4, 2e2 }}; //TODO: make this less pt specific?
     // also TODO: potentially set all lower boundaries to 0 for data??
+
+    hist2D->SetTitle(Form("h_%s_vs_%s%s", obs_name_y.c_str(), obs_name_x.c_str(), hist_addname.c_str()));
+    hist2D->SetName(Form("h_%s_vs_%s%s", obs_name_y.c_str(), obs_name_x.c_str(), hist_addname.c_str()));
 
     // normalization
     int norm_index = 0;
@@ -236,10 +245,11 @@ void Format2DHist(TH2D *hist2D, TH1D *jetpt_hist, std::string norm_string, std::
 
 
 TGraphErrors * MakeFormatGraph(vector<double> xvals, vector<double> yvals, int markercolor, double markeralpha,
-                  int markerstyle, std::string xtitle, std::string ytitle, std::string obs_name) {
+                  int markerstyle, std::string xtitle, std::string ytitle, std::string obs_name, std::string hist_addname="") {
 
     TGraphErrors * graph = new TGraphErrors(xvals.size(), xvals.data(), yvals.data());
     graph->SetTitle(Form("Charge Ratio;%s;%s", xtitle.c_str(), ytitle.c_str())); // Set the title and axis labels
+    graph->SetName(Form("rc_%s", hist_addname.c_str()));
 
     // Set graph styles
     graph->SetLineColorAlpha(markercolor, markeralpha);
@@ -301,7 +311,7 @@ void draw_save_del_hists(TFile *fout, TCanvas *can, TObject* obj, std::string ob
 
     
 
-    std::string outdir = "plots/data_firstattempt"; // + ptbin_name + "/";//"plots/test/";
+    // std::string outdir = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/data_firstattempt"; // + ptbin_name + "/";//"plots/test/";
     std::string add_dir = "";
     if (obs_name != "jet_pt" && obs_name != "total_num_const" && obs_name != "num_const_aftercut") {
         if (obs_name == "rc") add_dir = "/" + ptname + "/" + norm_string + "/" + obs_name;
@@ -389,8 +399,8 @@ void plotandsave_combined_hists(TCanvas *can_all, vector<TH1D*> h_vec, TLegend *
     l->Draw("same");
 
     //save as PDF
-    std::string outdir = "plots/data_firstattempt/"; // + ptbin_name + "/";//"plots/test/";
-    std::string add_dir = ptname + "/" + norm_string + "/" + obs_name;
+    // std::string outdir = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/data_firstattempt/"; // + ptbin_name + "/";//"plots/test/";
+    std::string add_dir = "/" + ptname + "/" + norm_string + "/" + obs_name;
     std::string fname_out = outdir + add_dir + "/corrhist_" + obs_name + "_ALL" + hist_addname + ".pdf";
     can_all->SaveAs(fname_out.c_str());
 
@@ -420,7 +430,7 @@ void plot_rc(vector<vector<double>>& RL_vals, vector<vector<double>>& rc_vals, v
     cout <<" RL_err size " << RL_err.size() << endl;
     cout <<" pt_err size " << pt_err.size() << endl;
 
-    std::string outdir = "plots/data_firstattempt"; // + ptbin_name + "/";//"plots/test/";
+    // std::string outdir = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/data_firstattempt"; // + ptbin_name + "/";//"plots/test/";
     std::string fname_func_of_RL_out = outdir + "/corrhist_rc_func_of_RL.pdf"; // could add jetR and threshold info later??, maybe not needed tho 
     std::string fname_func_of_pT_out = outdir + "/corrhist_rc_func_of_pT.pdf";
 
@@ -613,7 +623,7 @@ void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
         double RL_max = RL_bins[j+1];
         std::string RLname = Form("_RL%.3f-%.3f", RL_min, RL_max);
         std::string RLname_leg = Form("RL = %.3f-%.3f", RL_min, RL_max);
-        std::string hist_addname = weightstr + jetRname + thrname + "_pt" + ptname + RLname;
+        std::string hist_addname = weightstr + jetRname + thrname + "_pt" + ptname + RLname + "_" + norm_string;
         if (debug) cout << " in RL bin" << j << " with " << RL_min << " - " << RL_max << endl;
         
         // get histograms
@@ -651,12 +661,12 @@ void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
         }
 
         // format histograms in vector
-        Format1DHist(deltap_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#Deltap", ytitle_norm + "#frac{dN}{d#Deltap}", *leg, RLname_leg);
-        Format1DHist(deltapt_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#Deltap_{T}", ytitle_norm + "#frac{dN}{d#Deltap_{T}}", *leg_dummy, RLname_leg);
-        Format1DHist(deltapl_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#Deltap_{L}", ytitle_norm + "#frac{dN}{d#Deltap_{L}}", *leg_dummy, RLname_leg);
-        Format1DHist(weights_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#frac{p_{T,1}p_{T,2}}{p_{T,jet}^{2}}", ytitle_norm + "#frac{dN}{d[EW]}", *leg_dummy, RLname_leg, "weights");
+        Format1DHist(deltap_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#Deltap", ytitle_norm + "#frac{dN}{d#Deltap}", *leg, RLname_leg, "deltap", hist_addname);
+        Format1DHist(deltapt_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#Deltap_{T}", ytitle_norm + "#frac{dN}{d#Deltap_{T}}", *leg_dummy, RLname_leg, "deltapt", hist_addname);
+        Format1DHist(deltapl_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#Deltap_{L}", ytitle_norm + "#frac{dN}{d#Deltap_{L}}", *leg_dummy, RLname_leg, "deltapl", hist_addname);
+        Format1DHist(weights_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#frac{p_{T,1}p_{T,2}}{p_{T,jet}^{2}}", ytitle_norm + "#frac{dN}{d[EW]}", *leg_dummy, RLname_leg, "weights", hist_addname);
         
-        Format2DHist(weights_vs_deltapt_hist2D, jetpt_inptbin_hist, norm_string, ytitle_norm + "#Deltap_{T}", ytitle_norm + "p_{T,1}p_{T,2} / p_{T,jet}^{2}", true, RL_bin_width[j], "deltapt", "weights");
+        Format2DHist(weights_vs_deltapt_hist2D, jetpt_inptbin_hist, norm_string, ytitle_norm + "#Deltap_{T}", ytitle_norm + "p_{T,1}p_{T,2} / p_{T,jet}^{2}", true, RL_bin_width[j], "deltapt", "weights", hist_addname);
 
         // draw, save, and delete histograms
         TCanvas *can_deltap = new TCanvas();
@@ -668,7 +678,7 @@ void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
 
         draw_save_del_hists(f_out, can_deltap, deltap_vec[k], "deltap", ptname, norm_string, hist_addname, false, true);
         draw_save_del_hists(f_out, can_deltapt, deltapt_vec[k], "deltapt", ptname, norm_string, hist_addname, false, true);
-        draw_save_del_hists(f_out, can_deltapl, deltapl_vec[k], "deltapl", ptname, norm_string, hist_addname, false, false);
+        draw_save_del_hists(f_out, can_deltapl, deltapl_vec[k], "deltapl", ptname, norm_string, hist_addname, false, true);
         draw_save_del_hists(f_out, can_weights, weights_vec[k], "weights", ptname, norm_string, hist_addname, false, true);
         
         draw_save_del_hists(f_out, can_weights_vs_deltapt, weights_vs_deltapt_hist2D, "weights_vs_deltapt", ptname, norm_string, hist_addname, false, false, true);
@@ -697,7 +707,7 @@ void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
     if (norm_string == "unnormalized") {
         TCanvas *can_rc = new TCanvas();
         ProcessCanvas(can_rc);
-        TGraphErrors *gr_rc = MakeFormatGraph(RLcenters_vec, rc_vec, kBlack, 1.0, markers[0], "R_{L}", "r_{c}", "rc");
+        TGraphErrors *gr_rc = MakeFormatGraph(RLcenters_vec, rc_vec, kBlack, 1.0, markers[0], "R_{L}", "r_{c}", "rc", hist_all_addname);
         draw_save_del_hists(f_out, can_rc, gr_rc, "rc", ptname, norm_string, hist_all_addname, false, false);
         
         
@@ -799,7 +809,7 @@ void analyze_data_tuples() {
     std::string base_filepath_hic = Form("/rstorage/alice/AnalysisResults/blianggi/dEEC/442528");
     
     // Output file for binned results
-    std::string root_outfile = "datahists/DataHists.root"; //plots/ntuples/DataHists.root"; //FinalDataHists.root
+    std::string root_outfile = "/software/users/blianggi/mypyjetty/storage/dEEC/rootfiles/" + attempt_dir + "/DataHists.root"; //plots/ntuples/DataHists.root"; //FinalDataHists.root
     TFile* f_out = new TFile(root_outfile.c_str(), "RECREATE");
     std::string add_name = ""; //"_othercorrel";
 
