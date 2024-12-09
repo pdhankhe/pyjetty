@@ -48,6 +48,28 @@ def logbins(xmin, xmax, nbins):
   return arr
 
 ################################################################
+class EEC_pair:
+  def __init__(self, _index1, _index2, _weight, _r, _jetpt, _deltap, _deltapt, _deltapl, _charge):
+    self.index1 = _index1
+    self.index2 = _index2
+    self.weight = _weight
+    self.r = _r
+    self.jetpt = _jetpt
+    self.deltap = _deltap
+    self.deltapt = _deltapt
+    self.deltapl = _deltapl
+    self.charge = _charge
+
+  def is_equal(self, pair2):
+    return (self.index1 == pair2.index1 and self.index2 == pair2.index2) \
+        or (self.index1 == pair2.index2 and self.index2 == pair2.index1)
+
+  def __str__(self):
+    return "EEC pair with (index1, index2, weight, RL, jetpt) = (" + \
+      str(self.index1) + ", " + str(self.index2) + ", " + str(self.weight) + \
+      ", " + str(self.r) + ", " + str(self.jetpt) + ")"
+
+################################################################
 class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
 
   #---------------------------------------------------------------
@@ -315,19 +337,19 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
           setattr(self, name, tn)
 
           # Det histograms
-          name = 'h_1D{}_JetPt_R{}_{}'.format(observable, jetR, obs_label)
+          name = 'h_1D{}_JetPt_Det_R{}_{}'.format(observable, jetR, obs_label)
           h = ROOT.TH1D(name, name, 200, pt_bins)
           h.GetXaxis().SetTitle('#it{p}_{T,ch jet}')
           h.GetYaxis().SetTitle('Counts')
           setattr(self, name, h)
 
-          name = 'h_Nconst_JetPt_R{}_{}'.format(jetR, obs_label)
+          name = 'h_Nconst_JetPt_Det_R{}_{}'.format(jetR, obs_label)
           h = ROOT.TH2D(name, name, 200, pt_bins, 50, Nconst_bins)
           h.GetXaxis().SetTitle('p_{T,ch jet}')
           h.GetYaxis().SetTitle('N_{const}')
           setattr(self, name, h)
 
-          name = 'tn_JETINFO{}_R{}_{}'.format(observable, jetR, obs_label)
+          name = 'tn_JETINFO{}_Det_R{}_{}'.format(observable, jetR, obs_label)
           tn = ROOT.TNtuple(name, name, "event_id:jet_id:jet_num_in_ev:jet_pt:total_num_const:num_const_aftercut:corr_rc:leading_q:subleading_q:total_num_baryons:num_baryons_aftercut:total_num_mesons:num_mesons_aftercut")
           setattr(self, name, tn)
 
@@ -342,15 +364,13 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
 
           # Matched truth histograms
           name = 'h_matched_1D{}_JetPt_Truth_R{}_{}'.format(observable, jetR, obs_label)
-          pt_bins = linbins(0,200,200)
           h = ROOT.TH1D(name, name, 200, pt_bins)
           h.GetXaxis().SetTitle('#it{p}_{T,ch jet}')
           h.GetYaxis().SetTitle('Counts')
           setattr(self, name, h)
 
-          # Correlation between matched det and truth
-          name = 'h_matched_1D{}_JetPt_Truth_vs_Det_R{}_{}'.format(observable, jetR, obs_label)
-          pt_bins = linbins(0,200,200)
+          # create response matrix for 1D RM for jet pt
+          name = 'hResponse_JetPt_{}_R{}_{}'.format(observable, jetR, obs_label)
           h = ROOT.TH2D(name, name, 200, pt_bins, 200, pt_bins)
           h.GetXaxis().SetTitle('#it{p}_{T,ch jet}^{det}')
           h.GetYaxis().SetTitle('#it{p}_{T,ch jet}^{truth}')
@@ -376,8 +396,8 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
         self.trk_alpha_hi = [0.2, 0.4, 0.6, 0.8, 1]
 
 
-        '''
-        # Residuals and responses (currently not filled or used)
+        
+        '''# Residuals and responses (currently not filled or used)
         for trk_thrd in self.obs_settings[observable]:
         
           for ipoint in range(2, 3):
@@ -391,6 +411,8 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
         #correlation histograms
         # self.new_observables = ["deltap", "deltapt", "charge", "unweightedRL"]
         # print("OBS_LABEL", obs_label)
+        # TODO: should at some point accomadate for multiple track thresholds??
+        trk_thrd = "1.0"
         if "corr" in observable:
           if observable == "corr_beg":
             self.tuple_obs_string = "event_id:jet_id:jet_num_in_ev:jet_pt:RL:weights"   
@@ -401,12 +423,13 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
             colon_count = self.tuple_obs_string.count(':')
             self.fsparsepartonJetvalue_tuple = array.array( 'd', np.zeros(colon_count+1)) # >=18 to match the number of axes
           
-            name = 'tn_pairlevel_R{}_{}'.format(jetR, obs_label)
+            name = 'tn_pairlevel_Det_R{}_{}'.format(jetR, obs_label)
             tn = ROOT.TNtuple(name, name, self.tuple_obs_string)
             setattr(self, name, tn)
             self.fsparsepartonJetvalue_tuple = array.array( 'd', np.zeros(colon_count+1))
           else:
             self.create_corr_tuples(observable, jetR, obs_label)
+            self.create_corr_response_histograms(observable, jetR, obs_label)
 
           
 
@@ -414,21 +437,47 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
   # This function is called once for each jet subconfiguration
   # Fill 2D histogram of (pt, obs)
   #---------------------------------------------------------------
-  def create_response_histograms(self, observable, ipoint, jetR, trk_thrd, R_max = None):
+  def create_corr_response_histograms(self, observable, jetR, obs_label, R_max = None):
   
     if R_max:
       suffix = '_Rmax{}'.format(R_max)
     else:
       suffix = ''
 
-    # # Create THn of response for ENC
-    # dim = 4;
-    # title = ['#it{p}_{T,det}', '#it{p}_{T,truth}', '#it{R}_{L,det}', '#it{R}_{L,truth}']
-    # nbins = [30, 20, 100, 100]
-    # min = [0., 0., 0., 0.]
-    # max = [150., 200., 1., 1.]
-    # name = 'hResponse_JetPt_{}{}_R{}_{}{}'.format(observable, ipoint, jetR, trk_thrd, suffix)
-    # self.create_thn(name, title, dim, nbins, min, max)
+    # Create THn of response for ENC
+    pt_bins = linbins(0,200,100)
+    if observable == "corr_deltap":
+      obs_bins = linbins(0,90,100)
+      obstitle_det = "#Deltap_{det}"
+      obstitle_truth = "#Deltap_{truth}"
+    elif observable == "corr_deltapt":
+      obs_bins = linbins(0,90,100)
+      obstitle_det = "#Deltap_{T, det}"
+      obstitle_truth = "#Deltap_{T, truth}"
+    elif observable == "corr_deltapl":
+      obs_bins = linbins(0,40,100)
+      obstitle_det = "#Deltap_{L, det}"
+      obstitle_truth = "#Deltap_{L, truth}"
+    elif observable == "corr_energyweights":
+      obs_bins = linbins(0,0.3,50)
+      obstitle_det = "EW_{det}"
+      obstitle_truth = "EW_{truth}"
+    elif observable == "corr_charge":
+      obs_bins = linbins(-3,3,6)
+      obstitle_det = "(q_{1}q_{2})_{det}"
+      obstitle_truth = "(q_{1}q_{2})_{truth}"
+    else:
+      return
+    
+    binnings = (pt_bins, pt_bins, obs_bins, obs_bins)
+    dim = 4;
+    title = ['#it{p}_{T,det}', '#it{p}_{T,truth}', obstitle_det, obstitle_truth]#'#it{R}_{L,det}', '#it{R}_{L,truth}']
+    
+    # for each observable, need to make 15 configurations for each possible RL bin
+    for i in range(0,3):
+      for j in range(0,5):
+        name = 'hResponse_JetPt_{}_PTBIN{}_RLBIN{}_R{}_{}'.format(observable, i, j, jetR, obs_label)
+        self.create_thn(name, title, dim, binnings)
     
     # name = 'hResidual_JetPt_{}{}_R{}_{}{}'.format(observable, ipoint, jetR, trk_thrd, suffix)
     # h = ROOT.TH3F(name, name, 20, 0, 200, 100, 0., 1., 200, -2., 2.)
@@ -609,6 +658,54 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
     else:
       # print('sig-bkg (',type1,type2,') pt1',constituents[part1].perp(),'pt2',constituents[part2].perp())
       return 1 # means sig-bkg
+
+  def get_EEC_pairs(self, jet, jet_pt, ipoint=2):
+
+    pairs = []
+    #push constituents to a vector in python
+    #reapply pt cut incase of ghosts
+    _v = fj.vectorPJ()
+    for c in jet.constituents():
+      if c.perp() > 1:
+        _v.push_back(c)
+
+    # n-point correlator with all charged particles
+    max_npoint = 2
+    weight_power = 1
+    dphi_cut = -9999
+    deta_cut = -9999
+    cb = ecorrel.CorrelatorBuilder(_v, jet_pt, max_npoint, weight_power, dphi_cut, deta_cut)
+
+    EEC_cb = cb.correlator(ipoint)
+
+    EEC_weights = EEC_cb.weights() # cb.correlator(npoint).weights() constains list of weights
+    EEC_rs = EEC_cb.rs() # cb.correlator(npoint).rs() contains list of RL
+    EEC_indicies1 = EEC_cb.indices1() # contains list of 1st track in the pair (index should be based on the indices in c_select)
+    EEC_indicies2 = EEC_cb.indices2() # contains list of 2nd track in the pair
+
+    # now do other correlations
+    deltap_obs_corr = othercorrel.OtherCorrelatorBuilder(_v, jet_pt, max_npoint, weight_power, dphi_cut, deta_cut, "deltap")
+    deltapt_obs_corr = othercorrel.OtherCorrelatorBuilder(_v, jet_pt, max_npoint, weight_power, dphi_cut, deta_cut, "deltapt")
+    deltapl_obs_corr = othercorrel.OtherCorrelatorBuilder(_v, jet_pt, max_npoint, weight_power, dphi_cut, deta_cut, "deltapl")
+    
+    deltap_cb = deltap_obs_corr.correlator(ipoint)
+    deltapt_cb = deltapt_obs_corr.correlator(ipoint)
+    deltapl_cb = deltapl_obs_corr.correlator(ipoint)
+
+    deltap_rs = deltap_cb.rs()
+    deltapt_rs = deltapt_cb.rs()
+    deltapl_rs = deltapl_cb.rs()
+
+    for i in range(len(EEC_rs)):
+      event_index1 = _v[EEC_indicies1[i]].user_index()
+      event_index2 = _v[EEC_indicies2[i]].user_index()
+
+      samecharge_boolean = self.is_same_charge(cb, ipoint, _v, i)
+      pair_q1q2 = 1 if samecharge_boolean else -1
+
+      pairs.append(EEC_pair(event_index1, event_index2, EEC_weights[i], EEC_rs[i], jet_pt, deltap_rs[i], deltapt_rs[i], deltapl_rs[i], pair_q1q2))
+
+    return pairs
 
   #---------------------------------------------------------------
   # This function is called once for each jet subconfiguration
@@ -902,14 +999,107 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
             else:
               getattr(self, hname.format(observable + pair_type_label,obs_label)).Fill(jet_pt_matched, new_corr.correlator(ipoint).rs()[index])
 
-          if ipoint==2 and 'EEC_weight2' in observable:
-            if self.ENC_fastsim and (not 'Truth' in hname):
-              getattr(self, hname.format(observable + pair_type_label,obs_label)).Fill(jet_pt_matched, new_corr.correlator(ipoint).rs()[index], pow(new_corr.correlator(ipoint).weights()[index]*weights_pair[index],2))
-            else:
-              getattr(self, hname.format(observable + pair_type_label,obs_label)).Fill(jet_pt_matched, new_corr.correlator(ipoint).rs()[index], pow(new_corr.correlator(ipoint).weights()[index],2))
 
     if 'jet_pt' in observable:
-      getattr(self, hname.format(observable,obs_label)).Fill(jet_pt)
+      getattr(self, hname.format("1D"+observable,obs_label)).Fill(jet_pt) #observable,obs_label)).Fill(jet_pt)
+
+  #---------------------------------------------------------------
+  # This function is called per observable per jet subconfigration 
+  # used in fill_matched_jet_histograms
+  # This function is created because we cannot use fill_observable_histograms 
+  # directly because observable list loop inside that function
+  # This function fills the resonse matrices
+  #---------------------------------------------------------------
+  def fill_corr_response_matrices(self, hname, jet_det, jet_truth, jetR, obs_setting, grooming_setting, obs_label): #, jet_pt_ungroomed, jet_pt_matched):
+    
+    # if not "corr" in observable:
+    #   return
+    # if observable == "corr_beg" or observable == "corr_end" or observable == "corr_rc":
+    #   return
+
+    trk_thrd = obs_setting
+
+
+    # defining RL bin ranges - not including bins that include 0 or 1
+    PTBIN0_RLBINS = [ 1e-2, 3e-2, 7e-2, 1.5e-1, 3e-1, 4e-1 ]
+    PTBIN1_RLBINS = [ 1e-2, 2.5e-2, 4e-2, 8e-2, 2.5e-1, 4e-1 ]
+    PTBIN2_RLBINS = [ 1e-2, 2.5e-2, 3e-2, 4.5e-2, 2e-1, 4e-1 ]
+    
+    
+    #hname = 'hResponse_JetPt_{}_PTBIN{}_RLBIN{}_R'.format(observable, i, j)
+
+    jet_det_pt = jet_det.perp()
+    jet_truth_pt = jet_truth.perp()
+
+    det_pairs = self.get_EEC_pairs(jet_det, jet_det_pt)
+    truth_pairs = self.get_EEC_pairs(jet_truth, jet_truth_pt)
+      
+
+    # need to find matching pairs!!
+    for t_pair in truth_pairs:
+      match_found = False
+
+      for d_pair in det_pairs:
+
+        if d_pair.is_equal(t_pair):
+          # getattr(self, "response").Fill(d_pair.weight, d_pair.r, d_pair.jetpt, t_pair.weight, t_pair.r, t_pair.jetpt)
+          
+          # find which bin of RL is appropriate
+          pair_RL_value = t_pair.r
+          PTBIN0_RLBIN = -1
+          PTBIN1_RLBIN = -1
+          PTBIN2_RLBIN = -1
+          for a in range(5):
+            if pair_RL_value > PTBIN0_RLBINS[a] and pair_RL_value <= PTBIN0_RLBINS[a+1]:
+              PTBIN0_RLBIN = a
+              break
+          for b in range(5):
+            if pair_RL_value > PTBIN0_RLBINS[b] and pair_RL_value <= PTBIN0_RLBINS[b+1]:
+              PTBIN1_RLBIN = b
+              break
+          for c in range(5):
+            if pair_RL_value > PTBIN0_RLBINS[c] and pair_RL_value <= PTBIN0_RLBINS[c+1]:
+              PTBIN2_RLBIN = c
+              break
+
+          match_found = True
+          break
+
+      if match_found:
+        if PTBIN0_RLBIN != -1: # if PTBIN0_RLBIN == -1, then so should PTBIN1_RLBIN and PTBIN2_RLBIN
+          for observable in self.observable_list:
+            if observable == "corr_deltap":
+              getattr(self, hname.format(observable, 0, PTBIN0_RLBIN)).Fill(d_pair.jetpt, t_pair.jetpt, d_pair.deltap, t_pair.deltap)
+              getattr(self, hname.format(observable, 1, PTBIN1_RLBIN)).Fill(d_pair.jetpt, t_pair.jetpt, d_pair.deltap, t_pair.deltap)
+              getattr(self, hname.format(observable, 2, PTBIN2_RLBIN)).Fill(d_pair.jetpt, t_pair.jetpt, d_pair.deltap, t_pair.deltap)
+      
+            elif observable == "corr_deltapt":
+              getattr(self, hname.format(observable, 0, PTBIN0_RLBIN)).Fill(d_pair.jetpt, t_pair.jetpt, d_pair.deltapt, t_pair.deltapt)
+              getattr(self, hname.format(observable, 1, PTBIN1_RLBIN)).Fill(d_pair.jetpt, t_pair.jetpt, d_pair.deltapt, t_pair.deltapt)
+              getattr(self, hname.format(observable, 2, PTBIN2_RLBIN)).Fill(d_pair.jetpt, t_pair.jetpt, d_pair.deltapt, t_pair.deltapt)
+      
+            elif observable == "corr_deltapl":
+              getattr(self, hname.format(observable, 0, PTBIN0_RLBIN)).Fill(d_pair.jetpt, t_pair.jetpt, d_pair.deltapl, t_pair.deltapl)
+              getattr(self, hname.format(observable, 1, PTBIN1_RLBIN)).Fill(d_pair.jetpt, t_pair.jetpt, d_pair.deltapl, t_pair.deltapl)
+              getattr(self, hname.format(observable, 2, PTBIN2_RLBIN)).Fill(d_pair.jetpt, t_pair.jetpt, d_pair.deltapl, t_pair.deltapl)
+      
+            elif "weights" in observable:
+              getattr(self, hname.format(observable, 0, PTBIN0_RLBIN)).Fill(d_pair.jetpt, t_pair.jetpt, d_pair.weight, t_pair.weight)
+              getattr(self, hname.format(observable, 1, PTBIN1_RLBIN)).Fill(d_pair.jetpt, t_pair.jetpt, d_pair.weight, t_pair.weight)
+              getattr(self, hname.format(observable, 2, PTBIN2_RLBIN)).Fill(d_pair.jetpt, t_pair.jetpt, d_pair.weight, t_pair.weight)
+            
+            elif "charge" in observable:
+              getattr(self, hname.format(observable, 0, PTBIN0_RLBIN)).Fill(d_pair.jetpt, t_pair.jetpt, d_pair.charge, t_pair.charge)
+              getattr(self, hname.format(observable, 1, PTBIN1_RLBIN)).Fill(d_pair.jetpt, t_pair.jetpt, d_pair.charge, t_pair.charge)
+              getattr(self, hname.format(observable, 2, PTBIN2_RLBIN)).Fill(d_pair.jetpt, t_pair.jetpt, d_pair.charge, t_pair.charge)
+            
+      # if not match_found:
+      #   getattr(self, "response").Miss(t_pair.weight, t_pair.r, t_pair.pt)
+
+
+
+
+
 
   #---------------------------------------------------------------
   # This function is called per jet subconfigration 
@@ -945,7 +1135,7 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
       jet_pt_det = jet_det.perp()
 
     for observable in self.observable_list:
-      
+
       if cone_R == 0: # fill for jet constituents
         hname = 'h_matched_{{}}_JetPt_R{}_{{}}'.format(jetR)
         self.fill_matched_observable_histograms(hname, observable, jet_det, jet_det_groomed_lund, jetR, obs_setting, grooming_setting, obs_label, jet_pt_det, jet_pt_det)
@@ -954,13 +1144,14 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
         self.fill_matched_observable_histograms(hname, observable, jet_truth, jet_truth_groomed_lund, jetR, obs_setting, grooming_setting, obs_label, jet_pt_det, jet_truth.pt())
 
         # fill RL vs matched truth jet pT for det jets (only fill these extra histograms for ENC or pair distributions)
-        if 'ENC' in observable or 'EEC_noweight' in observable or 'EEC_weight2' in observable:
+        if 'ENC' in observable or 'EEC_noweight' in observable:
           hname = 'h_matched_extra_{{}}_JetPt_R{}_{{}}'.format(jetR)
           self.fill_matched_observable_histograms(hname, observable, jet_det, jet_det_groomed_lund, jetR, obs_setting, grooming_setting, obs_label, jet_pt_det, jet_truth.pt()) # NB: use the truth jet pt so the reco jets histograms are comparable to matched truth jets. However this also means that two identical histograms will be filled fot jet_pt observable
 
         # Fill correlation between matched det and truth jets
         if 'jet_pt' in observable:
-          hname = 'h_matched_{}_JetPt_Truth_vs_Det_R{}_{}'.format(observable, jetR, obs_label)
+          # hname = 'h_matched_{}_JetPt_Truth_vs_Det_R{}_{}'.format("1D"+observable, jetR, obs_label)
+          hname = 'hResponse_JetPt_{}_R{}_{}'.format(observable, jetR, obs_label)
           getattr(self, hname).Fill(jet_pt_det, jet_truth.pt())
 
       else: # fill for cone parts around jet
@@ -974,6 +1165,10 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
           hname = 'h_jetcone{}_matched_extra_{{}}_JetPt_R{}_{{}}'.format(cone_R, jetR)
           self.fill_matched_observable_histograms(hname, observable, jet_det, jet_det_groomed_lund, jetR, obs_setting, grooming_setting, obs_label, jet_pt_det, jet_truth.pt(), cone_parts_in_det_jet)          
 
+    # do response matrices here
+    hname = 'hResponse_JetPt_{{}}_PTBIN{{}}_RLBIN{{}}_R{}_{}'.format(jetR, obs_label)
+    self.fill_corr_response_matrices(hname, jet_det, jet_truth, jetR, obs_setting, grooming_setting, obs_label)
+      
 
     # # Find all subjets
     # trk_thrd = obs_setting

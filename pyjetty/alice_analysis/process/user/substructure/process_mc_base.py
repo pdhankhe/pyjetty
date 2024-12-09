@@ -384,11 +384,15 @@ class ProcessMCBase(process_base.ProcessBase):
         #   df_fjparticles_truth = df_fjparticles_truth[['fj_particle', 'ParticlePID']]
         # self.df_fjparticles = pandas.concat([df_fjparticles_det, df_fjparticles_truth], axis=1)
         # self.df_fjparticles.columns = ['fj_particles_det', 'ParticleMCIndex', 'fj_particles_truth', 'ParticlePID','ParticleRapidity']
+        '''# for D0 things
         self.df_fjparticles = pandas.concat([df_fjparticles_truth], axis=1)
         if self.use_D0_info:
           self.df_fjparticles.columns = ['fj_particles_truth', 'ParticlePID', 'MotherPID', 'ParticleRapidity']
         else:
           self.df_fjparticles.columns = ['fj_particles_truth', 'ParticlePID']
+        '''
+        self.df_fjparticles = pandas.concat([df_fjparticles_det, df_fjparticles_truth], axis=1)
+        self.df_fjparticles.columns = ['fj_particles_det', 'ParticleMCIndex', 'fj_particles_truth', 'ParticlePID']
         print('Merged output',self.df_fjparticles.columns)
         # print("RAPIDITY HERE!!", df_fjparticles_truth['ParticleRapidity'])
         # print("RAPIDITY HERE!!", self.df_fjparticles['ParticleRapidity'])
@@ -533,10 +537,10 @@ class ProcessMCBase(process_base.ProcessBase):
         if self.use_D0_info:
           result = [self.analyze_event_nodet(fj_particles_truth=fj_particles_truth, particles_pid_truth=particles_pid_truth, particles_rap_truth=particles_rap_truth, particles_mid_truth=particles_mid_truth) for fj_particles_truth, particles_pid_truth, particles_mid_truth, particles_rap_truth in zip(self.df_fjparticles['fj_particles_truth'], self.df_fjparticles['ParticlePID'], self.df_fjparticles['MotherPID'],self.df_fjparticles['ParticleRapidity'])]
         else:
-          #use no det for now...
+          #don't use no det for now...
           print("self.df_fjparticles", self.df_fjparticles)
-          result = [self.analyze_event_nodet(fj_particles_truth=fj_particles_truth, particles_pid_truth=particles_pid_truth) for fj_particles_truth, particles_pid_truth in zip(self.df_fjparticles['fj_particles_truth'], self.df_fjparticles['ParticlePID'])]
-          # result = [self.analyze_event(fj_particles_det=fj_particles_det, fj_particles_truth=fj_particles_truth, particles_mcid_det=particles_mcid_det, particles_pid_truth=particles_pid_truth) for fj_particles_det, fj_particles_truth, particles_mcid_det, particles_pid_truth in zip(self.df_fjparticles['fj_particles_det'], self.df_fjparticles['fj_particles_truth'], self.df_fjparticles['ParticleMCIndex'], self.df_fjparticles['ParticlePID'])]
+          # result = [self.analyze_event_nodet(fj_particles_truth=fj_particles_truth, particles_pid_truth=particles_pid_truth) for fj_particles_truth, particles_pid_truth in zip(self.df_fjparticles['fj_particles_truth'], self.df_fjparticles['ParticlePID'])]
+          result = [self.analyze_event(fj_particles_det=fj_particles_det, fj_particles_truth=fj_particles_truth, particles_mcid_det=particles_mcid_det, particles_pid_truth=particles_pid_truth) for fj_particles_det, fj_particles_truth, particles_mcid_det, particles_pid_truth in zip(self.df_fjparticles['fj_particles_det'], self.df_fjparticles['fj_particles_truth'], self.df_fjparticles['ParticleMCIndex'], self.df_fjparticles['ParticlePID'])]
     else:
         result = [self.analyze_event(fj_particles_det, fj_particles_truth) for fj_particles_det, fj_particles_truth in zip(self.df_fjparticles['fj_particles_det'], self.df_fjparticles['fj_particles_truth'])]
     
@@ -911,8 +915,8 @@ class ProcessMCBase(process_base.ProcessBase):
         jets_truth_selected = jet_selector_det(jets_truth)
         jets_truth_selected_matched = jet_selector_truth_matched(jets_truth)
       
-        # self.analyze_jets(jets_det_pp_selected, jets_truth_selected, jets_truth_selected_matched, jetR)
-        self.analyze_jets(jets_truth_selected, jetR)
+        self.analyze_jets(jets_det_pp_selected, jets_truth_selected, jets_truth_selected_matched, jetR)
+        # self.analyze_jets(jets_truth_selected, jetR)
         
         
       else:
@@ -1009,18 +1013,20 @@ class ProcessMCBase(process_base.ProcessBase):
   #---------------------------------------------------------------
   # Analyze jets of a given event.
   #---------------------------------------------------------------
-  # def analyze_jets(self, jets_det_selected, jets_truth_selected, jets_truth_selected_matched, jetR,
-  #                  jets_det_pp_selected = None, R_max = None,
-  #                  fj_particles_det_holes = None, fj_particles_truth_holes = None, rho_bge = 0, fj_particles_det_cones = None, fj_particles_truth_cones = None):
-  def analyze_jets(self, jets_truth_selected, jetR,
-                   fj_particles_truth_holes = None, rho_bge = 0, fj_particles_truth_cones = None):
+  def analyze_jets(self, jets_det_selected, jets_truth_selected, jets_truth_selected_matched, jetR,
+                   jets_det_pp_selected = None, R_max = None,
+                   fj_particles_det_holes = None, fj_particles_truth_holes = None, rho_bge = 0, fj_particles_det_cones = None, fj_particles_truth_cones = None):
+  # def analyze_jets(self, jets_truth_selected, jetR,
+  #                  fj_particles_truth_holes = None, rho_bge = 0, fj_particles_truth_cones = None):
   
     if self.debug_level > 1 and self.debug_level != 3:
       print('Number of det-level jets: {}'.format(len(jets_det_selected)))
     
-    ''' # i dont care about det-level
+    # i dont care about det-level
     # Fill det-level jet histograms (before matching)
-    for jet_det in jets_det_selected:
+    for ijet,jet_det in enumerate(jets_det_selected):
+
+      self.ijet = ijet
       
       # Check additional acceptance criteria
       # skip event if not satisfied -- since first jet in event is highest pt
@@ -1032,7 +1038,7 @@ class ProcessMCBase(process_base.ProcessBase):
         return
       
       self.fill_det_before_matching(jet_det, jetR, R_max, rho_bge)
-    ''' 
+    
   
     # Fill truth-level jet histograms (before matching)
     for ijet,jet_truth in enumerate(jets_truth_selected):
@@ -1049,8 +1055,9 @@ class ProcessMCBase(process_base.ProcessBase):
       if self.is_pp or self.fill_Rmax_indep_hists:
         self.fill_truth_before_matching(jet_truth, jetR)
 
-    ''' #i dont care about matching or det level!
+    #i dont care about matching or det level! -- NOW I DO
   
+    # NOW DO MATCHING!
     # Loop through jets and set jet matching candidates for each jet in user_info
     if self.is_pp:
         [[self.set_matching_candidates(jet_det, jet_truth, jetR, 'hDeltaR_All_R{}'.format(jetR)) for jet_truth in jets_truth_selected_matched] for jet_det in jets_det_selected]
@@ -1077,7 +1084,7 @@ class ProcessMCBase(process_base.ProcessBase):
           
     # Loop through jets and fill response histograms if both det and truth jets are unique match
     result = [self.fill_jet_matches(jet_det, jetR, R_max, fj_particles_det_holes, fj_particles_truth_holes, rho_bge, fj_particles_det_cones, fj_particles_truth_cones) for jet_det in jets_det_selected]
-    ''' 
+    
 
   #---------------------------------------------------------------
   # Fill some background histograms
@@ -1161,15 +1168,17 @@ class ProcessMCBase(process_base.ProcessBase):
     
     # Fill groomed histograms
     if self.thermal_model:
-      hname = 'h_{{}}_JetPt_R{}_{{}}_Rmax{}'.format(jetR, R_max)
+      # hname = 'h_{{}}_JetPt_R{}_{{}}_Rmax{}'.format(jetR, R_max)
+      hname = 'h_{{}}_JetPt_Det_R{}_{{}}_Rmax{}'.format(jetR, R_max)
       self.fill_unmatched_jet_histograms(jet, jetR, hname, rho_bge)
 
     if self.is_pp:
-      hname = 'h_{{}}_JetPt_R{}_{{}}'.format(jetR)
+      hname = 'h_{{}}_JetPt_Det_R{}_{{}}'.format(jetR)
       self.fill_unmatched_jet_histograms(jet, jetR, hname, rho_bge)
 
     if self.do_rho_subtraction:
-      hname = 'h_{{}}_JetPt_R{}_{{}}'.format(jetR)
+      # hname = 'h_{{}}_JetPt_R{}_{{}}'.format(jetR)
+      hname = 'h_{{}}_JetPt_Det_R{}_{{}}'.format(jetR)
       self.fill_unmatched_jet_histograms(jet, jetR, hname, rho_bge)
   
   #---------------------------------------------------------------
