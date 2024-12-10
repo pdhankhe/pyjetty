@@ -1054,11 +1054,11 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
               PTBIN0_RLBIN = a
               break
           for b in range(5):
-            if pair_RL_value > PTBIN0_RLBINS[b] and pair_RL_value <= PTBIN0_RLBINS[b+1]:
+            if pair_RL_value > PTBIN1_RLBINS[b] and pair_RL_value <= PTBIN1_RLBINS[b+1]:
               PTBIN1_RLBIN = b
               break
           for c in range(5):
-            if pair_RL_value > PTBIN0_RLBINS[c] and pair_RL_value <= PTBIN0_RLBINS[c+1]:
+            if pair_RL_value > PTBIN2_RLBINS[c] and pair_RL_value <= PTBIN2_RLBINS[c+1]:
               PTBIN2_RLBIN = c
               break
 
