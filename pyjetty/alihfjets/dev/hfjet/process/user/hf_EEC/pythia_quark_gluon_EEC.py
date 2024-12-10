@@ -1075,6 +1075,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			
 			
 			#print out weights here
+			#below line is important for EEC - for reading output
 			# for index in range(new_corr.correlator(2).rs().size()):
 			#     print("weight", new_corr.correlator(2).weights()[index])
 
