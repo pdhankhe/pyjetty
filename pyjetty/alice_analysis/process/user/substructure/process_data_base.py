@@ -246,7 +246,7 @@ class ProcessDataBase(process_base.ProcessBase):
     print('Fill track histograms')
     for fj_particles in self.df_fjparticles:
       for track in fj_particles:
-        self.fillTrackHistograms(track)
+        self.fillTrackHistograms(track) #if something breaks at this line, there are probably no particles in this file!
     print('--- {} seconds ---'.format(time.time() - self.start_time))
 
     print('Find jets...')

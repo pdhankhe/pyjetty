@@ -37,7 +37,7 @@ class ProcessIO(common_base.CommonBase):
                track_tree_name='tree_Particle', event_tree_name='tree_event_char', #D0_tree_name='tree_D0_gen',
                output_dir='', is_pp=True, min_cent=0., max_cent=10.,
                use_ev_id_ext=True, use_D0_info=False, using_dstar=False, is_jetscape=False, holes=False,
-               event_plane_range=None, skip_event_tree=False, is_ENC=False, is_det_level=False, **kwargs):
+               event_plane_range=None, skip_event_tree=False, is_ENC=False, is_det_level=False, is_mcprod=False, **kwargs):
     super(ProcessIO, self).__init__(**kwargs)
     self.input_file = input_file
     self.output_dir = output_dir
@@ -57,6 +57,7 @@ class ProcessIO(common_base.CommonBase):
     self.skip_event_tree = skip_event_tree
     self.is_ENC = is_ENC
     self.is_det_level = is_det_level
+    self.is_mcprod = is_mcprod
     if len(output_dir) and output_dir[-1] != '/':
       self.output_dir += '/'
     self.reset_dataframes()
@@ -83,12 +84,22 @@ class ProcessIO(common_base.CommonBase):
     if is_jetscape:
         self.track_columns += ['status']
     if is_ENC:
+        print("hello 1")
         if is_det_level:
+          print("hello 2")
           self.track_columns += ['ParticleMCIndex']
         else:
+          print("hello 3")
           self.track_columns += ['ParticlePID']
     else:
+      print("hello 4")
       self.track_columns += ['ParticleCharge']
+
+    # could get rid of this later. Also this is not currently compatible with D0
+    if is_mcprod:
+      print("hello 5")
+      self.track_columns += ['ParticleMCid']
+
     print("USE D0 INFO IS SET TO", self.use_D0_info)
     if self.use_D0_info:
       print("entering here????")
@@ -435,6 +446,15 @@ class ProcessIO(common_base.CommonBase):
             df_fjparticles = pandas.DataFrame({"fj_particle": df_fjparticles_orig, "ParticlePID": df_fjparticles_aux, "MotherPID": df_fjparticles_aux2, "ParticleRapidity": df_fjparticles_aux3})
           else:
             df_fjparticles = pandas.DataFrame({"fj_particle": df_fjparticles_orig, "ParticlePID": df_fjparticles_aux})
+      elif self.is_mcprod:
+        df_fjparticles_orig = track_df_grouped.apply(
+        self.get_fjparticles, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
+        df_fjparticles_aux1 = track_df_grouped.apply(
+        self.get_particles_charge, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
+        df_fjparticles_aux2 = track_df_grouped.apply(
+        self.get_particles_mcid, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
+        df_fjparticles = pandas.DataFrame({"fj_particle": df_fjparticles_orig, "ParticleCharge": df_fjparticles_aux1, "ParticleMCid": df_fjparticles_aux2})
+
       else:
         df_fjparticles = track_df_grouped.apply(
         self.get_fjparticles, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
@@ -607,3 +627,31 @@ class ProcessIO(common_base.CommonBase):
     m_array = np.full((df_tracks_accepted['ParticlePt'].values.size), m)
 
     return df_tracks_accepted['MotherPID'].values
+  
+  def get_particles_charge(self, df_tracks, m, offset_indices=False, random_mass=False, min_pt=0.):
+    
+    # If offset_indices is true, then offset the user_index by a large negative value
+    user_index_offset = 0
+    if offset_indices:
+        user_index_offset = int(-1e6)
+        
+    # Apply a pt cut
+    df_tracks_accepted = df_tracks[df_tracks.ParticlePt > min_pt]
+
+    m_array = np.full((df_tracks_accepted['ParticlePt'].values.size), m)
+
+    return df_tracks_accepted['ParticleCharge'].values
+
+  def get_particles_mcid(self, df_tracks, m, offset_indices=False, random_mass=False, min_pt=0.):
+    
+    # If offset_indices is true, then offset the user_index by a large negative value
+    user_index_offset = 0
+    if offset_indices:
+        user_index_offset = int(-1e6)
+        
+    # Apply a pt cut
+    df_tracks_accepted = df_tracks[df_tracks.ParticlePt > min_pt]
+
+    m_array = np.full((df_tracks_accepted['ParticlePt'].values.size), m)
+
+    return df_tracks_accepted['ParticleMCid'].values

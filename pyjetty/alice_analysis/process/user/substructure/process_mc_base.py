@@ -88,6 +88,12 @@ class ProcessMCBase(process_base.ProcessBase):
       self.ENC_fastsim = False  
     if self.ENC_fastsim == True:
       self.pair_eff_file = config['pair_eff_file'] # load pair efficiency input for fastsim
+
+    if 'mc_prod' in config:
+      self.mcprod = config['mc_prod']
+    else:
+      self.mcprod = False
+    
     if 'ENC_pair_cut' in config:
         self.ENC_pair_cut = config['ENC_pair_cut']
     else:
@@ -205,7 +211,7 @@ class ProcessMCBase(process_base.ProcessBase):
 
     io_det = process_io.ProcessIO(input_file=self.input_file, tree_dir=tree_dir,
                                   track_tree_name='tree_Particle', use_ev_id_ext=False,
-                                  is_jetscape=self.jetscape, event_plane_range=self.event_plane_range, is_ENC=self.ENC_fastsim, is_det_level=True)
+                                  is_jetscape=self.jetscape, event_plane_range=self.event_plane_range, is_ENC=self.ENC_fastsim, is_det_level=True, is_mcprod=self.mcprod)
     df_fjparticles_det = io_det.load_data(m=self.m, reject_tracks_fraction=self.reject_tracks_fraction)
     self.nEvents_det = len(df_fjparticles_det.index)
     self.nTracks_det = len(io_det.track_df.index)
@@ -213,14 +219,14 @@ class ProcessMCBase(process_base.ProcessBase):
     
     # If jetscape, store also the negative status particles (holes)
     if self.jetscape:
-        io_det_holes = process_io.ProcessIO(input_file=self.input_file, tree_dir=tree_dir,
-                                           track_tree_name='tree_Particle', use_ev_id_ext=False,
-                                            is_jetscape=self.jetscape, holes=True,
-                                            event_plane_range=self.event_plane_range)
-        df_fjparticles_det_holes = io_det_holes.load_data(m=self.m, reject_tracks_fraction=self.reject_tracks_fraction)
-        self.nEvents_det_holes = len(df_fjparticles_det_holes.index)
-        self.nTracks_det_holes = len(io_det_holes.track_df.index)
-        print('--- {} seconds ---'.format(time.time() - self.start_time))
+      io_det_holes = process_io.ProcessIO(input_file=self.input_file, tree_dir=tree_dir,
+                                          track_tree_name='tree_Particle', use_ev_id_ext=False,
+                                          is_jetscape=self.jetscape, holes=True,
+                                          event_plane_range=self.event_plane_range)
+      df_fjparticles_det_holes = io_det_holes.load_data(m=self.m, reject_tracks_fraction=self.reject_tracks_fraction)
+      self.nEvents_det_holes = len(df_fjparticles_det_holes.index)
+      self.nTracks_det_holes = len(io_det_holes.track_df.index)
+      print('--- {} seconds ---'.format(time.time() - self.start_time))
     
     
     # ------------------------------------------------------------------------
@@ -230,7 +236,7 @@ class ProcessMCBase(process_base.ProcessBase):
     
     io_truth = process_io.ProcessIO(input_file=self.input_file, tree_dir=tree_dir,
                                     track_tree_name='tree_Particle_gen', use_ev_id_ext=False, use_D0_info=self.use_D0_info,
-                                    is_jetscape=self.jetscape, event_plane_range=self.event_plane_range, is_ENC=self.ENC_fastsim, is_det_level=False)
+                                    is_jetscape=self.jetscape, event_plane_range=self.event_plane_range, is_ENC=self.ENC_fastsim, is_det_level=False, is_mcprod=self.mcprod)
     df_fjparticles_truth = io_truth.load_data(m=self.m) # no dropping of tracks at truth level (important for the det-truth association because the index of the truth particle is used)
     self.nEvents_truth = len(df_fjparticles_truth.index)
     self.nTracks_truth = len(io_truth.track_df.index)
@@ -240,14 +246,14 @@ class ProcessMCBase(process_base.ProcessBase):
     
     # If jetscape, store also the negative status particles (holes)
     if self.jetscape:
-        io_truth_holes = process_io.ProcessIO(input_file=self.input_file, tree_dir=tree_dir,
-                                              track_tree_name='tree_Particle_gen', use_ev_id_ext=False,
-                                              is_jetscape=self.jetscape, holes=True,
-                                              event_plane_range=self.event_plane_range)
-        df_fjparticles_truth_holes = io_truth_holes.load_data(m=self.m, reject_tracks_fraction=self.reject_tracks_fraction)
-        self.nEvents_truth_holes = len(df_fjparticles_truth_holes.index)
-        self.nTracks_truth_holes = len(io_truth_holes.track_df.index)
-        print('--- {} seconds ---'.format(time.time() - self.start_time))
+      io_truth_holes = process_io.ProcessIO(input_file=self.input_file, tree_dir=tree_dir,
+                                            track_tree_name='tree_Particle_gen', use_ev_id_ext=False,
+                                            is_jetscape=self.jetscape, holes=True,
+                                            event_plane_range=self.event_plane_range)
+      df_fjparticles_truth_holes = io_truth_holes.load_data(m=self.m, reject_tracks_fraction=self.reject_tracks_fraction)
+      self.nEvents_truth_holes = len(df_fjparticles_truth_holes.index)
+      self.nTracks_truth_holes = len(io_truth_holes.track_df.index)
+      print('--- {} seconds ---'.format(time.time() - self.start_time))
 
     #if D0, replace all kaon/pion pairs with the D0 here! //TODO: save d0 rapidity!
     # start by getting the D0s
@@ -377,36 +383,47 @@ class ProcessMCBase(process_base.ProcessBase):
     # print('debug df_fjparticles_det',df_fjparticles_det)
     # print('debug df_fjparticles_truth',df_fjparticles_truth)
     if self.jetscape:
-        self.df_fjparticles = pandas.concat([df_fjparticles_det, df_fjparticles_truth, df_fjparticles_det_holes, df_fjparticles_truth_holes], axis=1)
-        self.df_fjparticles.columns = ['fj_particles_det', 'fj_particles_truth', 'fj_particles_det_holes', 'fj_particles_truth_holes']
+      self.df_fjparticles = pandas.concat([df_fjparticles_det, df_fjparticles_truth, df_fjparticles_det_holes, df_fjparticles_truth_holes], axis=1)
+      self.df_fjparticles.columns = ['fj_particles_det', 'fj_particles_truth', 'fj_particles_det_holes', 'fj_particles_truth_holes']
     elif self.ENC_fastsim:
-        # if self.use_D0_info:
-        #   df_fjparticles_truth = df_fjparticles_truth[['fj_particle', 'ParticlePID']]
-        # self.df_fjparticles = pandas.concat([df_fjparticles_det, df_fjparticles_truth], axis=1)
-        # self.df_fjparticles.columns = ['fj_particles_det', 'ParticleMCIndex', 'fj_particles_truth', 'ParticlePID','ParticleRapidity']
-        '''# for D0 things
-        self.df_fjparticles = pandas.concat([df_fjparticles_truth], axis=1)
-        if self.use_D0_info:
-          self.df_fjparticles.columns = ['fj_particles_truth', 'ParticlePID', 'MotherPID', 'ParticleRapidity']
-        else:
-          self.df_fjparticles.columns = ['fj_particles_truth', 'ParticlePID']
-        '''
-        self.df_fjparticles = pandas.concat([df_fjparticles_det, df_fjparticles_truth], axis=1)
-        self.df_fjparticles.columns = ['fj_particles_det', 'ParticleMCIndex', 'fj_particles_truth', 'ParticlePID']
-        print('Merged output',self.df_fjparticles.columns)
-        # print("RAPIDITY HERE!!", df_fjparticles_truth['ParticleRapidity'])
-        # print("RAPIDITY HERE!!", self.df_fjparticles['ParticleRapidity'])
-        print(self.df_fjparticles)
+      # if self.use_D0_info:
+      #   df_fjparticles_truth = df_fjparticles_truth[['fj_particle', 'ParticlePID']]
+      # self.df_fjparticles = pandas.concat([df_fjparticles_det, df_fjparticles_truth], axis=1)
+      # self.df_fjparticles.columns = ['fj_particles_det', 'ParticleMCIndex', 'fj_particles_truth', 'ParticlePID','ParticleRapidity']
+      '''# for D0 things
+      self.df_fjparticles = pandas.concat([df_fjparticles_truth], axis=1)
+      if self.use_D0_info:
+        self.df_fjparticles.columns = ['fj_particles_truth', 'ParticlePID', 'MotherPID', 'ParticleRapidity']
+      else:
+        self.df_fjparticles.columns = ['fj_particles_truth', 'ParticlePID']
+      '''
+      self.df_fjparticles = pandas.concat([df_fjparticles_det, df_fjparticles_truth], axis=1)
+      self.df_fjparticles.columns = ['fj_particles_det', 'ParticleMCIndex', 'fj_particles_truth', 'ParticlePID']
+      print('Merged output',self.df_fjparticles.columns)
+      # print("RAPIDITY HERE!!", df_fjparticles_truth['ParticleRapidity'])
+      # print("RAPIDITY HERE!!", self.df_fjparticles['ParticleRapidity'])
+      print(self.df_fjparticles)
+    elif self.mcprod:
+      print("df fj particles det")
+      print(df_fjparticles_det)
+      print("df fj particles truth")
+      print(df_fjparticles_truth)
+      self.df_fjparticles = pandas.concat([df_fjparticles_det, df_fjparticles_truth], axis=1)
+      self.df_fjparticles.columns = ['fj_particles_det', 'ParticleCharge_det', 'ParticleMCid_det', 'fj_particles_truth', 'ParticleCharge_truth', 'ParticleMCid_truth']
+      print('Merged output',self.df_fjparticles.columns)
+      print(self.df_fjparticles)
+      print("last 20 rows")
+      print(self.df_fjparticles[-20:])
     else:
-        self.df_fjparticles = pandas.concat([df_fjparticles_det, df_fjparticles_truth], axis=1)
-        self.df_fjparticles.columns = ['fj_particles_det', 'fj_particles_truth']
+      self.df_fjparticles = pandas.concat([df_fjparticles_det, df_fjparticles_truth], axis=1)
+      self.df_fjparticles.columns = ['fj_particles_det', 'fj_particles_truth']
     print('--- {} seconds ---'.format(time.time() - self.start_time))
 
     # ------------------------------------------------------------------------
     
     # Set up the Pb-Pb embedding object
     if not self.is_pp and not self.thermal_model:
-        self.process_io_emb = process_io_emb.ProcessIO_Emb(self.emb_file_list, track_tree_name='tree_Particle', m=self.m)
+      self.process_io_emb = process_io_emb.ProcessIO_Emb(self.emb_file_list, track_tree_name='tree_Particle', m=self.m)
     
     # ------------------------------------------------------------------------
 
@@ -532,17 +549,20 @@ class ProcessMCBase(process_base.ProcessBase):
     # Then can use list comprehension to iterate over the groupby and do jet-finding
     # simultaneously for fj_1 and fj_2 per event, so that I can match jets -- and fill histograms
     if self.jetscape:
-        result = [self.analyze_event(fj_particles_det, fj_particles_truth, fj_particles_det_holes, fj_particles_truth_holes) for fj_particles_det, fj_particles_truth, fj_particles_det_holes, fj_particles_truth_holes in zip(self.df_fjparticles['fj_particles_det'], self.df_fjparticles['fj_particles_truth'], self.df_fjparticles['fj_particles_det_holes'], self.df_fjparticles['fj_particles_truth_holes'])]
+      result = [self.analyze_event(fj_particles_det, fj_particles_truth, fj_particles_det_holes, fj_particles_truth_holes) for fj_particles_det, fj_particles_truth, fj_particles_det_holes, fj_particles_truth_holes in zip(self.df_fjparticles['fj_particles_det'], self.df_fjparticles['fj_particles_truth'], self.df_fjparticles['fj_particles_det_holes'], self.df_fjparticles['fj_particles_truth_holes'])]
     elif self.ENC_fastsim:
-        if self.use_D0_info:
-          result = [self.analyze_event_nodet(fj_particles_truth=fj_particles_truth, particles_pid_truth=particles_pid_truth, particles_rap_truth=particles_rap_truth, particles_mid_truth=particles_mid_truth) for fj_particles_truth, particles_pid_truth, particles_mid_truth, particles_rap_truth in zip(self.df_fjparticles['fj_particles_truth'], self.df_fjparticles['ParticlePID'], self.df_fjparticles['MotherPID'],self.df_fjparticles['ParticleRapidity'])]
-        else:
-          #don't use no det for now...
-          print("self.df_fjparticles", self.df_fjparticles)
-          # result = [self.analyze_event_nodet(fj_particles_truth=fj_particles_truth, particles_pid_truth=particles_pid_truth) for fj_particles_truth, particles_pid_truth in zip(self.df_fjparticles['fj_particles_truth'], self.df_fjparticles['ParticlePID'])]
-          result = [self.analyze_event(fj_particles_det=fj_particles_det, fj_particles_truth=fj_particles_truth, particles_mcid_det=particles_mcid_det, particles_pid_truth=particles_pid_truth) for fj_particles_det, fj_particles_truth, particles_mcid_det, particles_pid_truth in zip(self.df_fjparticles['fj_particles_det'], self.df_fjparticles['fj_particles_truth'], self.df_fjparticles['ParticleMCIndex'], self.df_fjparticles['ParticlePID'])]
+      if self.use_D0_info:
+        result = [self.analyze_event_nodet(fj_particles_truth=fj_particles_truth, particles_pid_truth=particles_pid_truth, particles_rap_truth=particles_rap_truth, particles_mid_truth=particles_mid_truth) for fj_particles_truth, particles_pid_truth, particles_mid_truth, particles_rap_truth in zip(self.df_fjparticles['fj_particles_truth'], self.df_fjparticles['ParticlePID'], self.df_fjparticles['MotherPID'],self.df_fjparticles['ParticleRapidity'])]
+      else:
+        #don't use no det for now...
+        print("self.df_fjparticles", self.df_fjparticles)
+        # result = [self.analyze_event_nodet(fj_particles_truth=fj_particles_truth, particles_pid_truth=particles_pid_truth) for fj_particles_truth, particles_pid_truth in zip(self.df_fjparticles['fj_particles_truth'], self.df_fjparticles['ParticlePID'])]
+        result = [self.analyze_event(fj_particles_det=fj_particles_det, fj_particles_truth=fj_particles_truth, particles_mcid_det=particles_mcid_det, particles_pid_truth=particles_pid_truth) for fj_particles_det, fj_particles_truth, particles_mcid_det, particles_pid_truth in zip(self.df_fjparticles['fj_particles_det'], self.df_fjparticles['fj_particles_truth'], self.df_fjparticles['ParticleMCIndex'], self.df_fjparticles['ParticlePID'])]
+    elif self.mcprod:
+      self.crazycounter = 0
+      result = [self.analyze_event(fj_particles_det=fj_particles_det, fj_particles_truth=fj_particles_truth, particles_mcid_det=particles_mcid_det, particles_mcid_truth=particles_mcid_truth, particles_charge_det=particles_charge_det, particles_charge_truth=particles_charge_truth) for fj_particles_det, fj_particles_truth, particles_mcid_det, particles_mcid_truth, particles_charge_det, particles_charge_truth in zip(self.df_fjparticles['fj_particles_det'], self.df_fjparticles['fj_particles_truth'], self.df_fjparticles['ParticleMCid_det'], self.df_fjparticles['ParticleMCid_truth'], self.df_fjparticles['ParticleCharge_det'], self.df_fjparticles['ParticleCharge_truth'])]
     else:
-        result = [self.analyze_event(fj_particles_det, fj_particles_truth) for fj_particles_det, fj_particles_truth in zip(self.df_fjparticles['fj_particles_det'], self.df_fjparticles['fj_particles_truth'])]
+      result = [self.analyze_event(fj_particles_det, fj_particles_truth) for fj_particles_det, fj_particles_truth in zip(self.df_fjparticles['fj_particles_det'], self.df_fjparticles['fj_particles_truth'])]
     
     if self.debug_level > 0:
       for attr in dir(self):
@@ -714,7 +734,8 @@ class ProcessMCBase(process_base.ProcessBase):
 
         
       
-  def analyze_event(self, fj_particles_det, fj_particles_truth, fj_particles_det_holes=None, fj_particles_truth_holes=None, particles_mcid_det=None, particles_pid_truth=None):
+  def analyze_event(self, fj_particles_det, fj_particles_truth, fj_particles_det_holes=None, fj_particles_truth_holes=None, particles_mcid_det=None, particles_mcid_truth=None,
+                    particles_charge_det=None, particles_charge_truth=None, particles_pid_truth=None):
   
     self.event_number += 1
     if self.event_number > self.event_number_max:
@@ -785,6 +806,35 @@ class ProcessMCBase(process_base.ProcessBase):
             ecorr_user_info = jet_info.JetInfo()
           ecorr_user_info.particle_truth = fj_particles_truth[index]
           ecorr_user_info.charge = particles_charge_truth[index]
+          fj_particles_truth[index].set_python_info(ecorr_user_info)
+          # fj_particles_truth[index].set_user_index(int(index))
+
+      if self.mcprod:
+        # save det level information first
+        # print("particles mc id det", self.crazycounter, "and", particles_mcid_det)
+        if isinstance(particles_mcid_det, float) and np.isnan(particles_mcid_det):
+          print("Nan value - no detector level particles in this event.")
+        else:
+          # len(particles_mcid_det) >= 1 #there might be some events with no detector level particles, so this is to account for those
+          for index, mcid in enumerate(particles_mcid_det):
+            if fj_particles_det[index].has_user_info():
+              ecorr_user_info = fj_particles_det[index].python_info()
+            else:
+              ecorr_user_info = jet_info.JetInfo()
+            ecorr_user_info.particle_mcid = int(mcid)
+            ecorr_user_info.charge = int(particles_charge_det[index])
+            fj_particles_det[index].set_python_info(ecorr_user_info)
+            # fj_particles_det[index].set_user_index(int(mcid))
+            # self.crazycounter += 1
+
+        # now save truth level information
+        for index, mcid in enumerate(particles_mcid_truth):
+          if fj_particles_truth[index].has_user_info():
+            ecorr_user_info = fj_particles_truth[index].python_info()
+          else:
+            ecorr_user_info = jet_info.JetInfo()
+          ecorr_user_info.particle_mcid = int(mcid)
+          ecorr_user_info.charge = int(particles_charge_truth[index] / 3) #for some reason charge is saved as a multiple of 3?
           fj_particles_truth[index].set_python_info(ecorr_user_info)
           # fj_particles_truth[index].set_user_index(int(index))
 
@@ -888,7 +938,20 @@ class ProcessMCBase(process_base.ProcessBase):
               fj_particles_det_ch.append(part)
           cs_det = fj.ClusterSequence(fj_particles_det_ch, jet_def)
         else:
+          if isinstance(fj_particles_det, float) and np.isnan(fj_particles_det): #make no detector level particles event into an empty PJ array
+            fj_particles_det = fj.vectorPJ()  
           cs_det = fj.ClusterSequence(fj_particles_det, jet_def)
+        
+        # print("here")
+        [print("here charge wrong", p.python_info().charge) for p in fj_particles_truth if np.abs(p.python_info().charge) != 1 ]
+        # print("here", [p.user_index() for p in fj_particles_truth])
+        # print([p.user_index() for p in fj_particles_det])
+        # print([p.pt() for p in fj_particles_truth])
+        # print([p.pt() for p in fj_particles_det])
+        # print([p.python_info().particle_mcid for p in fj_particles_truth])
+        # print([p.python_info().particle_mcid for p in fj_particles_det])
+        # print([p.python_info().charge for p in fj_particles_truth])
+        # print([p.python_info().charge for p in fj_particles_det])
         
         jets_det_pp = fj.sorted_by_pt(cs_det.inclusive_jets())
         # make sure the user info (on the jet side) for jets are all empty right after the jet-clustering 

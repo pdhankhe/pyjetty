@@ -49,8 +49,8 @@ def logbins(xmin, xmax, nbins):
 
 ################################################################
 class EEC_pair:
-  def __init__(self, _index1, _index2, _weight, _r, _jetpt, _deltap, _deltapt, _deltapl, _charge):
-    self.index1 = _index1
+  def __init__(self, _index1, _index2, _weight, _r, _jetpt, _deltap, _deltapt, _deltapl, _charge, _mcid1, _mcid2):
+    self.index1 = _index1 #kyle's indexing
     self.index2 = _index2
     self.weight = _weight
     self.r = _r
@@ -59,10 +59,21 @@ class EEC_pair:
     self.deltapt = _deltapt
     self.deltapl = _deltapl
     self.charge = _charge
+    self.mcid1 = _mcid1 # my indexing
+    self.mcid2 = _mcid2
 
   def is_equal(self, pair2):
-    return (self.index1 == pair2.index1 and self.index2 == pair2.index2) \
-        or (self.index1 == pair2.index2 and self.index2 == pair2.index1)
+    # print("is equal index 1", self.index1, pair2.index1, self.index2, pair2.index2)
+    # if (self.index1 == pair2.index1 and self.index2 == pair2.index2) \
+    #     or (self.index1 == pair2.index2 and self.index2 == pair2.index1):
+    #   print((self.index1 == pair2.index1 and self.index2 == pair2.index2), (self.index1 == pair2.index2 and self.index2 == pair2.index1))
+    # return (self.index1 == pair2.index1 and self.index2 == pair2.index2) \
+    #     or (self.index1 == pair2.index2 and self.index2 == pair2.index1)
+
+    # print("is equal mcid", self.mcid1, pair2.mcid1, self.mcid2, pair2.mcid2)
+    # print((self.mcid1 == pair2.mcid1 and self.mcid2 == pair2.mcid2), (self.mcid1 == pair2.mcid2 and self.mcid2 == pair2.mcid1))
+    return (self.mcid1 == pair2.mcid1 and self.mcid2 == pair2.mcid2) \
+        or (self.mcid1 == pair2.mcid2 and self.mcid2 == pair2.mcid1)
 
   def __str__(self):
     return "EEC pair with (index1, index2, weight, RL, jetpt) = (" + \
@@ -703,7 +714,10 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
       samecharge_boolean = self.is_same_charge(cb, ipoint, _v, i)
       pair_q1q2 = 1 if samecharge_boolean else -1
 
-      pairs.append(EEC_pair(event_index1, event_index2, EEC_weights[i], EEC_rs[i], jet_pt, deltap_rs[i], deltapt_rs[i], deltapl_rs[i], pair_q1q2))
+      mcid1 = _v[EEC_indicies1[i]].python_info().particle_mcid
+      mcid2 = _v[EEC_indicies2[i]].python_info().particle_mcid
+
+      pairs.append(EEC_pair(event_index1, event_index2, EEC_weights[i], EEC_rs[i], jet_pt, deltap_rs[i], deltapt_rs[i], deltapl_rs[i], pair_q1q2, mcid1, mcid2))
 
     return pairs
 

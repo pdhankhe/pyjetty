@@ -32,6 +32,7 @@ class JetInfo(common_base.CommonBase):
     self.particle_pid = 0 # Store the particle PID, need for D0 identification
     self.particle_rap = 9999. #Store the particle rapidity, needed for D0 cuts
     self.particle_mid = 0 # Store the particle's mother's PID, need for D0 parent identification
+    self.particle_mcid = 0 # Store the particle's monte carlo ID (i assume this is index?) -- only for MC, and only used in MC anchored production so far
 
   def clear_jet_info(self):
     self.matching_candidates.clear()
@@ -45,6 +46,7 @@ class JetInfo(common_base.CommonBase):
     self.particle_pid = 0
     self.particle_rapi = 9999.
     self.particle_mid = 0
+    self.particle_mcid = 0
 
   def clear(self):
     self.matching_candidates.clear()
@@ -57,3 +59,4 @@ class JetInfo(common_base.CommonBase):
     self.particle_pid = 0
     self.particle_rapi = 9999.
     self.particle_mid = 0
+    self.particle_mcid = 0
