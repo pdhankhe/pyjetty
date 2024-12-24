@@ -4,16 +4,17 @@
 #SBATCH --nodes=1 --ntasks=1 --cpus-per-task=1
 #SBATCH --partition=std
 #SBATCH --time=24:00:00
-#SBATCH --array=1-640
+#SBATCH --array=1-853
 #SBATCH --output=/rstorage/alice/AnalysisResults/blianggi/dEEC/slurm-%A_%a.out
 
 
-FILE_PATHS='/software/users/blianggi/mypyjetty/dEEC/filelist_LHC17pq_779.txt'
+# FILE_PATHS='/software/users/blianggi/mypyjetty/dEEC/filelist_LHC17pq_779.txt'
+FILE_PATHS='/software/users/blianggi/mypyjetty/dEEC/filelist_LHC17pq_pass2_807.txt'
 NFILES=$(wc -l < $FILE_PATHS)
 echo "N files to process: ${NFILES}"
 
 # Currently we have 8 nodes * 20 cores active
-FILES_PER_JOB=$(( $NFILES / 640 + 1 ))
+FILES_PER_JOB=1 #$(( $NFILES / 640 + 1 ))
 echo "Files per job: $FILES_PER_JOB"
 
 STOP=$(( SLURM_ARRAY_TASK_ID * FILES_PER_JOB ))
