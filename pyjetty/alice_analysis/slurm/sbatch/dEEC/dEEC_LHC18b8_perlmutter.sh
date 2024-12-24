@@ -30,7 +30,7 @@ fi
 OUTPUT_BASEPATH="/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice"
 OUTPUT_PREFIX="AnalysisResults/blianggi/dEEC/$JOB_ID"
 # Note: depends on file structure of input file -- need to edit appropriately for each dataset
-OUTPUT_SUFFIX=$(echo $INPUT_FILE | cut -d/ -f13-16) # results in i.e. "LHC18b8_cent_woSDD/10/282031/0002"
+OUTPUT_SUFFIX=$(echo $INPUT_FILE | cut -d/ -f13-16) # results in i.e. "LHC23a3c/7/282367/0002" ##"LHC18b8_cent_woSDD/10/282031/0002"
 #echo $OUTPUT_SUFFIX
 OUTPUT_DIR="$OUTPUT_BASEPATH/$OUTPUT_PREFIX/$OUTPUT_SUFFIX/" #TODO: check and fix this!!
 mkdir -p $OUTPUT_DIR

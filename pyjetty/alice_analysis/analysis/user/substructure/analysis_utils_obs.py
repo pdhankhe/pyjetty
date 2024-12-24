@@ -47,6 +47,16 @@ class AnalysisUtils_Obs(analysis_utils.AnalysisUtils):
       return '#it{#alpha}'
     elif observable == 'mass':
       return '#it{m}_{jet}'
+    elif observable == 'corr_deltap':
+      return '#Deltap'
+    elif observable == 'corr_deltapt':
+      return '#Deltap_{T}'
+    elif observable == 'corr_deltapl':
+      return '#Deltap_{L}'
+    elif observable == 'corr_energyweights':
+      return '#frac{p_{T,i}p_{T,j}}{p_{T,jet}^{2}}'
+    elif observable == 'corr_charge':
+      return 'q_{1}q_{2}'
 
     # Else observable not implemented
     return None
@@ -84,6 +94,16 @@ class AnalysisUtils_Obs(analysis_utils.AnalysisUtils):
       #return math.pow(content, 1 + prior_variation_parameter)
       # Option 2: linear scaling of distributions
       return prior_variation_parameter * (2 * obs_true - 1) + 1
+    elif self.observable == 'corr_deltap':
+      return (1 + obs_true)
+    elif self.observable == 'corr_deltapt':
+      return (1 + obs_true)
+    elif self.observable == 'corr_deltapl':
+      return (1 + obs_true)
+    elif self.observable == 'corr_energyweights':
+      return (1 + obs_true)
+    elif self.observable == 'corr_charge':
+      return (1 + obs_true)
 
     # Else observable has not been implemented
     raise ValueError('No observable is defined in prior_scale_factor_obs()!')

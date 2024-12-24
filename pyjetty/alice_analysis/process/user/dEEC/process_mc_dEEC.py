@@ -37,6 +37,9 @@ from pyjetty.alice_analysis.process.user.substructure import process_mc_base
 from pyjetty.alice_analysis.process.base import thermal_generator
 from pyjetty.mputils.csubtractor import CEventSubtractor
 
+
+ROOT.gSystem.Load("libRooUnfold")
+
 def linbins(xmin, xmax, nbins):
   lspace = np.linspace(xmin, xmax, nbins+1)
   arr = array.array('d', lspace) #'f', lspace) # needs to be d to be bins for histograms??
@@ -456,7 +459,7 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
       suffix = ''
 
     # Create THn of response for ENC
-    pt_bins = linbins(0,200,100)
+    pt_bins = linbins(0,200,200)
     if observable == "corr_deltap":
       obs_bins = linbins(0,90,100)
       obstitle_det = "#Deltap_{det}"
@@ -496,6 +499,47 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
     # h.GetYaxis().SetTitle('#it{R}_{L}')
     # h.GetZaxis().SetTitle('#frac{#it{R}_{L,det}-#it{R}_{L,truth}}{#it{R}_{L,truth}}')
     # setattr(self, name, h)
+
+    # make finer bins
+    if "deltap" in observable:
+      # make a 2D histogram of delta p det vs delta p truth for only jet pt (det) 20-50
+      name = 'h2D_{}_JetPt_PT2050_R{}_{}'.format(observable, jetR, obs_label)
+      deltap_bins = linbins(0,10,200)
+      h = ROOT.TH2D(name, name, 200, deltap_bins, 200, deltap_bins)
+      h.GetXaxis().SetTitle('#Deltap_{det}')
+      h.GetYaxis().SetTitle('#Deltap_{truth}')
+      setattr(self, name, h)
+
+      name = 'h4D_{}_JetPt_R{}_{}'.format(observable, jetR, obs_label)
+      deltap_bins = linbins(0,50,1000)
+      binnings = (pt_bins, pt_bins, deltap_bins, deltap_bins)
+      self.create_thn(name, title, dim, binnings)
+
+    # make unfolding histograms from kyle's 3D unfolding code - for EW ONLY
+    if "energyweights" in observable:
+      
+      jetpt_bins = np.array([5, 10, 20, 40, 60, 80, 100, 150]).astype(float)
+      RL_bins_all = [np.array([0, 1e-2, 3e-2, 7e-2, 1.5e-1, 3e-1, 4e-1, 1]).astype(float), \
+            np.array([0, 1e-2, 2.5e-2, 4e-2, 8e-2, 2.5e-1, 4e-1, 1]).astype(float), \
+            np.array([0, 1e-2, 2.5e-2, 3e-2, 4.5e-2, 2e-1, 4e-1, 1]).astype(float) ]
+
+      for i in range(0,3):
+        RL_bins = RL_bins_all[i]
+
+        #(EW, rL, jet pt)
+        h3_energyweights_reco = ROOT.TH3D("energyweights_reco_PTBIN{}".format(i), "energyweights_reco_PTBIN{}".format(i), 50, obs_bins, 7, RL_bins, 7, jetpt_bins)
+        setattr(self, "energyweights_reco_PTBIN{}".format(i), h3_energyweights_reco)
+        h3_energyweights_gen = ROOT.TH3D("energyweights_gen_PTBIN{}".format(i), "energyweights_gen_PTBIN{}".format(i), 50, obs_bins, 7, RL_bins, 7, binnings[2])
+        setattr(self, "energyweights_gen_PTBIN{}".format(i), h3_energyweights_gen)
+
+        energyweights_response = ROOT.RooUnfoldResponse(h3_energyweights_reco, h3_energyweights_gen, "energyweights_response_PTBIN{}".format(i), "energyweights_response_PTBIN{}".format(i))
+        setattr(self, "energyweights_response_PTBIN{}".format(i), energyweights_response)
+
+        # for purity correction
+        name = 'reco_energyweights_unmatched_PTBIN{}'.format(i)
+        h = ROOT.TH3D("reco_energyweights_unmatched_PTBIN{}".format(i), "reco_energyweights_unmatched_PTBIN{}".format(i), 50, obs_bins, 7, RL_bins, 7, binnings[2])
+        setattr(self, name, h)
+
   
 
   
@@ -1107,6 +1151,50 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
               getattr(self, hname.format(observable, 1, PTBIN1_RLBIN)).Fill(d_pair.jetpt, t_pair.jetpt, d_pair.charge, t_pair.charge)
               getattr(self, hname.format(observable, 2, PTBIN2_RLBIN)).Fill(d_pair.jetpt, t_pair.jetpt, d_pair.charge, t_pair.charge)
             
+
+            # save finer binned
+            if observable == "corr_deltap":
+              if (d_pair.jetpt > 20 and d_pair.jetpt <= 50):
+                hist_name = 'h2D_{}_JetPt_PT2050_R{}_{}'.format(observable, jetR, obs_label)
+                getattr(self, hist_name).Fill(d_pair.deltap, t_pair.deltap)
+
+              hist_name = 'h4D_{}_JetPt_R{}_{}'.format(observable, jetR, obs_label)
+              getattr(self, hist_name).Fill(d_pair.jetpt, t_pair.jetpt, d_pair.deltap, t_pair.deltap)
+            
+            elif observable == "corr_deltapt":
+              if (d_pair.jetpt > 20 and d_pair.jetpt <= 50):
+                hist_name = 'h2D_{}_JetPt_PT2050_R{}_{}'.format(observable, jetR, obs_label)
+                getattr(self, hist_name).Fill(d_pair.deltapt, t_pair.deltapt)
+
+              hist_name = 'h4D_{}_JetPt_R{}_{}'.format(observable, jetR, obs_label)
+              getattr(self, hist_name).Fill(d_pair.jetpt, t_pair.jetpt, d_pair.deltapt, t_pair.deltapt)
+
+            elif observable == "corr_deltapl":
+              if (d_pair.jetpt > 20 and d_pair.jetpt <= 50):
+                hist_name = 'h2D_{}_JetPt_PT2050_R{}_{}'.format(observable, jetR, obs_label)
+                getattr(self, hist_name).Fill(d_pair.deltapl, t_pair.deltapl)
+
+              hist_name = 'h4D_{}_JetPt_R{}_{}'.format(observable, jetR, obs_label)
+              getattr(self, hist_name).Fill(d_pair.jetpt, t_pair.jetpt, d_pair.deltapl, t_pair.deltapl)
+
+            # fill unfolding matrices here
+            if observable == "corr_energyweights":
+              for i in range(0,3):
+                #(EW, rL, jet pt)
+                h3_energyweights_reco_name = "energyweights_reco_PTBIN{}".format(i)
+                getattr(self, h3_energyweights_reco_name).Fill(d_pair.weight, d_pair.r, d_pair.jetpt)
+                h3_energyweights_gen_name = "energyweights_gen_PTBIN{}".format(i)
+                getattr(self, h3_energyweights_gen_name).Fill(t_pair.weight, t_pair.r, t_pair.jetpt)
+
+                energyweights_response_name = "energyweights_response_PTBIN{}".format(i)
+                getattr(self, energyweights_response_name).Fill(d_pair.weight, d_pair.r, d_pair.jetpt, t_pair.weight, t_pair.r, t_pair.jetpt)
+
+    for d_pair in det_pairs:
+      for i in range(0,3):
+        # for purity correction
+        name = 'reco_energyweights_unmatched_PTBIN{}'.format(i)
+        getattr(self, name).Fill(d_pair.weight, d_pair.r, d_pair.jetpt)
+
       # if not match_found:
       #   getattr(self, "response").Miss(t_pair.weight, t_pair.r, t_pair.pt)
 
