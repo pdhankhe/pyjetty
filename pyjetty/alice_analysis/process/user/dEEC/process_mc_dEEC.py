@@ -37,6 +37,7 @@ from pyjetty.alice_analysis.process.user.substructure import process_mc_base
 from pyjetty.alice_analysis.process.base import thermal_generator
 from pyjetty.mputils.csubtractor import CEventSubtractor
 
+from memory_profiler import profile
 
 ROOT.gSystem.Load("libRooUnfold")
 
@@ -461,19 +462,19 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
     # Create THn of response for ENC
     pt_bins = linbins(0,200,200)
     if observable == "corr_deltap":
-      obs_bins = linbins(0,90,100)
+      obs_bins = linbins(0,90,180)
       obstitle_det = "#Deltap_{det}"
       obstitle_truth = "#Deltap_{truth}"
     elif observable == "corr_deltapt":
-      obs_bins = linbins(0,90,100)
+      obs_bins = linbins(0,90,180)
       obstitle_det = "#Deltap_{T, det}"
       obstitle_truth = "#Deltap_{T, truth}"
     elif observable == "corr_deltapl":
-      obs_bins = linbins(0,40,100)
+      obs_bins = linbins(0,40,80)
       obstitle_det = "#Deltap_{L, det}"
       obstitle_truth = "#Deltap_{L, truth}"
     elif observable == "corr_energyweights":
-      obs_bins = linbins(0,0.3,50)
+      obs_bins = linbins(0,0.3,60)
       obstitle_det = "EW_{det}"
       obstitle_truth = "EW_{truth}"
     elif observable == "corr_charge":
@@ -1187,7 +1188,7 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
                 getattr(self, h3_energyweights_gen_name).Fill(t_pair.weight, t_pair.r, t_pair.jetpt)
 
                 energyweights_response_name = "energyweights_response_PTBIN{}".format(i)
-                getattr(self, energyweights_response_name).Fill(d_pair.weight, d_pair.r, d_pair.jetpt, t_pair.weight, t_pair.r, t_pair.jetpt)
+                getattr(self, energyweights_response_name).Fill(d_pair.weight, d_pair.r, d_pair.jetpt, t_pair.weight, t_pair.r, t_pair.jetpt, self.pt_hat)
 
     for d_pair in det_pairs:
       for i in range(0,3):

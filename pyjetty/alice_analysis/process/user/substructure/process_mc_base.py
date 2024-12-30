@@ -63,6 +63,14 @@ class ProcessMCBase(process_base.ProcessBase):
     # Initialize base class
     super(ProcessMCBase, self).__init__(input_file, config_file, output_dir, save_tuples, event_start_offset, dstar, debug_level, **kwargs)
     
+    # find pt_hat for set of events in input_file, assumes all events in input_file are in the same pt_hat bin
+    self.pt_hat_bin = int(input_file.split('/')[len(input_file.split('/'))-4]) # depends on exact format of input_file name
+    with open("/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/data/LHC18b8_charge/scaleFactors.yaml", 'r') as stream:
+        pt_hat_yaml = yaml.safe_load(stream)
+    self.pt_hat = pt_hat_yaml[self.pt_hat_bin]
+    print("pt hat bin : " + str(self.pt_hat_bin))
+    print("pt hat weight : " + str(self.pt_hat))
+
     # Initialize configuration
     self.initialize_config()
     

@@ -626,13 +626,20 @@ void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
         std::string hist_addname = weightstr + jetRname + thrname + "_pt" + ptname + RLname + "_" + norm_string;
         if (debug) cout << " in RL bin" << j << " with " << RL_min << " - " << RL_max << endl;
         
+        // bin sizes
+        double deltap_binsize = 0.5;
+        int deltap_numbins = int((pt_max+5)/deltap_binsize);
+        double deltapl_binsize = 0.5;
+        int deltapl_numbins = int((pt_max/2)/deltap_binsize);
+        int weights_numbins = int(0.3/0.005);
+
         // get histograms
         TH1D * jetpt_inptbin_hist = getObs1DHistFromTChain(JETINFO_tree, "jet_pt", 100, 0, 200, pt_min, pt_max, 0, 0);
-        TH1D * deltap_hist = getObs1DHistFromTChain(PAIRINFO_tree, "deltap", 50, 0, pt_max+5, pt_min, pt_max, RL_min, RL_max);
+        TH1D * deltap_hist = getObs1DHistFromTChain(PAIRINFO_tree, "deltap", deltap_numbins, 0, pt_max+5, pt_min, pt_max, RL_min, RL_max);
         cout << "checkpoint 1 " << deltap_hist->GetEntries() << endl;
-        TH1D * deltapt_hist = getObs1DHistFromTChain(PAIRINFO_tree, "deltapt", 50, 0, pt_max+5, pt_min, pt_max, RL_min, RL_max);
-        TH1D * deltapl_hist = getObs1DHistFromTChain(PAIRINFO_tree, "deltapl", 50, 0, pt_max/2, pt_min, pt_max, RL_min, RL_max);
-        TH1D * weights_hist = getObs1DHistFromTChain(PAIRINFO_tree, "weights", 50, 0, 0.3, pt_min, pt_max, RL_min, RL_max);
+        TH1D * deltapt_hist = getObs1DHistFromTChain(PAIRINFO_tree, "deltapt", deltap_numbins, 0, pt_max+5, pt_min, pt_max, RL_min, RL_max);
+        TH1D * deltapl_hist = getObs1DHistFromTChain(PAIRINFO_tree, "deltapl", deltapl_numbins, 0, pt_max/2, pt_min, pt_max, RL_min, RL_max);
+        TH1D * weights_hist = getObs1DHistFromTChain(PAIRINFO_tree, "weights", weights_numbins, 0, 0.3, pt_min, pt_max, RL_min, RL_max);
         
         double rc_value = 0.0;
         double rc_err = 0.0;
