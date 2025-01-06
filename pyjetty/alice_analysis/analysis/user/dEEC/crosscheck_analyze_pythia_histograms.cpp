@@ -395,11 +395,12 @@ TH1D * getObs1DHist(TFile *filename, std::string h_name, int RLaxis, int obsaxis
 
 void Format1DHist(TH1D *hist, TH1D *jetpt_hist, std::string norm_string, double x_left, double x_right,
                   int markercolor, double markeralpha, int markerstyle, std::string xtitle, std::string ytitle, 
-                  TLegend& leg, TString leg_text, bool drawline=false, double linealpha=1., std::string obs_name="") {
+                  TLegend& leg, TString leg_text, bool drawline=false, double linealpha=1., std::string obs_name="",
+                  std::string hist_addname = "") {
 
-    std::string new_name = std::string(hist->GetName()) + norm_string;
+    std::string new_name = Form("h_%s%s", obs_name.c_str(), hist_addname.c_str());        
+    // ^ = Form("h_%s_R0.4_t1.0_pt%d-%d_RL%.3f-%.3f_%s", obsname.c_str(), pt_min, pt_max, RL_min, RL_max, norm.c_str());
     hist->SetNameTitle(new_name.c_str(), new_name.c_str());
-    // hist->SetName(Form("%s_%s", hist->GetName().c_str(), norm_string.c_str()));
 
     // set x range
     hist->GetXaxis()->SetRangeUser(x_left, x_right);
@@ -1457,7 +1458,7 @@ void analyze_ptbin(TFile * f_in, TFile * f_out, std::string weightstr, std::stri
         std::string RLname_leg = Form("RL = %.3f-%.3f", RL_min, RL_max);
         // if (debug) cout << " in RL bin" << j << " with " << RL_min << " - " << RL_max << endl;
         
-        std::string hist_addname = weightstr + jetRname + thrname + "_pt" + ptname + RLname;
+        std::string hist_addname = weightstr + jetRname + thrname + "_pt" + ptname + RLname + "_" + norm_string;
         
 
         // get histograms
@@ -1505,10 +1506,10 @@ void analyze_ptbin(TFile * f_in, TFile * f_out, std::string weightstr, std::stri
         
 
         // format histograms in vector
-        Format1DHist(deltap_vec[k], hcorr_jetpt_inptbin_hist, norm_string, 0, pt_max+5, colors[j], 0.6, markers[0], "#Deltap", ytitle_norm + "#frac{dN}{d#Deltap}", *leg, RLname_leg, true, 1.0);
-        Format1DHist(deltapt_vec[k], hcorr_jetpt_inptbin_hist, norm_string, 0, pt_max+5, colors[j], 0.6, markers[0], "#Deltap_{T}", ytitle_norm + "#frac{dN}{d#Deltap_{T}}", *leg_dummy, RLname_leg, true, 1.0);
-        Format1DHist(deltapl_vec[k], hcorr_jetpt_inptbin_hist, norm_string, 0, pt_max/2, colors[j], 0.6, markers[0], "#Deltap_{L}", ytitle_norm + "#frac{dN}{d#Deltap_{L}}", *leg_dummy, RLname_leg, true, 1.0);
-        Format1DHist(weights_vec[k], hcorr_jetpt_inptbin_hist, norm_string, 0, 0.3, colors[j], 0.6, markers[0], "#frac{p_{T,1}p_{T,2}}{p_{T,jet}^{2}}", ytitle_norm + "#frac{dN}{d[EW]}", *leg_dummy, RLname_leg, true, 1.0, "weights");
+        Format1DHist(deltap_vec[k], hcorr_jetpt_inptbin_hist, norm_string, 0, pt_max+5, colors[j], 0.6, markers[0], "#Deltap", ytitle_norm + "#frac{dN}{d#Deltap}", *leg, RLname_leg, true, 1.0, "deltap", hist_addname);
+        Format1DHist(deltapt_vec[k], hcorr_jetpt_inptbin_hist, norm_string, 0, pt_max+5, colors[j], 0.6, markers[0], "#Deltap_{T}", ytitle_norm + "#frac{dN}{d#Deltap_{T}}", *leg_dummy, RLname_leg, true, 1.0, "deltapt", hist_addname);
+        Format1DHist(deltapl_vec[k], hcorr_jetpt_inptbin_hist, norm_string, 0, pt_max/2, colors[j], 0.6, markers[0], "#Deltap_{L}", ytitle_norm + "#frac{dN}{d#Deltap_{L}}", *leg_dummy, RLname_leg, true, 1.0, "deltapl", hist_addname);
+        Format1DHist(weights_vec[k], hcorr_jetpt_inptbin_hist, norm_string, 0, 0.3, colors[j], 0.6, markers[0], "#frac{p_{T,1}p_{T,2}}{p_{T,jet}^{2}}", ytitle_norm + "#frac{dN}{d[EW]}", *leg_dummy, RLname_leg, true, 1.0, "weights", hist_addname);
         
         // Format2DHist(weights_vs_deltapt_hist2D, hcorr_jetpt_inptbin_hist, norm_string, ytitle_norm + "#Deltap_{T}", ytitle_norm + "p_{T,1}p_{T,2} / p_{T,jet}^{2}", true, RL_bin_width[j], "deltapt", "weights");
 

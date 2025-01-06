@@ -3,19 +3,21 @@
 // Beatrice Liang-Gilman (beatrice_lg@berkeley.edu)
 
 
+// comp_cases
+// 1: hic, correcting with EEC fcorr; a bit out of date now
+// 2: perly, bin by bin corrections -- matched, rebinx4 -- not tested
+// 3: hic, pythia vs data
+int comp_case = 3;
+
+
 // global variables
 Double_t colors[16] = {kGray, kMagenta, kGreen+2, kBlue, kOrange+1, kViolet+1, kRed, kYellow+1, kCyan+1};
 Double_t markers[10] = {kFullCircle, kFullSquare, kFullDiamond, kFullTriangleUp, kFullStar, kOpenCircle, kOpenTriangleUp, kOpenDiamond, kOpenSquare, kOpenStar};
 Double_t marker_size = 1.5;
 
-std::string attempt_dir = "raw_data__data_correctionfactors_comparison";
-std::string outdir = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir;
+std::string attempt_dir; //= "raw_data__data_correctionfactors_comparison";
+std::string outdir; // = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir;
 
-// comp_cases
-// 1: hic, correcting with EEC fcorr; a bit out of date now
-// 2: perly, bin by bin corrections -- matched, rebinx4 -- not tested
-// 3: hic, pythia vs data
-int comp_case = 2;
 
 // setting style
 void SetStyle(Bool_t graypalette=true) {
@@ -72,14 +74,102 @@ TCanvas * prepare_canvas(bool logx=false, bool logy=false) {
     return can;
 }
 
+
+// Function to get the bin edges of a histogram
+std::vector<double> get_bin_edges(TH1D * hist) {
+
+    // // Get the X-axis
+    TAxis *xAxis = hist->GetXaxis();
+
+    // Get the number of bins, minimum, and maximum values
+    int nBins = xAxis->GetNbins();
+    double xmin = xAxis->GetXmin();
+    double xmax = xAxis->GetXmax();
+
+    // Calculate the bin width
+    double binWidth = (xmax - xmin) / nBins;
+
+    // Generate the array of bin edges
+    std::vector<double> binEdges;
+    for (int i = 0; i <= nBins; ++i) {
+        binEdges.push_back(xmin + i * binWidth);
+    }
+
+    // // Print the bin edges
+    // std::cout << "Uniform bin edges:" << std::endl;
+    // for (double edge : binEdges) {
+    //     std::cout << edge << " ";
+    // }
+    // std::cout << std::endl;
+
+    
+
+    // // For variable binning, retrieve the array of bin edges
+    // TArrayD edgesArray = *(h1->GetXaxis()->GetXbins());
+    // cout << "There are " << edgesArray.GetSize() - 1 << " bins in GETBINEDGES" << endl;
+    // if (edgesArray.GetSize() > 0) {
+    //     std::cout << "\nBin edges array:" << std::endl;
+    //     for (int i = 0; i < edgesArray.GetSize(); ++i) {
+    //         std::cout << edgesArray[i] << " ";
+    //     }
+    //     std::cout << std::endl;
+    // }
+
+    return binEdges;
+}
+
+
+// function to rebin the data histogram by 4x
+TH1D * rebin_data_hist_by4(TH1D * hist, std::string observable="", std::vector<double> binedges_vec = {0, 25}) {
+
+    
+    if (observable != "" && observable != "weights") {
+        // manually rebin
+
+        // int obs_max_val;
+        // if (observable == "deltap" || observable == "deltapt") obs_max_val = pt_max+5;
+        // else if (observable == "deltapl") obs_max_val = pt_max/2;
+
+        // hist->GetXaxis()->SetRangeUser(0, obs_max_val);
+        
+        // Convert to a C-style array
+        int numBins = binedges_vec.size() - 1;
+        double *binedges = new double[binedges_vec.size()];
+        std::copy(binedges_vec.begin(), binedges_vec.end(), binedges);
+
+        // // Don't forget to clean up if you allocate memory
+        // delete[] edgesArray;
+
+        TH1D * hist_rebinned = (TH1D *)hist->Rebin(numBins, hist->GetName(), binedges);
+        // cout << "There are " << numBins << " bins in hist2" << endl;
+
+        return hist_rebinned;
+
+
+    } else {
+
+        hist->Rebin(4);
+        // cout << "There are " << hist->GetNbinsX() << " bins in hist1" << endl;
+
+        return hist;
+    
+    }
+
+
+    
+
+
+}
+
 // function to plot a histogram on a given canvas
-void plot_histogram_on_given_canvas(TCanvas *can, TH1D *hist, int markerstyle, int markercolor) {
+void plot_histogram_on_given_canvas(TCanvas *can, TH1D *hist, int markerstyle, int markercolor, double markeralpha) {
 
     // format hist with appropriate marker style
     hist->SetMarkerStyle(markerstyle);
     int color = hist->GetMarkerColor();
     cout << "color " << color << endl;
-    hist->SetMarkerColorAlpha(markercolor, 0.75);
+    hist->SetMarkerColorAlpha(markercolor, markeralpha);
+    hist->SetLineColorAlpha(markercolor, markeralpha);
     // int color2 = hist->GetMarkerColor();
     // cout << "color2 " << color2 << endl;
     // hist->SetMarkerSize(1.5);
@@ -158,9 +248,17 @@ void plot_one_observable(TFile *file1, TFile *file2, std::string obsname, int ma
                 TH1D * hist_file1 = (TH1D*) file1->Get(histname.c_str());
                 TH1D * hist_file2 = (TH1D*) file2->Get(histname.c_str());
 
+                if (obsname != "weights") {
+                    hist_file1 = rebin_data_hist_by4(hist_file1);
+                    cout << "OBSNAME " << obsname << endl;
+                    std::vector<double> binedges = get_bin_edges(hist_file1);
+                    hist_file2 = rebin_data_hist_by4(hist_file2, obsname, binedges);
+                }
+
                 hist_vec.push_back((TH1D*) hist_file1->Clone());
                 hist_vec.push_back((TH1D*) hist_file2->Clone());
 
+                cout << "ADDING TO LEGEND" << endl;
                 leg->AddEntry(hist_file1, RLname_leg.c_str(), "pl");
                 
                 // plot_histogram_on_given_canvas(can, hist_file1, markerstyle1, colors[j]);
@@ -189,8 +287,8 @@ void plot_one_observable(TFile *file1, TFile *file2, std::string obsname, int ma
                     hist_vec[0]->SetMaximum( max * 1.5 );
                 }
 
-                plot_histogram_on_given_canvas(can, hist_vec[2*k], markerstyle1, colors[j]);
-                plot_histogram_on_given_canvas(can, hist_vec[2*k+1], markerstyle2, colors[j]);
+                plot_histogram_on_given_canvas(can, hist_vec[2*k], markerstyle1, colors[j], 0.75);
+                plot_histogram_on_given_canvas(can, hist_vec[2*k+1], markerstyle2, colors[j], 0.75);
                 cout << "plotted 2k = " << 2*k << " and color: " << colors[j] << " and markerstyle1: " << markerstyle1 << endl;
                 cout << "plotted 2k+1 = " << 2*k + 1 << " and markerstyle2: " << markerstyle2 << endl;
             }
@@ -284,7 +382,13 @@ void overlay_plots_combinations() {
     std::string binbybincorrections_filename_perly = root_indir_perly + "binbybincorrections/matched/rebinx4/DataHists_BinByBinCorr.root";
     TFile* binbybincorrections_infile_perly = new TFile(binbybincorrections_filename_perly.c_str(), "READ");
 
+    //------------------------------------------------
 
+    std::string pythia5TeV_histograms_crosscheck_filename_hic = root_indir_hic + "pythia5TeV_histograms_crosscheck/PYTHIAHists.root";
+    TFile* pythia5TeV_histograms_crosscheck_infile_hic = new TFile(pythia5TeV_histograms_crosscheck_filename_hic.c_str(), "READ");
+
+    //------------------------------------------------
+    
     // int num_input_files = 6;
     // std::bitset<num_input_files> pmask(0);
 
@@ -305,13 +409,35 @@ void overlay_plots_combinations() {
     SetStyle();
 
 
-    // analyze and plot!
+    TFile *f1;
+    TFile *f2;
     if (comp_case == 1) {
-        plot_comparisons(raw_data_infile_hic, data_correctionfactors_infile_hic, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1);
+        attempt_dir = "raw_data__data_correctionfactors_comparison";
+        f1 = raw_data_infile_hic;
+        f2 = data_correctionfactors_infile_hic;
     } else if (comp_case == 2) {
-        plot_comparisons(raw_data_infile_perly, binbybincorrections_infile_perly, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1);
+        attempt_dir = "raw_data__binbybincorrections_comparison";
+        f1 = raw_data_infile_perly;
+        f2 = binbybincorrections_infile_perly;
     } else if (comp_case == 3) {
-        plot_comparisons(raw_data_infile_perly, , pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1);
+        attempt_dir = "raw_data__pythia5TeV_histograms_crosscheck_comparison";
+        f1 = raw_data_infile_hic;
+        f2 = pythia5TeV_histograms_crosscheck_infile_hic;
+        // f1 = pythia5TeV_histograms_crosscheck_infile_hic;
+        // f2 = raw_data_infile_hic;
     }
+
+    outdir = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir;
+    plot_comparisons(f1, f2, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1);
+    
+
+    // analyze and plot!
+    // if (comp_case == 1) {
+    //     plot_comparisons(raw_data_infile_hic, data_correctionfactors_infile_hic, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1);
+    // } else if (comp_case == 2) {
+    //     plot_comparisons(raw_data_infile_perly, binbybincorrections_infile_perly, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1);
+    // } else if (comp_case == 3) {
+    //     plot_comparisons(raw_data_infile_hic, pythia5TeV_histograms_crosscheck_infile_hic, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1);
+    // }
     
 }
