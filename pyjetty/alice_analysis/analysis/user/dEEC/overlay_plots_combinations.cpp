@@ -11,7 +11,11 @@ Double_t marker_size = 1.5;
 std::string attempt_dir = "raw_data__data_correctionfactors_comparison";
 std::string outdir = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir;
 
-
+// comp_cases
+// 1: hic, correcting with EEC fcorr; a bit out of date now
+// 2: perly, bin by bin corrections -- matched, rebinx4 -- not tested
+// 3: hic, pythia vs data
+int comp_case = 2;
 
 // setting style
 void SetStyle(Bool_t graypalette=true) {
@@ -210,16 +214,26 @@ void plot_comparisons(TFile *raw_data_infile, TFile *data_correctionfactors_infi
     // so we want to plot all the delta p curves, then all the delta pt and delta pl and EW curves. 2D hists don't need to be overlayed though
     // I should make projections of them at some point. I can also plot rc together.
 
+    int markerstyle1 = kFullCircle;
+    int markerstyle2 = kOpenCircle;
+    // if (comp_case == 3) {
+    //     markerstyle1 = 
+    //
+    // }
+    
     // starting with deltap
-    plot_one_observable(raw_data_infile, data_correctionfactors_infile, "deltap", kFullCircle, kOpenCircle, false, true,
+    plot_one_observable(raw_data_infile, data_correctionfactors_infile, "deltap", markerstyle1, markerstyle2, false, true,
                          pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1);
     
-    plot_one_observable(raw_data_infile, data_correctionfactors_infile, "deltapt", kFullCircle, kOpenCircle, false, true,
+    plot_one_observable(raw_data_infile, data_correctionfactors_infile, "deltapt", markerstyle1, markerstyle2, false, true,
                          pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1);
-    plot_one_observable(raw_data_infile, data_correctionfactors_infile, "deltapl", kFullCircle, kOpenCircle, false, true,
+    plot_one_observable(raw_data_infile, data_correctionfactors_infile, "deltapl", markerstyle1, markerstyle2, false, true,
                          pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1);
-    plot_one_observable(raw_data_infile, data_correctionfactors_infile, "weights", kFullCircle, kOpenCircle, false, true,
-                         pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1);
+    
+    if (comp_case != 2) {
+        plot_one_observable(raw_data_infile, data_correctionfactors_infile, "weights", markerstyle1, markerstyle2, false, true,
+                            pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1);
+    }
 
 }
 
@@ -252,14 +266,23 @@ void overlay_plots_combinations() {
     
 
     // filenames
-    std::string root_indir = "/software/users/blianggi/mypyjetty/storage/dEEC/rootfiles/";
+    std::string root_indir_hic = "/software/users/blianggi/mypyjetty/storage/dEEC/rootfiles/";
+    
+    std::string raw_data_filename_hic = root_indir_hic + "data_firstattempt/DataHists.root"; //plots/ntuples/DataHists.root"; //FinalDataHists.root
+    TFile* raw_data_infile_hic = new TFile(raw_data_filename_hic.c_str(), "READ");
+    
+    std::string data_correctionfactors_filename_hic = root_indir_hic + "data_correctionfactors/DataHists.root";
+    TFile* data_correctionfactors_infile_hic = new TFile(data_correctionfactors_filename_hic.c_str(), "READ");
 
-    std::string raw_data_filename = root_indir + "data_firstattempt/DataHists.root"; //plots/ntuples/DataHists.root"; //FinalDataHists.root
-    TFile* raw_data_infile = new TFile(raw_data_filename.c_str(), "READ");
+    //------------------------------------------------
 
-    std::string data_correctionfactors_filename = root_indir + "data_correctionfactors/DataHists.root";
-    TFile* data_correctionfactors_infile = new TFile(data_correctionfactors_filename.c_str(), "READ");
+    std::string root_indir_perly = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/";
 
+    std::string raw_data_filename_perly = root_indir_perly + "data_firstattempt/DataHists.root"; //plots/ntuples/DataHists.root"; //FinalDataHists.root
+    TFile* raw_data_infile_perly = new TFile(raw_data_filename_perly.c_str(), "READ");
+
+    std::string binbybincorrections_filename_perly = root_indir_perly + "binbybincorrections/matched/rebinx4/DataHists_BinByBinCorr.root";
+    TFile* binbybincorrections_infile_perly = new TFile(binbybincorrections_filename_perly.c_str(), "READ");
 
 
     // int num_input_files = 6;
@@ -283,7 +306,12 @@ void overlay_plots_combinations() {
 
 
     // analyze and plot!
-    plot_comparisons(raw_data_infile, data_correctionfactors_infile, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1);
-
-
+    if (comp_case == 1) {
+        plot_comparisons(raw_data_infile_hic, data_correctionfactors_infile_hic, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1);
+    } else if (comp_case == 2) {
+        plot_comparisons(raw_data_infile_perly, binbybincorrections_infile_perly, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1);
+    } else if (comp_case == 3) {
+        plot_comparisons(raw_data_infile_perly, , pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1);
+    }
+    
 }

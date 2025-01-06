@@ -483,6 +483,11 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
       obstitle_truth = "(q_{1}q_{2})_{truth}"
     else:
       return
+
+    jetpt_bins = np.array([5, 10, 20, 40, 60, 80, 100, 150]).astype(float)
+    RL_bins_all = [np.array([0, 1e-2, 3e-2, 7e-2, 1.5e-1, 3e-1, 4e-1, 1]).astype(float), \
+          np.array([0, 1e-2, 2.5e-2, 4e-2, 8e-2, 2.5e-1, 4e-1, 1]).astype(float), \
+          np.array([0, 1e-2, 2.5e-2, 3e-2, 4.5e-2, 2e-1, 4e-1, 1]).astype(float) ]
     
     binnings = (pt_bins, pt_bins, obs_bins, obs_bins)
     dim = 4;
@@ -516,21 +521,47 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
       binnings = (pt_bins, pt_bins, deltap_bins, deltap_bins)
       self.create_thn(name, title, dim, binnings)
 
+      # for me
+      for i in range(0,3):
+        RL_bins = RL_bins_all[i]
+
+        num_bins = 180
+        if observable == "corr_deltapl":
+          num_bins = 80
+
+        name = 'reco_{}_unmatched_PTBIN{}'.format(observable[5:], i)
+        h = ROOT.TH3D("reco_{}_unmatched_PTBIN{}".format(observable[5:], i), "reco_{}_unmatched_PTBIN{}".format(observable[5:], i), num_bins, obs_bins, 7, RL_bins, 7, jetpt_bins)
+        setattr(self, name, h)
+
+        name = 'gen_{}_unmatched_PTBIN{}'.format(observable[5:], i)
+        h = ROOT.TH3D("gen_{}_unmatched_PTBIN{}".format(observable[5:], i), "gen_{}_unmatched_PTBIN{}".format(observable[5:], i), num_bins, obs_bins, 7, RL_bins, 7, jetpt_bins)
+        setattr(self, name, h)
+
+    # for me
+    if "charge" in observable:
+
+      for i in range(0,3):
+        RL_bins = RL_bins_all[i]
+
+        name = 'reco_charge_unmatched_PTBIN{}'.format(i)
+        h = ROOT.TH3D("reco_charge_unmatched_PTBIN{}".format(i), "reco_charge_unmatched_PTBIN{}".format(i), 6, obs_bins, 7, RL_bins, 7, jetpt_bins)
+        setattr(self, name, h)
+
+        name = 'gen_charge_unmatched_PTBIN{}'.format(i)
+        h = ROOT.TH3D("gen_charge_unmatched_PTBIN{}".format(i), "gen_charge_unmatched_PTBIN{}".format(i), 6, obs_bins, 7, RL_bins, 7, jetpt_bins)
+        setattr(self, name, h)
+
+
     # make unfolding histograms from kyle's 3D unfolding code - for EW ONLY
     if "energyweights" in observable:
-      
-      jetpt_bins = np.array([5, 10, 20, 40, 60, 80, 100, 150]).astype(float)
-      RL_bins_all = [np.array([0, 1e-2, 3e-2, 7e-2, 1.5e-1, 3e-1, 4e-1, 1]).astype(float), \
-            np.array([0, 1e-2, 2.5e-2, 4e-2, 8e-2, 2.5e-1, 4e-1, 1]).astype(float), \
-            np.array([0, 1e-2, 2.5e-2, 3e-2, 4.5e-2, 2e-1, 4e-1, 1]).astype(float) ]
 
       for i in range(0,3):
         RL_bins = RL_bins_all[i]
 
         #(EW, rL, jet pt)
-        h3_energyweights_reco = ROOT.TH3D("energyweights_reco_PTBIN{}".format(i), "energyweights_reco_PTBIN{}".format(i), 50, obs_bins, 7, RL_bins, 7, jetpt_bins)
+        h3_energyweights_reco = ROOT.TH3D("energyweights_reco_PTBIN{}".format(i), "energyweights_reco_PTBIN{}".format(i), 60, obs_bins, 7, RL_bins, 7, jetpt_bins)
         setattr(self, "energyweights_reco_PTBIN{}".format(i), h3_energyweights_reco)
-        h3_energyweights_gen = ROOT.TH3D("energyweights_gen_PTBIN{}".format(i), "energyweights_gen_PTBIN{}".format(i), 50, obs_bins, 7, RL_bins, 7, binnings[2])
+        h3_energyweights_gen = ROOT.TH3D("energyweights_gen_PTBIN{}".format(i), "energyweights_gen_PTBIN{}".format(i), 60, obs_bins, 7, RL_bins, 7, jetpt_bins)
         setattr(self, "energyweights_gen_PTBIN{}".format(i), h3_energyweights_gen)
 
         energyweights_response = ROOT.RooUnfoldResponse(h3_energyweights_reco, h3_energyweights_gen, "energyweights_response_PTBIN{}".format(i), "energyweights_response_PTBIN{}".format(i))
@@ -538,9 +569,13 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
 
         # for purity correction
         name = 'reco_energyweights_unmatched_PTBIN{}'.format(i)
-        h = ROOT.TH3D("reco_energyweights_unmatched_PTBIN{}".format(i), "reco_energyweights_unmatched_PTBIN{}".format(i), 50, obs_bins, 7, RL_bins, 7, binnings[2])
+        h = ROOT.TH3D("reco_energyweights_unmatched_PTBIN{}".format(i), "reco_energyweights_unmatched_PTBIN{}".format(i), 60, obs_bins, 7, RL_bins, 7, jetpt_bins)
         setattr(self, name, h)
 
+        # for me
+        name = 'gen_energyweights_unmatched_PTBIN{}'.format(i)
+        h = ROOT.TH3D("gen_energyweights_unmatched_PTBIN{}".format(i), "gen_energyweights_unmatched_PTBIN{}".format(i), 60, obs_bins, 7, RL_bins, 7, jetpt_bins)
+        setattr(self, name, h)
   
 
   
@@ -1195,6 +1230,37 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
         # for purity correction
         name = 'reco_energyweights_unmatched_PTBIN{}'.format(i)
         getattr(self, name).Fill(d_pair.weight, d_pair.r, d_pair.jetpt)
+
+        name = 'reco_deltap_unmatched_PTBIN{}'.format(i)
+        getattr(self, name).Fill(d_pair.deltap, d_pair.r, d_pair.jetpt)
+
+        name = 'reco_deltapt_unmatched_PTBIN{}'.format(i)
+        getattr(self, name).Fill(d_pair.deltapt, d_pair.r, d_pair.jetpt)
+
+        name = 'reco_deltapl_unmatched_PTBIN{}'.format(i)
+        getattr(self, name).Fill(d_pair.deltapl, d_pair.r, d_pair.jetpt)
+
+        name = 'reco_charge_unmatched_PTBIN{}'.format(i)
+        getattr(self, name).Fill(d_pair.charge, d_pair.r, d_pair.jetpt)
+
+
+
+    for t_pair in truth_pairs:
+      for i in range(0,3):
+        name = 'gen_deltap_unmatched_PTBIN{}'.format(i)
+        getattr(self, name).Fill(t_pair.deltap, t_pair.r, t_pair.jetpt)
+
+        name = 'gen_deltapt_unmatched_PTBIN{}'.format(i)
+        getattr(self, name).Fill(t_pair.deltapt, t_pair.r, t_pair.jetpt)
+
+        name = 'gen_deltapl_unmatched_PTBIN{}'.format(i)
+        getattr(self, name).Fill(t_pair.deltapl, t_pair.r, t_pair.jetpt)
+
+        name = 'gen_charge_unmatched_PTBIN{}'.format(i)
+        getattr(self, name).Fill(t_pair.charge, t_pair.r, t_pair.jetpt)
+
+        name = 'gen_energyweights_unmatched_PTBIN{}'.format(i)
+        getattr(self, name).Fill(t_pair.weight, t_pair.r, t_pair.jetpt)
 
       # if not match_found:
       #   getattr(self, "response").Miss(t_pair.weight, t_pair.r, t_pair.pt)

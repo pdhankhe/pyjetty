@@ -1,0 +1,425 @@
+// This file finds the bin by bin corrections and applies them to data.
+// This is to be run on perlmutter.
+// outputted plots:
+    // truth_and_det_[obs_PTBINX_RLBINY].pdf
+    // ratio_det_truth_[obs_PTBINX_RLBINY].pdf
+    // corr_data_[obs_PTBINX_RLBINY].pdf
+    // corr_data_and_raw_data_[obs_PTBINX_RLBINY].pdf
+// Beatrice Liang-Gilman, beatrice_lg@berkeley.edu
+
+
+bool unmatched = false; // set true for unmatched, false for matched
+double rebin = 4;
+std::string attempt_dir = ""; //Form("binbybincorrections/rebinx%.0f",rebin);
+
+
+void SetStyle(Bool_t graypalette=true) {
+    cout << "Setting style!" << endl;
+  
+    gStyle->Reset("Plain");
+    gStyle->SetOptTitle(0);
+    gStyle->SetOptStat(0);
+    // if(graypalette) gStyle->SetPalette(8,0);
+    // else gStyle->SetPalette(1);
+    gStyle->SetPalette(kRainbow); //kBird
+    gStyle->SetCanvasColor(10);
+    gStyle->SetCanvasBorderMode(0);
+    gStyle->SetFrameLineWidth(1);
+    gStyle->SetFrameFillColor(kWhite);
+    gStyle->SetPadColor(10);
+    gStyle->SetPadTickX(1);
+    gStyle->SetPadTickY(1);
+    gStyle->SetPadBottomMargin(0.15);
+    gStyle->SetPadLeftMargin(0.15);
+    gStyle->SetHistLineWidth(1);
+    gStyle->SetHistLineColor(kRed);
+    gStyle->SetFuncWidth(2);
+    gStyle->SetFuncColor(kGreen);
+    gStyle->SetLineWidth(1);
+    gStyle->SetLabelSize(0.045,"xyz");
+    gStyle->SetLabelOffset(0.005,"y"); //(0.01,"y");
+    gStyle->SetLabelOffset(0.005,"x"); //(0.01,"x");
+    gStyle->SetLabelColor(kBlack,"xyz");
+    gStyle->SetTitleSize(0.05,"xyz");
+    gStyle->SetTitleOffset(1.25,"y");
+    gStyle->SetTitleOffset(1.2,"x");
+    gStyle->SetTitleFillColor(kWhite);
+    gStyle->SetTextSizePixels(26);
+    gStyle->SetTextFont(42);
+    //gStyle->SetTickLength(0.04,"X");  gStyle->SetTickLength(0.04,"Y");
+    
+    gStyle->SetLegendBorderSize(0);
+    gStyle->SetLegendFillColor(kWhite);
+    //gStyle->SetFillColor(kWhite);
+    gStyle->SetLegendFont(42);
+
+}
+
+//===========================================================================
+//================================ PLOTTING =================================
+//===========================================================================
+
+// filetype 1 = ratio_det_truth_[obs_PTBINX_RLBINY].pdf
+// filetype 2 = corr_data_[obs_PTBINX_RLBINY].pdf
+// filetype 3 = ratio_det_truth_FIT_[obs_PTBINX_RLBINY].pdf
+void plot_and_save_one_histogram(TCanvas * can, TFile * file, std::string obsname,
+                                            TH1D * hist1, int filetype, std::string addname) {
+
+    hist1->SetMarkerColor(kBlack);
+    if (filetype == 1) {hist1->GetYaxis()->SetRangeUser(0,10);}
+    
+    can->cd();
+    // gPad->SetLogy();
+    hist1->Draw("same");
+
+    std::string filename = "";
+    if (filetype == 1) filename = "ratio_det_truth_";
+    else if (filetype == 2) filename = "corr_data_";
+    else if (filetype == 3) filename = "ratio_det_truth_FIT_";
+    std::string outputbase = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/plots/";
+    std::string outputname = outputbase + attempt_dir + "/" + obsname + "/" + filename + obsname + addname + ".pdf";
+    can->SaveAs(outputname.c_str());
+
+    if (filetype != 3) {
+        file->cd();
+        hist1->Write();
+    }
+
+    delete can;
+
+}
+
+
+// filetype 1 = truth_and_det_[obs_PTBINX_RLBINY].pdf
+// filetype 2 = corr_data_and_raw_data_[obs_PTBINX_RLBINY].pdf
+void plot_and_save_two_histograms_overlayed(TCanvas * can, TFile * file, std::string obsname,
+                                            TH1D * hist1, TH1D * hist2, int filetype, std::string addname,
+                                            int markercolor1, int markercolor2, std::string label1, std::string label2) {
+
+    hist1->SetMarkerColorAlpha(markercolor1, 0.8);
+    hist1->SetLineColorAlpha(markercolor1, 0.8);
+    hist2->SetMarkerColorAlpha(markercolor2, 0.8);
+    hist2->SetLineColorAlpha(markercolor2, 0.8);
+
+    TLegend *l = new TLegend();
+    l->AddEntry(hist1, label1.c_str(), "pl");
+    l->AddEntry(hist2, label2.c_str(), "pl");
+
+
+    can->cd();
+    gPad->SetLogy();
+    hist1->Draw("same");
+    hist2->Draw("same");
+    l->Draw("same");
+
+    std::string filename = "";
+    if (filetype == 1) filename = "truth_and_det_";
+    else if (filetype == 2) filename = "corr_data_and_raw_data_";
+    std::string outputbase = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/plots/";
+    std::string outputname = outputbase + attempt_dir + "/" + obsname + "/" + filename + obsname + addname + ".pdf";
+    can->SaveAs(outputname.c_str());
+
+    if (filetype != 2) {
+        file->cd();
+        hist1->Write();
+        hist2->Write();
+    }
+
+    delete can;
+
+}
+
+
+//===========================================================================
+//================================= FITTING =================================
+//===========================================================================
+void fit_histogram_linearfit(TH1D * hist, std::string observable, std::string addname) {
+
+    /*
+    // could also do:
+    TF1 *linearFit = new TF1("linearFit", "pol1", 2.0, 8.0); // Fit range: [2, 8]
+    hist->Fit(linearFit, "R"); // "R" = ensures the fit uses the specified range
+    */
+
+    // Perform the linear fit
+    hist->Fit("pol1", "F"); //, "Q"); // "pol1" = linear function, "Q" = quiet mode
+    // "W": Ignore weights - set the weights of all non-zero bins to 1
+    // "E": Perform better error estimation.
+    // "S": The full result of the fit is returned in the TFitResultPtr (incl cov matrix)
+    // 7.1.1. in https://root.cern.ch/root/htmldoc/guides/users-guide/FittingHistograms.html
+    
+    // Retrieve fit parameters
+    TF1 *fitFunction = hist->GetFunction("pol1");
+    double slope = fitFunction->GetParameter(1);  // Slope of the line
+    double intercept = fitFunction->GetParameter(0); // Intercept of the line
+    std::cout << "Fit Results: slope = " << slope << ", intercept = " << intercept << std::endl;
+
+    auto fitResult = hist->Fit("pol1", "S");
+    double chi2 = fitResult->Chi2();
+    int ndf = fitResult->Ndf();
+    std::cout << "Chi2/Ndf = " << chi2 / ndf << std::endl;
+
+    // // Draw the histogram and the fit
+    // TCanvas *c1 = new TCanvas("c1", "Linear Fit", 800, 600);
+    // TFile *dummy_file;
+    // plot_and_save_one_histogram(c1, dummy_file, observable, hist, 3, addname);
+
+}
+
+
+//===========================================================================
+//============================= OTHER FUNCTIONS =============================
+//===========================================================================
+
+//===========================================================================
+// This function gets the reco (det) level observable and the gen (truth) level 
+// observable, and takes the ratio of the two.
+// It plots this ratio and saves it as a separate histogram.
+//===========================================================================
+TH1D * get_binbybin_corrfactors(TFile *fin_mc, TFile *fout, std::string observable, 
+                                int ptbin, int pt_min, int pt_max, int rlbin, double RL_min, double RL_max) {
+
+    fin_mc->cd();
+
+    // find observable maximums
+    int obs_max_val = 0;
+    if (observable == "deltap" || observable == "deltapt") obs_max_val = pt_max+5;
+    else if (observable == "deltapl") obs_max_val = pt_max/2;
+
+    std::string histname;
+    TH1D * hist_det;
+    TH1D * hist_truth;
+    
+    if (unmatched) { // this is the unmatched version:
+        //det level
+        histname = Form("reco_%s_unmatched_PTBIN%d", observable.c_str(), ptbin);
+        cout << " HISTNAME: " << histname << endl;
+        TH3D *h3D_reco = (TH3D *) fin_mc->Get(histname.c_str()); // axes: obs, RL, jet pt
+
+        // extract 1D histograms
+        h3D_reco->GetZaxis()->SetRangeUser(pt_min, pt_max);
+        h3D_reco->GetYaxis()->SetRangeUser(RL_min, RL_max);
+        h3D_reco->GetXaxis()->SetRangeUser(0, obs_max_val); // to limit the observable range displayed (needed for divide later)
+        hist_det = (TH1D *) h3D_reco->ProjectionX();
+
+        //truth level
+        histname = Form("gen_%s_unmatched_PTBIN%d", observable.c_str(), ptbin);
+        cout << " HISTNAME: " << histname << endl;
+        TH3D *h3D_gen = (TH3D *) fin_mc->Get(histname.c_str()); // axes: obs, RL, jet pt
+
+        // extract 1D histograms
+        h3D_gen->GetZaxis()->SetRangeUser(pt_min, pt_max);
+        h3D_gen->GetYaxis()->SetRangeUser(RL_min, RL_max);
+        h3D_gen->GetXaxis()->SetRangeUser(0, obs_max_val); // to limit the observable range displayed (needed for divide later)
+        hist_det = (TH1D *) h3D_gen->ProjectionX();
+
+    } else { // this is the matched version:
+        histname = Form("hResponse_JetPt_corr_%s_PTBIN%d_RLBIN%d_R0.4_1.0Scaled", observable.c_str(), ptbin, rlbin);
+        cout << " HISTNAME: " << histname << endl;
+        THnSparse *hsparse = (THnSparse *) fin_mc->Get(histname.c_str());
+
+        // extract 1D histograms
+        hsparse->GetAxis(0)->SetRangeUser(pt_min, pt_max);
+        hsparse->GetAxis(2)->SetRangeUser(0, obs_max_val); // to limit the observable range displayed (needed for divide later)
+        hist_det = (TH1D *) hsparse->Projection(2);
+
+        hsparse->GetAxis(1)->SetRangeUser(pt_min, pt_max);
+        hsparse->GetAxis(3)->SetRangeUser(0, obs_max_val); // to limit the observable range displayed
+        hist_truth = (TH1D *) hsparse->Projection(3);
+    }
+
+    // rebin
+    hist_det->Rebin(rebin);
+    hist_truth->Rebin(rebin);
+
+    // add name string
+    std::string addname = Form("_PTBIN%d_RLBIN%d", ptbin, rlbin);
+
+    // plot and save those histograms
+    TCanvas *can_truth_det = new TCanvas();
+    plot_and_save_two_histograms_overlayed(can_truth_det, fout, observable, hist_det, hist_truth, 1, addname, kBlue, kRed, "det level", "truth level");
+
+
+    // find the bin by bin corrections
+    TH1D * hratio = (TH1D *) hist_det->Clone(Form("hratio_%s_PTBIN%d_RLBIN%d", observable.c_str(), ptbin, rlbin));
+    hratio->Divide(hist_truth);
+
+    // fit the ratio
+    fit_histogram_linearfit(hratio, observable, addname);
+
+    // plot and save ratio
+    TCanvas *can_ratio = new TCanvas();
+    plot_and_save_one_histogram(can_ratio, fout, observable, hratio, 1, addname);
+
+    return hratio;
+
+}
+
+// Get the raw data
+TH1D * get_rawdata(TFile *fin_data, std::string observable, int pt_min, int pt_max, double RL_min, double RL_max) {
+
+    fin_data->cd();
+    std::string histname = Form("h_%s_R0.4_t1.0_pt%d-%d_RL%.3f-%.3f_norm_by_jets", observable.c_str(), pt_min, pt_max, RL_min, RL_max);
+    TH1D * hist = (TH1D *)gDirectory->Get(histname.c_str());
+
+    // rebin
+    hist->Rebin(rebin);
+
+    return hist;
+
+}
+
+// Correct the raw data here
+// Important!! Right now the bins need to be the same; otherwise need to rebin to make it match
+void apply_corrfactor(TFile *fout, TH1D * h_raw_data, TH1D * h_binbybin_fcorr, std::string observable,
+                      int ptbin, int rlbin, bool debug = false) {
+
+    // h_raw_data->Sumw2();
+    // h_binbybin_fcorr->Sumw2();
+
+    if (debug) {
+        cout << "  NEW HIST" << endl;
+        cout << "num bins in raw" << h_raw_data->GetNbinsX() << endl;
+        cout << "num bins in binbybin" << h_binbybin_fcorr->GetNbinsX() << endl;
+        for (int i=0; i<h_raw_data->GetNbinsX(); i++) {
+            cout << h_raw_data->GetBinContent(i) << " ";
+        }
+        cout << endl;
+    }
+
+    std::string newhistname = Form("%s_corrected", h_raw_data->GetName());
+    TH1D *h_corr_data = (TH1D*) h_raw_data->Clone(newhistname.c_str());
+    h_corr_data->Divide(h_binbybin_fcorr);
+
+    if (debug) {
+        cout << endl;
+        for (int i=0; i<h_raw_data->GetNbinsX(); i++) {
+            cout << h_raw_data->GetBinContent(i) << "/" << h_binbybin_fcorr->GetBinContent(i) << " = " << h_corr_data->GetBinContent(i) << "   ";
+        }
+        cout << endl;
+        cout << "=====" << endl;
+    }
+
+    // add name string
+    std::string addname = Form("_PTBIN%d_RLBIN%d", ptbin, rlbin);
+
+    // plot and save corrected data
+    TCanvas *can_corrdata = new TCanvas();
+    plot_and_save_one_histogram(can_corrdata, fout, observable, h_corr_data, 2, addname);
+
+    // plot and save corr data with raw data 
+    TCanvas *can_corr_vs_raw_data = new TCanvas();
+    plot_and_save_two_histograms_overlayed(can_corr_vs_raw_data, fout, observable, h_raw_data, h_corr_data, 2, addname, kBlue, kRed, "raw data", "bin-by-bin corrected data");
+
+
+}
+
+// General analysis function
+void analyze(TFile *f_in_data, TFile *f_in_mc, TFile *f_out, const int pt_bins[], int n_bins, const double RL_bins[][8],
+             int n_RLbins, std::string observable, std::string weightstr, std::string jetRname, 
+             std::string thrname, bool include_RL0, bool include_RL1) {
+    
+    // do i need this?
+    // save_noncorrected_hists(f_in, f_out, weightstr, jetRname, thrname);
+    
+    for (int i = 0; i < n_bins; i++) {
+        cout << "in pt bin" << i << endl;
+        int pt_min = pt_bins[i];
+        int pt_max = pt_bins[i+1];
+
+
+        for ( int j = 0; j < n_RLbins; j++ ) {
+            int k = j;
+            if (!include_RL0) {
+                k = j-1;
+                if (j == 0) continue; // can add something here to change the filename for ALL
+            }
+            if (!include_RL1 && j == n_RLbins-1) continue;
+
+            double RL_min = RL_bins[i][j];
+            double RL_max = RL_bins[i][j+1];
+
+            
+            // double fcorr_forRLbin = extract_corrfactor_forRLbin(fcorr_hist, f_EEC_hist, RL_min, RL_max);
+            // apply_corrfactor(f_in, f_out, weightstr, jetRname, thrname, pt_min, pt_max, RL_min, RL_max, fcorr_forRLbin);
+        
+            // need to do something different for charge! pt cuts not appropriate
+            TH1D * h_binbybin_fcorr = get_binbybin_corrfactors(f_in_mc, f_out, observable, i, pt_min, pt_max, k, RL_min, RL_max);
+            TH1D * h_raw_data = get_rawdata(f_in_data, observable, pt_min, pt_max, RL_min, RL_max);
+            apply_corrfactor(f_out, h_raw_data, h_binbybin_fcorr, observable, i, k);
+        
+        }
+        
+
+
+    }
+
+
+}
+
+
+//===========================================================================
+// This file takes in the following arguments:
+// [[nothing]]
+// THIS IS GOOD FOR PERLMUTTER
+//===========================================================================
+void extract_binbybin_corrections() { 
+
+    gStyle->SetOptStat(0); // hide stats panel
+    SetStyle();
+
+    bool include_RL0 = false;
+    bool include_RL1 = false;
+
+    std::string weightstr = ""; 
+    std::string jetRname = "_R0.4"; 
+    std::string thrname = "_t1.0";
+
+    // analysis variables
+    const int pt_bins[] = { 20, 40, 60, 80 };
+    const int n_bins = sizeof(pt_bins) / sizeof(pt_bins[0]) - 1; //3;
+    
+    const double RL_bins[3][8] = { { 0, 1e-2, 3e-2, 7e-2, 1.5e-1, 3e-1, 4e-1, 1 },
+                            { 0, 1e-2, 2.5e-2, 4e-2, 8e-2, 2.5e-1, 4e-1, 1 },
+                            { 0, 1e-2, 2.5e-2, 3e-2, 4.5e-2, 2e-1, 4e-1, 1 } };
+    const int n_RLbins = sizeof(RL_bins[0]) / sizeof(RL_bins[0][0]) - 1; //gets the columns //6; //7; //5;
+
+    // attempt_dir name
+    std::string matched_str = "matched";
+    if (unmatched) matched_str = "unmatched";
+    attempt_dir = Form("binbybincorrections/%s/rebinx%.0f", matched_str.c_str(), rebin);
+
+    
+    // filenames
+    // file that needs correcting:
+    // TString input_histograms_filename = "/software/users/blianggi/mypyjetty/storage/dEEC/rootfiles/data_firstattempt/DataHists.root"; //"/software/users/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/analysis/user/dEEC/datahists/DataHists.root";
+    TString input_histograms_filename = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/data_firstattempt/DataHists.root"; //"/software/users/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/analysis/user/dEEC/datahists/DataHists.root";
+    TFile* root_data_file = new TFile(input_histograms_filename, "READ");
+
+    // file with anchored mc - truth vs det level information
+    TString input_mc_filename = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/34413713/scaling/AnalysisResultsFinal.root";
+    // TString input_mc_filename = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/34547495/scaling/AnalysisResults.root";
+    TFile* root_mc_file = new TFile(input_mc_filename, "READ");
+
+    // Output file with corrected results
+    // std::string outfile = "/software/users/blianggi/mypyjetty/storage/dEEC/rootfiles/" + attempt_dir + "/DataHists.root";
+    std::string outfile = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/" + attempt_dir + "/DataHists_BinByBinCorr.root"; 
+    TFile* root_outfile = new TFile(outfile.c_str(), "RECREATE");
+
+    analyze(root_data_file, root_mc_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "deltap", weightstr, jetRname, thrname, include_RL0, include_RL1);
+    analyze(root_data_file, root_mc_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "deltapt", weightstr, jetRname, thrname, include_RL0, include_RL1);
+    analyze(root_data_file, root_mc_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "deltapl", weightstr, jetRname, thrname, include_RL0, include_RL1);
+    // // analyze(root_data_file, root_mc_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "charge", weightstr, jetRname, thrname, include_RL0, include_RL1);
+    
+
+
+    root_data_file->Close();
+    root_mc_file->Close();
+    root_outfile->Close();
+
+    delete root_data_file;
+    delete root_mc_file;
+    delete root_outfile;
+
+
+}
