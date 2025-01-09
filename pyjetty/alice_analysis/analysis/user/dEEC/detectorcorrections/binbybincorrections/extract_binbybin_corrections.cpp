@@ -8,7 +8,7 @@
 // Beatrice Liang-Gilman, beatrice_lg@berkeley.edu
 
 
-bool unmatched = false; // set true for unmatched, false for matched
+bool unmatched = true; // set true for unmatched, false for matched
 double rebin = 4;
 std::string attempt_dir = ""; //Form("binbybincorrections/rebinx%.0f",rebin);
 
@@ -192,18 +192,26 @@ TH1D * get_binbybin_corrfactors(TFile *fin_mc, TFile *fout, std::string observab
     
     if (unmatched) { // this is the unmatched version:
         //det level
-        histname = Form("reco_%s_unmatched_PTBIN%d", observable.c_str(), ptbin);
+        histname = Form("reco_%s_unmatched_PTBIN%dScaled", observable.c_str(), ptbin);
         cout << " HISTNAME: " << histname << endl;
         TH3D *h3D_reco = (TH3D *) fin_mc->Get(histname.c_str()); // axes: obs, RL, jet pt
-
+        cout << "RL MIN MAX" << RL_min << " " << RL_max << endl;
+        // cout << "x axis " << h3D_reco->GetXaxis()->GetXmin() << " and " << h3D_reco->GetXaxis()->GetXmax() << endl;
+        // cout << "y axis " << h3D_reco->GetYaxis()->GetXmin() << " and " << h3D_reco->GetYaxis()->GetXmax() << endl;
+        // cout << "z axis " << h3D_reco->GetZaxis()->GetXmin() << " and " << h3D_reco->GetZaxis()->GetXmax() << endl;
+        
+        // make a clone
+        
         // extract 1D histograms
         h3D_reco->GetZaxis()->SetRangeUser(pt_min, pt_max);
         h3D_reco->GetYaxis()->SetRangeUser(RL_min, RL_max);
         h3D_reco->GetXaxis()->SetRangeUser(0, obs_max_val); // to limit the observable range displayed (needed for divide later)
-        hist_det = (TH1D *) h3D_reco->ProjectionX();
+        // hist_det = (TH1D *) h3D_reco->ProjectionX();
+        // ("x", xMin, xMax, yMin, yMax, zMin, zMax)
+        hist_det = (TH1D * ) h3D_reco->Project3D("x"); //, 0, obs_max_val, RL_min, RL_max, pt_min, pt_max);
 
         //truth level
-        histname = Form("gen_%s_unmatched_PTBIN%d", observable.c_str(), ptbin);
+        histname = Form("gen_%s_unmatched_PTBIN%dScaled", observable.c_str(), ptbin);
         cout << " HISTNAME: " << histname << endl;
         TH3D *h3D_gen = (TH3D *) fin_mc->Get(histname.c_str()); // axes: obs, RL, jet pt
 
@@ -211,7 +219,12 @@ TH1D * get_binbybin_corrfactors(TFile *fin_mc, TFile *fout, std::string observab
         h3D_gen->GetZaxis()->SetRangeUser(pt_min, pt_max);
         h3D_gen->GetYaxis()->SetRangeUser(RL_min, RL_max);
         h3D_gen->GetXaxis()->SetRangeUser(0, obs_max_val); // to limit the observable range displayed (needed for divide later)
-        hist_det = (TH1D *) h3D_gen->ProjectionX();
+        // hist_truth = (TH1D *) h3D_gen->ProjectionX();
+        hist_truth = (TH1D * ) h3D_gen->Project3D("x"); //, 0, obs_max_val, RL_min, RL_max, pt_min, pt_max);
+
+
+        delete h3D_reco;
+        delete h3D_gen;
 
     } else { // this is the matched version:
         histname = Form("hResponse_JetPt_corr_%s_PTBIN%d_RLBIN%d_R0.4_1.0Scaled", observable.c_str(), ptbin, rlbin);
@@ -397,8 +410,8 @@ void extract_binbybin_corrections() {
     TFile* root_data_file = new TFile(input_histograms_filename, "READ");
 
     // file with anchored mc - truth vs det level information
-    TString input_mc_filename = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/34413713/scaling/AnalysisResultsFinal.root";
-    // TString input_mc_filename = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/34547495/scaling/AnalysisResults.root";
+    // TString input_mc_filename = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/34413713/scaling/AnalysisResultsFinal.root";
+    TString input_mc_filename = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/34547495/scaling/AnalysisResultsFinal.root";
     TFile* root_mc_file = new TFile(input_mc_filename, "READ");
 
     // Output file with corrected results
