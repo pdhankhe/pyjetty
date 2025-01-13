@@ -13,7 +13,8 @@ Double_t colors[16] = {kGray, kMagenta, kGreen+2, kBlue, kOrange+1, kViolet+1, k
 Double_t markers[10] = {kFullCircle, kFullSquare, kFullDiamond, kFullTriangleUp, kFullStar, kOpenCircle, kOpenTriangleUp, kOpenDiamond, kOpenSquare, kOpenStar};
 Double_t marker_size = 1.5;
 
-std::string attempt_dir = "data_firstattempt";
+int rebin = 4;
+std::string attempt_dir = Form("data_firstattempt/rebinx%d", rebin);
 std::string outdir = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir;
 
 void SetStyle(Bool_t graypalette=true) {
@@ -156,6 +157,9 @@ void Format1DHist(TH1D *hist, TH1D *jetpt_hist, std::string norm_string, int mar
     hist->SetTitle(Form("h_%s%s", obs_name.c_str(), hist_addname.c_str()));
     hist->SetName(Form("h_%s%s", obs_name.c_str(), hist_addname.c_str()));
 
+    // rebin before scaling!!!
+    if (rebin != 0 && obs_name != "weights") hist->Rebin(rebin);
+
     // normalization
     if ( norm_string == "self_normalized" ) {
         double selfnorm_value = hist->Integral();
@@ -206,9 +210,11 @@ void Format2DHist(TH2D *hist2D, TH1D *jetpt_hist, std::string norm_string, std::
     hist2D->SetTitle(Form("h_%s_vs_%s%s", obs_name_y.c_str(), obs_name_x.c_str(), hist_addname.c_str()));
     hist2D->SetName(Form("h_%s_vs_%s%s", obs_name_y.c_str(), obs_name_x.c_str(), hist_addname.c_str()));
 
+    // rebin before scaling!!!
+    if (rebin != 0) hist2D->RebinX(rebin);
+
     // normalization
     int norm_index = 0;
-    if ( scalebyRLbinwidth ) hist2D->Scale(RL_bin_width);
     if ( norm_string == "self_normalized" ) {
         double selfnorm_value = hist2D->Integral();
         hist2D->Scale(1/selfnorm_value, "width");
@@ -218,6 +224,7 @@ void Format2DHist(TH2D *hist2D, TH1D *jetpt_hist, std::string norm_string, std::
         hist2D->Scale(1/numjets, "width");
         norm_index = 2;
     }
+    if ( scalebyRLbinwidth ) hist2D->Scale(RL_bin_width);
 
     // set z axis bounds
     hist2D->GetZaxis()->SetRangeUser(ptvsew_normbounds[norm_index][0], ptvsew_normbounds[norm_index][1]);
