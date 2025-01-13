@@ -6,7 +6,7 @@
 // comp_cases
 // 1: hic, correcting with EEC fcorr; a bit out of date now
 // 2: perly, bin by bin corrections -- matched, rebinx4 -- not tested
-// 3: hic, pythia vs data
+// 3: hic, pythia vs data -- working
 int comp_case = 3;
 
 

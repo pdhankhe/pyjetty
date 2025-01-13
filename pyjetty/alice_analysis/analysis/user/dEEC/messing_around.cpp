@@ -41,7 +41,7 @@ void extract_jetpt_RM(TFile *fin) {
 
 void extract_LHC23a3_plots(TFile *fin, std::string observable) {
         
-    bool logz_bool = false;
+    bool logz_bool = true;
     std::string logstring = "_log"; 
     if (!logz_bool) {
         logstring = "";
@@ -85,6 +85,17 @@ void extract_LHC23a3_plots(TFile *fin, std::string observable) {
 
     output_name = Form("%s/%s/RM_corr_%s_finebins%s.pdf", outputdir.c_str(), observable.c_str(), observable.c_str(), logstring.c_str());
     can2->SaveAs(output_name.c_str());
+
+
+    // save - make z axis smaller
+    TCanvas *can3 = new TCanvas();
+    if (logz_bool) gPad->SetLogz();
+    hist2D->GetZaxis()->SetRangeUser(1e-4,1e4);
+    hist2D->Draw("colz");
+    // move_stat_box(can3, hist2D);
+
+    output_name = Form("%s/%s/RM_corr_%s_finebins%s_limitz.pdf", outputdir.c_str(), observable.c_str(), observable.c_str(), logstring.c_str());
+    can3->SaveAs(output_name.c_str());
 
     // ==================================================================
 

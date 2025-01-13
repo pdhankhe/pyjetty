@@ -55,6 +55,34 @@ void SetStyle(Bool_t graypalette=true) {
 
 }
 
+
+
+//===========================================================================
+//============================== CALCULATIONS ===============================
+//===========================================================================
+
+/* Get the r_c from TChain */
+double getRc(TH1D *h_q1q2) 
+{
+    // do i need to scale by the RL bin width here?? - I think this would be redundant.
+    // if both like sign bin and unlike sign get scaled by RL bin width, then the ratio still stays the same
+
+    // get # of like sign and # of unlike sign
+    double num_likesign = h_q1q2->GetBinContent(h_q1q2->FindBin(1));
+    double num_unlikesign = h_q1q2->GetBinContent(h_q1q2->FindBin(-1));
+    // if (debug) 
+    cout << "num like sign " << num_likesign << " num unlike sign " << num_unlikesign << endl;
+
+    // calculate the rc value for this pt & RL bin
+    double rc = (double)(num_likesign - num_unlikesign) / (double)(num_likesign + num_unlikesign);
+    //if (debug) 
+    cout << "and that makes rc " << rc << endl;
+
+    // if (num_likesign == num_unlikesign) rc = 0;
+
+    return rc;
+}
+
 //===========================================================================
 //================================ PLOTTING =================================
 //===========================================================================
@@ -96,6 +124,12 @@ void plot_and_save_two_histograms_overlayed(TCanvas * can, TFile * file, std::st
                                             TH1D * hist1, TH1D * hist2, int filetype, std::string addname,
                                             int markercolor1, int markercolor2, std::string label1, std::string label2) {
 
+    if (obsname == "charge") {
+        hist1->SetMinimum(0);
+        double hist_max = std::max(hist1->GetMaximum(), hist2->GetMaximum()) * 1.1;
+        hist1->SetMaximum(hist_max);
+    }
+    
     hist1->SetMarkerColorAlpha(markercolor1, 0.8);
     hist1->SetLineColorAlpha(markercolor1, 0.8);
     hist2->SetMarkerColorAlpha(markercolor2, 0.8);
@@ -107,7 +141,7 @@ void plot_and_save_two_histograms_overlayed(TCanvas * can, TFile * file, std::st
 
 
     can->cd();
-    gPad->SetLogy();
+    if (obsname != "charge") gPad->SetLogy();
     hist1->Draw("same");
     hist2->Draw("same");
     l->Draw("same");
@@ -123,6 +157,90 @@ void plot_and_save_two_histograms_overlayed(TCanvas * can, TFile * file, std::st
         file->cd();
         hist1->Write();
         hist2->Write();
+    }
+
+    delete can;
+
+}
+
+
+// filetype 1 = ratio_det_truth_[obs_PTBINX_RLBINY].pdf
+// filetype 2 = corr_data_[obs_PTBINX_RLBINY].pdf
+// filetype 3 = ratio_det_truth_FIT_[obs_PTBINX_RLBINY].pdf
+void plot_and_save_one_graph(TCanvas * can, TFile * file, std::string obsname,
+                             TGraphErrors * graph1, int filetype, std::string addname) {
+
+    graph1->SetMarkerColor(kBlack);
+    // if (filetype == 1) {graph1->GetYaxis()->SetRangeUser(0,10);}
+    
+    can->cd();
+    // gPad->SetLogy();
+    graph1->Draw("ALP");
+
+    std::string filename = "";
+    if (filetype == 1) filename = "ratio_det_truth_";
+    else if (filetype == 2) filename = "corr_data_";
+    else if (filetype == 3) filename = "ratio_det_truth_FIT_";
+    std::string outputbase = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/plots/";
+    std::string outputname = outputbase + attempt_dir + "/" + obsname + "/" + filename + obsname + addname + ".pdf";
+    can->SaveAs(outputname.c_str());
+
+    if (filetype != 3) {
+        file->cd();
+        graph1->Write();
+    }
+
+    delete can;
+
+}
+
+// filetype 1 = truth_and_det_[obs_PTBINX_RLBINY].pdf
+// filetype 2 = corr_data_and_raw_data_[obs_PTBINX].pdf
+void plot_and_save_two_graphs_overlayed(TCanvas * can, TFile * file, std::string obsname,
+                                        TGraphErrors * graph1, TGraphErrors * graph2, int filetype, std::string addname,
+                                        int markercolor1, int markercolor2, std::string label1, std::string label2) {
+
+    if (obsname == "rc") {
+        // double hist_min = std::min(graph1->GetMinimum(), graph2->GetMinimum());
+        double minY = graph1->GetY()[0];
+        for (int i = 0; i < graph1->GetN(); ++i) {
+            double currentY = graph1->GetPointY(i); // Get y-value at point i
+            if (currentY < minY) minY = currentY;
+            currentY = graph2->GetPointY(i);
+            if (currentY < minY) minY = currentY;
+        }
+        graph1->SetMinimum(minY*1.1);
+        double hist_max = std::max(graph1->GetMaximum(), graph2->GetMaximum()) > 0.1 ? std::max(graph1->GetMaximum(), graph2->GetMaximum()) : 0.1;
+        graph1->SetMaximum(hist_max);
+    }
+    
+    graph1->SetMarkerColorAlpha(markercolor1, 0.8);
+    graph1->SetLineColorAlpha(markercolor1, 0.8);
+    graph2->SetMarkerColorAlpha(markercolor2, 0.8);
+    graph2->SetLineColorAlpha(markercolor2, 0.8);
+
+    TLegend *l = new TLegend();
+    l->AddEntry(graph1, label1.c_str(), "pl");
+    l->AddEntry(graph2, label2.c_str(), "pl");
+
+
+    can->cd();
+    // gPad->SetLogy();
+    graph1->Draw("ALP SAME");
+    graph2->Draw("LP SAME");
+    l->Draw("same");
+
+    std::string filename = "";
+    if (filetype == 1) filename = "truth_and_det_";
+    else if (filetype == 2) filename = "corr_data_and_raw_data_";
+    std::string outputbase = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/plots/";
+    std::string outputname = outputbase + attempt_dir + "/" + obsname + "/" + filename + obsname + addname + ".pdf";
+    can->SaveAs(outputname.c_str());
+
+    if (filetype != 2) {
+        file->cd();
+        graph1->Write();
+        graph2->Write();
     }
 
     delete can;
@@ -177,7 +295,8 @@ void fit_histogram_linearfit(TH1D * hist, std::string observable, std::string ad
 // It plots this ratio and saves it as a separate histogram.
 //===========================================================================
 TH1D * get_binbybin_corrfactors(TFile *fin_mc, TFile *fout, std::string observable, 
-                                int ptbin, int pt_min, int pt_max, int rlbin, double RL_min, double RL_max) {
+                                int ptbin, int pt_min, int pt_max, int rlbin, double RL_min, double RL_max,
+                                vector<double>& RL_vals_mc_det = *(new std::vector<double>()), vector<double>& RL_vals_mc_truth = *(new std::vector<double>())) {
 
     fin_mc->cd();
 
@@ -242,8 +361,10 @@ TH1D * get_binbybin_corrfactors(TFile *fin_mc, TFile *fout, std::string observab
     }
 
     // rebin
-    hist_det->Rebin(rebin);
-    hist_truth->Rebin(rebin);
+    if (observable != "charge") {
+        hist_det->Rebin(rebin);
+        hist_truth->Rebin(rebin);
+    }
 
     // add name string
     std::string addname = Form("_PTBIN%d_RLBIN%d", ptbin, rlbin);
@@ -252,6 +373,19 @@ TH1D * get_binbybin_corrfactors(TFile *fin_mc, TFile *fout, std::string observab
     TCanvas *can_truth_det = new TCanvas();
     plot_and_save_two_histograms_overlayed(can_truth_det, fout, observable, hist_det, hist_truth, 1, addname, kBlue, kRed, "det level", "truth level");
 
+    // need to get rc
+    if (observable == "charge") {
+        double rc_det = getRc(hist_det);
+        double rc_truth = getRc(hist_truth);
+        RL_vals_mc_det.push_back(rc_det);
+        RL_vals_mc_truth.push_back(rc_truth);
+
+        double fcorr_rc = rc_det/rc_truth;
+
+        TH1D * hfcorr_rc = new TH1D("hfcorr_rc", "hfcorr_rc", 1, 0.0, 1.0);
+        hfcorr_rc->Fill(0.0,fcorr_rc); // Fill histogram at 0 with a weight that is the correction factor
+        return hfcorr_rc;
+    }
 
     // find the bin by bin corrections
     TH1D * hratio = (TH1D *) hist_det->Clone(Form("hratio_%s_PTBIN%d_RLBIN%d", observable.c_str(), ptbin, rlbin));
@@ -324,6 +458,118 @@ void apply_corrfactor(TFile *fout, TH1D * h_raw_data, TH1D * h_binbybin_fcorr, s
     TCanvas *can_corr_vs_raw_data = new TCanvas();
     plot_and_save_two_histograms_overlayed(can_corr_vs_raw_data, fout, observable, h_raw_data, h_corr_data, 2, addname, kBlue, kRed, "raw data", "bin-by-bin corrected data");
 
+
+}
+
+// General analysis function
+void analyze_charge(TFile *f_in_data, TFile *f_in_mc, TFile *f_out, const int pt_bins[], int n_bins, const double RL_bins[][8],
+             int n_RLbins, std::string observable, std::string weightstr, std::string jetRname, 
+             std::string thrname, bool include_RL0, bool include_RL1) {
+    
+    
+    for (int i = 0; i < n_bins; i++) {
+        cout << "in pt bin" << i << endl;
+        int pt_min = pt_bins[i];
+        int pt_max = pt_bins[i+1];
+
+        std::vector<double> RL_bin_centers_vec;
+        std::vector<double> fcorr_rc_vec;
+        std::vector<double> rc_vec;
+        std::vector<double> rc_corr_vec;
+
+        vector<double> RL_vals_mc_det;
+        vector<double> RL_vals_mc_truth;
+
+
+        for ( int j = 0; j < n_RLbins; j++ ) {
+            int k = j;
+            if (!include_RL0) {
+                k = j-1;
+                if (j == 0) continue; // can add something here to change the filename for ALL
+            }
+            if (!include_RL1 && j == n_RLbins-1) continue;
+
+            double RL_min = RL_bins[i][j];
+            double RL_max = RL_bins[i][j+1];
+
+            // // add name string
+            // std::string addname = Form("_PTBIN%d_RLBIN%d", i, k);
+
+            
+            // double fcorr_forRLbin = extract_corrfactor_forRLbin(fcorr_hist, f_EEC_hist, RL_min, RL_max);
+            // apply_corrfactor(f_in, f_out, weightstr, jetRname, thrname, pt_min, pt_max, RL_min, RL_max, fcorr_forRLbin);
+        
+            // need to do something different for charge! pt cuts not appropriate
+
+            // first we want to plot the det vs truth level same sign and opp sign. And get the correction factor
+            // the correction factor is saved at hist->getbincontent(hist->findbin(0))
+            TH1D * h_binbybin_fcorr = get_binbybin_corrfactors(f_in_mc, f_out, observable, i, pt_min, pt_max, k, RL_min, RL_max, RL_vals_mc_det, RL_vals_mc_truth);
+            double fcorr_rc = h_binbybin_fcorr->GetBinContent(h_binbybin_fcorr->FindBin(0));
+            fcorr_rc_vec.push_back(fcorr_rc);
+            RL_bin_centers_vec.push_back((RL_min+RL_max)/2);
+
+            // then get the data rc
+            // TH1D * h_raw_data = get_rawdata(f_in_data, observable, pt_min, pt_max, RL_min, RL_max);
+            // double rc_data = getRc(h_raw_data);
+            // rc_vec.push_back(rc_data);
+            f_in_data->cd();
+            TGraphErrors * graph_rc = (TGraphErrors *) f_in_data->Get(Form("rc__R0.4_t1.0_pt%d-%d", pt_min, pt_max));
+            double rc_data_val = graph_rc->GetPointY(k);
+            rc_vec.push_back(rc_data_val);
+            
+            // then apply correction to data
+            double rc_corr_data_val = rc_data_val / fcorr_rc;
+            rc_corr_vec.push_back(rc_corr_data_val);
+
+            //TODO: add in the errors?
+        
+        }
+
+        // add name string
+        std::string addname = Form("_PTBIN%d", i);
+
+        
+        // also plot the corr vs raw data here
+        TGraphErrors * gr_rc_mc_det = new TGraphErrors(RL_bin_centers_vec.size(), RL_bin_centers_vec.data(), RL_vals_mc_det.data()); //add errors at end
+        TGraphErrors * gr_rc_mc_truth = new TGraphErrors(RL_bin_centers_vec.size(), RL_bin_centers_vec.data(), RL_vals_mc_truth.data()); //add errors at end
+        TGraphErrors * gr_fcorr = new TGraphErrors(RL_bin_centers_vec.size(), RL_bin_centers_vec.data(), fcorr_rc_vec.data()); //add errors at end
+        TGraphErrors * gr_rc_raw = new TGraphErrors(RL_bin_centers_vec.size(), RL_bin_centers_vec.data(), rc_vec.data()); //add errors at end
+        TGraphErrors * gr_rc_corr = new TGraphErrors(RL_bin_centers_vec.size(), RL_bin_centers_vec.data(), rc_corr_vec.data()); //add errors at end
+
+        gr_rc_mc_det->SetNameTitle(Form("gr_rc_mc_det_%s", addname.c_str()), Form("gr_rc_mc_det_%s", addname.c_str()));
+        gr_rc_mc_truth->SetNameTitle(Form("gr_rc_mc_truth_%s", addname.c_str()), Form("gr_rc_mc_truth_%s", addname.c_str()));
+        gr_fcorr->SetNameTitle(Form("gr_fcorr_%s", addname.c_str()), Form("gr_fcorr_%s", addname.c_str()));
+        gr_rc_raw->SetNameTitle(Form("gr_rc_raw_%s", addname.c_str()), Form("gr_rc_raw_%s", addname.c_str()));
+        gr_rc_corr->SetNameTitle(Form("gr_rc_corr_%s", addname.c_str()), Form("gr_rc_corr_%s", addname.c_str()));
+        
+
+        // plot the truth vs det level distributions
+        TCanvas *can_truth_det_rc = new TCanvas();
+        plot_and_save_two_graphs_overlayed(can_truth_det_rc, f_out, "rc", gr_rc_mc_det, gr_rc_mc_truth, 1, addname, kBlue, kRed, "det level", "truth level");
+
+
+        // plot the correction factors here, as a function of RL?
+        TCanvas *can_rc_fcorr = new TCanvas();
+        plot_and_save_one_graph(can_rc_fcorr, f_out, "rc", gr_fcorr, 1, addname);
+
+        // plot the corrected data
+        TCanvas *can_rc_corr = new TCanvas();
+        plot_and_save_one_graph(can_rc_corr, f_out, "rc", gr_rc_corr, 2, addname);
+        
+        // plot the corrected vs raw data
+        TCanvas *can_rc = new TCanvas();
+        plot_and_save_two_graphs_overlayed(can_rc, f_out, "rc", gr_rc_raw, gr_rc_corr, 2, addname, kBlue, kRed, "raw data", "corrected data");
+
+        delete gr_rc_mc_det;
+        delete gr_rc_mc_truth;
+        delete gr_fcorr;
+        delete gr_rc_raw;
+        delete gr_rc_corr;
+        
+
+    }
+
+    
 
 }
 
@@ -419,10 +665,11 @@ void extract_binbybin_corrections() {
     std::string outfile = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/" + attempt_dir + "/DataHists_BinByBinCorr.root"; 
     TFile* root_outfile = new TFile(outfile.c_str(), "RECREATE");
 
-    analyze(root_data_file, root_mc_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "deltap", weightstr, jetRname, thrname, include_RL0, include_RL1);
-    analyze(root_data_file, root_mc_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "deltapt", weightstr, jetRname, thrname, include_RL0, include_RL1);
-    analyze(root_data_file, root_mc_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "deltapl", weightstr, jetRname, thrname, include_RL0, include_RL1);
-    // // analyze(root_data_file, root_mc_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "charge", weightstr, jetRname, thrname, include_RL0, include_RL1);
+    // analyze(root_data_file, root_mc_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "deltap", weightstr, jetRname, thrname, include_RL0, include_RL1);
+    // analyze(root_data_file, root_mc_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "deltapt", weightstr, jetRname, thrname, include_RL0, include_RL1);
+    // analyze(root_data_file, root_mc_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "deltapl", weightstr, jetRname, thrname, include_RL0, include_RL1);
+    
+    analyze_charge(root_data_file, root_mc_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "charge", weightstr, jetRname, thrname, include_RL0, include_RL1);
     
 
 
