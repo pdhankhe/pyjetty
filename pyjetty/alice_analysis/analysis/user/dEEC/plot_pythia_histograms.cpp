@@ -13,7 +13,7 @@ Double_t colors[16] = {kGray, kMagenta, kGreen+2, kBlue, kOrange+1, kViolet+1, k
 Double_t markers[10] = {kFullCircle, kFullSquare, kFullDiamond, kFullTriangleUp, kFullStar, kOpenCircle, kOpenTriangleUp, kOpenDiamond, kOpenSquare, kOpenStar};
 Double_t marker_size = 1.5;
 
-std::string attempt_dir = "pythia_secondattempt";
+std::string attempt_dir = "pythia5TeV_secondattempt";
 std::string outdir = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir;
 
 void SetStyle(Bool_t graypalette=true) {
@@ -316,7 +316,6 @@ void draw_save_del_hists(TFile *fout, TCanvas *can, TObject* obj, std::string ob
 
     
 
-    // std::string outdir = "plots/pythia_secondattempt"; // + ptbin_name + "/";//"plots/test/";
     std::string add_dir = "";
     if (obs_name != "jet_pt" && obs_name != "total_num_const" && obs_name != "num_const_aftercut") {
         if (obs_name == "rc") add_dir = "/" + ptname + "/" + norm_string + "/" + obs_name;
@@ -404,8 +403,7 @@ void plotandsave_combined_hists(TCanvas *can_all, vector<TH1D*> h_vec, TLegend *
     l->Draw("same");
 
     //save as PDF
-    // std::string outdir = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/plots/pythia_secondattempt/"; // + ptbin_name + "/";//"plots/test/";
-    std::string add_dir = ptname + "/" + norm_string + "/" + obs_name;
+    std::string add_dir = "/" + ptname + "/" + norm_string + "/" + obs_name;
     std::string fname_out = outdir + add_dir + "/corrhist_" + obs_name + "_ALL" + hist_addname + ".pdf";
     can_all->SaveAs(fname_out.c_str());
 
@@ -435,7 +433,6 @@ void plot_rc(vector<vector<double>>& RL_vals, vector<vector<double>>& rc_vals, v
     cout <<" RL_err size " << RL_err.size() << endl;
     cout <<" pt_err size " << pt_err.size() << endl;
 
-    // std::string outdir = "plots/pythia_secondattempt"; // + ptbin_name + "/";//"plots/test/";
     std::string fname_func_of_RL_out = outdir + "/corrhist_rc_func_of_RL.pdf"; // could add jetR and threshold info later??, maybe not needed tho 
     std::string fname_func_of_pT_out = outdir + "/corrhist_rc_func_of_pT.pdf";
 
