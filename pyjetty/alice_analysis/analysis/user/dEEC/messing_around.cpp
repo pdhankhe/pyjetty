@@ -5,6 +5,56 @@
 std::string outputdir = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/plots/RMs/LHC23a3";
 
 
+//===========================================================================
+//================================= FITTING =================================
+//===========================================================================
+double fit_histogram_guassianfit(TH1D * hist, double lowx, double highx) {
+
+    /*
+    // could also do:
+    TF1 *linearFit = new TF1("linearFit", "pol1", 2.0, 8.0); // Fit range: [2, 8]
+    hist->Fit(linearFit, "R"); // "R" = ensures the fit uses the specified range
+    */
+    TF1 *f1 = new TF1("f1","gausn", lowx, highx);
+    // TF1 *fitfunc = new TF1("mstotal","gausn(0)", lowx, highx);
+
+    // Perform the linear fit
+    auto fitResult = hist->Fit("f1", "RS"); //, "Q"); // "pol1" = linear function, "Q" = quiet mode
+    // "W": Ignore weights - set the weights of all non-zero bins to 1
+    // "E": Perform better error estimation.
+    // "S": The full result of the fit is returned in the TFitResultPtr (incl cov matrix)
+    // 7.1.1. in https://root.cern.ch/root/htmldoc/guides/users-guide/FittingHistograms.html
+    
+    // Retrieve fit parameters
+    TF1 *fitFunction = hist->GetFunction("f1");
+    if (fitFunction) { // this is to catch the scenarios where fitfunction is empty (couldn't fit)
+        double height = fitFunction->GetParameter(0);
+        double mean = fitFunction->GetParameter(1);
+        double sigma = fitFunction->GetParameter(2); 
+        std::cout << "Fit Results: height = " << height << ", mean = " << mean  << ", sigma = " << sigma << std::endl;
+    
+        // auto fitResult = hist->Fit("pol1", "S");
+        double chi2 = fitResult->Chi2();
+        int ndf = fitResult->Ndf();
+        std::cout << "Chi2/Ndf = " << chi2 / ndf << std::endl;
+
+        return sigma;
+
+    } else {
+        return -1;
+    }
+
+    // // Draw the histogram and the fit
+    // TCanvas *c1 = new TCanvas("c1", "Linear Fit", 800, 600);
+    // TFile *dummy_file;
+    // plot_and_save_one_histogram(c1, dummy_file, observable, hist, 3, addname);
+
+}
+
+//===========================================================================
+//================================ FUNCTIONS ================================
+//===========================================================================
+
 void move_stat_box(TCanvas *c1, TH2D* hist2D) {
     // ge = (TGraphErrors *)c1->GetListOfPrimitives()->FindObject("Graph");
     // ge->Fit("gaus");
@@ -99,20 +149,40 @@ void extract_LHC23a3_plots(TFile *fin, std::string observable) {
 
     // ==================================================================
 
+    gStyle->SetOptStat(0);
     for (int i=1; i<50; i++) {
 
         hist2D->GetXaxis()->SetRangeUser(i - 0.2, i + 0.2);
         TH1D * hist_1 = hist2D->ProjectionY();
+        hist_1->Rebin(10);
         hist_1->SetMarkerColor(kBlue);
-        hist_1->SetMarkerSize(2);
+        hist_1->SetMarkerStyle(8);
+        hist_1->SetLineColor(kBlue);
+        hist_1->SetMarkerSize(1);
+
+        // fit a gaussian
+        double lowx = i < 5 ? 0 : i-5;
+        double highx = i > 45 ? i + 5 : 50;
+        double sigma = fit_histogram_guassianfit(hist_1, lowx, highx);
 
         TCanvas *can3a = new TCanvas();
         // gPad->SetLogx();
         gPad->SetLogy();
         hist_1->Draw();
+
+        if ( sigma > 0 ) {
+            TLatex latex;
+            latex.SetNDC();  // Use Normalized Device Coordinates (0 to 1)
+            latex.SetTextSize(0.035); // Set text size
+            double xtextpos = i <= 25 ? 0.7 : 0.3;
+            double ytextpos = 0.8;
+            latex.DrawLatex(xtextpos, ytextpos, Form("Fit #sigma = %.3f", sigma)); // (x, y, text)
+        }
+
         can3a->SaveAs(Form("%s/%s/projections/projected_%s_jetpttruth%dGeV.pdf", outputdir.c_str(), observable.c_str(), observable.c_str(), i));
 
     }
+    gStyle->SetOptStat(1);
     // hist2D->GetXaxis()->SetRangeUser(0.8,1.2);
     // TH1D * hist_1 = hist2D->ProjectionY();
     // hist_1->SetMarkerColor(kBlue);

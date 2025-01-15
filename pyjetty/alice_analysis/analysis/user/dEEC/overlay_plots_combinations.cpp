@@ -249,10 +249,10 @@ void plot_one_observable(TFile *file1, TFile *file2, std::string obsname, int ma
                 TH1D * hist_file2 = (TH1D*) file2->Get(histname.c_str());
 
                 if (obsname != "weights") {
-                    hist_file1 = rebin_data_hist_by4(hist_file1);
+                    // hist_file1 = rebin_data_hist_by4(hist_file1);
                     cout << "OBSNAME " << obsname << endl;
-                    std::vector<double> binedges = get_bin_edges(hist_file1);
-                    hist_file2 = rebin_data_hist_by4(hist_file2, obsname, binedges);
+                    // std::vector<double> binedges = get_bin_edges(hist_file1);
+                    // hist_file2 = rebin_data_hist_by4(hist_file2, obsname, binedges);
                 }
 
                 hist_vec.push_back((TH1D*) hist_file1->Clone());
@@ -307,7 +307,7 @@ void plot_one_observable(TFile *file1, TFile *file2, std::string obsname, int ma
 }
 
 // function to plot raw data and corrected data together
-void plot_comparisons(TFile *raw_data_infile, TFile *data_correctionfactors_infile, const int pt_bins[], int n_bins, 
+void plot_comparisons(TFile *f1, TFile *f2, const int pt_bins[], int n_bins, 
                       const double RL_bins[][8], int n_RLbins, bool include_RL0, bool include_RL1) {
     // so we want to plot all the delta p curves, then all the delta pt and delta pl and EW curves. 2D hists don't need to be overlayed though
     // I should make projections of them at some point. I can also plot rc together.
@@ -320,16 +320,16 @@ void plot_comparisons(TFile *raw_data_infile, TFile *data_correctionfactors_infi
     // }
     
     // starting with deltap
-    plot_one_observable(raw_data_infile, data_correctionfactors_infile, "deltap", markerstyle1, markerstyle2, false, true,
+    plot_one_observable(f1, f2, "deltap", markerstyle1, markerstyle2, false, true,
                          pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1);
     
-    plot_one_observable(raw_data_infile, data_correctionfactors_infile, "deltapt", markerstyle1, markerstyle2, false, true,
+    plot_one_observable(f1, f2, "deltapt", markerstyle1, markerstyle2, false, true,
                          pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1);
-    plot_one_observable(raw_data_infile, data_correctionfactors_infile, "deltapl", markerstyle1, markerstyle2, false, true,
+    plot_one_observable(f1, f2, "deltapl", markerstyle1, markerstyle2, false, true,
                          pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1);
     
     if (comp_case != 2) {
-        plot_one_observable(raw_data_infile, data_correctionfactors_infile, "weights", markerstyle1, markerstyle2, false, true,
+        plot_one_observable(f1, f2, "weights", markerstyle1, markerstyle2, false, true,
                             pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1);
     }
 

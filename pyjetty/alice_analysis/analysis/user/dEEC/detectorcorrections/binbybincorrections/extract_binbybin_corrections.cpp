@@ -87,6 +87,12 @@ double getRc(TH1D *h_q1q2)
 //================================ PLOTTING =================================
 //===========================================================================
 
+
+void formathist(TH1D * hist, std::string xtitle, std::string ytitle) {
+    hist->GetXaxis()->SetTitle(xtitle.c_str());
+    hist->GetYaxis()->SetTitle(ytitle.c_str());
+}
+
 // filetype 1 = ratio_det_truth_[obs_PTBINX_RLBINY].pdf
 // filetype 2 = corr_data_[obs_PTBINX_RLBINY].pdf
 // filetype 3 = ratio_det_truth_FIT_[obs_PTBINX_RLBINY].pdf
@@ -128,7 +134,11 @@ void plot_and_save_two_histograms_overlayed(TCanvas * can, TFile * file, std::st
         hist1->SetMinimum(0);
         double hist_max = std::max(hist1->GetMaximum(), hist2->GetMaximum()) * 1.1;
         hist1->SetMaximum(hist_max);
+    } else {
+        double hist_max = std::max(hist1->GetMaximum(), hist2->GetMaximum()) * 2;
+        hist1->SetMaximum(hist_max);
     }
+    
     
     hist1->SetMarkerColorAlpha(markercolor1, 0.8);
     hist1->SetLineColorAlpha(markercolor1, 0.8);
@@ -366,8 +376,33 @@ TH1D * get_binbybin_corrfactors(TFile *fin_mc, TFile *fout, std::string observab
         hist_truth->Rebin(rebin);
     }
 
+    // scale by the number of jets here
+    if (unmatched) {
+        TH1D * jetpt_det = (TH1D *) fin_mc->Get("h_1Djet_pt_JetPt_Det_R0.4_1.0Scaled");
+        TH1D * jetpt_truth = (TH1D *) fin_mc->Get("h_1Djet_pt_JetPt_Truth_R0.4_1.0Scaled");
+
+        jetpt_det->GetXaxis()->SetRangeUser(pt_min, pt_max);
+        jetpt_truth->GetXaxis()->SetRangeUser(pt_min, pt_max);
+
+        double num_jets_det = jetpt_det->Integral();
+        double num_jets_truth = jetpt_truth->Integral();
+
+        hist_det->Scale(num_jets_det, "width");
+        hist_truth->Scale(num_jets_truth, "width");
+    }
+
     // add name string
     std::string addname = Form("_PTBIN%d_RLBIN%d", ptbin, rlbin);
+
+    // add axes titles
+    std::string obs_axis_title = "";
+    if (observable == "deltap") obs_axis_title = "#Deltap";
+    else if (observable == "deltapt") obs_axis_title = "#Deltap_{T}";
+    else if (observable == "deltapl") obs_axis_title = "#Deltap_{L}";
+    else if (observable == "charge") obs_axis_title = "q_{1}q_{2}";
+    std::string yaxis_title = Form("#frac{1}{N_{jet}#DeltaR_{L}} #frac{dN}{d%s}", obs_axis_title.c_str());
+    formathist(hist_det, obs_axis_title, yaxis_title);
+    formathist(hist_truth, obs_axis_title, yaxis_title);
 
     // plot and save those histograms
     TCanvas *can_truth_det = new TCanvas();
@@ -390,9 +425,10 @@ TH1D * get_binbybin_corrfactors(TFile *fin_mc, TFile *fout, std::string observab
     // find the bin by bin corrections
     TH1D * hratio = (TH1D *) hist_det->Clone(Form("hratio_%s_PTBIN%d_RLBIN%d", observable.c_str(), ptbin, rlbin));
     hratio->Divide(hist_truth);
+    formathist(hratio, obs_axis_title, "f_{corr}");
 
-    // fit the ratio
-    fit_histogram_linearfit(hratio, observable, addname);
+    // // fit the ratio
+    // fit_histogram_linearfit(hratio, observable, addname);
 
     // plot and save ratio
     TCanvas *can_ratio = new TCanvas();
@@ -409,8 +445,8 @@ TH1D * get_rawdata(TFile *fin_data, std::string observable, int pt_min, int pt_m
     std::string histname = Form("h_%s_R0.4_t1.0_pt%d-%d_RL%.3f-%.3f_norm_by_jets", observable.c_str(), pt_min, pt_max, RL_min, RL_max);
     TH1D * hist = (TH1D *)gDirectory->Get(histname.c_str());
 
-    // rebin
-    hist->Rebin(rebin);
+    // rebin -- now already done in original DataHists file
+    // hist->Rebin(rebin);
 
     return hist;
 
@@ -496,8 +532,6 @@ void analyze_charge(TFile *f_in_data, TFile *f_in_mc, TFile *f_out, const int pt
             // std::string addname = Form("_PTBIN%d_RLBIN%d", i, k);
 
             
-            // double fcorr_forRLbin = extract_corrfactor_forRLbin(fcorr_hist, f_EEC_hist, RL_min, RL_max);
-            // apply_corrfactor(f_in, f_out, weightstr, jetRname, thrname, pt_min, pt_max, RL_min, RL_max, fcorr_forRLbin);
         
             // need to do something different for charge! pt cuts not appropriate
 
@@ -598,10 +632,7 @@ void analyze(TFile *f_in_data, TFile *f_in_mc, TFile *f_out, const int pt_bins[]
             double RL_min = RL_bins[i][j];
             double RL_max = RL_bins[i][j+1];
 
-            
-            // double fcorr_forRLbin = extract_corrfactor_forRLbin(fcorr_hist, f_EEC_hist, RL_min, RL_max);
-            // apply_corrfactor(f_in, f_out, weightstr, jetRname, thrname, pt_min, pt_max, RL_min, RL_max, fcorr_forRLbin);
-        
+                    
             // need to do something different for charge! pt cuts not appropriate
             TH1D * h_binbybin_fcorr = get_binbybin_corrfactors(f_in_mc, f_out, observable, i, pt_min, pt_max, k, RL_min, RL_max);
             TH1D * h_raw_data = get_rawdata(f_in_data, observable, pt_min, pt_max, RL_min, RL_max);
@@ -652,7 +683,7 @@ void extract_binbybin_corrections() {
     // filenames
     // file that needs correcting:
     // TString input_histograms_filename = "/software/users/blianggi/mypyjetty/storage/dEEC/rootfiles/data_firstattempt/DataHists.root"; //"/software/users/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/analysis/user/dEEC/datahists/DataHists.root";
-    TString input_histograms_filename = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/data_firstattempt/DataHists.root"; //"/software/users/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/analysis/user/dEEC/datahists/DataHists.root";
+    TString input_histograms_filename = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/data_firstattempt/rebinx4/DataHists.root"; //"/software/users/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/analysis/user/dEEC/datahists/DataHists.root";
     TFile* root_data_file = new TFile(input_histograms_filename, "READ");
 
     // file with anchored mc - truth vs det level information
@@ -665,9 +696,9 @@ void extract_binbybin_corrections() {
     std::string outfile = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/" + attempt_dir + "/DataHists_BinByBinCorr.root"; 
     TFile* root_outfile = new TFile(outfile.c_str(), "RECREATE");
 
-    // analyze(root_data_file, root_mc_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "deltap", weightstr, jetRname, thrname, include_RL0, include_RL1);
-    // analyze(root_data_file, root_mc_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "deltapt", weightstr, jetRname, thrname, include_RL0, include_RL1);
-    // analyze(root_data_file, root_mc_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "deltapl", weightstr, jetRname, thrname, include_RL0, include_RL1);
+    analyze(root_data_file, root_mc_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "deltap", weightstr, jetRname, thrname, include_RL0, include_RL1);
+    analyze(root_data_file, root_mc_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "deltapt", weightstr, jetRname, thrname, include_RL0, include_RL1);
+    analyze(root_data_file, root_mc_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "deltapl", weightstr, jetRname, thrname, include_RL0, include_RL1);
     
     analyze_charge(root_data_file, root_mc_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "charge", weightstr, jetRname, thrname, include_RL0, include_RL1);
     
