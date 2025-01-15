@@ -7,7 +7,8 @@ Double_t colors[16] = {kGray, kMagenta, kGreen+2, kBlue, kOrange+1, kViolet+1, k
 Double_t markers[10] = {kFullCircle, kFullSquare, kFullDiamond, kFullTriangleUp, kFullStar, kOpenCircle, kOpenTriangleUp, kOpenDiamond, kOpenSquare, kOpenStar};
 Double_t marker_size = 1.5;
 
-std::string attempt_dir = "pythia5TeV_histograms_crosscheck";
+int rebin = 4;
+std::string attempt_dir = Form("pythia5TeV_histograms_crosscheck/rebinx%d", rebin);
 std::string outdir = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir;
 
 void SetStyle(Bool_t graypalette=true) {
@@ -238,6 +239,49 @@ TLine * drawHoriLine(double x1, double x2, double y1, int color, int linestyle=2
     return fhoriline;
 
 }
+ 
+
+// Function to get the bin edges of a histogram
+std::vector<double> get_bin_edges(TH1D * hist) {
+
+    // Get the X-axis
+    TAxis *xAxis = hist->GetXaxis();
+
+    // Get the number of bins, minimum, and maximum values
+    int nBins = xAxis->GetNbins();
+    double xmin = xAxis->GetXmin();
+    double xmax = xAxis->GetXmax();
+
+    // Calculate the bin width
+    double binWidth = (xmax - xmin) / nBins;
+
+    // Generate the array of bin edges
+    std::vector<double> binEdges;
+    for (int i = 0; i <= nBins; ++i) {
+        binEdges.push_back(xmin + i * binWidth);
+    }
+    
+    return binEdges;
+}
+
+
+// function to manually rebin the data histogram by 4x but with given bin edges
+TH1D * rebin_data_hist_by4(TH1D * hist, std::vector<double> binedges_vec = {0, 25}) {
+        
+        // Convert to a C-style array
+        int numBins = binedges_vec.size() - 1;
+        double *binedges = new double[binedges_vec.size()];
+        std::copy(binedges_vec.begin(), binedges_vec.end(), binedges);
+
+        // // Don't forget to clean up if you allocate memory
+        // delete[] edgesArray;
+
+        TH1D * hist_rebinned = (TH1D *)hist->Rebin(numBins, hist->GetName(), binedges);
+        // cout << "There are " << numBins << " bins in hist2" << endl;
+
+        return hist_rebinned;
+
+}
 
 
 // ======================================================= //
@@ -291,6 +335,7 @@ void applyCuts(THnSparse *hsparse, int RLaxis, int pt_min, int pt_max, double RL
 
 // get the observable histogram
 //usually obsaxis is 3, but in new histograms it is 4. For jet level histograms, use 0.
+// THIS FUNCTION IS NOT USED
 TH1D * getObsHist(TFile *filename, std::string h_name, std::string h_jet_name, int pt_min, int pt_max, 
                   int RLaxis, double RL_min, double RL_max, std::string newhistname, int obsaxis, std::string xtitle,
                   int normalized=0, bool scalebyRLbinwidth=false, double RL_bin_width=1.0, bool EWaxis=false, 
@@ -345,11 +390,6 @@ TH1D * getObsHist(TFile *filename, std::string h_name, std::string h_jet_name, i
         cout << "LOOKING AT NUM ENTRIES: " << hist->GetEntries() << endl;
     }
 
-    
-    // scale by RL bin width if momentum/energy weight bin
-
-    if (scalebyRLbinwidth) hist->Scale(RL_bin_width);
-
     // normalize
     cout << "IS THIS NORMALIZED? " << normalized << endl;
     if (normalized == 1) { // self normalization
@@ -361,6 +401,10 @@ TH1D * getObsHist(TFile *filename, std::string h_name, std::string h_jet_name, i
         hist->Scale(1/numjets, "width");
         cout << "IN NORMALIZED2" << endl;
     }
+
+    // scale by RL bin width if momentum/energy weight bin
+    if (scalebyRLbinwidth) hist->Scale(RL_bin_width);
+
     // cout << "There are " << h_proj->GetEntries() << " pair entries in this pt bin" << endl;
     // cout << "There are " << h_proj_jetlevel->GetEntries() << " jet entries in this pt bin" << endl;
 
@@ -383,11 +427,28 @@ TH1D * getObsHist(TFile *filename, std::string h_name, std::string h_jet_name, i
 // do we need jetlevelhist?, bool EWaxis=false, bool BM_ENC=false, double bm_num=0.
 TH1D * getObs1DHist(TFile *filename, std::string h_name, int RLaxis, int obsaxis,
                     int pt_min, int pt_max, double RL_min, double RL_max, 
-                    bool debug=false) {
+                    std::string obs_name = "", std::string hist_addname = "", bool debug=false) {
 
     THnSparse *hsparse = getHistAndClone(filename, h_name);
     applyCuts(hsparse, RLaxis, pt_min, pt_max, RL_min, RL_max);
     TH1D *hist1D = hsparse->Projection(obsaxis);
+
+    // rebin before scaling!!! - just ∆p/∆pt/∆pl
+    if (rebin > 1 && (obs_name == "deltap" || obs_name == "deltapt" || obs_name == "deltapl")) {
+
+        // get hist_data_for_bins from file
+        std::string file_raw_data_name = "/software/users/blianggi/mypyjetty/storage/dEEC/rootfiles/data_firstattempt/rebinx4/DataHists.root";
+        TFile* file_raw_data = new TFile(file_raw_data_name.c_str(), "READ");
+
+        std::string new_name = Form("h_%s%s", obs_name.c_str(), hist_addname.c_str()); 
+        TH1D * hist_data_for_bins = (TH1D *) file_raw_data->Get(new_name.c_str());
+
+        std::vector<double> binedges = get_bin_edges(hist_data_for_bins);
+        TH1D * rebinned_hist = rebin_data_hist_by4(hist1D, binedges);
+
+        return rebinned_hist;
+
+    }
 
     return hist1D;
 }
@@ -404,7 +465,9 @@ void Format1DHist(TH1D *hist, TH1D *jetpt_hist, std::string norm_string, double 
 
     // set x range
     hist->GetXaxis()->SetRangeUser(x_left, x_right);
-    
+
+    // rebin is done previously in getobs1dhist() function!
+
     // normalization
     if ( norm_string == "self_normalized" ) {
         double selfnorm_value = hist->Integral();
@@ -534,12 +597,9 @@ TH2D * get2DHist(TFile *filename, std::string h_name, std::string h_jet_name, in
     TH2D* hist2D;
     hist2D = (TH2D*) h_proj->Clone(newhistname.c_str());
 
-    
-    // scale by RL bin width if momentum/energy weight bin
-    if (scalebyRLbinwidth) {
-        hist2D->Scale(RL_bin_width);
-        // hist2D->GetYaxis()->Scale(RL_bin_width);
-    }
+
+    // rebin before scaling!!!
+    if (rebin > 1) hist2D->RebinX(rebin); //TODO: implement this properly! Not sure if these bins match the observable ∆pt
 
     // normalize
     // cout << "IS THIS NORMALIZED? " << normalized << endl;
@@ -549,6 +609,12 @@ TH2D * get2DHist(TFile *filename, std::string h_name, std::string h_jet_name, in
     } else if (normalized == 2) { //normalized by the number of jets
         double numjets = h_proj_jetlevel->Integral();
         hist2D->Scale(1/numjets, "width");
+    }
+
+    // scale by RL bin width if momentum/energy weight bin
+    if (scalebyRLbinwidth) {
+        hist2D->Scale(RL_bin_width);
+        // hist2D->GetYaxis()->Scale(RL_bin_width);
     }
 
     // label axes
@@ -1465,10 +1531,10 @@ void analyze_ptbin(TFile * f_in, TFile * f_out, std::string weightstr, std::stri
         // get jet pT range - no D0 reconstruction, so don't make D0 cuts
         // thnsparse axes: 0=jet pt, 1=RL (20 < pt < 40), 2=RL (40 < pt < 60), 3=RL (60 < pt < 80), 4 = observable 
         TH1D *hcorr_jetpt_inptbin_hist = getObs1DHist(f_in, jet_pt_truth_name, -1, 0, pt_min, pt_max, RL_min, RL_max);
-        TH1D *hcorr_deltap_truth_hist = getObs1DHist(f_in, deltap_truth_name, i+1, 4, pt_min, pt_max, RL_min, RL_max);
+        TH1D *hcorr_deltap_truth_hist = getObs1DHist(f_in, deltap_truth_name, i+1, 4, pt_min, pt_max, RL_min, RL_max, "deltap", hist_addname);
         cout << "checkpoint 1 " << hcorr_deltap_truth_hist->GetEntries() << endl;
-        TH1D *hcorr_deltapt_truth_hist = getObs1DHist(f_in, deltapt_truth_name, i+1, 4, pt_min, pt_max, RL_min, RL_max);
-        TH1D *hcorr_deltapl_truth_hist = getObs1DHist(f_in, deltapl_truth_name, i+1, 4, pt_min, pt_max, RL_min, RL_max);
+        TH1D *hcorr_deltapt_truth_hist = getObs1DHist(f_in, deltapt_truth_name, i+1, 4, pt_min, pt_max, RL_min, RL_max, "deltapt", hist_addname);
+        TH1D *hcorr_deltapl_truth_hist = getObs1DHist(f_in, deltapl_truth_name, i+1, 4, pt_min, pt_max, RL_min, RL_max, "deltapl", hist_addname);
         TH1D *hcorr_energyweights_truth_hist = getObs1DHist(f_in, energyweights_truth_name, i+1, 4, pt_min, pt_max, RL_min, RL_max);
         // TH1D *hcorr_baryonmeson_truth_hist = getObs1DHist(f_in, baryonmeson_truth_name, i+1, 4, pt_min, pt_max, RL_min, RL_max);
         // TH2D *hcorr_deltaptvsEW_truth = get2DHist(f_in, deltaptvsEW_truth_name, jet_pt_truth_name,
@@ -1512,6 +1578,28 @@ void analyze_ptbin(TFile * f_in, TFile * f_out, std::string weightstr, std::stri
         Format1DHist(weights_vec[k], hcorr_jetpt_inptbin_hist, norm_string, 0, 0.3, colors[j], 0.6, markers[0], "#frac{p_{T,1}p_{T,2}}{p_{T,jet}^{2}}", ytitle_norm + "#frac{dN}{d[EW]}", *leg_dummy, RLname_leg, true, 1.0, "weights", hist_addname);
         
         // Format2DHist(weights_vs_deltapt_hist2D, hcorr_jetpt_inptbin_hist, norm_string, ytitle_norm + "#Deltap_{T}", ytitle_norm + "p_{T,1}p_{T,2} / p_{T,jet}^{2}", true, RL_bin_width[j], "deltapt", "weights");
+        
+        // Get the X-axis
+        TAxis *xAxis = deltap_vec[k]->GetXaxis();
+
+        // Get the number of bins, minimum, and maximum values
+        int nBins = xAxis->GetNbins();
+        double xmin = xAxis->GetXmin();
+        double xmax = xAxis->GetXmax();
+
+        // Calculate the bin width
+        double binWidth = (xmax - xmin) / nBins;
+
+        // Generate the array of bin edges
+        std::vector<double> binEdges;
+        std::cout << "NBINS: " << nBins << ", bin edges: " << endl;
+        for (int i = 0; i <= nBins; ++i) {
+            binEdges.push_back(xmin + i * binWidth);
+            cout << binEdges[i] << " ";
+        }
+        cout << endl;
+
+        f_out->cd();
 
         // draw, save, and delete histograms
         TCanvas *can_deltap = new TCanvas();
@@ -1599,17 +1687,17 @@ void plot_histograms(TFile* f_in, TFile* f_out, bool weighted, std::string norm_
             std::string jet_pt_truth_name = Form("h_JETINFOjet_pt_Truth_R%s_%sScaled", jetR.c_str(), threshold.c_str());
 
             if (norm_string == "unnormalized") {
-                TH1D * jetpt_hist = getObs1DHist(f_in, jet_pt_truth_name, -1, 0, 0, 200, -1, -1, true);
+                TH1D * jetpt_hist = getObs1DHist(f_in, jet_pt_truth_name, -1, 0, 0, 200, -1, -1, "", "", true);
                 jetpt_hist->GetXaxis()->SetTitle("p_{T,jet}");
                 TCanvas *can_jetpt = new TCanvas();
                 draw_save_del_hists(f_out, can_jetpt, jetpt_hist, "jet_pt", "", "", weightstr + jetRname + thrname, false, true);
             
-                TH1D * jet_const = getObs1DHist(f_in, jet_pt_truth_name, -1, 1, 0, 20, -1, -1, true);
+                TH1D * jet_const = getObs1DHist(f_in, jet_pt_truth_name, -1, 1, 0, 20, -1, -1, "", "", true);
                 jet_const->GetXaxis()->SetTitle("Number Constituents (total)");
                 TCanvas *can_numconst = new TCanvas();
                 draw_save_del_hists(f_out, can_numconst, jet_const, "total_num_const", "", "", weightstr + jetRname + thrname, false, true);
             
-                TH1D * jet_const_aftercut = getObs1DHist(f_in, jet_pt_truth_name, -1, 2, 0, 20, -1, -1, true);
+                TH1D * jet_const_aftercut = getObs1DHist(f_in, jet_pt_truth_name, -1, 2, 0, 20, -1, -1, "", "", true);
                 jet_const_aftercut->GetXaxis()->SetTitle("Number Constituents (after threshold cut)");
                 TCanvas *can_numconst_aftercut = new TCanvas();
                 draw_save_del_hists(f_out, can_numconst_aftercut, jet_const_aftercut, "num_const_aftercut", "", "", weightstr + jetRname + thrname, false, true);
