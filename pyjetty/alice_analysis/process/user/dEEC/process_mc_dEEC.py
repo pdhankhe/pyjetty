@@ -37,7 +37,6 @@ from pyjetty.alice_analysis.process.user.substructure import process_mc_base
 from pyjetty.alice_analysis.process.base import thermal_generator
 from pyjetty.mputils.csubtractor import CEventSubtractor
 
-from memory_profiler import profile
 
 ROOT.gSystem.Load("libRooUnfold")
 
@@ -932,8 +931,8 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
 
         # Det level
         if self.ENC_fastsim and (not 'Truth' in hname):
-          getattr(self, hname.format("1D"+observable,obs_label)).Fill(jet_pt, weights_pair[index])
-          getattr(self, hname.format('Nconst', obs_label)).Fill(jet_pt, nconst_jet, weights_pair[index]) 
+          getattr(self, hname.format("1D"+observable,obs_label)).Fill(jet_pt) #, weights_pair[index])
+          getattr(self, hname.format('Nconst', obs_label)).Fill(jet_pt, nconst_jet) #, weights_pair[index]) 
           
           # TODO: don't do this until you've figured out how...
           # getattr(self, 'tn_JETINFOjet_pt_R{}_{}'.format(jetR, obs_label)).Fill(self.event_number, self.jet_number, self.ijet, jet_pt*weights_pair[index], len(constituents), nconst_jet, leadq_subleadq, leading_q, subleading_q, num_baryons_tot, num_baryons_aftercut, num_mesons_tot, num_mesons_aftercut)
@@ -1508,7 +1507,7 @@ if __name__ == '__main__':
   parser.add_argument('-t', '--saveTuples', action='store',
                       type=int, metavar='saveTuples',
                       default=1,
-                      help='Save correlations as tuples if 1 (otherwise save as histograms if 0)')
+                      help='Save correlations as tuples if 1 (otherwise save as histograms if 0)') # this is currently not being used in this way (or used at all lol)
   
   # Parse the arguments
   args = parser.parse_args()

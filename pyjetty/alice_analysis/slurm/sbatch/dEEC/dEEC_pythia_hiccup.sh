@@ -50,9 +50,10 @@ module list
 # Run python script via pipenv
 cd /software/users/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/
 if [ "$TUPLES" == true ]; then
-  python process/user/dEEC/process_mc_dEEC.py -c config/dEEC/pp/process_pp_fastsim_hiccup.yaml -f $INPUT_FILE -o $OUTPUT_DIR
+  python process/user/dEEC/process_mc_dEEC.py -c config/dEEC/pp/process_pp_fastsim_pythia_hiccup.yaml -f $INPUT_FILE -o $OUTPUT_DIR
 else
-  python process/user/dEEC/process_mc_dEEC_histograms.py -c config/dEEC/pp/process_pp_fastsim_hiccup.yaml -f $INPUT_FILE -o $OUTPUT_DIR
+  # python process/user/dEEC/process_mc_dEEC_histograms.py -c config/dEEC/pp/process_pp_fastsim_hiccup.yaml -f $INPUT_FILE -o $OUTPUT_DIR
+  python process/user/dEEC/process_mc_dEEC.py -c config/dEEC/pp/process_pp_fastsim_pythia_hiccup.yaml -f $INPUT_FILE -o $OUTPUT_DIR
 fi
 
 # # Move stdout to appropriate folder

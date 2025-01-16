@@ -43,7 +43,7 @@ module list
 
 # Run python script via pipenv
 cd /global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/
-python process/user/dEEC/process_mc_dEEC.py -c config/dEEC/pp/process_pp_fastsim_perlmutter.yaml -f $INPUT_FILE -o $OUTPUT_DIR
+python process/user/dEEC/process_mc_dEEC.py -c config/dEEC/pp/process_pp_fastsim_pythia_perlmutter.yaml -f $INPUT_FILE -o $OUTPUT_DIR
 
 # Move stdout to appropriate folder
 mkdir -p $OUTPUT_BASEPATH/$OUTPUT_PREFIX/slurm-output

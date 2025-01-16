@@ -63,16 +63,38 @@ class ProcessMCBase(process_base.ProcessBase):
     # Initialize base class
     super(ProcessMCBase, self).__init__(input_file, config_file, output_dir, save_tuples, event_start_offset, dstar, debug_level, **kwargs)
     
+    # Initialize configuration
+    self.initialize_config()
+    
     # find pt_hat for set of events in input_file, assumes all events in input_file are in the same pt_hat bin
-    self.pt_hat_bin = int(input_file.split('/')[len(input_file.split('/'))-4]) # depends on exact format of input_file name
-    with open("/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/data/LHC18b8_charge/scaleFactors.yaml", 'r') as stream:
+    if self.mcprod == True:
+      slashes_from_end = 4
+    else:
+      slashes_from_end = 3
+    self.pt_hat_bin = int(input_file.split('/')[len(input_file.split('/')) - slashes_from_end]) # depends on exact format of input_file name
+    
+    # need to specify comp_system and generator in config file!
+    file_basepath = ''
+    if self.compsystem == 'perlmutter':
+      file_basepath = '/global/cfs/cdirs/alice/alicepro/hiccup'
+
+    if self.generator == 'pythia':
+      if self.mcprod:
+        with open("{}/rstorage/alice/data/LHC18b8_charge/scaleFactors.yaml".format(file_basepath), 'r') as stream:
+          pt_hat_yaml = yaml.safe_load(stream)
+      else:
+        print("FILE!", "{}/rstorage/generators/pythia_alice/tree_fastsim/scaleFactors.yaml".format(file_basepath))
+        with open("{}/rstorage/generators/pythia_alice/tree_fastsim/scaleFactors.yaml".format(file_basepath), 'r') as stream:
+          pt_hat_yaml = yaml.safe_load(stream)
+    elif self.generator == 'herwig' and self.mcprod == False: #no anchored mc for herwig
+      with open("{}/rstorage/generators/herwig_alice/tree_fastsim/scaleFactors.yaml".format(file_basepath), 'r') as stream:
         pt_hat_yaml = yaml.safe_load(stream)
+
+    print("FILE OUTPUT!", pt_hat_yaml)
     self.pt_hat = pt_hat_yaml[self.pt_hat_bin]
     print("pt hat bin : " + str(self.pt_hat_bin))
     print("pt hat weight : " + str(self.pt_hat))
 
-    # Initialize configuration
-    self.initialize_config()
     
   #---------------------------------------------------------------
   # Initialize config file into class members
@@ -133,6 +155,16 @@ class ProcessMCBase(process_base.ProcessBase):
     self.dry_run = config['dry_run']
     self.skip_deltapt_RC_histograms = True
     self.fill_RM_histograms = True
+
+    if 'comp_system' in config:
+      self.compsystem = config['comp_system']
+    else:
+      self.compsystem = '' #'perlmutter'
+
+    if 'generator' in config:
+      self.generator = config['generator']
+    else:
+      self.generator = '' #'pythia'
 
     if 'leadingtrack_pt_cut' in config:
       self.leading_parton_pt_cut = config['leadingtrack_pt_cut']
@@ -791,30 +823,59 @@ class ProcessMCBase(process_base.ProcessBase):
 
       # add associated truth info and charge info in fj_particles_det using the JetInfo object
       if self.ENC_fastsim:
-        for index, mcid in enumerate(particles_mcid_det):
-          if fj_particles_det[index].has_user_info():
-            ecorr_user_info = fj_particles_det[index].python_info()
-          else:
-            ecorr_user_info = jet_info.JetInfo()
-          if mcid>=0 and mcid<len(fj_particles_truth):
-            # print('debug6', p, 'mcid/length', mcid, len(fj_particles_truth))
-            # print('debug6', p, 'truth', fj_particles_truth[int(mcid)])
-            # print('debug6', p, 'charge', particles_charge_truth[int(mcid)])
-            ecorr_user_info.particle_truth = fj_particles_truth[int(mcid)]
-            ecorr_user_info.charge = particles_charge_truth[int(mcid)]
-          else:
-            print("invalid associated MC Index, filling default values (particle_truth = None, charge = 1000)")
-          fj_particles_det[index].set_python_info(ecorr_user_info)
-          # fj_particles_det[index].set_user_index(int(mcid))
+        # print("particles mcid det", particles_mcid_det)
+        if isinstance(particles_mcid_det, float) and np.isnan(particles_mcid_det):
+          print("Nan value - no detector level particles in this event.")
+        else:
+          for index, mcid in enumerate(particles_mcid_det):
+            if fj_particles_det[index].has_user_info():
+              ecorr_user_info = fj_particles_det[index].python_info()
+            else:
+              ecorr_user_info = jet_info.JetInfo()
 
-        for index in range( len(fj_particles_truth) ):
+            corresponding_truth_pid = particles_pid_truth[int(mcid)]
+            det_charge = 0
+            if (corresponding_truth_pid > 0):
+              det_charge = 1
+            elif (corresponding_truth_pid < 0):
+              det_charge = -1
+
+            ecorr_user_info.particle_mcid = int(mcid)
+            ecorr_user_info.particle_truth = fj_particles_truth[int(mcid)]
+            ecorr_user_info.particle_pid = particles_pid_truth[int(mcid)]
+            ecorr_user_info.charge = det_charge #int(particles_charge_det[index])
+            
+
+            # if mcid>=0 and mcid<len(fj_particles_truth):
+            #   # print('debug6', p, 'mcid/length', mcid, len(fj_particles_truth))
+            #   # print('debug6', p, 'truth', fj_particles_truth[int(mcid)])
+            #   # print('debug6', p, 'charge', particles_charge_truth[int(mcid)])
+            #   ecorr_user_info.particle_truth = fj_particles_truth[int(mcid)]
+            #   ecorr_user_info.charge = particles_charge_truth[int(mcid)]
+            # else:
+            #   print("invalid associated MC Index, filling default values (particle_truth = None, charge = 1000)")
+            fj_particles_det[index].set_python_info(ecorr_user_info)
+            # fj_particles_det[index].set_user_index(int(mcid))
+
+        for index, pid in enumerate(particles_pid_truth): #range( len(fj_particles_truth) ):
           if fj_particles_truth[index].has_user_info():
             ecorr_user_info = fj_particles_truth[index].python_info()
           else:
             ecorr_user_info = jet_info.JetInfo()
+          
+          truth_charge = 0
+          if (pid > 0):
+            truth_charge = 1
+          elif (pid < 0):
+            truth_charge = -1
+
           ecorr_user_info.particle_truth = fj_particles_truth[index]
-          ecorr_user_info.charge = particles_charge_truth[index]
+          ecorr_user_info.particle_pid = pid
+          ecorr_user_info.charge = truth_charge #particles_charge_truth[index] #int(particles_charge_truth[index])
+          ecorr_user_info.particle_mcid = index #int(mcid)
+
           fj_particles_truth[index].set_python_info(ecorr_user_info)
+          
           # fj_particles_truth[index].set_user_index(int(index))
 
       if self.mcprod:
@@ -941,9 +1002,10 @@ class ProcessMCBase(process_base.ProcessBase):
         if self.ENC_fastsim:
           # FIX ME: should treat long lived charged particle differently (check how the existing fast herwig and pythia handles it)
           fj_particles_det_ch = fj.vectorPJ()
-          for part in fj_particles_det:
-            if part.python_info().charge!=0: # only use charged particles
-              fj_particles_det_ch.append(part)
+          if not (isinstance(fj_particles_det, float) and np.isnan(fj_particles_det)):
+            for part in fj_particles_det:
+              if part.python_info().charge!=0: # only use charged particles
+                fj_particles_det_ch.append(part)
           cs_det = fj.ClusterSequence(fj_particles_det_ch, jet_def)
         else:
           if isinstance(fj_particles_det, float) and np.isnan(fj_particles_det): #make no detector level particles event into an empty PJ array

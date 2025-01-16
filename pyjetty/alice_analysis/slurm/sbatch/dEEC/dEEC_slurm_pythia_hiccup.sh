@@ -3,7 +3,7 @@
 #SBATCH --job-name="processpythia_dEECs"
 #SBATCH --nodes=1 --ntasks=1 --cpus-per-task=1
 #SBATCH --partition=std
-#SBATCH --time=2:00:00
+#SBATCH --time=4:00:00
 #SBATCH --array=1-1000
 #SBATCH --output=/rstorage/alice/AnalysisResults/blianggi/dEEC/slurm-%A_%a.out
 
