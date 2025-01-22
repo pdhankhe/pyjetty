@@ -35,6 +35,7 @@ namespace OtherCorrelators
 		public:
 			OtherCorrelatorBuilder();
 			OtherCorrelatorBuilder(const std::vector<fastjet::PseudoJet> &parts, const double &scale, const int &nmax, const int &power, const double dphi_cut, const double deta_cut, const char* correltype);
+			OtherCorrelatorBuilder(const fastjet::PseudoJet &jet, const std::vector<fastjet::PseudoJet> &parts, const double &scale, const int &nmax, const int &power, const double dphi_cut, const double deta_cut, const char* correltype);
 			CorrelatorsContainer *correlator(int n);
 			virtual ~OtherCorrelatorBuilder();
 
@@ -45,6 +46,9 @@ namespace OtherCorrelators
 			int fncmax;
 			std::vector<CorrelatorsContainer*> fec;
 	};
+
+	std::valarray<double> cross_product(const std::valarray<double>& a, const std::valarray<double>& b);
+	double dot_product(const std::valarray<double>& a, const std::valarray<double>& b);
 
 	std::vector<fastjet::PseudoJet> constituents_as_vector(const fastjet::PseudoJet &jet);
 

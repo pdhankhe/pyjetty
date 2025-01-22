@@ -162,7 +162,7 @@ TH1D * rebin_data_hist_by4(TH1D * hist, std::string observable="", std::vector<d
 }
 
 // function to plot a histogram on a given canvas
-void plot_histogram_on_given_canvas(TCanvas *can, TH1D *hist, int markerstyle, int markercolor, double markeralpha) {
+void plot_histogram_on_given_canvas(TCanvas *can, TH1D *hist, int markerstyle, int markercolor, double markeralpha, bool drawline=false) {
 
     // format hist with appropriate marker style
     hist->SetMarkerStyle(markerstyle);
@@ -176,7 +176,8 @@ void plot_histogram_on_given_canvas(TCanvas *can, TH1D *hist, int markerstyle, i
 
     // draw
     can->cd();
-    hist->Draw("SAME");
+    if (drawline) hist->Draw("SAME, HIST, L");
+    else hist->Draw("SAME");
     // can->Update();
 
     // delete hist;
@@ -210,6 +211,9 @@ void plot_one_observable(TFile *file1, TFile *file2, std::string obsname, int ma
     std::string weightstr = "";
     std::string jetRname = Form("_R%s", "0.4"); //jetR.c_str());
     std::string thrname = Form("_t%s", "1.0"); //threshold.c_str());
+
+    TH1D * hist1test;
+    TH1D * hist2test;
     
     for (std::string norm : norms) { // normalization loop
 
@@ -288,9 +292,13 @@ void plot_one_observable(TFile *file1, TFile *file2, std::string obsname, int ma
                 }
 
                 plot_histogram_on_given_canvas(can, hist_vec[2*k], markerstyle1, colors[j], 0.75);
-                plot_histogram_on_given_canvas(can, hist_vec[2*k+1], markerstyle2, colors[j], 0.75);
+                plot_histogram_on_given_canvas(can, hist_vec[2*k+1], markerstyle2, colors[j], 0.75, true);
                 cout << "plotted 2k = " << 2*k << " and color: " << colors[j] << " and markerstyle1: " << markerstyle1 << endl;
                 cout << "plotted 2k+1 = " << 2*k + 1 << " and markerstyle2: " << markerstyle2 << endl;
+                
+
+                hist1test = (TH1D*) hist_vec[3]->Clone();
+                hist2test = (TH1D*) hist_vec[7]->Clone();
             }
             
             // save canvas
@@ -301,8 +309,6 @@ void plot_one_observable(TFile *file1, TFile *file2, std::string obsname, int ma
 
     } // end normalization loop
     
-    
-
 
 }
 
@@ -366,9 +372,11 @@ void overlay_plots_combinations() {
     // filenames
     std::string root_indir_hic = "/software/users/blianggi/mypyjetty/storage/dEEC/rootfiles/";
     
-    std::string raw_data_filename_hic = root_indir_hic + "data_firstattempt/DataHists.root"; //plots/ntuples/DataHists.root"; //FinalDataHists.root
+    // std::string raw_data_filename_hic = root_indir_hic + "data_firstattempt/DataHists.root"; //plots/ntuples/DataHists.root"; //FinalDataHists.root
+    std::string raw_data_filename_hic = root_indir_hic + "data_firstattempt/rebinx4/DataHists.root"; //plots/ntuples/DataHists.root"; //FinalDataHists.root
     TFile* raw_data_infile_hic = new TFile(raw_data_filename_hic.c_str(), "READ");
     
+    //TODO: fix this file name! should have been updated since...
     std::string data_correctionfactors_filename_hic = root_indir_hic + "data_correctionfactors/DataHists.root";
     TFile* data_correctionfactors_infile_hic = new TFile(data_correctionfactors_filename_hic.c_str(), "READ");
 
@@ -384,7 +392,8 @@ void overlay_plots_combinations() {
 
     //------------------------------------------------
 
-    std::string pythia5TeV_histograms_crosscheck_filename_hic = root_indir_hic + "pythia5TeV_histograms_crosscheck/PYTHIAHists.root";
+    // std::string pythia5TeV_histograms_crosscheck_filename_hic = root_indir_hic + "pythia5TeV_histograms_crosscheck/PYTHIAHists.root";
+    std::string pythia5TeV_histograms_crosscheck_filename_hic = root_indir_hic + "pythia5TeV_histograms_crosscheck/rebinx4/PYTHIAHists.root";
     TFile* pythia5TeV_histograms_crosscheck_infile_hic = new TFile(pythia5TeV_histograms_crosscheck_filename_hic.c_str(), "READ");
 
     //------------------------------------------------

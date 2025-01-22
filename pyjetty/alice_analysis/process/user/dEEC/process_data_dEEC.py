@@ -272,9 +272,15 @@ class ProcessData_dEEC(process_data_base.ProcessDataBase):
     elif observable == "corr_deltapt":
       self.tuple_obs_string += ":pt1"
       self.tuple_obs_string += ":pt2"
+      self.tuple_obs_string += "deltajt"
+      self.tuple_obs_string += "jt1"
+      self.tuple_obs_string += "jt2"
     elif observable == "corr_deltapl":
       self.tuple_obs_string += ":pl1"
       self.tuple_obs_string += ":pl2"
+      self.tuple_obs_string += "deltajl"
+      self.tuple_obs_string += "jl1"
+      self.tuple_obs_string += "jl2"
     elif observable == "corr_charge":
       self.tuple_obs_string += ":q1"
       self.tuple_obs_string += ":q2"
@@ -418,6 +424,13 @@ class ProcessData_dEEC(process_data_base.ProcessDataBase):
     deltap_obs_corr = othercorrel.OtherCorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "deltap")
     deltapt_obs_corr = othercorrel.OtherCorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "deltapt")
     deltapl_obs_corr = othercorrel.OtherCorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "deltapl")
+
+    jt1_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "jt1")
+    jt2_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "jt2")
+    deltajt_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "deltajt")
+    jl1_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "jl1")
+    jl2_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "jl2")
+    deltajl_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "deltajl")
     # print("THERE ARE ", new_corr.correlator(2).rs().size(), "NUM OF ENTRIES IN NEW CORR")
 
     # save jet pt - because it is a jet quantity (not pair)
@@ -507,19 +520,27 @@ class ProcessData_dEEC(process_data_base.ProcessDataBase):
           self.fsparsepartonJetvalue_tuple[11] = pt2
           # print("indices 6, 7, 8:",self.fsparsepartonJetvalue_tuple[6], self.fsparsepartonJetvalue_tuple[7], self.fsparsepartonJetvalue_tuple[8] )
           
+          self.fsparsepartonJetvalue_tuple[12] = deltajt_obs_corr.correlator(ipoint).rs()[index]
+          self.fsparsepartonJetvalue_tuple[13] = jt1_obs_corr.correlator(ipoint).rs()[index]
+          self.fsparsepartonJetvalue_tuple[14] = jt2_obs_corr.correlator(ipoint).rs()[index]
+
         elif observable == 'corr_deltapl':
-          self.fsparsepartonJetvalue_tuple[12] = deltapl_obs_corr.correlator(ipoint).rs()[index]
+          self.fsparsepartonJetvalue_tuple[15] = deltapl_obs_corr.correlator(ipoint).rs()[index]
           pl1, pl2 = self.longmom_p1p2(new_corr, ipoint, c_select, index)
-          self.fsparsepartonJetvalue_tuple[13] = pl1
-          self.fsparsepartonJetvalue_tuple[14] = pl2
+          self.fsparsepartonJetvalue_tuple[16] = pl1
+          self.fsparsepartonJetvalue_tuple[17] = pl2
           # print("indices 9, 10, 11:",self.fsparsepartonJetvalue_tuple[9], self.fsparsepartonJetvalue_tuple[10], self.fsparsepartonJetvalue_tuple[11] )
+
+          self.fsparsepartonJetvalue_tuple[18] = deltajl_obs_corr.correlator(ipoint).rs()[index]
+          self.fsparsepartonJetvalue_tuple[19] = jl1_obs_corr.correlator(ipoint).rs()[index]
+          self.fsparsepartonJetvalue_tuple[20] = jl2_obs_corr.correlator(ipoint).rs()[index]
 
         elif observable == 'corr_charge':
           samecharge_boolean = self.is_same_charge(new_corr, ipoint, c_select, index)
-          self.fsparsepartonJetvalue_tuple[15] = 1 if samecharge_boolean else -1
+          self.fsparsepartonJetvalue_tuple[21] = 1 if samecharge_boolean else -1
           q1, q2 = self.charge_p1p2(new_corr, ipoint, c_select, index)
-          self.fsparsepartonJetvalue_tuple[16] = q1
-          self.fsparsepartonJetvalue_tuple[17] = q2
+          self.fsparsepartonJetvalue_tuple[22] = q1
+          self.fsparsepartonJetvalue_tuple[23] = q2
           # print("indices 12, 13, 14:",self.fsparsepartonJetvalue_tuple[12], self.fsparsepartonJetvalue_tuple[13], self.fsparsepartonJetvalue_tuple[14] )
 
         elif 'end' in observable:

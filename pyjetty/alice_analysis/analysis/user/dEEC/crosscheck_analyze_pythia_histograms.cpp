@@ -485,8 +485,8 @@ void Format1DHist(TH1D *hist, TH1D *jetpt_hist, std::string norm_string, double 
     hist->SetMarkerSize(1.5);
     if (drawline) {
 
-        for (int k=0; k < hist->GetNbinsX(); k++){
-            hist->SetBinError(k+1, 0);
+        for (int a=0; a < hist->GetNbinsX(); a++){
+            hist->SetBinError(a+1, 0);
         }
 
         hist->SetMarkerStyle(20);

@@ -187,7 +187,152 @@ namespace OtherCorrelators
         }
     }
 
-    
+     OtherCorrelatorBuilder::OtherCorrelatorBuilder(const fastjet::PseudoJet &jet, const std::vector<fastjet::PseudoJet> &parts,  const double &scale, const int &nmax, const int &power, const double dphi_cut = -9999, const double deta_cut = -9999, const char* correltype = "")
+    : fec()
+    , fncmax(nmax)
+    {
+        // std::cout << "Initializing n point correlator with power " << power << " for " << parts.size() << " paritlces" << std::endl;
+        if (fncmax < 2)
+        {
+            throw std::overflow_error("asking for n-point correlator with n < 2?");
+        }
+        if (fncmax > 3)
+        {
+            throw std::overflow_error("max n for n-point correlator is currently 2");
+        }
+        for (int i = 0; i < fncmax - 2 + 1; i++)
+        {
+            fec.push_back(new CorrelatorsContainer());
+        }
+        for (size_t i = 0; i < parts.size(); i++)
+        {
+            for (size_t j = 0; j < parts.size(); j++)
+            {
+                double _phi12 = fabs(parts[i].delta_phi_to(parts[j])); // expecting delta_phi_to() to return values in [-pi, pi]
+                double _eta12 = parts[i].eta() - parts[j].eta();
+                if (dphi_cut > -1)
+                { // if dphi_cut is on, apply it to pairs
+                    double _pt1 = parts[i].pt();
+                    double _pt2 = parts[j].pt();
+                    int _q1 = 1; // FIX ME: just dummy (no charge info available yet in data and full sim)
+                    int _q2 = 1;
+                    if ( !ApplyDeltaPhiRejection(dphi_cut, _q1, _q2, _pt1, _pt2, _phi12) ) continue;
+                }
+                if (deta_cut > -1)
+                { // if deta_cut is on, apply it to pairs
+                    if ( !ApplyDeltaEtaRejection(deta_cut, _eta12) ) continue;
+                }
+                double _d12 = 0;
+                
+                // cout << "correltype " << correltype << "; " << strcmp(correltype, "deltap") << endl;
+
+                if (strcmp(correltype, "jt1") == 0) {
+                    // take the cross section of jet axis x track, then the norm of the resulting vector, then divide by jet pt
+                    std::valarray<double> mom4vec_jetaxis = jet.four_mom();
+                    std::valarray<double> mom4vec_i = parts[i].four_mom();
+                    
+                    std::valarray<double> cross_product_1 = cross_product(mom4vec_jetaxis, mom4vec_i);
+                    double cross_product_1_norm = std::hypot(cross_product_1[0], cross_product_1[1], cross_product_1[2]);
+                    _d12 = cross_product_1_norm / jet.pt();
+
+                } else if (strcmp(correltype, "jt2") == 0) {
+                    std::valarray<double> mom4vec_jetaxis = jet.four_mom();
+                    std::valarray<double> mom4vec_j = parts[j].four_mom();
+                    
+                    std::valarray<double> cross_product_2 = cross_product(mom4vec_jetaxis, mom4vec_j);
+                    double cross_product_2_norm = std::hypot(cross_product_2[0], cross_product_2[1], cross_product_2[2]);
+                    _d12 = cross_product_2_norm / jet.pt();
+
+                } else if (strcmp(correltype, "deltajt") == 0) {
+                    std::valarray<double> mom4vec_jetaxis = jet.four_mom();
+                    std::valarray<double> mom4vec_i = parts[i].four_mom();
+                    std::valarray<double> mom4vec_j = parts[j].four_mom();
+                    
+                    std::valarray<double> cross_product_1 = cross_product(mom4vec_jetaxis, mom4vec_i);
+                    double cross_product_1_norm = std::hypot(cross_product_1[0], cross_product_1[1], cross_product_1[2]);
+                    double jt1 = cross_product_1_norm / jet.pt();
+                    std::valarray<double> cross_product_2 = cross_product(mom4vec_jetaxis, mom4vec_j);
+                    double cross_product_2_norm = std::hypot(cross_product_2[0], cross_product_2[1], cross_product_2[2]);
+                    double jt2 = cross_product_2_norm / jet.pt();
+
+                    _d12 = fabs(jt1 - jt2);
+
+                } else if (strcmp(correltype, "jl1") == 0) {
+                    // take the cross section of jet axis x track, then the norm of the resulting vector, then divide by jet pt
+                    std::valarray<double> mom4vec_jetaxis = jet.four_mom();
+                    std::valarray<double> mom4vec_i = parts[i].four_mom();
+                    
+                    double dot_product_1 = dot_product(mom4vec_jetaxis, mom4vec_i);
+                    _d12 = dot_product_1 / jet.pt();
+
+                } else if (strcmp(correltype, "jl2") == 0) {
+                    std::valarray<double> mom4vec_jetaxis = jet.four_mom();
+                    std::valarray<double> mom4vec_j = parts[j].four_mom();
+                    
+                    double dot_product_2 = dot_product(mom4vec_jetaxis, mom4vec_j);
+                    _d12 = dot_product_2 / jet.pt();
+
+                } else if (strcmp(correltype, "deltajl") == 0) {
+                    std::valarray<double> mom4vec_jetaxis = jet.four_mom();
+                    std::valarray<double> mom4vec_i = parts[i].four_mom();
+                    std::valarray<double> mom4vec_j = parts[j].four_mom();
+                    
+                    double dot_product_1 = dot_product(mom4vec_jetaxis, mom4vec_i);
+                    double jl1 = dot_product_1 / jet.pt();
+                    double dot_product_2 = dot_product(mom4vec_jetaxis, mom4vec_j);
+                    double jl2 = dot_product_2 / jet.pt();
+
+                    _d12 = fabs(jl1 - jl2);
+
+                }
+		
+		
+                double _w2 = 0;
+            
+                _w2 = parts[i].perp() * parts[j].perp() / std::pow(scale, 2);
+                // _w2 = pow(_w2, power);
+
+                fec[2 - 2]->addwr(_w2, _d12, i, j); // save weight, distance and indices of the pair
+                // if (strcmp(correltype, "deltap") == 0) {
+                //     cout << "TAKE 2delta p:  = " << _d12 << " WEIGHTS " << _w2 << endl;
+                // } else if (strcmp(correltype, "deltapt") == 0) {
+                //     cout << "TAKE 2delta pT: " << parts[i].pt() << " - " << parts[j].pt() << " = " << _d12 << " WEIGHTS " << _w2 << endl;
+                // }
+
+                if (fncmax < 3)
+                    continue;
+                
+            }
+        }
+    }
+
+
+    //note: feeding in a 4-mom array. the 4th element is ignored.
+    std::valarray<double> cross_product(const std::valarray<double>& a, 
+                                        const std::valarray<double>& b) {
+
+        if (a.size() != 3 || b.size() != 3 || a.size() != 4 || b.size() != 4 ) {
+            throw std::invalid_argument("Vectors must have 3 or 4 elements for cross product.");
+        }
+
+        return std::valarray<double>{
+            a[1] * b[2] - a[2] * b[1],
+            a[2] * b[0] - a[0] * b[2],
+            a[0] * b[1] - a[1] * b[0]
+        };
+    }
+
+    //note: feeding in a 4-mom array. the 4th element is ignored.
+    double dot_product(const std::valarray<double>& a, 
+                                        const std::valarray<double>& b) {
+
+        if (a.size() != 3 || b.size() != 3 || a.size() != 4 || b.size() != 4 ) {
+            throw std::invalid_argument("Vectors must have 3 or 4 elements for cross product.");
+        }
+
+        double dotproduct = a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+        return dotproduct;
+    }
 
 
 

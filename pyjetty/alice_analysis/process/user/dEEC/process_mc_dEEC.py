@@ -507,6 +507,7 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
 
     # make finer bins
     if "deltap" in observable:
+      """
       # make a 2D histogram of delta p det vs delta p truth for only jet pt (det) 20-50
       name = 'h2D_{}_JetPt_PT2050_R{}_{}'.format(observable, jetR, obs_label)
       deltap_bins = linbins(0,10,200)
@@ -519,6 +520,7 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
       deltap_bins = linbins(0,50,1000)
       binnings = (pt_bins, pt_bins, deltap_bins, deltap_bins)
       self.create_thn(name, title, dim, binnings)
+      """
 
       # for me
       for i in range(0,3):
@@ -1188,6 +1190,7 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
             
 
             # save finer binned
+            """
             if observable == "corr_deltap":
               if (d_pair.jetpt > 20 and d_pair.jetpt <= 50):
                 hist_name = 'h2D_{}_JetPt_PT2050_R{}_{}'.format(observable, jetR, obs_label)
@@ -1211,6 +1214,7 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
 
               hist_name = 'h4D_{}_JetPt_R{}_{}'.format(observable, jetR, obs_label)
               getattr(self, hist_name).Fill(d_pair.jetpt, t_pair.jetpt, d_pair.deltapl, t_pair.deltapl)
+            """"
 
             # fill unfolding matrices here
             if observable == "corr_energyweights":
