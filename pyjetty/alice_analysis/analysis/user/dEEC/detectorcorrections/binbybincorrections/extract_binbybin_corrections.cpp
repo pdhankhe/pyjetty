@@ -10,6 +10,7 @@
 
 bool unmatched = true; // set true for unmatched, false for matched
 double rebin = 4;
+bool anchmc = false; // set true for anchored mc, set false for fastsim
 std::string attempt_dir = ""; //Form("binbybincorrections/rebinx%.0f",rebin);
 
 
@@ -100,7 +101,7 @@ void plot_and_save_one_histogram(TCanvas * can, TFile * file, std::string obsnam
                                             TH1D * hist1, int filetype, std::string addname) {
 
     hist1->SetMarkerColor(kBlack);
-    if (filetype == 1) {hist1->GetYaxis()->SetRangeUser(0,10);}
+    if (filetype == 1) hist1->GetYaxis()->SetRangeUser(0,5); //10);
     
     can->cd();
     // gPad->SetLogy();
@@ -677,8 +678,9 @@ void extract_binbybin_corrections() {
     // attempt_dir name
     std::string matched_str = "matched";
     if (unmatched) matched_str = "unmatched";
-    attempt_dir = Form("binbybincorrections/%s/rebinx%.0f", matched_str.c_str(), rebin);
-
+    if (anchmc) attempt_dir = Form("binbybincorrections/%s/rebinx%.0f", matched_str.c_str(), rebin);
+    else attempt_dir = Form("fastsim_binbybincorrections/%s/rebinx%.0f", matched_str.c_str(), rebin);
+    
     
     // filenames
     // file that needs correcting:
@@ -687,8 +689,9 @@ void extract_binbybin_corrections() {
     TFile* root_data_file = new TFile(input_histograms_filename, "READ");
 
     // file with anchored mc - truth vs det level information
-    // TString input_mc_filename = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/34413713/scaling/AnalysisResultsFinal.root";
-    TString input_mc_filename = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/34547495/scaling/AnalysisResultsFinal.root";
+    TString input_mc_filename = "";
+    if (anchmc) input_mc_filename = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/34547495/scaling/AnalysisResultsFinal.root"; //LHC23a3
+    else input_mc_filename = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/34897198/1132588/scaling/AnalysisResultsFinal.root"; //pythia fastsim
     TFile* root_mc_file = new TFile(input_mc_filename, "READ");
 
     // Output file with corrected results
