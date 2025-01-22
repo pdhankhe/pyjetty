@@ -230,9 +230,15 @@ namespace OtherCorrelators
                     // take the cross section of jet axis x track, then the norm of the resulting vector, then divide by jet pt
                     std::valarray<double> mom4vec_jetaxis = jet.four_mom();
                     std::valarray<double> mom4vec_i = parts[i].four_mom();
+
+                    // cout << "mom4vec_jetaxis is " << mom4vec_jetaxis[0] << "; " << mom4vec_jetaxis[1] << "; " << mom4vec_jetaxis[2] << "; " << mom4vec_jetaxis[3] << endl;
+                    // cout << "jet p is " << jet.px() << "; " << jet.py() << "; " << jet.pz()  << endl;
+                    // cout << "mom4vec_i is " << mom4vec_i[0] << "; " << mom4vec_i[1] << "; " << mom4vec_i[2] << "; " << mom4vec_i[3] << endl;
+                    // cout << "parts[i] p is " << parts[i].px() << "; " << parts[i].py() << "; " << parts[i].pz() << endl;
                     
                     std::valarray<double> cross_product_1 = cross_product(mom4vec_jetaxis, mom4vec_i);
                     double cross_product_1_norm = std::hypot(cross_product_1[0], cross_product_1[1], cross_product_1[2]);
+                    // cout << "jt 1 is " << cross_product_1_norm / jet.pt() << endl;
                     _d12 = cross_product_1_norm / jet.pt();
 
                 } else if (strcmp(correltype, "jt2") == 0) {
@@ -311,8 +317,10 @@ namespace OtherCorrelators
     std::valarray<double> cross_product(const std::valarray<double>& a, 
                                         const std::valarray<double>& b) {
 
-        if (a.size() != 3 || b.size() != 3 || a.size() != 4 || b.size() != 4 ) {
-            throw std::invalid_argument("Vectors must have 3 or 4 elements for cross product.");
+        if (a.size() <= 2 || b.size() <= 2 ) {
+            throw std::invalid_argument("Too few elements: vectors must have 3 or 4 elements for cross product.");
+        } else if (a.size() > 4 || b.size() > 4 ) {
+            throw std::invalid_argument("Too many elements: vectors must have 3 or 4 elements for cross product.");
         }
 
         return std::valarray<double>{
@@ -326,8 +334,10 @@ namespace OtherCorrelators
     double dot_product(const std::valarray<double>& a, 
                                         const std::valarray<double>& b) {
 
-        if (a.size() != 3 || b.size() != 3 || a.size() != 4 || b.size() != 4 ) {
-            throw std::invalid_argument("Vectors must have 3 or 4 elements for cross product.");
+        if (a.size() <= 2 || b.size() <= 2 ) {
+            throw std::invalid_argument("Too few elements: vectors must have 3 or 4 elements for dot product.");
+        } else if (a.size() > 4 || b.size() > 4 ) {
+            throw std::invalid_argument("Too many elements: vectors must have 3 or 4 elements for dot product.");
         }
 
         double dotproduct = a[0] * b[0] + a[1] * b[1] + a[2] * b[2];

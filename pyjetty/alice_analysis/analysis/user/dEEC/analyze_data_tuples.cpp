@@ -14,7 +14,7 @@ Double_t markers[10] = {kFullCircle, kFullSquare, kFullDiamond, kFullTriangleUp,
 Double_t marker_size = 1.5;
 
 int rebin = 4;
-std::string attempt_dir = Form("data_firstattempt/rebinx%d", rebin);
+std::string attempt_dir = Form("data_secondattempt/rebinx%d", rebin);
 std::string outdir = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir;
 
 void SetStyle(Bool_t graypalette=true) {
@@ -141,10 +141,19 @@ TH2D * getObs2DHistFromTChain(TChain *chain, std::string branch_name_x, std::str
                               int num_bins_x, double hist_xmin, double hist_xmax,
                               int num_bins_y, double hist_ymin, double hist_ymax,
                               int pt_min, int pt_max, double RL_min, double RL_max) {
-    
+
     TH2D * hist2D = new TH2D(Form("%s_vs_%s_hist", branch_name_y.c_str(), branch_name_x.c_str()), Form("%s_vs_%s_hist", branch_name_y.c_str(), branch_name_x.c_str()), num_bins_x, hist_xmin, hist_xmax, num_bins_y, hist_ymin, hist_ymax);
-    chain->Draw(Form("%s:%s>>%s_vs_%s_hist", branch_name_y.c_str(), branch_name_x.c_str(), branch_name_y.c_str(), branch_name_x.c_str()), Form("jet_pt >= %d && jet_pt < %d && RL >= %f && RL < %f", pt_min, pt_max, RL_min, RL_max)); //, "colz");
-    
+    if (branch_name_x == "zi") { // zi vs zj
+        chain->Draw(Form("pt2/jet_pt:pt1/jet_pt>>%s_vs_%s_hist", branch_name_y.c_str(), branch_name_x.c_str()), Form("jet_pt >= %d && jet_pt < %d && RL >= %f && RL < %f", pt_min, pt_max, RL_min, RL_max)); //, "colz");
+    } else if (branch_name_x == "zsmol") { //zbig vs zsmol
+        cout << "this isn't implemented yet! (idk how to )" << endl;
+        return hist2D;
+    } else if (branch_name_x == "maxpt") { //weights vs maxpt
+        cout << "this isn't implemented yet! (idk how to )" << endl;
+        return hist2D;
+    } else {
+        chain->Draw(Form("%s:%s>>%s_vs_%s_hist", branch_name_y.c_str(), branch_name_x.c_str(), branch_name_y.c_str(), branch_name_x.c_str()), Form("jet_pt >= %d && jet_pt < %d && RL >= %f && RL < %f", pt_min, pt_max, RL_min, RL_max)); //, "colz");
+    }
     return hist2D;
 }
 
@@ -202,7 +211,8 @@ void Format1DHist(TH1D *hist, TH1D *jetpt_hist, std::string norm_string, int mar
 }
 
 void Format2DHist(TH2D *hist2D, TH1D *jetpt_hist, std::string norm_string, std::string xtitle, std::string ytitle, 
-                  bool scalebyRLbinwidth, double RL_bin_width, std::string obs_name_x, std::string obs_name_y, std::string hist_addname="") {
+                  bool scalebyRLbinwidth, double RL_bin_width, std::string obs_name_x, std::string obs_name_y, std::string hist_addname="",
+                  bool restrictzaxis=false) {
 
     double ptvsew_normbounds[3][2] = { { 0, 500 }, { 1e-2, 5e2 }, { 1e-4, 2e2 }}; //TODO: make this less pt specific?
     // also TODO: potentially set all lower boundaries to 0 for data??
@@ -211,7 +221,7 @@ void Format2DHist(TH2D *hist2D, TH1D *jetpt_hist, std::string norm_string, std::
     hist2D->SetName(Form("h_%s_vs_%s%s", obs_name_y.c_str(), obs_name_x.c_str(), hist_addname.c_str()));
 
     // rebin before scaling!!!
-    if (rebin != 0) hist2D->RebinX(rebin);
+    // if (rebin != 0) hist2D->RebinX(rebin); //TODO: put this back in later??
 
     // normalization
     int norm_index = 0;
@@ -227,7 +237,7 @@ void Format2DHist(TH2D *hist2D, TH1D *jetpt_hist, std::string norm_string, std::
     if ( scalebyRLbinwidth ) hist2D->Scale(RL_bin_width);
 
     // set z axis bounds
-    hist2D->GetZaxis()->SetRangeUser(ptvsew_normbounds[norm_index][0], ptvsew_normbounds[norm_index][1]);
+    if (restrictzaxis) hist2D->GetZaxis()->SetRangeUser(ptvsew_normbounds[norm_index][0], ptvsew_normbounds[norm_index][1]);
 
     // label axes
     hist2D->GetXaxis()->SetLabelFont(42);
@@ -613,6 +623,9 @@ void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
     vector<double> rc_err_vec;
     vector<double> RLcenters_vec;
 
+    vector<TH1D*> deltajt_vec;
+    vector<TH1D*> deltajl_vec;
+
     TLegend *leg = new TLegend(0.6, 0.6, 0.85, 0.87);
     leg->SetTextSize(0.037);
     leg->SetBorderSize(0);
@@ -648,6 +661,9 @@ void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
         TH1D * deltapl_hist = getObs1DHistFromTChain(PAIRINFO_tree, "deltapl", deltapl_numbins, 0, pt_max/2, pt_min, pt_max, RL_min, RL_max);
         TH1D * weights_hist = getObs1DHistFromTChain(PAIRINFO_tree, "weights", weights_numbins, 0, 0.3, pt_min, pt_max, RL_min, RL_max);
         
+        TH1D * deltajt_hist = getObs1DHistFromTChain(PAIRINFO_tree, "deltajt", deltap_numbins, 0, pt_max+5, pt_min, pt_max, RL_min, RL_max);
+        TH1D * deltajl_hist = getObs1DHistFromTChain(PAIRINFO_tree, "deltajl", deltap_numbins, 0, pt_max+5, pt_min, pt_max, RL_min, RL_max);
+        
         double rc_value = 0.0;
         double rc_err = 0.0;
         if (norm_string == "unnormalized") {
@@ -660,13 +676,20 @@ void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
         int nbins_2D = 50;
         if (pt_min == 40 || pt_min == 60) nbins_2D = 30;
         TH2D * weights_vs_deltapt_hist2D = getObs2DHistFromTChain(PAIRINFO_tree, "deltapt", "weights", nbins_2D, 0, pt_max+5, nbins_2D, 0, 0.3, pt_min, pt_max, RL_min, RL_max);
-
+        TH2D * weights_vs_deltajt_hist2D = getObs2DHistFromTChain(PAIRINFO_tree, "deltajt", "weights", nbins_2D, 0, pt_max+5, nbins_2D, 0, 0.3, pt_min, pt_max, RL_min, RL_max);
+        TH2D * zj_vs_zi_hist2D = getObs2DHistFromTChain(PAIRINFO_tree, "zi", "zj", 50, 0, 1, 50, 0, 1, pt_min, pt_max, RL_min, RL_max);
+        // TH2D * zbig_vs_zsmol_hist2D = getObs2DHistFromTChain(PAIRINFO_tree, "zsmol", "zbig", 50, 0, 1, 50, 0, 1, pt_min, pt_max, RL_min, RL_max);
+        // TH2D * weights_vs_maxpt_hist2D = getObs2DHistFromTChain(PAIRINFO_tree, "maxpt", "weights", nbins_2D, 0, pt_max+5, nbins_2D, 0, 0.3, pt_min, pt_max, RL_min, RL_max);
+        
 
         // push to vectors
         deltap_vec.push_back((TH1D*) deltap_hist->Clone(deltap_hist->GetName()));
         deltapt_vec.push_back((TH1D*) deltapt_hist->Clone(deltapt_hist->GetName()));
         deltapl_vec.push_back((TH1D*) deltapl_hist->Clone(deltapl_hist->GetName()));
         weights_vec.push_back((TH1D*) weights_hist->Clone(weights_hist->GetName()));
+
+        deltajt_vec.push_back((TH1D*) deltajt_hist->Clone(deltajt_hist->GetName()));
+        deltajl_vec.push_back((TH1D*) deltajl_hist->Clone(deltajl_hist->GetName()));
         
         if (norm_string == "unnormalized") {
             rc_vec.push_back(rc_value);
@@ -680,7 +703,13 @@ void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
         Format1DHist(deltapl_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#Deltap_{L}", ytitle_norm + "#frac{dN}{d#Deltap_{L}}", *leg_dummy, RLname_leg, "deltapl", hist_addname);
         Format1DHist(weights_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#frac{p_{T,1}p_{T,2}}{p_{T,jet}^{2}}", ytitle_norm + "#frac{dN}{d[EW]}", *leg_dummy, RLname_leg, "weights", hist_addname);
         
-        Format2DHist(weights_vs_deltapt_hist2D, jetpt_inptbin_hist, norm_string, ytitle_norm + "#Deltap_{T}", ytitle_norm + "p_{T,1}p_{T,2} / p_{T,jet}^{2}", true, RL_bin_width[j], "deltapt", "weights", hist_addname);
+        Format2DHist(weights_vs_deltapt_hist2D, jetpt_inptbin_hist, norm_string, ytitle_norm + "#Deltap_{T}", ytitle_norm + "p_{T,1}p_{T,2} / p_{T,jet}^{2}", true, RL_bin_width[j], "deltapt", "weights", hist_addname, true);
+
+        Format1DHist(deltajt_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#Deltaj_{T}", ytitle_norm + "#frac{dN}{d#Deltaj_{T}}", *leg_dummy, RLname_leg, "deltajt", hist_addname);
+        Format1DHist(deltajl_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#Deltaj_{L}", ytitle_norm + "#frac{dN}{d#Deltaj_{L}}", *leg_dummy, RLname_leg, "deltajl", hist_addname);
+        
+        Format2DHist(weights_vs_deltajt_hist2D, jetpt_inptbin_hist, norm_string, ytitle_norm + "#Deltaj_{T}", ytitle_norm + "p_{T,1}p_{T,2} / p_{T,jet}^{2}", true, RL_bin_width[j], "deltajt", "weights", hist_addname);
+        Format2DHist(zj_vs_zi_hist2D, jetpt_inptbin_hist, norm_string, ytitle_norm + "z_{i}", ytitle_norm + "z_{j}", true, RL_bin_width[j], "zi", "zj", hist_addname);
 
         // draw, save, and delete histograms
         TCanvas *can_deltap = new TCanvas();
@@ -688,14 +717,24 @@ void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
         TCanvas *can_deltapl = new TCanvas();
         TCanvas *can_weights = new TCanvas();
         
+        TCanvas *can_deltajt = new TCanvas();
+        TCanvas *can_deltajl = new TCanvas();
+        
         TCanvas *can_weights_vs_deltapt = new TCanvas("can_weights_vs_deltapt", "can_weights_vs_deltapt", 800, 500);
+        TCanvas *can_weights_vs_deltajt = new TCanvas("can_weights_vs_deltajt", "can_weights_vs_deltajt", 800, 500);
+        TCanvas *can_zj_vs_zi = new TCanvas("can_zj_vs_zi", "can_zj_vs_zi", 800, 500);
 
         draw_save_del_hists(f_out, can_deltap, deltap_vec[k], "deltap", ptname, norm_string, hist_addname, false, true);
         draw_save_del_hists(f_out, can_deltapt, deltapt_vec[k], "deltapt", ptname, norm_string, hist_addname, false, true);
         draw_save_del_hists(f_out, can_deltapl, deltapl_vec[k], "deltapl", ptname, norm_string, hist_addname, false, true);
         draw_save_del_hists(f_out, can_weights, weights_vec[k], "weights", ptname, norm_string, hist_addname, false, true);
         
+        draw_save_del_hists(f_out, can_deltajt, deltajt_vec[k], "deltajt", ptname, norm_string, hist_addname, false, true);
+        draw_save_del_hists(f_out, can_deltajl, deltajl_vec[k], "deltajl", ptname, norm_string, hist_addname, false, true);
+        
         draw_save_del_hists(f_out, can_weights_vs_deltapt, weights_vs_deltapt_hist2D, "weights_vs_deltapt", ptname, norm_string, hist_addname, false, false, true);
+        draw_save_del_hists(f_out, can_weights_vs_deltajt, weights_vs_deltajt_hist2D, "weights_vs_deltajt", ptname, norm_string, hist_addname, false, false, true);
+        draw_save_del_hists(f_out, can_zj_vs_zi, zj_vs_zi_hist2D, "zj_vs_zi", ptname, norm_string, hist_addname, false, false, true);
         
     }
 
@@ -709,6 +748,9 @@ void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
     TCanvas *can_deltapl_all = new TCanvas();
     TCanvas *can_weights_all = new TCanvas();
 
+    TCanvas *can_deltajt_all = new TCanvas();
+    TCanvas *can_deltajl_all = new TCanvas();
+
     // size_t length_deltap = deltap_vec.size();
     // cout << " LENGTH DELTA P " << length_deltap << endl;
 	
@@ -717,6 +759,9 @@ void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
     plotandsave_combined_hists(can_deltapl_all, deltapl_vec, leg, "deltapl", ptname, norm_string, hist_all_addname, pt_max, true, RL_bin_width, false, true, -1);
     plotandsave_combined_hists(can_weights_all, weights_vec, leg, "weights", ptname, norm_string, hist_all_addname, pt_max, true, RL_bin_width, false, true, -1);
 
+    plotandsave_combined_hists(can_deltajt_all, deltajt_vec, leg, "deltajt", ptname, norm_string, hist_all_addname, pt_max, true, RL_bin_width, false, true, -1);
+    plotandsave_combined_hists(can_deltajl_all, deltajl_vec, leg, "deltajl", ptname, norm_string, hist_all_addname, pt_max, true, RL_bin_width, false, true, -1);
+    
     // make graphs
     if (norm_string == "unnormalized") {
         TCanvas *can_rc = new TCanvas();
@@ -820,7 +865,7 @@ void analyze_data_tuples() {
     // filenames
     std::string filename = Form("~/Documents/research/othercorrelations/data_ntuples/AnalysisResults_0001.root");
     std::string base_filepath_perly = Form("/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/31843529");
-    std::string base_filepath_hic = Form("/rstorage/alice/AnalysisResults/blianggi/dEEC/442528");
+    std::string base_filepath_hic = Form("/rstorage/alice/AnalysisResults/blianggi/dEEC/468247"); //442528");
     
     // Output file for binned results
     std::string root_outfile = "/software/users/blianggi/mypyjetty/storage/dEEC/rootfiles/" + attempt_dir + "/DataHists.root"; //plots/ntuples/DataHists.root"; //FinalDataHists.root
@@ -863,9 +908,9 @@ void analyze_data_tuples() {
     
     
     // make TChains
-    std::ifstream filelist("/software/users/blianggi/mypyjetty/dEEC/filelist_datatuples_434384_shortname.txt");
+    std::ifstream filelist("/software/users/blianggi/mypyjetty/dEEC/filelist_datatuples_468247_shortname.txt");
     if (!filelist.is_open()) {
-        std::cerr << "Error: Could not open /software/users/blianggi/mypyjetty/dEEC/filelist_datatuples_434384_shortname.txt" << std::endl;
+        std::cerr << "Error: Could not open /software/users/blianggi/mypyjetty/dEEC/filelist_datatuples_468247_shortname.txt" << std::endl;
         return;
     }
 

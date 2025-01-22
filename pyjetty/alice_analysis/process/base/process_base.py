@@ -28,6 +28,8 @@ from pyjetty.alice_analysis.process.base import common_base
 from pyjetty.alice_analysis.process.base import process_utils
 from pyjetty.alice_analysis.process.base import jet_info
 
+ROOT.gSystem.Load("libRooUnfold")
+
 ################################################################
 class ProcessBase(common_base.CommonBase):
 

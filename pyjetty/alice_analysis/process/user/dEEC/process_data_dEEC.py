@@ -153,7 +153,7 @@ class ProcessData_dEEC(process_data_base.ProcessDataBase):
                 tn = ROOT.TNtuple(name, name, self.tuple_obs_string) #don't need weights for each observable?? I'll worry about this another time
                 setattr(self, name, tn)
                 colon_count = self.tuple_obs_string.count(':')
-                self.fsparsepartonJetvalue_tuple = array.array( 'd', np.zeros(colon_count+1)) #18 to match the number of axes
+                self.fsparsepartonJetvalue_tuple = array.array( 'd', np.zeros(colon_count+1)) #18+6 to match the number of axes
               else:
                 self.create_corr_tuples(observable, jetR, obs_label)
 
@@ -272,15 +272,15 @@ class ProcessData_dEEC(process_data_base.ProcessDataBase):
     elif observable == "corr_deltapt":
       self.tuple_obs_string += ":pt1"
       self.tuple_obs_string += ":pt2"
-      self.tuple_obs_string += "deltajt"
-      self.tuple_obs_string += "jt1"
-      self.tuple_obs_string += "jt2"
+      self.tuple_obs_string += ":deltajt"
+      self.tuple_obs_string += ":jt1"
+      self.tuple_obs_string += ":jt2"
     elif observable == "corr_deltapl":
       self.tuple_obs_string += ":pl1"
       self.tuple_obs_string += ":pl2"
-      self.tuple_obs_string += "deltajl"
-      self.tuple_obs_string += "jl1"
-      self.tuple_obs_string += "jl2"
+      self.tuple_obs_string += ":deltajl"
+      self.tuple_obs_string += ":jl1"
+      self.tuple_obs_string += ":jl2"
     elif observable == "corr_charge":
       self.tuple_obs_string += ":q1"
       self.tuple_obs_string += ":q2"
