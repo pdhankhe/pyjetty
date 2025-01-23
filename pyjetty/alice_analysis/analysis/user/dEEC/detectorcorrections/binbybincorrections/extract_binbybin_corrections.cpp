@@ -330,7 +330,7 @@ TF1 * fit_histogram_quadfit(TH1D * hist, std::string observable, std::string add
     auto fitResult = hist->Fit(fitFunction, "SR");
 
     // Retrieve fit parameters
-    double p0 = fitFunction->GetParameter(0);  // a in ax^2 + bx + c
+    double p0 = fitFunction->GetParameter(0); // a in ax^2 + bx + c
     double p1 = fitFunction->GetParameter(1); // b in ax^2 + bx + c
     double p2 = fitFunction->GetParameter(2); // b in ax^2 + bx + c
     double chi2 = fitResult->Chi2(); //or fitFunction->GetChisquare();
