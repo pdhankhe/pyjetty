@@ -655,86 +655,85 @@ void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
 
         // get histograms
         TH1D * jetpt_inptbin_hist = getObs1DHistFromTChain(JETINFO_tree, "jet_pt", 100, 0, 200, pt_min, pt_max, 0, 0);
-        // TH1D * deltap_hist = getObs1DHistFromTChain(PAIRINFO_tree, "deltap", deltap_numbins, 0, pt_max+5, pt_min, pt_max, RL_min, RL_max);
-        // cout << "checkpoint 1 " << deltap_hist->GetEntries() << endl;
-        // TH1D * deltapt_hist = getObs1DHistFromTChain(PAIRINFO_tree, "deltapt", deltap_numbins, 0, pt_max+5, pt_min, pt_max, RL_min, RL_max);
-        // TH1D * deltapl_hist = getObs1DHistFromTChain(PAIRINFO_tree, "deltapl", deltapl_numbins, 0, pt_max/2, pt_min, pt_max, RL_min, RL_max);
-        // TH1D * weights_hist = getObs1DHistFromTChain(PAIRINFO_tree, "weights", weights_numbins, 0, 0.3, pt_min, pt_max, RL_min, RL_max);
+        TH1D * deltap_hist = getObs1DHistFromTChain(PAIRINFO_tree, "deltap", deltap_numbins, 0, pt_max+5, pt_min, pt_max, RL_min, RL_max);
+        cout << "checkpoint 1 " << deltap_hist->GetEntries() << endl;
+        TH1D * deltapt_hist = getObs1DHistFromTChain(PAIRINFO_tree, "deltapt", deltap_numbins, 0, pt_max+5, pt_min, pt_max, RL_min, RL_max);
+        TH1D * deltapl_hist = getObs1DHistFromTChain(PAIRINFO_tree, "deltapl", deltapl_numbins, 0, pt_max/2, pt_min, pt_max, RL_min, RL_max);
+        TH1D * weights_hist = getObs1DHistFromTChain(PAIRINFO_tree, "weights", weights_numbins, 0, 0.3, pt_min, pt_max, RL_min, RL_max);
         
         TH1D * deltajt_hist = getObs1DHistFromTChain(PAIRINFO_tree, "deltajt", 200, 0, 5, pt_min, pt_max, RL_min, RL_max);
         TH1D * deltajl_hist = getObs1DHistFromTChain(PAIRINFO_tree, "deltajl", deltap_numbins, 0, pt_max+5, pt_min, pt_max, RL_min, RL_max);
         
-        // double rc_value = 0.0;
-        // double rc_err = 0.0;
-        // if (norm_string == "unnormalized") {
-        //     TH1D * q1q2_hist = getObs1DHistFromTChain(PAIRINFO_tree, "q1q2", 6, -3, 3, pt_min, pt_max, RL_min, RL_max);
-        //     rc_value = getRcFromTChain(PAIRINFO_tree, "rc", 6, -3, 3, pt_min, pt_max, RL_min, RL_max);
-        //     rc_err = getRcErr(PAIRINFO_tree, "rc", 6, -3, 3, pt_min, pt_max, RL_min, RL_max);
-        //     cout << "RC ERR IS " << rc_err << "(pt_min=" << pt_min << ", j=" << j << ")" <<endl;
-        // }
+        double rc_value = 0.0;
+        double rc_err = 0.0;
+        if (norm_string == "unnormalized") {
+            TH1D * q1q2_hist = getObs1DHistFromTChain(PAIRINFO_tree, "q1q2", 6, -3, 3, pt_min, pt_max, RL_min, RL_max);
+            rc_value = getRcFromTChain(PAIRINFO_tree, "rc", 6, -3, 3, pt_min, pt_max, RL_min, RL_max);
+            rc_err = getRcErr(PAIRINFO_tree, "rc", 6, -3, 3, pt_min, pt_max, RL_min, RL_max);
+            cout << "RC ERR IS " << rc_err << "(pt_min=" << pt_min << ", j=" << j << ")" <<endl;
+        }
 
         int nbins_2D = 50;
-        // if (pt_min == 40 || pt_min == 60) nbins_2D = 30;
-        // TH2D * weights_vs_deltapt_hist2D = getObs2DHistFromTChain(PAIRINFO_tree, "deltapt", "weights", nbins_2D, 0, pt_max+5, nbins_2D, 0, 0.3, pt_min, pt_max, RL_min, RL_max);
+        if (pt_min == 40 || pt_min == 60) nbins_2D = 30;
+        TH2D * weights_vs_deltapt_hist2D = getObs2DHistFromTChain(PAIRINFO_tree, "deltapt", "weights", nbins_2D, 0, pt_max+5, nbins_2D, 0, 0.3, pt_min, pt_max, RL_min, RL_max);
         TH2D * weights_vs_deltajt_hist2D = getObs2DHistFromTChain(PAIRINFO_tree, "deltajt", "weights", 100, 0, 5, nbins_2D, 0, 0.3, pt_min, pt_max, RL_min, RL_max);
-        // TH2D * zj_vs_zi_hist2D = getObs2DHistFromTChain(PAIRINFO_tree, "zi", "zj", 50, 0, 1, 50, 0, 1, pt_min, pt_max, RL_min, RL_max);
+        TH2D * zj_vs_zi_hist2D = getObs2DHistFromTChain(PAIRINFO_tree, "zi", "zj", 50, 0, 1, 50, 0, 1, pt_min, pt_max, RL_min, RL_max);
         // // TH2D * zbig_vs_zsmol_hist2D = getObs2DHistFromTChain(PAIRINFO_tree, "zsmol", "zbig", 50, 0, 1, 50, 0, 1, pt_min, pt_max, RL_min, RL_max);
         // // TH2D * weights_vs_maxpt_hist2D = getObs2DHistFromTChain(PAIRINFO_tree, "maxpt", "weights", nbins_2D, 0, pt_max+5, nbins_2D, 0, 0.3, pt_min, pt_max, RL_min, RL_max);
         
 
         // push to vectors
-        // deltap_vec.push_back((TH1D*) deltap_hist->Clone(deltap_hist->GetName()));
-        // deltapt_vec.push_back((TH1D*) deltapt_hist->Clone(deltapt_hist->GetName()));
-        // deltapl_vec.push_back((TH1D*) deltapl_hist->Clone(deltapl_hist->GetName()));
-        // weights_vec.push_back((TH1D*) weights_hist->Clone(weights_hist->GetName()));
+        deltap_vec.push_back((TH1D*) deltap_hist->Clone(deltap_hist->GetName()));
+        deltapt_vec.push_back((TH1D*) deltapt_hist->Clone(deltapt_hist->GetName()));
+        deltapl_vec.push_back((TH1D*) deltapl_hist->Clone(deltapl_hist->GetName()));
+        weights_vec.push_back((TH1D*) weights_hist->Clone(weights_hist->GetName()));
 
         deltajt_vec.push_back((TH1D*) deltajt_hist->Clone(deltajt_hist->GetName()));
         deltajl_vec.push_back((TH1D*) deltajl_hist->Clone(deltajl_hist->GetName()));
         
-        // if (norm_string == "unnormalized") {
-        //     rc_vec.push_back(rc_value);
-        //     rc_err_vec.push_back(rc_err);
-        //     RLcenters_vec.push_back( (RL_min+RL_max)/2 );
-        // }
+        if (norm_string == "unnormalized") {
+            rc_vec.push_back(rc_value);
+            rc_err_vec.push_back(rc_err);
+            RLcenters_vec.push_back( (RL_min+RL_max)/2 );
+        }
 
         // format histograms in vector
-        // Format1DHist(deltap_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#Deltap", ytitle_norm + "#frac{dN}{d#Deltap}", *leg, RLname_leg, "deltap", hist_addname);
-        // Format1DHist(deltapt_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#Deltap_{T}", ytitle_norm + "#frac{dN}{d#Deltap_{T}}", *leg_dummy, RLname_leg, "deltapt", hist_addname);
-        // Format1DHist(deltapl_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#Deltap_{L}", ytitle_norm + "#frac{dN}{d#Deltap_{L}}", *leg_dummy, RLname_leg, "deltapl", hist_addname);
-        // Format1DHist(weights_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#frac{p_{T,1}p_{T,2}}{p_{T,jet}^{2}}", ytitle_norm + "#frac{dN}{d[EW]}", *leg_dummy, RLname_leg, "weights", hist_addname);
+        Format1DHist(deltap_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#Deltap", ytitle_norm + "#frac{dN}{d#Deltap}", *leg, RLname_leg, "deltap", hist_addname);
+        Format1DHist(deltapt_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#Deltap_{T}", ytitle_norm + "#frac{dN}{d#Deltap_{T}}", *leg_dummy, RLname_leg, "deltapt", hist_addname);
+        Format1DHist(deltapl_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#Deltap_{L}", ytitle_norm + "#frac{dN}{d#Deltap_{L}}", *leg_dummy, RLname_leg, "deltapl", hist_addname);
+        Format1DHist(weights_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#frac{p_{T,1}p_{T,2}}{p_{T,jet}^{2}}", ytitle_norm + "#frac{dN}{d[EW]}", *leg_dummy, RLname_leg, "weights", hist_addname);
         
-        // Format2DHist(weights_vs_deltapt_hist2D, jetpt_inptbin_hist, norm_string, ytitle_norm + "#Deltap_{T}", ytitle_norm + "p_{T,1}p_{T,2} / p_{T,jet}^{2}", true, RL_bin_width[j], "deltapt", "weights", hist_addname, true);
-
         Format1DHist(deltajt_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#Deltaj_{T}", ytitle_norm + "#frac{dN}{d#Deltaj_{T}}", *leg_dummy, RLname_leg, "deltajt", hist_addname);
         Format1DHist(deltajl_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#Deltaj_{L}", ytitle_norm + "#frac{dN}{d#Deltaj_{L}}", *leg_dummy, RLname_leg, "deltajl", hist_addname);
         
+        Format2DHist(weights_vs_deltapt_hist2D, jetpt_inptbin_hist, norm_string, ytitle_norm + "#Deltap_{T}", ytitle_norm + "p_{T,1}p_{T,2} / p_{T,jet}^{2}", true, RL_bin_width[j], "deltapt", "weights", hist_addname, true);
         Format2DHist(weights_vs_deltajt_hist2D, jetpt_inptbin_hist, norm_string, ytitle_norm + "#Deltaj_{T}", ytitle_norm + "p_{T,1}p_{T,2} / p_{T,jet}^{2}", true, RL_bin_width[j], "deltajt", "weights", hist_addname);
-        // Format2DHist(zj_vs_zi_hist2D, jetpt_inptbin_hist, norm_string, ytitle_norm + "z_{i}", ytitle_norm + "z_{j}", true, RL_bin_width[j], "zi", "zj", hist_addname);
+        Format2DHist(zj_vs_zi_hist2D, jetpt_inptbin_hist, norm_string, ytitle_norm + "z_{i}", ytitle_norm + "z_{j}", true, RL_bin_width[j], "zi", "zj", hist_addname);
 
         // draw, save, and delete histograms
-        // TCanvas *can_deltap = new TCanvas();
-        // TCanvas *can_deltapt = new TCanvas();
-        // TCanvas *can_deltapl = new TCanvas();
-        // TCanvas *can_weights = new TCanvas();
+        TCanvas *can_deltap = new TCanvas();
+        TCanvas *can_deltapt = new TCanvas();
+        TCanvas *can_deltapl = new TCanvas();
+        TCanvas *can_weights = new TCanvas();
         
         TCanvas *can_deltajt = new TCanvas();
         TCanvas *can_deltajl = new TCanvas();
         
-        // TCanvas *can_weights_vs_deltapt = new TCanvas("can_weights_vs_deltapt", "can_weights_vs_deltapt", 800, 500);
+        TCanvas *can_weights_vs_deltapt = new TCanvas("can_weights_vs_deltapt", "can_weights_vs_deltapt", 800, 500);
         TCanvas *can_weights_vs_deltajt = new TCanvas("can_weights_vs_deltajt", "can_weights_vs_deltajt", 800, 500);
-        // TCanvas *can_zj_vs_zi = new TCanvas("can_zj_vs_zi", "can_zj_vs_zi", 800, 500);
+        TCanvas *can_zj_vs_zi = new TCanvas("can_zj_vs_zi", "can_zj_vs_zi", 800, 500);
 
-        // draw_save_del_hists(f_out, can_deltap, deltap_vec[k], "deltap", ptname, norm_string, hist_addname, false, true);
-        // draw_save_del_hists(f_out, can_deltapt, deltapt_vec[k], "deltapt", ptname, norm_string, hist_addname, false, true);
-        // draw_save_del_hists(f_out, can_deltapl, deltapl_vec[k], "deltapl", ptname, norm_string, hist_addname, false, true);
-        // draw_save_del_hists(f_out, can_weights, weights_vec[k], "weights", ptname, norm_string, hist_addname, false, true);
+        draw_save_del_hists(f_out, can_deltap, deltap_vec[k], "deltap", ptname, norm_string, hist_addname, false, true);
+        draw_save_del_hists(f_out, can_deltapt, deltapt_vec[k], "deltapt", ptname, norm_string, hist_addname, false, true);
+        draw_save_del_hists(f_out, can_deltapl, deltapl_vec[k], "deltapl", ptname, norm_string, hist_addname, false, true);
+        draw_save_del_hists(f_out, can_weights, weights_vec[k], "weights", ptname, norm_string, hist_addname, false, true);
         
         draw_save_del_hists(f_out, can_deltajt, deltajt_vec[k], "deltajt", ptname, norm_string, hist_addname, false, true);
         draw_save_del_hists(f_out, can_deltajl, deltajl_vec[k], "deltajl", ptname, norm_string, hist_addname, false, true);
         
-        // draw_save_del_hists(f_out, can_weights_vs_deltapt, weights_vs_deltapt_hist2D, "weights_vs_deltapt", ptname, norm_string, hist_addname, false, false, true);
+        draw_save_del_hists(f_out, can_weights_vs_deltapt, weights_vs_deltapt_hist2D, "weights_vs_deltapt", ptname, norm_string, hist_addname, false, false, true);
         draw_save_del_hists(f_out, can_weights_vs_deltajt, weights_vs_deltajt_hist2D, "weights_vs_deltajt", ptname, norm_string, hist_addname, false, false, true);
-        // draw_save_del_hists(f_out, can_zj_vs_zi, zj_vs_zi_hist2D, "zj_vs_zi", ptname, norm_string, hist_addname, false, false, true);
+        draw_save_del_hists(f_out, can_zj_vs_zi, zj_vs_zi_hist2D, "zj_vs_zi", ptname, norm_string, hist_addname, false, false, true);
         
     }
 
@@ -743,10 +742,10 @@ void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
 
 	// combine RL plots to get 1 plot per pt bin
 
-    // TCanvas *can_deltap_all = new TCanvas();
-    // TCanvas *can_deltapt_all = new TCanvas();
-    // TCanvas *can_deltapl_all = new TCanvas();
-    // TCanvas *can_weights_all = new TCanvas();
+    TCanvas *can_deltap_all = new TCanvas();
+    TCanvas *can_deltapt_all = new TCanvas();
+    TCanvas *can_deltapl_all = new TCanvas();
+    TCanvas *can_weights_all = new TCanvas();
 
     TCanvas *can_deltajt_all = new TCanvas();
     TCanvas *can_deltajl_all = new TCanvas();
@@ -754,27 +753,27 @@ void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
     // // size_t length_deltap = deltap_vec.size();
     // // cout << " LENGTH DELTA P " << length_deltap << endl;
 	
-    // plotandsave_combined_hists(can_deltap_all, deltap_vec, leg, "deltap", ptname, norm_string, hist_all_addname, pt_max, true, RL_bin_width, false, true, -1);
-    // plotandsave_combined_hists(can_deltapt_all, deltapt_vec, leg, "deltapt", ptname, norm_string, hist_all_addname, pt_max, true, RL_bin_width, false, true, -1);
-    // plotandsave_combined_hists(can_deltapl_all, deltapl_vec, leg, "deltapl", ptname, norm_string, hist_all_addname, pt_max, true, RL_bin_width, false, true, -1);
-    // plotandsave_combined_hists(can_weights_all, weights_vec, leg, "weights", ptname, norm_string, hist_all_addname, pt_max, true, RL_bin_width, false, true, -1);
+    plotandsave_combined_hists(can_deltap_all, deltap_vec, leg, "deltap", ptname, norm_string, hist_all_addname, pt_max, true, RL_bin_width, false, true, -1);
+    plotandsave_combined_hists(can_deltapt_all, deltapt_vec, leg, "deltapt", ptname, norm_string, hist_all_addname, pt_max, true, RL_bin_width, false, true, -1);
+    plotandsave_combined_hists(can_deltapl_all, deltapl_vec, leg, "deltapl", ptname, norm_string, hist_all_addname, pt_max, true, RL_bin_width, false, true, -1);
+    plotandsave_combined_hists(can_weights_all, weights_vec, leg, "weights", ptname, norm_string, hist_all_addname, pt_max, true, RL_bin_width, false, true, -1);
 
     plotandsave_combined_hists(can_deltajt_all, deltajt_vec, leg, "deltajt", ptname, norm_string, hist_all_addname, pt_max, true, RL_bin_width, false, true, -1);
     plotandsave_combined_hists(can_deltajl_all, deltajl_vec, leg, "deltajl", ptname, norm_string, hist_all_addname, pt_max, true, RL_bin_width, false, true, -1);
     
     // make graphs
-    // if (norm_string == "unnormalized") {
-    //     TCanvas *can_rc = new TCanvas();
-    //     ProcessCanvas(can_rc);
-    //     TGraphErrors *gr_rc = MakeFormatGraph(RLcenters_vec, rc_vec, kBlack, 1.0, markers[0], "R_{L}", "r_{c}", "rc", hist_all_addname);
-    //     draw_save_del_hists(f_out, can_rc, gr_rc, "rc", ptname, norm_string, hist_all_addname, false, false);
+    if (norm_string == "unnormalized") {
+        TCanvas *can_rc = new TCanvas();
+        ProcessCanvas(can_rc);
+        TGraphErrors *gr_rc = MakeFormatGraph(RLcenters_vec, rc_vec, kBlack, 1.0, markers[0], "R_{L}", "r_{c}", "rc", hist_all_addname);
+        draw_save_del_hists(f_out, can_rc, gr_rc, "rc", ptname, norm_string, hist_all_addname, false, false);
         
         
-    //     // save vectors here
-    //     RL_vals.push_back(RLcenters_vec);
-    //     rc_vals.push_back(rc_vec);
-    //     rc_errors.push_back(rc_err_vec);
-    // }
+        // save vectors here
+        RL_vals.push_back(RLcenters_vec);
+        rc_vals.push_back(rc_vec);
+        rc_errors.push_back(rc_err_vec);
+    }
 }
 
 
@@ -828,16 +827,16 @@ void analyze(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
 
 
     // plot r_c as a function of RL
-    // if (norm_string == "unnormalized") {
-    //     cout << "checkpoint 4" << endl;
-    //     cout << "size of RL_vals " << RL_vals.size() << endl;
-    //     cout << "size of RL_vals[0] " << RL_vals[0].size() << endl;
-    //     cout << "size of rc_vals " << rc_vals.size() << endl;
-    //     cout << "size of rc_vals[0] " << rc_vals[0].size() << endl;
-    //     cout << "size of ptcenter_bins " << ptcenter_bins.size() << endl;
+    if (norm_string == "unnormalized") {
+        cout << "checkpoint 4" << endl;
+        cout << "size of RL_vals " << RL_vals.size() << endl;
+        cout << "size of RL_vals[0] " << RL_vals[0].size() << endl;
+        cout << "size of rc_vals " << rc_vals.size() << endl;
+        cout << "size of rc_vals[0] " << rc_vals[0].size() << endl;
+        cout << "size of ptcenter_bins " << ptcenter_bins.size() << endl;
 
-    //     plot_rc(RL_vals, rc_vals, ptcenter_bins, rc_errors); //, leg_RLbins, leg_ptbins);
-    // }
+        plot_rc(RL_vals, rc_vals, ptcenter_bins, rc_errors); //, leg_RLbins, leg_ptbins);
+    }
     
 
 
