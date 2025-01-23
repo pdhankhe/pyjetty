@@ -373,7 +373,7 @@ void overlay_plots_combinations() {
     std::string root_indir_hic = "/software/users/blianggi/mypyjetty/storage/dEEC/rootfiles/";
     
     // std::string raw_data_filename_hic = root_indir_hic + "data_firstattempt/DataHists.root"; //plots/ntuples/DataHists.root"; //FinalDataHists.root
-    std::string raw_data_filename_hic = root_indir_hic + "data_firstattempt/rebinx4/DataHists.root"; //plots/ntuples/DataHists.root"; //FinalDataHists.root
+    std::string raw_data_filename_hic = root_indir_hic + "data_secondattempt/rebinx4/DataHists.root"; //plots/ntuples/DataHists.root"; //FinalDataHists.root
     TFile* raw_data_infile_hic = new TFile(raw_data_filename_hic.c_str(), "READ");
     
     //TODO: fix this file name! should have been updated since...
@@ -384,7 +384,7 @@ void overlay_plots_combinations() {
 
     std::string root_indir_perly = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/";
 
-    std::string raw_data_filename_perly = root_indir_perly + "data_firstattempt/DataHists.root"; //plots/ntuples/DataHists.root"; //FinalDataHists.root
+    std::string raw_data_filename_perly = root_indir_perly + "data_secondattempt/rebinx4/DataHists.root"; //plots/ntuples/DataHists.root"; //FinalDataHists.root
     TFile* raw_data_infile_perly = new TFile(raw_data_filename_perly.c_str(), "READ");
 
     std::string binbybincorrections_filename_perly = root_indir_perly + "binbybincorrections/matched/rebinx4/DataHists_BinByBinCorr.root";
