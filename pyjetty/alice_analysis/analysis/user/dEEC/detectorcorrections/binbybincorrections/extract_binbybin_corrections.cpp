@@ -10,7 +10,7 @@
 
 bool unmatched = true; // set true for unmatched, false for matched
 double rebin = 4;
-bool anchmc = false; // set true for anchored mc, set false for fastsim
+bool anchmc = true; // set true for anchored mc, set false for fastsim
 std::string attempt_dir = ""; //Form("binbybincorrections/rebinx%.0f",rebin);
 
 
@@ -96,9 +96,10 @@ void formathist(TH1D * hist, std::string xtitle, std::string ytitle) {
 
 // filetype 1 = ratio_det_truth_[obs_PTBINX_RLBINY].pdf
 // filetype 2 = corr_data_[obs_PTBINX_RLBINY].pdf
-// filetype 3 = ratio_det_truth_LINFIT_[obs_PTBINX_RLBINY].pdf
-// filetype 4 = ratio_det_truth_QUADFIT_[obs_PTBINX_RLBINY].pdf
-// filetype 5 = ratio_det_truth_EXPOFIT_[obs_PTBINX_RLBINY].pdf
+// filetype 3 = fcorr_from_fit_[obs_PTBINX_RLBINY].pdf
+// filetype 4 = ratio_det_truth_LINFIT_[obs_PTBINX_RLBINY].pdf
+// filetype 5 = ratio_det_truth_QUADFIT_[obs_PTBINX_RLBINY].pdf
+// filetype 6 = ratio_det_truth_EXPOFIT_[obs_PTBINX_RLBINY].pdf
 void plot_and_save_one_histogram(TCanvas * can, TFile * file, std::string obsname,
                                  TH1D * hist1, int filetype, std::string addname,
                                  TPaveText * textbox = nullptr) {
@@ -115,9 +116,10 @@ void plot_and_save_one_histogram(TCanvas * can, TFile * file, std::string obsnam
     std::string filename = "";
     if (filetype == 1) filename = "ratio_det_truth_";
     else if (filetype == 2) filename = "corr_data_";
-    else if (filetype == 3) filename = "ratio_det_truth_LINFIT_";
-    else if (filetype == 4) filename = "ratio_det_truth_QUADFIT_";
-    else if (filetype == 5) filename = "ratio_det_truth_EXPOFIT_";
+    else if (filetype == 3) filename = "fcorr_from_fit_";
+    else if (filetype == 4) filename = "ratio_det_truth_LINFIT_";
+    else if (filetype == 5) filename = "ratio_det_truth_QUADFIT_";
+    else if (filetype == 6) filename = "ratio_det_truth_EXPOFIT_";
     std::string outputbase = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/plots/";
     std::string outputname = outputbase + attempt_dir + "/" + obsname + "/" + filename + obsname + addname + ".pdf";
     can->SaveAs(outputname.c_str());
@@ -269,7 +271,7 @@ void plot_and_save_two_graphs_overlayed(TCanvas * can, TFile * file, std::string
 //===========================================================================
 //================================= FITTING =================================
 //===========================================================================
-void fit_histogram_linearfit(TH1D * hist, std::string observable, std::string addname, double fitmax) {
+TF1 * fit_histogram_linearfit(TH1D * hist, std::string observable, std::string addname, double fitmax) {
 
     /*
     // could also do:
@@ -317,11 +319,12 @@ void fit_histogram_linearfit(TH1D * hist, std::string observable, std::string ad
     // Draw the histogram and the fit
     TCanvas *c1 = new TCanvas("c1", "Linear Fit", 800, 600);
     TFile *dummy_file;
-    plot_and_save_one_histogram(c1, dummy_file, observable, hist, 3, addname, pavetext);
+    plot_and_save_one_histogram(c1, dummy_file, observable, hist, 4, addname, pavetext);
 
+    return fitFunction;
 }
 
-void fit_histogram_quadfit(TH1D * hist, std::string observable, std::string addname, double fitmax) {
+TF1 * fit_histogram_quadfit(TH1D * hist, std::string observable, std::string addname, double fitmax) {
 
     TF1 *fitFunction = new TF1("fitFunction", "pol2", 0.0, fitmax); // Fit range: [2, 8]
     auto fitResult = hist->Fit(fitFunction, "SR");
@@ -345,11 +348,13 @@ void fit_histogram_quadfit(TH1D * hist, std::string observable, std::string addn
     // Draw the histogram and the fit
     TCanvas *c1 = new TCanvas("c1", "Quadratic Fit", 800, 600);
     TFile *dummy_file;
-    plot_and_save_one_histogram(c1, dummy_file, observable, hist, 4, addname, pavetext);
+    plot_and_save_one_histogram(c1, dummy_file, observable, hist, 5, addname, pavetext);
+
+    return fitFunction;
 
 }
 
-void fit_histogram_expofit(TH1D * hist, std::string observable, std::string addname, double fitmax) {
+TF1 * fit_histogram_expofit(TH1D * hist, std::string observable, std::string addname, double fitmax) {
 
     TF1 *fitFunction = new TF1("fitFunction", "expo", 0.0, fitmax); // expo: f(x) = exp(p0+p1*x)
     auto fitResult = hist->Fit(fitFunction, "SR");
@@ -372,13 +377,65 @@ void fit_histogram_expofit(TH1D * hist, std::string observable, std::string addn
     // Draw the histogram and the fit
     TCanvas *c1 = new TCanvas("c1", "Exponential Fit", 800, 600);
     TFile *dummy_file;
-    plot_and_save_one_histogram(c1, dummy_file, observable, hist, 5, addname, pavetext);
+    plot_and_save_one_histogram(c1, dummy_file, observable, hist, 6, addname, pavetext);
 
+    return fitFunction;
 }
 
 //===========================================================================
 //============================= OTHER FUNCTIONS =============================
 //===========================================================================
+
+//===========================================================================
+// This function gets the bin centers of a histogram and returns it as a 
+// vector of doubles.
+//===========================================================================
+std::vector<double> get_bin_centers(TH1D * hist) {
+
+    std::vector<double> bincenters;
+
+    // Get the number of bins
+    int nBins = hist->GetNbinsX();
+
+    // Loop through bins and get their centers
+    for (int bin = 1; bin <= nBins; bin++) { // Bins start at 1 in ROOT
+        double center = hist->GetBinCenter(bin);
+        bincenters.push_back(center);
+        // std::cout << "Bin " << bin << " center: " << center << std::endl;
+    }
+
+    return bincenters;
+}
+
+//===========================================================================
+// This function takes in a fit function, and outputs a histogram with the  
+// correction factors in each bin.
+//===========================================================================
+TH1D * extract_fcorr_from_fitfunction(TF1 * fitfunc, std::vector<double> bincenter_values,
+                                      std::string observable, std::string add_name) {
+
+    // std::vector<double> fcorr_values;
+
+    // this is assuming equal bin sizes:
+    int numbins = bincenter_values.size();
+    double binwidth = bincenter_values[1] - bincenter_values[0];
+    double hist_lowx = bincenter_values[0] - binwidth/2;
+    double hist_highx = bincenter_values[numbins-1] + binwidth/2;
+
+    // TODO: rename this histogram!
+    std::string histname = Form("hist_fcorr_fromfit_%s_%s", observable, add_name);
+    TH1D * hist_fcorr_fromfit = new TH1D(histname, histname, numbins, hist_lowx, hist_highx);
+
+    // Loop through x-values, evaluate y, and store the results
+    for (double bincenter : bincenter_values) {
+        double y = fitfunc.Eval(bincenter);
+        // fcorr_values.push_back(y);
+        // std::cout << "bincenter = " << bincenter << ", y = " << y << std::endl;
+
+        hist_fcorr_fromfit.Fill(bincenter, y);
+    }
+    return hist_fcorr_fromfit;
+}
 
 //===========================================================================
 // This function gets the reco (det) level observable and the gen (truth) level 
@@ -516,9 +573,15 @@ TH1D * get_binbybin_corrfactors(TFile *fin_mc, TFile *fout, std::string observab
     // fit the ratio
     double fit_max = pt_max;
     if (observable == "deltapl") fit_max = pt_max/2;
-    fit_histogram_linearfit(hratio, observable, addname, fit_max);
-    fit_histogram_quadfit(hratio, observable, addname, fit_max);
-    fit_histogram_expofit(hratio, observable, addname, fit_max);
+    TF1 * linfit = fit_histogram_linearfit(hratio, observable, addname, fit_max);
+    TF1 * quadfit = fit_histogram_quadfit(hratio, observable, addname, fit_max);
+    TF1 * expofit = fit_histogram_expofit(hratio, observable, addname, fit_max);
+
+    // extract the fcorr from fitted function, then return this new histogram instead of hratio
+    // std::vector<double> bincenters_vector = get_bin_centers(hratio);
+    // TH1D * hfcorr_from_fit = extract_fcorr_from_fitfunction(--, bincenters_vector, observable, addname);
+    // TCanvas *can_fcorr_from_fit = new TCanvas();
+    // plot_and_save_one_histogram(can_fcorr_from_fit, fout, observable, hfcorr_from_fit, 3, addname);
 
     
 
