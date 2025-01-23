@@ -96,26 +96,33 @@ void formathist(TH1D * hist, std::string xtitle, std::string ytitle) {
 
 // filetype 1 = ratio_det_truth_[obs_PTBINX_RLBINY].pdf
 // filetype 2 = corr_data_[obs_PTBINX_RLBINY].pdf
-// filetype 3 = ratio_det_truth_FIT_[obs_PTBINX_RLBINY].pdf
+// filetype 3 = ratio_det_truth_LINFIT_[obs_PTBINX_RLBINY].pdf
+// filetype 4 = ratio_det_truth_QUADFIT_[obs_PTBINX_RLBINY].pdf
+// filetype 5 = ratio_det_truth_EXPOFIT_[obs_PTBINX_RLBINY].pdf
 void plot_and_save_one_histogram(TCanvas * can, TFile * file, std::string obsname,
-                                            TH1D * hist1, int filetype, std::string addname) {
+                                 TH1D * hist1, int filetype, std::string addname,
+                                 TPaveText * textbox = nullptr) {
 
     hist1->SetMarkerColor(kBlack);
     if (filetype == 1) hist1->GetYaxis()->SetRangeUser(0,5); //10);
+    if (filetype == 3) hist1->GetYaxis()->SetRangeUser(0,1.5); //10);
     
     can->cd();
     // gPad->SetLogy();
     hist1->Draw("same");
+    if (textbox != nullptr) textbox->Draw("same");
 
     std::string filename = "";
     if (filetype == 1) filename = "ratio_det_truth_";
     else if (filetype == 2) filename = "corr_data_";
-    else if (filetype == 3) filename = "ratio_det_truth_FIT_";
+    else if (filetype == 3) filename = "ratio_det_truth_LINFIT_";
+    else if (filetype == 4) filename = "ratio_det_truth_QUADFIT_";
+    else if (filetype == 5) filename = "ratio_det_truth_EXPOFIT_";
     std::string outputbase = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/plots/";
     std::string outputname = outputbase + attempt_dir + "/" + obsname + "/" + filename + obsname + addname + ".pdf";
     can->SaveAs(outputname.c_str());
 
-    if (filetype != 3) {
+    if (filetype < 3) {
         file->cd();
         hist1->Write();
     }
@@ -262,7 +269,7 @@ void plot_and_save_two_graphs_overlayed(TCanvas * can, TFile * file, std::string
 //===========================================================================
 //================================= FITTING =================================
 //===========================================================================
-void fit_histogram_linearfit(TH1D * hist, std::string observable, std::string addname) {
+void fit_histogram_linearfit(TH1D * hist, std::string observable, std::string addname, double fitmax) {
 
     /*
     // could also do:
@@ -271,30 +278,103 @@ void fit_histogram_linearfit(TH1D * hist, std::string observable, std::string ad
     */
 
     // Perform the linear fit
-    hist->Fit("pol1", "F"); //, "Q"); // "pol1" = linear function, "Q" = quiet mode
+    // hist->Fit("pol1", "R"); //, "Q"); // "pol1" = linear function, "Q" = quiet mode
+    // TF1 *fitFunction = hist->GetFunction("pol1");
+    // auto fitResult = hist->Fit("pol1", "S");
+
+    TF1 *fitFunction = new TF1("fitFunction", "pol1", 0.0, fitmax); // Fit range: [2, 8]
+    fitFunction->SetParameter(1,0.005); // set initial slope parameter to 0.005
+    auto fitResult = hist->Fit(fitFunction, "SR");
     // "W": Ignore weights - set the weights of all non-zero bins to 1
     // "E": Perform better error estimation.
     // "S": The full result of the fit is returned in the TFitResultPtr (incl cov matrix)
     // 7.1.1. in https://root.cern.ch/root/htmldoc/guides/users-guide/FittingHistograms.html
     
     // Retrieve fit parameters
-    TF1 *fitFunction = hist->GetFunction("pol1");
     double slope = fitFunction->GetParameter(1);  // Slope of the line
     double intercept = fitFunction->GetParameter(0); // Intercept of the line
-    std::cout << "Fit Results: slope = " << slope << ", intercept = " << intercept << std::endl;
+    double chi2 = fitResult->Chi2(); //or fitFunction->GetChisquare();
+    int ndf = fitResult->Ndf(); //or fitFunction->GetNDF();
+    double pvalue = fitFunction->GetProb();
 
-    auto fitResult = hist->Fit("pol1", "S");
-    double chi2 = fitResult->Chi2();
-    int ndf = fitResult->Ndf();
-    std::cout << "Chi2/Ndf = " << chi2 / ndf << std::endl;
+    // std::cout << "Fit Results: slope = " << slope << ", intercept = " << intercept << std::endl;
+    // std::cout << "Chi2/Ndf = " << chi2 / ndf << std::endl;
 
-    // // Draw the histogram and the fit
-    // TCanvas *c1 = new TCanvas("c1", "Linear Fit", 800, 600);
-    // TFile *dummy_file;
-    // plot_and_save_one_histogram(c1, dummy_file, observable, hist, 3, addname);
+    
+
+    // Create a TPaveText (x1, y1, x2, y2 in NDC coordinates)
+    TPaveText* pavetext = new TPaveText(0.2, 0.6, 0.5, 0.8, "NDC"); // Coordinates in normalized device space
+    // pavetext->SetFillColor(0);         // Set background color (0 for transparent)
+    // pavetext->SetTextColor(1);         // Set text color
+    // pavetext->SetTextSize(0.03);       // Set text size
+    // pavetext->SetBorderSize(1);        // Set border size
+
+    // Add multiple lines
+    pavetext->AddText(Form("Fit results: y = %.3fx + %.3f", slope, intercept));
+    pavetext->AddText(Form("#Chi^{2}/Ndf = %.4f", chi2 / ndf));
+    pavetext->AddText(Form("p-value = %.4f", pvalue));
+
+    // Draw the histogram and the fit
+    TCanvas *c1 = new TCanvas("c1", "Linear Fit", 800, 600);
+    TFile *dummy_file;
+    plot_and_save_one_histogram(c1, dummy_file, observable, hist, 3, addname, pavetext);
 
 }
 
+void fit_histogram_quadfit(TH1D * hist, std::string observable, std::string addname, double fitmax) {
+
+    TF1 *fitFunction = new TF1("fitFunction", "pol2", 0.0, fitmax); // Fit range: [2, 8]
+    auto fitResult = hist->Fit(fitFunction, "SR");
+
+    // Retrieve fit parameters
+    double p0 = fitFunction->GetParameter(0);  // a in ax^2 + bx + c
+    double p1 = fitFunction->GetParameter(1); // b in ax^2 + bx + c
+    double p2 = fitFunction->GetParameter(2); // b in ax^2 + bx + c
+    double chi2 = fitResult->Chi2(); //or fitFunction->GetChisquare();
+    int ndf = fitResult->Ndf(); //or fitFunction->GetNDF();
+    double pvalue = fitFunction->GetProb();
+
+    // Create a TPaveText (x1, y1, x2, y2 in NDC coordinates)
+    TPaveText* pavetext = new TPaveText(0.2, 0.6, 0.5, 0.8, "NDC"); // Coordinates in normalized device space
+
+    // Add multiple lines
+    pavetext->AddText(Form("Fit results: y = %.5fx^{2} + %.3fx + %.3f", p2, p1, p0));
+    pavetext->AddText(Form("#Chi^{2}/Ndf = %.4f", chi2 / ndf));
+    pavetext->AddText(Form("p-value = %.4f", pvalue));
+
+    // Draw the histogram and the fit
+    TCanvas *c1 = new TCanvas("c1", "Quadratic Fit", 800, 600);
+    TFile *dummy_file;
+    plot_and_save_one_histogram(c1, dummy_file, observable, hist, 4, addname, pavetext);
+
+}
+
+void fit_histogram_expofit(TH1D * hist, std::string observable, std::string addname, double fitmax) {
+
+    TF1 *fitFunction = new TF1("fitFunction", "expo", 0.0, fitmax); // expo: f(x) = exp(p0+p1*x)
+    auto fitResult = hist->Fit(fitFunction, "SR");
+
+    // Retrieve fit parameters
+    double p0 = fitFunction->GetParameter(0);  // a in ax^2 + bx + c
+    double p1 = fitFunction->GetParameter(1); // b in ax^2 + bx + c
+    double chi2 = fitResult->Chi2(); //or fitFunction->GetChisquare();
+    int ndf = fitResult->Ndf(); //or fitFunction->GetNDF();
+    double pvalue = fitFunction->GetProb();
+
+    // Create a TPaveText (x1, y1, x2, y2 in NDC coordinates)
+    TPaveText* pavetext = new TPaveText(0.2, 0.6, 0.5, 0.8, "NDC"); // Coordinates in normalized device space
+
+    // Add multiple lines
+    pavetext->AddText(Form("Fit results: y = exp(%.3fx + %.3f)", p1, p0));
+    pavetext->AddText(Form("#Chi^{2}/Ndf = %.4f", chi2 / ndf));
+    pavetext->AddText(Form("p-value = %.4f", pvalue));
+
+    // Draw the histogram and the fit
+    TCanvas *c1 = new TCanvas("c1", "Exponential Fit", 800, 600);
+    TFile *dummy_file;
+    plot_and_save_one_histogram(c1, dummy_file, observable, hist, 5, addname, pavetext);
+
+}
 
 //===========================================================================
 //============================= OTHER FUNCTIONS =============================
@@ -427,13 +507,20 @@ TH1D * get_binbybin_corrfactors(TFile *fin_mc, TFile *fout, std::string observab
     TH1D * hratio = (TH1D *) hist_det->Clone(Form("hratio_%s_PTBIN%d_RLBIN%d", observable.c_str(), ptbin, rlbin));
     hratio->Divide(hist_truth);
     formathist(hratio, obs_axis_title, "f_{corr}");
-
-    // // fit the ratio
-    // fit_histogram_linearfit(hratio, observable, addname);
-
+    
     // plot and save ratio
     TCanvas *can_ratio = new TCanvas();
     plot_and_save_one_histogram(can_ratio, fout, observable, hratio, 1, addname);
+    
+
+    // fit the ratio
+    double fit_max = pt_max;
+    if (observable == "deltapl") fit_max = pt_max/2;
+    fit_histogram_linearfit(hratio, observable, addname, fit_max);
+    fit_histogram_quadfit(hratio, observable, addname, fit_max);
+    fit_histogram_expofit(hratio, observable, addname, fit_max);
+
+    
 
     return hratio;
 
@@ -685,7 +772,7 @@ void extract_binbybin_corrections() {
     // filenames
     // file that needs correcting:
     // TString input_histograms_filename = "/software/users/blianggi/mypyjetty/storage/dEEC/rootfiles/data_firstattempt/DataHists.root"; //"/software/users/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/analysis/user/dEEC/datahists/DataHists.root";
-    TString input_histograms_filename = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/data_firstattempt/rebinx4/DataHists.root"; //"/software/users/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/analysis/user/dEEC/datahists/DataHists.root";
+    TString input_histograms_filename = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/data_secondattempt/rebinx4/DataHists.root"; //"/software/users/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/analysis/user/dEEC/datahists/DataHists.root";
     TFile* root_data_file = new TFile(input_histograms_filename, "READ");
 
     // file with anchored mc - truth vs det level information
