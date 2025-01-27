@@ -423,16 +423,16 @@ TH1D * extract_fcorr_from_fitfunction(TF1 * fitfunc, std::vector<double> bincent
     double hist_highx = bincenter_values[numbins-1] + binwidth/2;
 
     // TODO: rename this histogram!
-    std::string histname = Form("hist_fcorr_fromfit_%s_%s", observable, add_name);
-    TH1D * hist_fcorr_fromfit = new TH1D(histname, histname, numbins, hist_lowx, hist_highx);
+    std::string histname = Form("hist_fcorr_fromfit_%s_%s", observable.c_str(), add_name.c_str());
+    TH1D * hist_fcorr_fromfit = new TH1D(histname.c_str(), histname.c_str(), numbins, hist_lowx, hist_highx);
 
     // Loop through x-values, evaluate y, and store the results
     for (double bincenter : bincenter_values) {
-        double y = fitfunc.Eval(bincenter);
+        double y = fitfunc->Eval(bincenter);
         // fcorr_values.push_back(y);
         // std::cout << "bincenter = " << bincenter << ", y = " << y << std::endl;
 
-        hist_fcorr_fromfit.Fill(bincenter, y);
+        hist_fcorr_fromfit->Fill(bincenter, y);
     }
     return hist_fcorr_fromfit;
 }

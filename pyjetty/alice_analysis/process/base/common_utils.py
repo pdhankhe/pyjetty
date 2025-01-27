@@ -68,7 +68,11 @@ class CommonUtils(common_base.CommonBase):
       return [obs_config_dict[name]['trk_thrd'] for name in obs_subconfig_list]
     elif observable == 'corr_deltapt':
       return [obs_config_dict[name]['trk_thrd'] for name in obs_subconfig_list]
+    elif observable == 'corr_deltajt':
+      return [obs_config_dict[name]['trk_thrd'] for name in obs_subconfig_list]
     elif observable == 'corr_deltapl':
+      return [obs_config_dict[name]['trk_thrd'] for name in obs_subconfig_list]
+    elif observable == 'corr_deltajl':
       return [obs_config_dict[name]['trk_thrd'] for name in obs_subconfig_list]
     elif observable == 'corr_charge':
       return [obs_config_dict[name]['trk_thrd'] for name in obs_subconfig_list]
