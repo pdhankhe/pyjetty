@@ -1573,10 +1573,10 @@ void analyze_ptbin(TFile * f_in, TFile * f_out, std::string weightstr, std::stri
         
 
         // format histograms in vector
-        Format1DHist(deltap_vec[k], hcorr_jetpt_inptbin_hist, norm_string, 0, pt_max+5, colors[j], 0.6, markers[0], "#Deltap", ytitle_norm + "#frac{dN}{d#Deltap}", *leg, RLname_leg, true, RL_bin_width, true, 1.0, "deltap", hist_addname);
-        Format1DHist(deltapt_vec[k], hcorr_jetpt_inptbin_hist, norm_string, 0, pt_max+5, colors[j], 0.6, markers[0], "#Deltap_{T}", ytitle_norm + "#frac{dN}{d#Deltap_{T}}", *leg_dummy, RLname_leg, true, RL_bin_width, true, 1.0, "deltapt", hist_addname);
-        Format1DHist(deltapl_vec[k], hcorr_jetpt_inptbin_hist, norm_string, 0, pt_max/2, colors[j], 0.6, markers[0], "#Deltap_{L}", ytitle_norm + "#frac{dN}{d#Deltap_{L}}", *leg_dummy, RLname_leg, true, RL_bin_width, true, 1.0, "deltapl", hist_addname);
-        Format1DHist(weights_vec[k], hcorr_jetpt_inptbin_hist, norm_string, 0, 0.3, colors[j], 0.6, markers[0], "#frac{p_{T,1}p_{T,2}}{p_{T,jet}^{2}}", ytitle_norm + "#frac{dN}{d[EW]}", *leg_dummy, RLname_leg, true, RL_bin_width, true, 1.0, "weights", hist_addname);
+        Format1DHist(deltap_vec[k], hcorr_jetpt_inptbin_hist, norm_string, 0, pt_max+5, colors[j], 0.6, markers[0], "#Deltap", ytitle_norm + "#frac{dN}{d#Deltap}", *leg, RLname_leg, true, RL_bin_width[j], true, 1.0, "deltap", hist_addname);
+        Format1DHist(deltapt_vec[k], hcorr_jetpt_inptbin_hist, norm_string, 0, pt_max+5, colors[j], 0.6, markers[0], "#Deltap_{T}", ytitle_norm + "#frac{dN}{d#Deltap_{T}}", *leg_dummy, RLname_leg, true, RL_bin_width[j], true, 1.0, "deltapt", hist_addname);
+        Format1DHist(deltapl_vec[k], hcorr_jetpt_inptbin_hist, norm_string, 0, pt_max/2, colors[j], 0.6, markers[0], "#Deltap_{L}", ytitle_norm + "#frac{dN}{d#Deltap_{L}}", *leg_dummy, RLname_leg, true, RL_bin_width[j], true, 1.0, "deltapl", hist_addname);
+        Format1DHist(weights_vec[k], hcorr_jetpt_inptbin_hist, norm_string, 0, 0.3, colors[j], 0.6, markers[0], "#frac{p_{T,1}p_{T,2}}{p_{T,jet}^{2}}", ytitle_norm + "#frac{dN}{d[EW]}", *leg_dummy, RLname_leg, true, RL_bin_width[j], true, 1.0, "weights", hist_addname);
         
         // Format2DHist(weights_vs_deltapt_hist2D, hcorr_jetpt_inptbin_hist, norm_string, ytitle_norm + "#Deltap_{T}", ytitle_norm + "p_{T,1}p_{T,2} / p_{T,jet}^{2}", true, RL_bin_width[j], "deltapt", "weights");
         

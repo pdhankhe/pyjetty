@@ -179,6 +179,7 @@ void Format1DHist(TH1D *hist, TH1D *jetpt_hist, std::string norm_string, int mar
         hist->Scale(1/numjets, "width");
     }
 
+    cout << "RL BIN WIDTH! " << RL_bin_width_val << endl;
     if (scalebyRLbinwidth) hist->Scale(RL_bin_width_val);
 
     // stylization

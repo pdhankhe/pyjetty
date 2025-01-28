@@ -546,13 +546,13 @@ void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
         // }
 
         // format histograms in vector
-        Format1DHist(deltap_hist, jetpt_inptbin_hist, kBlack, 1.0, markers[0], "#Deltap", ytitle_norm + "#frac{dN}{d#Deltap}", *leg, RLname_leg, true, RL_bin_width[k], "deltap", hist_addname);
-        Format1DHist(deltapt_hist, jetpt_inptbin_hist, kBlack, 1.0, markers[0], "#Deltap_{T}", ytitle_norm + "#frac{dN}{d#Deltap_{T}}", *leg_dummy, RLname_leg, true, RL_bin_width[k], "deltapt", hist_addname);
-        Format1DHist(deltapl_hist, jetpt_inptbin_hist, kBlack, 1.0, markers[0], "#Deltap_{L}", ytitle_norm + "#frac{dN}{d#Deltap_{L}}", *leg_dummy, RLname_leg, true, RL_bin_width[k], "deltapl", hist_addname);
-        Format1DHist(weights_hist, jetpt_inptbin_hist, kBlack, 1.0, markers[0], "#frac{p_{T,1}p_{T,2}}{p_{T,jet}^{2}}", ytitle_norm + "#frac{dN}{d[EW]}", *leg_dummy, RLname_leg, true, RL_bin_width[k], "weights", hist_addname);
+        Format1DHist(deltap_hist, jetpt_inptbin_hist, kBlack, 1.0, markers[0], "#Deltap", ytitle_norm + "#frac{dN}{d#Deltap}", *leg, RLname_leg, true, RL_bin_width[j], "deltap", hist_addname);
+        Format1DHist(deltapt_hist, jetpt_inptbin_hist, kBlack, 1.0, markers[0], "#Deltap_{T}", ytitle_norm + "#frac{dN}{d#Deltap_{T}}", *leg_dummy, RLname_leg, true, RL_bin_width[j], "deltapt", hist_addname);
+        Format1DHist(deltapl_hist, jetpt_inptbin_hist, kBlack, 1.0, markers[0], "#Deltap_{L}", ytitle_norm + "#frac{dN}{d#Deltap_{L}}", *leg_dummy, RLname_leg, true, RL_bin_width[j], "deltapl", hist_addname);
+        Format1DHist(weights_hist, jetpt_inptbin_hist, kBlack, 1.0, markers[0], "#frac{p_{T,1}p_{T,2}}{p_{T,jet}^{2}}", ytitle_norm + "#frac{dN}{d[EW]}", *leg_dummy, RLname_leg, true, RL_bin_width[j], "weights", hist_addname);
         
-        Format2DHist(weights_vs_deltapt_hist2D, jetpt_inptbin_hist, ytitle_norm + "#Deltap_{T}", ytitle_norm + "p_{T,1}p_{T,2} / p_{T,jet}^{2}", true, RL_bin_width[k], "deltapt", "weights", hist_addname);
-        Format1DHist(q1q2_hist, jetpt_inptbin_hist, kBlack, 1.0, markers[0], "q_{1}q_{2}", ytitle_norm + "q_{1}q_{2}", *leg_dummy, RLname_leg, true, RL_bin_width[k], "q1q2", hist_addname);
+        Format2DHist(weights_vs_deltapt_hist2D, jetpt_inptbin_hist, ytitle_norm + "#Deltap_{T}", ytitle_norm + "p_{T,1}p_{T,2} / p_{T,jet}^{2}", true, RL_bin_width[j], "deltapt", "weights", hist_addname);
+        Format1DHist(q1q2_hist, jetpt_inptbin_hist, kBlack, 1.0, markers[0], "q_{1}q_{2}", ytitle_norm + "q_{1}q_{2}", *leg_dummy, RLname_leg, true, RL_bin_width[j], "q1q2", hist_addname);
         
         // save and delete(?) histograms
         save_del_hists(f_out, deltap_hist);
