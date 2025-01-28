@@ -153,8 +153,7 @@ void Format1DHist(TH1D *hist, TH1D *jetpt_hist, int markercolor, double markeral
     hist->SetTitle(Form("h_%s%s", obs_name.c_str(), hist_addname.c_str()));
     hist->SetName(Form("h_%s%s", obs_name.c_str(), hist_addname.c_str()));
 
-    // normalization
-    if ( scalebyRLbinwidth ) hist->Scale(RL_bin_width);
+    // // normalization  
     // if ( norm_string == "self_normalized" ) {
     //     double selfnorm_value = hist->Integral();
     //     hist->Scale(1/selfnorm_value, "width");
@@ -163,6 +162,7 @@ void Format1DHist(TH1D *hist, TH1D *jetpt_hist, int markercolor, double markeral
     //     cout << "Number of jets in " << leg_text << ": " << numjets << endl;
     //     hist->Scale(1/numjets, "width");
     // }
+    // if ( scalebyRLbinwidth ) hist->Scale(RL_bin_width); // TODO: IS THIS A REPEAT OF THE plot_pythia_histograms code???!
 
     // stylization
     hist->SetLineColorAlpha(markercolor, markeralpha);

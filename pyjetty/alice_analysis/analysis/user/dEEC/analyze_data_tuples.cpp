@@ -161,7 +161,7 @@ TH2D * getObs2DHistFromTChain(TChain *chain, std::string branch_name_x, std::str
 /* Format and adjust histograms */
 void Format1DHist(TH1D *hist, TH1D *jetpt_hist, std::string norm_string, int markercolor, double markeralpha,
                   int markerstyle, std::string xtitle, std::string ytitle, TLegend& leg, TString leg_text, 
-                  std::string obs_name="", std::string hist_addname="") {
+                  bool scalebyRLbinwidth, double RL_bin_width_val, std::string obs_name="", std::string hist_addname="") {
 
     hist->SetTitle(Form("h_%s%s", obs_name.c_str(), hist_addname.c_str()));
     hist->SetName(Form("h_%s%s", obs_name.c_str(), hist_addname.c_str()));
@@ -178,6 +178,8 @@ void Format1DHist(TH1D *hist, TH1D *jetpt_hist, std::string norm_string, int mar
         cout << "Number of jets in " << leg_text << ": " << numjets << endl;
         hist->Scale(1/numjets, "width");
     }
+
+    if (scalebyRLbinwidth) hist->Scale(RL_bin_width_val);
 
     // stylization
     hist->SetLineColorAlpha(markercolor, markeralpha);
@@ -358,8 +360,7 @@ void deleteVecOfHists(std::vector<TH1D*>& histVector) {
 void plotandsave_combined_hists(TCanvas *can_all, vector<TH1D*> h_vec, TLegend *l, 
                           std::string obs_name, std::string ptname, 
                           std::string norm_string, std::string hist_addname,
-                          int pt_max, bool scalebyRLbinwidth, double RL_bin_width[],
-                          bool logx, bool logy, double pl_axis_cut=-1, bool debug=false) {
+                          int pt_max, bool logx, bool logy, double pl_axis_cut=-1, bool debug=false) {
 
     // go into canvas
     can_all->cd();
@@ -370,7 +371,7 @@ void plotandsave_combined_hists(TCanvas *can_all, vector<TH1D*> h_vec, TLegend *
     size_t length = h_vec.size();
     for (int j=0; j<length; j++) {
         // cout << j << ": " << RL_bin_width[j] << endl;
-        if (scalebyRLbinwidth) h_vec[j]->Scale(RL_bin_width[j]); // this needs to be done before normalization
+        // if (scalebyRLbinwidth) h_vec[j]->Scale(RL_bin_width[j]); // this needs to be done before normalization
         // if (mom_axis) {
         //     // h_vec[j]->Rebin(4);
         //     // h_vec[j]->GetXaxis()->SetRangeUser(0, pt_max+5);
@@ -698,13 +699,13 @@ void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
         }
 
         // format histograms in vector
-        Format1DHist(deltap_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#Deltap", ytitle_norm + "#frac{dN}{d#Deltap}", *leg, RLname_leg, "deltap", hist_addname);
-        Format1DHist(deltapt_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#Deltap_{T}", ytitle_norm + "#frac{dN}{d#Deltap_{T}}", *leg_dummy, RLname_leg, "deltapt", hist_addname);
-        Format1DHist(deltapl_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#Deltap_{L}", ytitle_norm + "#frac{dN}{d#Deltap_{L}}", *leg_dummy, RLname_leg, "deltapl", hist_addname);
-        Format1DHist(weights_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#frac{p_{T,1}p_{T,2}}{p_{T,jet}^{2}}", ytitle_norm + "#frac{dN}{d[EW]}", *leg_dummy, RLname_leg, "weights", hist_addname);
+        Format1DHist(deltap_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#Deltap", ytitle_norm + "#frac{dN}{d#Deltap}", *leg, RLname_leg, true, RL_bin_width[j], "deltap", hist_addname);
+        Format1DHist(deltapt_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#Deltap_{T}", ytitle_norm + "#frac{dN}{d#Deltap_{T}}", *leg_dummy, RLname_leg, true, RL_bin_width[j], "deltapt", hist_addname);
+        Format1DHist(deltapl_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#Deltap_{L}", ytitle_norm + "#frac{dN}{d#Deltap_{L}}", *leg_dummy, RLname_leg, true, RL_bin_width[j], "deltapl", hist_addname);
+        Format1DHist(weights_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#frac{p_{T,1}p_{T,2}}{p_{T,jet}^{2}}", ytitle_norm + "#frac{dN}{d[EW]}", *leg_dummy, RLname_leg, true, RL_bin_width[j], "weights", hist_addname);
         
-        Format1DHist(deltajt_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#Deltaj_{T}", ytitle_norm + "#frac{dN}{d#Deltaj_{T}}", *leg_dummy, RLname_leg, "deltajt", hist_addname);
-        Format1DHist(deltajl_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#Deltaj_{L}", ytitle_norm + "#frac{dN}{d#Deltaj_{L}}", *leg_dummy, RLname_leg, "deltajl", hist_addname);
+        Format1DHist(deltajt_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#Deltaj_{T}", ytitle_norm + "#frac{dN}{d#Deltaj_{T}}", *leg_dummy, RLname_leg, true, RL_bin_width[j], "deltajt", hist_addname);
+        Format1DHist(deltajl_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], "#Deltaj_{L}", ytitle_norm + "#frac{dN}{d#Deltaj_{L}}", *leg_dummy, RLname_leg, true, RL_bin_width[j], "deltajl", hist_addname);
         
         Format2DHist(weights_vs_deltapt_hist2D, jetpt_inptbin_hist, norm_string, ytitle_norm + "#Deltap_{T}", ytitle_norm + "p_{T,1}p_{T,2} / p_{T,jet}^{2}", true, RL_bin_width[j], "deltapt", "weights", hist_addname, true);
         Format2DHist(weights_vs_deltajt_hist2D, jetpt_inptbin_hist, norm_string, ytitle_norm + "#Deltaj_{T}", ytitle_norm + "p_{T,1}p_{T,2} / p_{T,jet}^{2}", true, RL_bin_width[j], "deltajt", "weights", hist_addname);
@@ -753,13 +754,13 @@ void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
     // // size_t length_deltap = deltap_vec.size();
     // // cout << " LENGTH DELTA P " << length_deltap << endl;
 	
-    plotandsave_combined_hists(can_deltap_all, deltap_vec, leg, "deltap", ptname, norm_string, hist_all_addname, pt_max, true, RL_bin_width, false, true, -1);
-    plotandsave_combined_hists(can_deltapt_all, deltapt_vec, leg, "deltapt", ptname, norm_string, hist_all_addname, pt_max, true, RL_bin_width, false, true, -1);
-    plotandsave_combined_hists(can_deltapl_all, deltapl_vec, leg, "deltapl", ptname, norm_string, hist_all_addname, pt_max, true, RL_bin_width, false, true, -1);
-    plotandsave_combined_hists(can_weights_all, weights_vec, leg, "weights", ptname, norm_string, hist_all_addname, pt_max, true, RL_bin_width, false, true, -1);
+    plotandsave_combined_hists(can_deltap_all, deltap_vec, leg, "deltap", ptname, norm_string, hist_all_addname, pt_max, false, true, -1);
+    plotandsave_combined_hists(can_deltapt_all, deltapt_vec, leg, "deltapt", ptname, norm_string, hist_all_addname, pt_max, false, true, -1);
+    plotandsave_combined_hists(can_deltapl_all, deltapl_vec, leg, "deltapl", ptname, norm_string, hist_all_addname, pt_max, false, true, -1);
+    plotandsave_combined_hists(can_weights_all, weights_vec, leg, "weights", ptname, norm_string, hist_all_addname, pt_max, false, true, -1);
 
-    plotandsave_combined_hists(can_deltajt_all, deltajt_vec, leg, "deltajt", ptname, norm_string, hist_all_addname, pt_max, true, RL_bin_width, false, true, -1);
-    plotandsave_combined_hists(can_deltajl_all, deltajl_vec, leg, "deltajl", ptname, norm_string, hist_all_addname, pt_max, true, RL_bin_width, false, true, -1);
+    plotandsave_combined_hists(can_deltajt_all, deltajt_vec, leg, "deltajt", ptname, norm_string, hist_all_addname, pt_max, false, true, -1);
+    plotandsave_combined_hists(can_deltajl_all, deltajl_vec, leg, "deltajl", ptname, norm_string, hist_all_addname, pt_max, false, true, -1);
     
     // make graphs
     if (norm_string == "unnormalized") {

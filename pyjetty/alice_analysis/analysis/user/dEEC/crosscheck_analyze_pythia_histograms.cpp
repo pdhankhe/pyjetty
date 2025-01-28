@@ -456,7 +456,8 @@ TH1D * getObs1DHist(TFile *filename, std::string h_name, int RLaxis, int obsaxis
 
 void Format1DHist(TH1D *hist, TH1D *jetpt_hist, std::string norm_string, double x_left, double x_right,
                   int markercolor, double markeralpha, int markerstyle, std::string xtitle, std::string ytitle, 
-                  TLegend& leg, TString leg_text, bool drawline=false, double linealpha=1., std::string obs_name="",
+                  TLegend& leg, TString leg_text, bool scalebyRLbinwidth, double RL_bin_width_val, 
+                  bool drawline=false, double linealpha=1., std::string obs_name="",
                   std::string hist_addname = "") {
 
     std::string new_name = Form("h_%s%s", obs_name.c_str(), hist_addname.c_str());        
@@ -477,6 +478,7 @@ void Format1DHist(TH1D *hist, TH1D *jetpt_hist, std::string norm_string, double 
         cout << "Number of jets in " << leg_text << ": " << numjets << endl;
         hist->Scale(1/numjets, "width");
     }
+    if (scalebyRLbinwidth) hist->Scale(RL_bin_width_val);
 
     // stylization
     hist->SetLineColorAlpha(markercolor, markeralpha);
@@ -953,8 +955,7 @@ void deleteVecOfHists(std::vector<TH1D*>& histVector) {
 void plotandsave_combined_hists(TCanvas *can_all, vector<TH1D*> h_vec, TLegend *l, 
                           std::string obs_name, std::string ptname, 
                           std::string norm_string, std::string hist_addname,
-                          int pt_max, bool scalebyRLbinwidth, double RL_bin_width[],
-                          bool logx, bool logy, double pl_axis_cut=-1, bool debug=false) {
+                          int pt_max, bool logx, bool logy, double pl_axis_cut=-1, bool debug=false) {
 
     // go into canvas
     can_all->cd();
@@ -965,7 +966,7 @@ void plotandsave_combined_hists(TCanvas *can_all, vector<TH1D*> h_vec, TLegend *
     size_t length = h_vec.size();
     for (int j=0; j<length; j++) {
         // cout << j << ": " << RL_bin_width[j] << endl;
-        if (scalebyRLbinwidth) h_vec[j]->Scale(RL_bin_width[j]); // this needs to be done before normalization
+        // if (scalebyRLbinwidth) h_vec[j]->Scale(RL_bin_width[j]); // this needs to be done before normalization
         // if (mom_axis) {
         //     // h_vec[j]->Rebin(4);
         //     // h_vec[j]->GetXaxis()->SetRangeUser(0, pt_max+5);
@@ -1572,10 +1573,10 @@ void analyze_ptbin(TFile * f_in, TFile * f_out, std::string weightstr, std::stri
         
 
         // format histograms in vector
-        Format1DHist(deltap_vec[k], hcorr_jetpt_inptbin_hist, norm_string, 0, pt_max+5, colors[j], 0.6, markers[0], "#Deltap", ytitle_norm + "#frac{dN}{d#Deltap}", *leg, RLname_leg, true, 1.0, "deltap", hist_addname);
-        Format1DHist(deltapt_vec[k], hcorr_jetpt_inptbin_hist, norm_string, 0, pt_max+5, colors[j], 0.6, markers[0], "#Deltap_{T}", ytitle_norm + "#frac{dN}{d#Deltap_{T}}", *leg_dummy, RLname_leg, true, 1.0, "deltapt", hist_addname);
-        Format1DHist(deltapl_vec[k], hcorr_jetpt_inptbin_hist, norm_string, 0, pt_max/2, colors[j], 0.6, markers[0], "#Deltap_{L}", ytitle_norm + "#frac{dN}{d#Deltap_{L}}", *leg_dummy, RLname_leg, true, 1.0, "deltapl", hist_addname);
-        Format1DHist(weights_vec[k], hcorr_jetpt_inptbin_hist, norm_string, 0, 0.3, colors[j], 0.6, markers[0], "#frac{p_{T,1}p_{T,2}}{p_{T,jet}^{2}}", ytitle_norm + "#frac{dN}{d[EW]}", *leg_dummy, RLname_leg, true, 1.0, "weights", hist_addname);
+        Format1DHist(deltap_vec[k], hcorr_jetpt_inptbin_hist, norm_string, 0, pt_max+5, colors[j], 0.6, markers[0], "#Deltap", ytitle_norm + "#frac{dN}{d#Deltap}", *leg, RLname_leg, true, RL_bin_width, true, 1.0, "deltap", hist_addname);
+        Format1DHist(deltapt_vec[k], hcorr_jetpt_inptbin_hist, norm_string, 0, pt_max+5, colors[j], 0.6, markers[0], "#Deltap_{T}", ytitle_norm + "#frac{dN}{d#Deltap_{T}}", *leg_dummy, RLname_leg, true, RL_bin_width, true, 1.0, "deltapt", hist_addname);
+        Format1DHist(deltapl_vec[k], hcorr_jetpt_inptbin_hist, norm_string, 0, pt_max/2, colors[j], 0.6, markers[0], "#Deltap_{L}", ytitle_norm + "#frac{dN}{d#Deltap_{L}}", *leg_dummy, RLname_leg, true, RL_bin_width, true, 1.0, "deltapl", hist_addname);
+        Format1DHist(weights_vec[k], hcorr_jetpt_inptbin_hist, norm_string, 0, 0.3, colors[j], 0.6, markers[0], "#frac{p_{T,1}p_{T,2}}{p_{T,jet}^{2}}", ytitle_norm + "#frac{dN}{d[EW]}", *leg_dummy, RLname_leg, true, RL_bin_width, true, 1.0, "weights", hist_addname);
         
         // Format2DHist(weights_vs_deltapt_hist2D, hcorr_jetpt_inptbin_hist, norm_string, ytitle_norm + "#Deltap_{T}", ytitle_norm + "p_{T,1}p_{T,2} / p_{T,jet}^{2}", true, RL_bin_width[j], "deltapt", "weights");
         
@@ -1631,10 +1632,10 @@ void analyze_ptbin(TFile * f_in, TFile * f_out, std::string weightstr, std::stri
     // size_t length_deltap = deltap_vec.size();
     // cout << " LENGTH DELTA P " << length_deltap << endl;
 	
-    plotandsave_combined_hists(can_deltap_all, deltap_vec, leg, "deltap", ptname, norm_string, hist_all_addname, pt_max, true, RL_bin_width, false, true, -1);
-    plotandsave_combined_hists(can_deltapt_all, deltapt_vec, leg, "deltapt", ptname, norm_string, hist_all_addname, pt_max, true, RL_bin_width, false, true, -1);
-    plotandsave_combined_hists(can_deltapl_all, deltapl_vec, leg, "deltapl", ptname, norm_string, hist_all_addname, pt_max, true, RL_bin_width, false, true, -1);
-    plotandsave_combined_hists(can_weights_all, weights_vec, leg, "weights", ptname, norm_string, hist_all_addname, pt_max, true, RL_bin_width, false, true, -1);
+    plotandsave_combined_hists(can_deltap_all, deltap_vec, leg, "deltap", ptname, norm_string, hist_all_addname, pt_max, false, true, -1);
+    plotandsave_combined_hists(can_deltapt_all, deltapt_vec, leg, "deltapt", ptname, norm_string, hist_all_addname, pt_max, false, true, -1);
+    plotandsave_combined_hists(can_deltapl_all, deltapl_vec, leg, "deltapl", ptname, norm_string, hist_all_addname, pt_max, false, true, -1);
+    plotandsave_combined_hists(can_weights_all, weights_vec, leg, "weights", ptname, norm_string, hist_all_addname, pt_max, false, true, -1);
 
     // make graphs
     if (norm_string == "unnormalized") {
