@@ -8,6 +8,7 @@
 // Beatrice Liang-Gilman, beatrice_lg@berkeley.edu
 
 
+std::string compsystem = "local"; //"perlmutter"
 bool unmatched = true; // set true for unmatched, false for matched
 double rebin = 4;
 bool anchmc = true; // set true for anchored mc, set false for fastsim
@@ -121,6 +122,7 @@ void plot_and_save_one_histogram(TCanvas * can, TFile * file, std::string obsnam
     else if (filetype == 5) filename = "ratio_det_truth_QUADFIT_";
     else if (filetype == 6) filename = "ratio_det_truth_EXPOFIT_";
     std::string outputbase = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/plots/";
+    if (compsystem == "local") outputbase = "/Volumes/WORK USB/dEEC/storage/plots/";
     std::string outputname = outputbase + attempt_dir + "/" + obsname + "/" + filename + obsname + addname + ".pdf";
     can->SaveAs(outputname.c_str());
 
@@ -170,6 +172,7 @@ void plot_and_save_two_histograms_overlayed(TCanvas * can, TFile * file, std::st
     if (filetype == 1) filename = "truth_and_det_";
     else if (filetype == 2) filename = "corr_data_and_raw_data_";
     std::string outputbase = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/plots/";
+    if (compsystem == "local") outputbase = "/Volumes/WORK USB/dEEC/storage/plots/";
     std::string outputname = outputbase + attempt_dir + "/" + obsname + "/" + filename + obsname + addname + ".pdf";
     can->SaveAs(outputname.c_str());
 
@@ -202,6 +205,7 @@ void plot_and_save_one_graph(TCanvas * can, TFile * file, std::string obsname,
     else if (filetype == 2) filename = "corr_data_";
     else if (filetype == 3) filename = "ratio_det_truth_FIT_";
     std::string outputbase = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/plots/";
+    if (compsystem == "local") outputbase = "/Volumes/WORK USB/dEEC/storage/plots/";
     std::string outputname = outputbase + attempt_dir + "/" + obsname + "/" + filename + obsname + addname + ".pdf";
     can->SaveAs(outputname.c_str());
 
@@ -254,6 +258,7 @@ void plot_and_save_two_graphs_overlayed(TCanvas * can, TFile * file, std::string
     if (filetype == 1) filename = "truth_and_det_";
     else if (filetype == 2) filename = "corr_data_and_raw_data_";
     std::string outputbase = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/plots/";
+    if (compsystem == "local") outputbase = "/Volumes/WORK USB/dEEC/storage/plots/";
     std::string outputname = outputbase + attempt_dir + "/" + obsname + "/" + filename + obsname + addname + ".pdf";
     can->SaveAs(outputname.c_str());
 
@@ -444,6 +449,7 @@ TH1D * extract_fcorr_from_fitfunction(TF1 * fitfunc, std::vector<double> bincent
 //===========================================================================
 TH1D * get_binbybin_corrfactors(TFile *fin_mc, TFile *fout, std::string observable, 
                                 int ptbin, int pt_min, int pt_max, int rlbin, double RL_min, double RL_max,
+                                bool scalebyRLbinwidth,
                                 vector<double>& RL_vals_mc_det = *(new std::vector<double>()), vector<double>& RL_vals_mc_truth = *(new std::vector<double>())) {
 
     fin_mc->cd();
@@ -452,6 +458,8 @@ TH1D * get_binbybin_corrfactors(TFile *fin_mc, TFile *fout, std::string observab
     int obs_max_val = 0;
     if (observable == "deltap" || observable == "deltapt") obs_max_val = pt_max+5;
     else if (observable == "deltapl") obs_max_val = pt_max/2;
+    else if (observable == "deltajt") obs_max_val = 5;
+    else if (observable == "deltajl") obs_max_val = pt_max+5;
 
     std::string histname;
     TH1D * hist_det;
@@ -506,6 +514,8 @@ TH1D * get_binbybin_corrfactors(TFile *fin_mc, TFile *fout, std::string observab
         hsparse->GetAxis(1)->SetRangeUser(pt_min, pt_max);
         hsparse->GetAxis(3)->SetRangeUser(0, obs_max_val); // to limit the observable range displayed
         hist_truth = (TH1D *) hsparse->Projection(3);
+        
+        // not doing but should maybe do for completeness: scale by the # of jets. Didn't do bc in matched # truth jets = # det jets. Not using matched anymore so didn't bother implementing.
     }
 
     // rebin
@@ -529,6 +539,11 @@ TH1D * get_binbybin_corrfactors(TFile *fin_mc, TFile *fout, std::string observab
         hist_truth->Scale(num_jets_truth, "width");
     }
 
+    // scale by the RL bin width
+    double RL_bin_width = RL_max - RL_min;
+    if ( scalebyRLbinwidth ) hist_det->Scale(RL_bin_width);
+    if ( scalebyRLbinwidth ) hist_truth->Scale(RL_bin_width);
+        
     // add name string
     std::string addname = Form("_PTBIN%d_RLBIN%d", ptbin, rlbin);
 
@@ -538,6 +553,8 @@ TH1D * get_binbybin_corrfactors(TFile *fin_mc, TFile *fout, std::string observab
     else if (observable == "deltapt") obs_axis_title = "#Deltap_{T}";
     else if (observable == "deltapl") obs_axis_title = "#Deltap_{L}";
     else if (observable == "charge") obs_axis_title = "q_{1}q_{2}";
+    else if (observable == "deltajt") obs_axis_title = "#Deltaj_{T}";
+    else if (observable == "deltajl") obs_axis_title = "#Deltaj_{L}";
     std::string yaxis_title = Form("#frac{1}{N_{jet}#DeltaR_{L}} #frac{dN}{d%s}", obs_axis_title.c_str());
     formathist(hist_det, obs_axis_title, yaxis_title);
     formathist(hist_truth, obs_axis_title, yaxis_title);
@@ -573,6 +590,7 @@ TH1D * get_binbybin_corrfactors(TFile *fin_mc, TFile *fout, std::string observab
     // fit the ratio
     double fit_max = pt_max;
     if (observable == "deltapl") fit_max = pt_max/2;
+    if (observable == "deltajt") fit_max = 5;
     TF1 * linfit = fit_histogram_linearfit(hratio, observable, addname, fit_max);
     TF1 * quadfit = fit_histogram_quadfit(hratio, observable, addname, fit_max);
     TF1 * expofit = fit_histogram_expofit(hratio, observable, addname, fit_max);
@@ -594,7 +612,7 @@ TH1D * get_rawdata(TFile *fin_data, std::string observable, int pt_min, int pt_m
 
     fin_data->cd();
     std::string histname = Form("h_%s_R0.4_t1.0_pt%d-%d_RL%.3f-%.3f_norm_by_jets", observable.c_str(), pt_min, pt_max, RL_min, RL_max);
-    TH1D * hist = (TH1D *)gDirectory->Get(histname.c_str());
+    TH1D * hist = (TH1D *)gDirectory->Get(histname.c_str())->Clone(histname.c_str());
 
     // rebin -- now already done in original DataHists file
     // hist->Rebin(rebin);
@@ -688,7 +706,7 @@ void analyze_charge(TFile *f_in_data, TFile *f_in_mc, TFile *f_out, const int pt
 
             // first we want to plot the det vs truth level same sign and opp sign. And get the correction factor
             // the correction factor is saved at hist->getbincontent(hist->findbin(0))
-            TH1D * h_binbybin_fcorr = get_binbybin_corrfactors(f_in_mc, f_out, observable, i, pt_min, pt_max, k, RL_min, RL_max, RL_vals_mc_det, RL_vals_mc_truth);
+            TH1D * h_binbybin_fcorr = get_binbybin_corrfactors(f_in_mc, f_out, observable, i, pt_min, pt_max, k, RL_min, RL_max, false, RL_vals_mc_det, RL_vals_mc_truth);
             double fcorr_rc = h_binbybin_fcorr->GetBinContent(h_binbybin_fcorr->FindBin(0));
             fcorr_rc_vec.push_back(fcorr_rc);
             RL_bin_centers_vec.push_back((RL_min+RL_max)/2);
@@ -785,7 +803,7 @@ void analyze(TFile *f_in_data, TFile *f_in_mc, TFile *f_out, const int pt_bins[]
 
                     
             // need to do something different for charge! pt cuts not appropriate
-            TH1D * h_binbybin_fcorr = get_binbybin_corrfactors(f_in_mc, f_out, observable, i, pt_min, pt_max, k, RL_min, RL_max);
+            TH1D * h_binbybin_fcorr = get_binbybin_corrfactors(f_in_mc, f_out, observable, i, pt_min, pt_max, k, RL_min, RL_max, true);
             TH1D * h_raw_data = get_rawdata(f_in_data, observable, pt_min, pt_max, RL_min, RL_max);
             apply_corrfactor(f_out, h_raw_data, h_binbybin_fcorr, observable, i, k);
         
@@ -836,17 +854,29 @@ void extract_binbybin_corrections() {
     // file that needs correcting:
     // TString input_histograms_filename = "/software/users/blianggi/mypyjetty/storage/dEEC/rootfiles/data_firstattempt/DataHists.root"; //"/software/users/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/analysis/user/dEEC/datahists/DataHists.root";
     TString input_histograms_filename = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/data_secondattempt/rebinx4/DataHists.root"; //"/software/users/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/analysis/user/dEEC/datahists/DataHists.root";
+    if (compsystem == "local") input_histograms_filename = "/Volumes/WORK USB/dEEC/storage/rootfiles/data_secondattempt/rebinx4/DataHists.root";
     TFile* root_data_file = new TFile(input_histograms_filename, "READ");
 
     // file with anchored mc - truth vs det level information
     TString input_mc_filename = "";
-    if (anchmc) input_mc_filename = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/34547495/scaling/AnalysisResultsFinal.root"; //LHC23a3
+    if (anchmc) {
+        input_mc_filename = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/34547495/scaling/AnalysisResultsFinal.root"; //LHC23a3
+        if (compsystem == "local") input_mc_filename = "/Volumes/WORK USB/dEEC/storage/slurmfiles/perly/34547495/AnalysisResultsFinal.root";
+    }
     else input_mc_filename = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/34897198/1132588/scaling/AnalysisResultsFinal.root"; //pythia fastsim
     TFile* root_mc_file = new TFile(input_mc_filename, "READ");
+    
+    TFile* root_mc_jtjl_file;
+    if (compsystem == "local") {
+        TString input_mc_jtjl_filename = "/Volumes/WORK USB/dEEC/storage/slurmfiles/perly/35235011/AnalysisResultsFinal.root";
+        root_mc_jtjl_file = new TFile(input_mc_jtjl_filename, "READ");
+    }
+    
 
     // Output file with corrected results
     // std::string outfile = "/software/users/blianggi/mypyjetty/storage/dEEC/rootfiles/" + attempt_dir + "/DataHists.root";
-    std::string outfile = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/" + attempt_dir + "/DataHists_BinByBinCorr.root"; 
+    std::string outfile = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/rootfiles/" + attempt_dir + "/DataHists_BinByBinCorr.root";
+    if (compsystem == "local") outfile = "/Volumes/WORK USB/dEEC/storage/rootfiles/" + attempt_dir + "/DataHists_BinByBinCorr.root";
     TFile* root_outfile = new TFile(outfile.c_str(), "RECREATE");
 
     analyze(root_data_file, root_mc_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "deltap", weightstr, jetRname, thrname, include_RL0, include_RL1);
@@ -854,6 +884,14 @@ void extract_binbybin_corrections() {
     analyze(root_data_file, root_mc_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "deltapl", weightstr, jetRname, thrname, include_RL0, include_RL1);
     
     analyze_charge(root_data_file, root_mc_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "charge", weightstr, jetRname, thrname, include_RL0, include_RL1);
+    
+
+    
+    //figure out how to do this better, but for now:
+    if (compsystem == "local") {
+        analyze(root_data_file, root_mc_jtjl_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "deltajt", weightstr, jetRname, thrname, include_RL0, include_RL1);
+        analyze(root_data_file, root_mc_jtjl_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "deltajl", weightstr, jetRname, thrname, include_RL0, include_RL1);
+    }
     
 
 
