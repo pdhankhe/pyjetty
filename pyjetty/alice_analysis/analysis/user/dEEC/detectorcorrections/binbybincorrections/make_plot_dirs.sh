@@ -15,21 +15,24 @@ else
 fi
 
 if [ "$2" == "-p" ]; then
-  BASEDIR="/global/cfs/cdirs/alice"
+  BASEDIR="/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC"
   echo "Using Perlmutter base directory"
 elif [ "$2" == "-h" ]; then
-  BASEDIR="/software/users"
+  BASEDIR="/software/users/blianggi/mypyjetty/storage/dEEC"
   echo "Using hiccup base directory"
-else 
-  echo "Exiting - h/p not specified"
+elif [ "$2" == "-l" ]; then
+  BASEDIR="/Volumes/WORK USB/dEEC/storage"
+  echo "Using local base directory"
+else
+  echo "Exiting - h/p/l not specified"
   exit
 fi
 
 pushd .
 
-cd ${BASEDIR}/blianggi/mypyjetty/storage/dEEC/plots
+cd "${BASEDIR}/plots"
 
-mkdir -p ${BASEDIR}/blianggi/mypyjetty/storage/dEEC/rootfiles/$1
+mkdir -p "${BASEDIR}/rootfiles/$1"
 
 # mkdir -p plots
 # cd plots
