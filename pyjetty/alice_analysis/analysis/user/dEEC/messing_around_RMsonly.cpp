@@ -73,21 +73,6 @@ void move_stat_box(TCanvas *c1, TH2D* hist2D) {
 }
 
 
-void extract_jetpt_RM(TFile *fin) {
-    std::string original_histname = Form("hResponse_JetPt_jet_pt_R0.4_1.0Scaled");
-    fin->cd();
-    TH2D * hist2D = (TH2D *)gDirectory->Get(original_histname.c_str());
-
-    // save 
-    TCanvas *can = new TCanvas();
-    gPad->SetLogz();
-    hist2D->GetZaxis()->SetRangeUser(1e-6,1e4);
-    hist2D->Draw("colz");
-
-    std::string output_name = Form("%s/RM_jetpt.pdf", outputdir.c_str());
-    can->SaveAs(output_name.c_str());
-
-}
 
 void extract_LHC23a3_plots(TFile *fin, std::string observable) {
         
@@ -211,37 +196,65 @@ void extract_LHC23a3_plots(TFile *fin, std::string observable) {
 // 
 // 
 //===========================================================================
-void extract_2DRM_andplot(TFile *fin, std::string observable, int ptbin, int RLbin) {
+void extract_2DRM_andplot(TFile *fin, std::string observable) {
 
-    std::string original_histname = Form("hResponse_JetPt_corr_%s_PTBIN%d_RLBIN%d_R0.4_1.0Scaled", observable.c_str(), ptbin, RLbin);
+    std::string original_histname = Form("hResponse_corr_%s_R0.4_1.0Scaled", observable.c_str());
+    if (observable == "jet_pt") original_histname = Form("hResponse_JetPt_%s_R0.4_1.0Scaled", observable.c_str());
     cout << "histname" << original_histname << endl;
     // hResponse_JetPt_corr_charge_PTBIN0_RLBIN4_R0.4_1.0
     fin->cd();
-    THnSparse * thnsparse = (THnSparse *)gDirectory->Get(original_histname.c_str());
+    TH2D * hist2D = (TH2D *)gDirectory->Get(original_histname.c_str());
 
     // get the 2D hist for (obs det, obs truth)
-    // thnsparse->GetAxis(0)->SetRangeUser(20,40); // cut on det pt
-    TH2D * hist2D = thnsparse->Projection(2, 3);
-    hist2D->GetZaxis()->SetRangeUser(1e-6,1e4);
+    hist2D->GetZaxis()->SetRangeUser(1e-4,1e6);
 
     // save 
     TCanvas *can = new TCanvas();
     gPad->SetLogz();
     hist2D->Draw("colz");
 
-    std::string output_name = Form("%s/%s/RM_corr_%s_PTBIN%d_RLBIN%d.pdf", outputdir.c_str(), observable.c_str(), observable.c_str(), ptbin, RLbin);
+    std::string output_name = Form("%s/%s/RM_corr_%s_ALLPAIRS.pdf", outputdir.c_str(), observable.c_str(), observable.c_str());
+    if (observable == "jet_pt") output_name = Form("%s/RM_jetpt.pdf", outputdir.c_str());
     can->SaveAs(output_name.c_str());
 
+    if (observable == "jet_pt" || observable == "charge" || observable == "energyweights") return;
 
-    // //
-    // hist2D->GetXaxis()->SetRangeUser(1,3);
-    // TH1D * hist = hist2D->ProjectionY();
 
-    // TCanvas *can2 = new TCanvas();
-    // // gPad->SetLogx();
-    // gPad->SetLogy();
-    // hist->Draw();
-    // can2->SaveAs(Form("%s/testing.pdf", outputdir.c_str()));
+    // ==================================================================
+
+    gStyle->SetOptStat(0);
+    for (int i=1; i<80; i++) {
+
+        hist2D->GetXaxis()->SetRangeUser(i - 0.2, i + 0.2);
+        TH1D * hist_1 = hist2D->ProjectionY();
+        // hist_1->Rebin(10);
+        hist_1->SetMarkerColor(kBlue);
+        hist_1->SetMarkerStyle(8);
+        hist_1->SetLineColor(kBlue);
+        hist_1->SetMarkerSize(1);
+
+        // fit a gaussian
+        double lowx = i < 5 ? 0 : i-5;
+        double highx = i > 85 ? i + 5 : 90;
+        double sigma = fit_histogram_guassianfit(hist_1, lowx, highx);
+
+        TCanvas *can3a = new TCanvas();
+        // gPad->SetLogx();
+        gPad->SetLogy();
+        hist_1->Draw();
+
+        if ( sigma > 0 ) {
+            TLatex latex;
+            latex.SetNDC();  // Use Normalized Device Coordinates (0 to 1)
+            latex.SetTextSize(0.035); // Set text size
+            double xtextpos = i <= 45 ? 0.7 : 0.3;
+            double ytextpos = 0.8;
+            latex.DrawLatex(xtextpos, ytextpos, Form("Fit #sigma = %.3f", sigma)); // (x, y, text)
+        }
+
+        can3a->SaveAs(Form("%s/%s/projections/projected_%s_jetpttruth%dGeV.pdf", outputdir.c_str(), observable.c_str(), observable.c_str(), i));
+
+    }
 
 }
 
@@ -250,7 +263,7 @@ void extract_2DRM_andplot(TFile *fin, std::string observable, int ptbin, int RLb
 // none?
 // THIS IS GOOD FOR PERLMUTTER
 //===========================================================================
-void messing_around() { //int argc, char **argv) {
+void messing_around_RMsonly() { //int argc, char **argv) {
 
     gStyle->SetOptStat(0); // hide stats panel
 
@@ -259,8 +272,8 @@ void messing_around() { //int argc, char **argv) {
     // int ptbin = atoi(argv[2]);     // Convert argument to an int
     // int rlbin = atoi(argv[3]);      // Convert argument to an int
    
-    // std::string base_slurmoutput_path = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/33905018/scaling/"; // LHC23a3
-    // std::string base_slurmoutput_path = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/33818618/scaling/"; //wrong for now, LHC18b8
+    std::string base_slurmoutput_path = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/35338278/scaling/"; // LHC23a3 - RMs only
+    
     std::string infile = base_slurmoutput_path + "AnalysisResultsFinal.root";
 
     // std::string new_filedir = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/unfolding/";
@@ -270,25 +283,20 @@ void messing_around() { //int argc, char **argv) {
     TFile* root_infile = new TFile(infile.c_str(), "READ");
     // TFile* root_outfile = new TFile(new_filename.c_str(), "RECREATE");
 
-    extract_jetpt_RM(root_infile);
+    // extract_jetpt_RM(root_infile);
     
-    std::string observable = "deltap";
-    for (int i=0; i<3; i++) {
-        for (int j = 0; j < 5; j++) {
-            extract_2DRM_andplot(root_infile, observable, i, j);
-            extract_2DRM_andplot(root_infile, "deltapt", i, j);
-            extract_2DRM_andplot(root_infile, "deltapl", i, j);
-            extract_2DRM_andplot(root_infile, "energyweights", i, j);
-            extract_2DRM_andplot(root_infile, "charge", i, j);
+    extract_2DRM_andplot(root_infile, "jet_pt");
+    extract_2DRM_andplot(root_infile, "deltap");
+    extract_2DRM_andplot(root_infile, "deltapt");
+    extract_2DRM_andplot(root_infile, "deltapl");
+    extract_2DRM_andplot(root_infile, "deltajt");
+    extract_2DRM_andplot(root_infile, "deltajl");
+    extract_2DRM_andplot(root_infile, "energyweights");
+    extract_2DRM_andplot(root_infile, "charge");
 
-        }
-    }
 
     gStyle->SetOptStat(1);  // Enables stats panel with default settings
-    extract_LHC23a3_plots(root_infile, observable);
-    extract_LHC23a3_plots(root_infile, "deltapt");
-    extract_LHC23a3_plots(root_infile, "deltapl");
-    
+
 
 
 }
