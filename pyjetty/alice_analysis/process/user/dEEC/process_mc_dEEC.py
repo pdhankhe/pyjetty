@@ -356,9 +356,9 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
           h.GetYaxis().SetTitle('N_{const}')
           setattr(self, name, h)
           
-          name = 'tn_JETINFO{}_Truth_R{}_{}'.format(observable, jetR, obs_label)
-          tn = ROOT.TNtuple(name, name, "event_id:jet_id:jet_num_in_ev:jet_pt:total_num_const:num_const_aftercut:corr_rc:leading_q:subleading_q:total_num_baryons:num_baryons_aftercut:total_num_mesons:num_mesons_aftercut")
-          setattr(self, name, tn)
+          # name = 'tn_JETINFO{}_Truth_R{}_{}'.format(observable, jetR, obs_label)
+          # tn = ROOT.TNtuple(name, name, "event_id:jet_id:jet_num_in_ev:jet_pt:total_num_const:num_const_aftercut:corr_rc:leading_q:subleading_q:total_num_baryons:num_baryons_aftercut:total_num_mesons:num_mesons_aftercut")
+          # setattr(self, name, tn)
 
           # Det histograms
           name = 'h_1D{}_JetPt_Det_R{}_{}'.format(observable, jetR, obs_label)
@@ -373,7 +373,7 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
           h.GetYaxis().SetTitle('N_{const}')
           setattr(self, name, h)
 
-        '''
+          '''
           name = 'tn_JETINFO{}_Det_R{}_{}'.format(observable, jetR, obs_label)
           tn = ROOT.TNtuple(name, name, "event_id:jet_id:jet_num_in_ev:jet_pt:total_num_const:num_const_aftercut:corr_rc:leading_q:subleading_q:total_num_baryons:num_baryons_aftercut:total_num_mesons:num_mesons_aftercut")
           setattr(self, name, tn)
@@ -447,17 +447,19 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
             self.tuple_obs_string = "event_id:jet_id:jet_num_in_ev:jet_pt:RL:weights"   
           elif observable == "corr_end": #only purpose of this observable is to signify the end
             name = 'tn_pairlevel_Truth_R{}_{}'.format(jetR, obs_label)
-            tn = ROOT.TNtuple(name, name, self.tuple_obs_string)
-            setattr(self, name, tn)
+            # tn = ROOT.TNtuple(name, name, self.tuple_obs_string)
+            # setattr(self, name, tn)
             colon_count = self.tuple_obs_string.count(':')
             print("COLON COUNT IS ", colon_count)
             print("TUPLE STRING IS", self.tuple_obs_string)
             self.fsparsepartonJetvalue_tuple = array.array( 'd', np.zeros(colon_count+1)) # >=18 to match the number of axes
-          
-#            name = 'tn_pairlevel_Det_R{}_{}'.format(jetR, obs_label)
-#            tn = ROOT.TNtuple(name, name, self.tuple_obs_string)
-#            setattr(self, name, tn)
-#            self.fsparsepartonJetvalue_tuple = array.array( 'd', np.zeros(colon_count+1))
+
+            '''
+            name = 'tn_pairlevel_Det_R{}_{}'.format(jetR, obs_label)
+            tn = ROOT.TNtuple(name, name, self.tuple_obs_string)
+            setattr(self, name, tn)
+            self.fsparsepartonJetvalue_Det?_tuple = array.array( 'd', np.zeros(colon_count+1))
+            '''
           else:
             self.create_corr_tuples(observable, jetR, obs_label)
             self.create_corr_response_histograms(observable, jetR, obs_label)

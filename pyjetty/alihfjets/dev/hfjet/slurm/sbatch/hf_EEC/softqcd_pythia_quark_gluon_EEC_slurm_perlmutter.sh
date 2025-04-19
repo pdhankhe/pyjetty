@@ -13,10 +13,10 @@
 
 
 # Center of mass energy in GeV
-ECM=200 #13000
+ECM=13000
 
 # Number of events per pT-hat bin (for statistics)
-NEV_DESIRED=10500000
+NEV_DESIRED=1050000 #10500000 #105000000
 
 # Lower edges of the pT-hat bins
 #PTHAT_BINS=(5 7 9 12 16 21 28 36 45 57 70 85 99 115 132 150 169 190 212 235)
@@ -55,18 +55,19 @@ module use ${BASEDIR}/pyjetty/modules
 module load pyjetty/1.0
 echo "python is" $(which python)
 cd ${BASEDIR}/pyjettyenv/
-SCRIPT="${BASEDIR}/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_EEC/pythia_quark_gluon_EEC.py" #pythia_quark_gluon_EEC.py"
+SCRIPT="${BASEDIR}/pyjetty/pyjetty/alihfjets/dev/hfjet/process/user/hf_EEC/pythia_quark_gluon_EEC_softqcd.py" #pythia_quark_gluon_EEC.py"
 CONFIG="${BASEDIR}/pyjetty/pyjetty/alihfjets/dev/hfjet/config/hf_EEC/configcuts_ptbin.yaml"
 
 if $USE_PTHAT_MAX; then
-    echo "pipenv run python $SCRIPT -c $CONFIG --output-dir $OUTDIR --user-seed $SEED --py-pthatmin $PTHAT_MIN --py-ecm $ECM --nev $NEV_PER_JOB --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2,PhaseSpace:pTHatMax=$PTHAT_MAX --replaceKP 1 --chinitscat 3"
+    echo "pipenv run python $SCRIPT -c $CONFIG --output-dir $OUTDIR --user-seed $SEED --py-pthatmin $PTHAT_MIN --py-ecm $ECM --nev $NEV_PER_JOB --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2,PhaseSpace:pTHatMax=$PTHAT_MAX --replaceKP 1 --softqcd 1"
     pipenv run python $SCRIPT -c $CONFIG --output-dir $OUTDIR --user-seed $SEED \
         --py-pthatmin $PTHAT_MIN --py-ecm $ECM --nev $NEV_PER_JOB \
-        --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2,PhaseSpace:pTHatMax=$PTHAT_MAX --replaceKP 1 --chinitscat 3
+        --pythiaopts TimeShower:pTmin=0.2,PhaseSpace:pTHatMax=$PTHAT_MAX --replaceKP 1 --softqcd 1
 else
-    echo "pipenv run python $SCRIPT -c $CONFIG --output-dir $OUTDIR --user-seed $SEED --py-pthatmin $PTHAT_MIN --py-ecm $ECM --nev $NEV_PER_JOB --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2 --replaceKP 1 --chinitscat 3"
+    echo "pipenv run python $SCRIPT -c $CONFIG --output-dir $OUTDIR --user-seed $SEED --py-pthatmin $PTHAT_MIN --py-ecm $ECM --nev $NEV_PER_JOB --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2 --replaceKP 1 --softqcd 1"
     pipenv run python $SCRIPT -c $CONFIG --output-dir $OUTDIR \
         --user-seed $SEED --py-pthatmin $PTHAT_MIN --py-ecm $ECM --nev $NEV_PER_JOB \
-        --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2 --replaceKP 1 --chinitscat 3
+        --pythiaopts TimeShower:pTmin=0.2 --replaceKP 1 --softqcd 1
 fi
-#pipenv run python $SCRIPT -c $CONFIG --output-dir . --user-seed 1 --py-pthatmin 5 --py-ecm 13000 --nev 10000 --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2 --replaceKP 1
+#pipenv run python $SCRIPT -c $CONFIG --output-dir . --user-seed 1 --py-pthatmin 5 --py-ecm 13000 --nev 10000 --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2 --replaceKP 1 --softqcd 1
+#pipenv run python $SCRIPT -c $CONFIG --output-dir . --user-seed 1 --py-pthatmin 5 --py-ecm 13000 --nev 10 --pythiaopts TimeShower:pTmin=0.2 --replaceKP 1 --softqcd 1

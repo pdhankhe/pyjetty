@@ -502,7 +502,7 @@ class ProcessBase(common_base.CommonBase):
         obj.Write()
   
     print("tryinmg to write file")
-    self.fout.Write()
+    # self.fout.Write() #this maybe needs to be put back in... but I thought it was causing it to write twice
     self.fout.Close()
 
   #---------------------------------------------------------------
