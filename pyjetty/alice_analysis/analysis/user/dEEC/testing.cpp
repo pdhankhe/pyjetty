@@ -1,5 +1,4 @@
 // ROOT macro to analyze and plot data tuples 
-// This version will only accomodate the FOUR RL/pTRL bins
 // Beatrice Liang-Gilman (beatrice_lg@berkeley.edu)
 
 #include <iostream>
@@ -10,13 +9,14 @@
 using namespace std;
 
 // global variables
-Double_t colors[16] = {kGray, kMagenta, kBlue, kOrange+1, kViolet+1, kGreen+2, kRed, kYellow+1, kCyan+1};
+Double_t colors[16] = {kGray, kMagenta, kGreen+2, kBlue, kOrange+1, kViolet+1, kRed, kYellow+1, kCyan+1};
 Double_t markers[10] = {kFullCircle, kFullSquare, kFullDiamond, kFullTriangleUp, kFullStar, kOpenCircle, kOpenTriangleUp, kOpenDiamond, kOpenSquare, kOpenStar};
 Double_t marker_size = 1.5;
 
 int rebin = 4;
 bool ptrl_bins = true;
-bool logbins = false;
+bool less_RLbins = true;
+bool logbins = true;
 std::string attempt_dir; // = Form("data_secondattempt/rebinx%d", rebin);
 std::string outdir; // = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir;
 
@@ -29,10 +29,6 @@ bool deltajl_bool = false;
 bool ew_bool = true;
 bool twoDhists_bool = true;
 bool rc_bool = true;
-
-bool unnormalized_bool = true;
-bool self_normalized_bool = true;
-bool norm_by_jets_bool = true;
 
 void SetStyle(Bool_t graypalette=true) {
     cout << "Setting style!" << endl;
@@ -94,6 +90,8 @@ void ProcessCanvas(TCanvas *Canvas, bool moveright=false) {
 
 /* Make a vector of the logarithmic bins given the minimum and maximum values of the bins. */
 std::vector<double> makeLogBins(double minVal, double maxVal, int numBins, bool debug=false) {  
+
+    
     
     std::vector<double> bins(numBins + 1);
     double logMin = log10(minVal);
@@ -120,7 +118,7 @@ TH1D * getObs1DHistFromTChain(TChain *chain, std::string branch_name, int num_bi
     if (logbinning == false) {
         hist1D = new TH1D(Form("%s_hist", branch_name.c_str()), Form("%s_hist", branch_name.c_str()), num_bins, hist_xmin, hist_xmax);
     } else {
-        double new_hist_xmin = (hist_xmin == 0.0) ? 1e-1 : hist_xmin;
+        double new_hist_xmin = (hist_xmin == 0.0) ? 1e-2 : hist_xmin;
         if (branch_name == "p1" || branch_name == "pt1" || branch_name == "jl1") new_hist_xmin = 0.8;
         std::vector<double> bins = makeLogBins(new_hist_xmin, hist_xmax, num_bins);
         hist1D = new TH1D(Form("%s_hist", branch_name.c_str()), Form("%s_hist", branch_name.c_str()), num_bins, bins.data());
@@ -265,7 +263,7 @@ void Format1DHist(TH1D *hist, TH1D *jetpt_hist, std::string norm_string, int mar
     }
 
     // cout << "RL BIN WIDTH! " << RL_bin_width_val << endl;
-    // if (scalebyRLbinwidth) hist->Scale(1/RL_bin_width_val);
+    // if (scalebyRLbinwidth) hist->Scale(RL_bin_width_val);
 
     // stylization
     hist->SetLineColorAlpha(markercolor, markeralpha);
@@ -322,7 +320,7 @@ void Format2DHist(TH2D *hist2D, TH1D *jetpt_hist, std::string norm_string, std::
         hist2D->Scale(1/numjets, "width");
         norm_index = 2;
     }
-    // if ( scalebyRLbinwidth ) hist2D->Scale(1/RL_bin_width);
+    // if ( scalebyRLbinwidth ) hist2D->Scale(RL_bin_width);
 
     // set z axis bounds
     if (restrictzaxis) hist2D->GetZaxis()->SetRangeUser(ptvsew_normbounds[norm_index][0], ptvsew_normbounds[norm_index][1]);
@@ -474,28 +472,13 @@ void plotandsave_combined_hists(TCanvas *can_all, vector<TH1D*> h_vec, TLegend *
     }
 
     // set maximum based on maximum of all curves
-    
-    if (norm_string == "self_normalized") {
-        if (obs_filename == "") {
-            if (obs_name == "deltap") {
-                h_vec[0]->SetMinimum( 1e-5 ); h_vec[0]->SetMaximum( 1.0 );
-            } else if (obs_name == "deltajt") {
-                h_vec[0]->SetMinimum( 1e-4 ); h_vec[0]->SetMaximum( 100. );
-            }
-        } else if (obs_filename == "p") {
-            h_vec[0]->SetMinimum( 1e-5 ); h_vec[0]->SetMaximum( 1. );  
-        } else if (obs_filename == "jt") {
-            h_vec[0]->SetMinimum( 1e-4 ); h_vec[0]->SetMaximum( 70.0 );  
-        }
-    } else {
-        double max = 0;
-        for (int j=0; j<length; j++) {
-            double max_cand = h_vec[j]->GetMaximum();
-            if (max_cand > max) max = max_cand;
-        }
-        if (debug) cout << "max is " << max << " which goes to " << max*1.5 << endl;
-        h_vec[0]->SetMaximum( max * 1.5 );
+    double max = 0;
+    for (int j=0; j<length; j++) {
+        double max_cand = h_vec[j]->GetMaximum();
+        if (max_cand > max) max = max_cand;
     }
+    if (debug) cout << "max is " << max << " which goes to " << max*1.5 << endl;
+    h_vec[0]->SetMaximum( max * 1.5 );
 
     // draw!
     for (int j=0; j<length; j++) {
@@ -718,16 +701,9 @@ void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
         // cout << " AND CENTERS " << RL_bin_centers[j] << endl;
     }
 
-    std::string ytitle_norm = ""; //"#frac{1}{#DeltaR_{L}} ";
-    if (ptrl_bins == false) {
-        if (norm_string == "self_normalized") ytitle_norm = "#frac{1}{N_{pair}} "; //#DeltaR_{L}} ";
-        else if (norm_string == "norm_by_jets") ytitle_norm = "#frac{1}{N_{jet}} "; //#DeltaR_{L}} ";
-    } else {
-        if (norm_string == "unnormalized") ytitle_norm = ""; //"#frac{1}{#Delta(#LTp_{T}#GTR_{L})} ";
-        else if (norm_string == "self_normalized") ytitle_norm = "#frac{1}{N_{pair}} "; //#Delta(#LTp_{T}#GTR_{L})} ";
-        else if (norm_string == "norm_by_jets") ytitle_norm = "#frac{1}{N_{jet}} "; //#Delta(#LTp_{T}#GTR_{L})} ";
-    }
-    
+    std::string ytitle_norm = "#frac{1}{#DeltaR_{L}} ";
+    if (norm_string == "self_normalized") ytitle_norm = "#frac{1}{N_{pair}#DeltaR_{L}} ";
+    else if (norm_string == "norm_by_jets") ytitle_norm = "#frac{1}{N_{jet}#DeltaR_{L}} ";
     
     vector<TH1D*> deltap_vec;
     vector<TH1D*> deltapt_vec;
@@ -747,7 +723,7 @@ void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
     vector<TH1D*> jt_vec;
     vector<TH1D*> jl_vec;
 
-    TLegend *leg = new TLegend(0.2, 0.16, 0.4, 0.39); //(0.6, 0.6, 0.85, 0.87);
+    TLegend *leg = new TLegend(0.6, 0.6, 0.85, 0.87);
     leg->SetTextSize(0.037);
     leg->SetBorderSize(0);
     // leg->AddEntry(NULL, Form("%d #leq p_{T, jet} < %d", pt_min, pt_max)); //, "pl");
@@ -765,26 +741,20 @@ void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
         double RL_min = RL_bins[j];
         double RL_max = RL_bins[j+1];
         std::string RLname = Form("_RL%.3f-%.3f", RL_min, RL_max);
-        std::string RLname_leg = Form("R_{L} = %.3f-%.3f", RL_min, RL_max);
+        std::string RLname_leg = Form("RL = %.3f-%.3f", RL_min, RL_max);
         if (ptrl_bins == true) {
             RLname = Form("_pTRL%.3f-%.3f", RL_min, RL_max);
-            RLname_leg = Form("#LT p_{T} #GT R_{L} = %.3f-%.3f", RL_min, RL_max);
+            RLname_leg = Form("pTRL = %.3f-%.3f", RL_min, RL_max);
         }
         std::string hist_addname = weightstr + jetRname + thrname + "_pt" + ptname + RLname + "_" + norm_string;
         if (debug) cout << " in RL bin" << j << " with " << RL_min << " - " << RL_max << endl;
         
         // bin sizes
         double deltap_binsize = 0.5;
-        // int deltap_numbins = int((pt_max+5)/deltap_binsize);
-        int deltap_numbins = int((85)/deltap_binsize);
+        int deltap_numbins = int((pt_max+5)/deltap_binsize);
         double deltapl_binsize = 0.5;
         int deltapl_numbins = int((pt_max/2)/deltap_binsize);
-        int deltajt_numbins = 200; 
         int weights_numbins = int(0.3/0.005);
-        if (logbins) {
-            deltap_numbins /= 2; //45 bins for 20-40 jets, 85 bins for 60-80 jets
-            deltajt_numbins = 50;
-        }
 
         // get histograms
         TH1D * deltap_hist, * deltapt_hist, * deltapl_hist, * weights_hist;
@@ -793,21 +763,19 @@ void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
         
         TH1D * jetpt_inptbin_hist = getObs1DHistFromTChain(JETINFO_tree, "jet_pt", 100, 0, 200, pt_min, pt_max, 0, 0, pt_avg);
         
-        // if (deltap_bool) deltap_hist = getObs1DHistFromTChain(PAIRINFO_tree, "deltap", deltap_numbins, 0, pt_max+5, pt_min, pt_max, RL_min, RL_max, pt_avg, logbins);
-        if (deltap_bool) deltap_hist = getObs1DHistFromTChain(PAIRINFO_tree, "deltap", deltap_numbins, 0, 85, pt_min, pt_max, RL_min, RL_max, pt_avg, logbins);
+        if (deltap_bool) deltap_hist = getObs1DHistFromTChain(PAIRINFO_tree, "deltap", deltap_numbins, 0, pt_max+5, pt_min, pt_max, RL_min, RL_max, pt_avg, logbins);
         cout << "checkpoint 1 " << deltap_hist->GetEntries() << endl;
         if (deltapt_bool) deltapt_hist = getObs1DHistFromTChain(PAIRINFO_tree, "deltapt", deltap_numbins, 0, pt_max+5, pt_min, pt_max, RL_min, RL_max, pt_avg, logbins);
         if (deltapl_bool) deltapl_hist = getObs1DHistFromTChain(PAIRINFO_tree, "deltapl", deltapl_numbins, 0, pt_max/2, pt_min, pt_max, RL_min, RL_max, pt_avg, logbins);
         if (ew_bool) weights_hist = getObs1DHistFromTChain(PAIRINFO_tree, "weights", weights_numbins, 0, 0.3, pt_min, pt_max, RL_min, RL_max, pt_avg, logbins);
         
-        if (deltajt_bool) deltajt_hist = getObs1DHistFromTChain(PAIRINFO_tree, "deltajt", deltajt_numbins, 0, 5, pt_min, pt_max, RL_min, RL_max, pt_avg, logbins);
+        if (deltajt_bool) deltajt_hist = getObs1DHistFromTChain(PAIRINFO_tree, "deltajt", 200, 0, 5, pt_min, pt_max, RL_min, RL_max, pt_avg, logbins);
         if (deltajl_bool) deltajl_hist = getObs1DHistFromTChain(PAIRINFO_tree, "deltajl", deltap_numbins, 0, pt_max+5, pt_min, pt_max, RL_min, RL_max, pt_avg, logbins);
         
-        // if (deltap_bool) p_hist = getObs1DHistFromTChain(PAIRINFO_tree, "p1", deltap_numbins, 0, pt_max+5, pt_min, pt_max, RL_min, RL_max, pt_avg, logbins);
-        if (deltap_bool) p_hist = getObs1DHistFromTChain(PAIRINFO_tree, "p1", deltap_numbins, 0, 85, pt_min, pt_max, RL_min, RL_max, pt_avg, logbins);
+        if (deltap_bool) p_hist = getObs1DHistFromTChain(PAIRINFO_tree, "p1", deltap_numbins, 0, pt_max+5, pt_min, pt_max, RL_min, RL_max, pt_avg, logbins);
         if (deltapt_bool) pt_hist = getObs1DHistFromTChain(PAIRINFO_tree, "pt1", deltap_numbins, 0, pt_max+5, pt_min, pt_max, RL_min, RL_max, pt_avg, logbins);
         if (deltapl_bool) pl_hist = getObs1DHistFromTChain(PAIRINFO_tree, "pl1", 200, -5, 5, pt_min, pt_max, RL_min, RL_max, pt_avg, logbins);
-        if (deltajt_bool) jt_hist = getObs1DHistFromTChain(PAIRINFO_tree, "jt1", deltajt_numbins, 0, 5, pt_min, pt_max, RL_min, RL_max, pt_avg, logbins);
+        if (deltajt_bool) jt_hist = getObs1DHistFromTChain(PAIRINFO_tree, "jt1", 200, 0, 5, pt_min, pt_max, RL_min, RL_max, pt_avg, logbins);
         if (deltajl_bool) jl_hist = getObs1DHistFromTChain(PAIRINFO_tree, "jl1", deltap_numbins, 0, pt_max+5, pt_min, pt_max, RL_min, RL_max, pt_avg, logbins);
         
         // cout << "BACK IN ANALYZEPTBIN" << endl;
@@ -977,7 +945,7 @@ void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
 //TODO: do something about norm_string!!
 void analyze(TChain * JETINFO_tree, TChain * PAIRINFO_tree, 
              TFile *f_out, std::string weightstr, std::string jetRname, std::string thrname,
-             std::string norm_string, const int pt_bins[], int n_bins, const double RL_bins[][7], int n_RLbins,
+             std::string norm_string, const int pt_bins[], int n_bins, const double RL_bins[][8], int n_RLbins,
              bool include_RL0, bool include_RL1, bool debug, bool debug2 ) {
 
     
@@ -1055,14 +1023,24 @@ void analyze_data_tuples() {
     bool debug2 = false;
 
     // update dir names
-    // if (ptrl_bins == false) attempt_dir = Form("data_secondattempt/rebinx%d", rebin);
+    if (less_RLbins == false) {
+        if (ptrl_bins == false) attempt_dir = Form("data_secondattempt/rebinx%d", rebin);
+        else attempt_dir = Form("data_secondattempt_ptrlbins/rebinx%d", rebin);
+    } else {
+        if (ptrl_bins == false) attempt_dir = Form("data_thirdattempt/rebinx%d", rebin);
+        else attempt_dir = Form("data_thirdattempt_ptrlbins/rebinx%d", rebin);
+    }
 
-    attempt_dir = "data_fourthattempt/";
-    if (ptrl_bins == true) attempt_dir = attempt_dir.substr(0,attempt_dir.size()-1) + "_ptrlbins/";
     if (logbins == true) {
         rebin = 0;
-        attempt_dir += "logbins";
-    } else attempt_dir += Form("rebinx%d", rebin);
+        if (less_RLbins == true) {
+            if (ptrl_bins == false) attempt_dir = "data_thirdattempt/logbins";
+            else attempt_dir = "data_thirdattempt_ptrlbins/logbins";
+        } else {
+            cout << "conditions not set properly" << endl;
+            return;
+        }
+    }
     
     outdir = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir;
     
@@ -1086,28 +1064,54 @@ void analyze_data_tuples() {
     const int pt_bins[] = { 20, 40, 60, 80 };
     const int n_bins = sizeof(pt_bins) / sizeof(pt_bins[0]) - 1; //3;
     
-    double RL_bins[3][7] = { { 0, 1e-2, 7e-2, 1.5e-1, 3e-1, 4e-1, 1 },
-                            { 0, 1e-2, 4e-2, 8e-2, 2.5e-1, 4e-1, 1 },
-                            { 0, 1e-2, 3e-2, 4.5e-2, 2e-1, 4e-1, 1 } };
+    double RL_bins[3][8] = { { 0, 1e-2, 3e-2, 7e-2, 1.5e-1, 3e-1, 4e-1, 1 },
+                            { 0, 1e-2, 2.5e-2, 4e-2, 8e-2, 2.5e-1, 4e-1, 1 },
+                            { 0, 1e-2, 2.5e-2, 3e-2, 4.5e-2, 2e-1, 4e-1, 1 } };
     int n_RLbins = sizeof(RL_bins[0]) / sizeof(RL_bins[0][0]) - 1; //gets the columns //6; //7; //5;
 
     if (ptrl_bins == true) {
-        // RL_bins = { { 0, 2e-1, 8e-1, 5.0, 10, 30, 100 },
-        //                 { 0, 2e-1, 8e-1, 5.0, 10, 30, 100 },
-        //                 { 0, 2e-1, 8e-1, 5.0, 10, 30, 100 } };
+        // RL_bins = { { 0, 2e-1, 7e-1, 1.5, 5.0, 10.5, 30, 100 },
+        //                 { 0, 2e-1, 7e-1, 1.5, 5.0, 10.5, 30, 100 },
+        //                 { 0, 2e-1, 7e-1, 1.5, 5.0, 10.5, 30, 100 } };
         for (int a=0; a<3; a++) {
             RL_bins[a][1] = 2e-1;
-            RL_bins[a][2] = 8e-1;
-            RL_bins[a][3] = 5.0;
-            RL_bins[a][4] = 10.0;
-            RL_bins[a][5] = 30.0;
-            RL_bins[a][6] = 100.0;
+            RL_bins[a][2] = 7e-1;
+            RL_bins[a][3] = 1.5;
+            RL_bins[a][4] = 5.0;
+            RL_bins[a][5] = 10.5;
+            RL_bins[a][6] = 30;
+            RL_bins[a][7] = 100;
         }
     }
 
+    if (less_RLbins == true) {
+        n_RLbins = 6; // (assuming that first and last bins get skipped)
+        // colors[16] = {kGray, kMagenta, kGreen+2, kBlue, kOrange+1, kViolet+1, kRed, kYellow+1, kCyan+1};
+        colors[2] = kBlue; colors[3] = kViolet+1; colors[5] = kGreen+2;
+        if (ptrl_bins == false) {
+            RL_bins[0][2] = 4e-2; RL_bins[1][2] = 2e-2; RL_bins[2][2] = 2e-2;
+            RL_bins[0][3] = 1.5e-1; RL_bins[1][3] = 8e-2; RL_bins[2][3] = 7e-2;
+            for (int a=0; a<3; a++) {
+                RL_bins[a][4] = 4e-1; 
+                RL_bins[a][5] = 1; 
+                RL_bins[a][6] = -1; // need to change this to 4 bins?
+                RL_bins[a][7] = -1;
+            }
+        } else { //4 ptrl bins
+            for (int a=0; a<3; a++) {
+                RL_bins[a][1] = 2e-1;
+                RL_bins[a][2] = 8e-1;
+                RL_bins[a][3] = 5.0;
+                RL_bins[a][4] = 10.0;
+                RL_bins[a][5] = 30.0;
+                RL_bins[a][6] = 100.0;
+                RL_bins[a][7] = -1;
+            }
+        }
+    }
     
     for (int a=0; a<3; a++) {
-        for (int b=0; b<7; b++) {
+        for (int b=0; b<8; b++) {
             cout << RL_bins[a][b] << " ";
         }
         cout << endl;
@@ -1182,13 +1186,13 @@ void analyze_data_tuples() {
     
     // analyze for plots
     // norm_string = "unnormalized";
-    // if (unnormalized_bool) analyze(JETINFO_tree, PAIRINFO_tree, f_out, weightstr, jetRname, thrname, norm_string, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1, debug, debug2);
+    // analyze(JETINFO_tree, PAIRINFO_tree, f_out, weightstr, jetRname, thrname, norm_string, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1, debug, debug2);
     
     norm_string = "self_normalized";
-    if (self_normalized_bool) analyze(JETINFO_tree, PAIRINFO_tree, f_out, weightstr, jetRname, thrname, norm_string, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1, debug, debug2);
+    analyze(JETINFO_tree, PAIRINFO_tree, f_out, weightstr, jetRname, thrname, norm_string, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1, debug, debug2);
     
     // norm_string = "norm_by_jets";
-    // if (norm_by_jets_bool) analyze(JETINFO_tree, PAIRINFO_tree, f_out, weightstr, jetRname, thrname, norm_string, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1, debug, debug2);
+    // analyze(JETINFO_tree, PAIRINFO_tree, f_out, weightstr, jetRname, thrname, norm_string, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1, debug, debug2);
     
 
 
