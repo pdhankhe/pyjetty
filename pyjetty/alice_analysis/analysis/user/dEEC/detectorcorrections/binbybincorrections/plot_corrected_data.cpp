@@ -13,10 +13,19 @@ Double_t colors[16] = {kGray, kMagenta, kGreen+2, kBlue, kOrange+1, kViolet+1, k
 Double_t markers[10] = {kFullCircle, kFullSquare, kFullDiamond, kFullTriangleUp, kFullStar, kOpenCircle, kOpenTriangleUp, kOpenDiamond, kOpenSquare, kOpenStar};
 Double_t marker_size = 1.5;
 
+bool deltap_bool = true;
+bool deltapt_bool = false; 
+bool deltapl_bool = false;
+bool deltajt_bool = true;
+bool deltajl_bool = false;
+bool weights_bool = false;
+bool charge_bool = false;
+
 int rebin = 4;
-std::string attempt_dir = Form("binbybincorrections/unmatched/rebinx%d", rebin);
-//std::string outdir = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir;
-std::string outdir = "/Volumes/WORK USB/dEEC/storage/plots/" + attempt_dir;
+std::string attempt_dir = Form("binbybincorrections/unmatched/data_fourthattempt_ptrlbins/rebinx%d", rebin);
+// std::string outdir = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir;
+// std::string outdir = "/Volumes/WORK USB/dEEC/storage/plots/" + attempt_dir;
+std::string outdir = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir;
 
 void SetStyle(Bool_t graypalette=true) {
     cout << "Setting style!" << endl;
@@ -79,8 +88,10 @@ void ProcessCanvas(TCanvas *Canvas, bool moveright=false) {
 TH1D * get1DHist(TFile * file, std::string observable, std::string ptname, std::string RLname,
                               std::string jetRname, std::string thrname, std::string norm_string) {
     
+    // std::string histname = Form("h_%s%s%s_pt%s%s_%s_corrected", observable.c_str(), jetRname.c_str(), thrname.c_str(), ptname.c_str(), RLname.c_str(), norm_string.c_str());
     std::string histname = Form("h_%s%s%s_pt%s%s_%s_corrected", observable.c_str(), jetRname.c_str(), thrname.c_str(), ptname.c_str(), RLname.c_str(), norm_string.c_str());
-    
+    cout << "histname is: " << histname << endl;
+
     file->cd();
     TH1D * corr_obs_hist = (TH1D *)file->Get(histname.c_str());
     return corr_obs_hist;
@@ -589,8 +600,8 @@ void analyze_ptbin(TFile* file, std::string observable, std::string jetRname, st
         
         double RL_min = RL_bins[j];
         double RL_max = RL_bins[j+1];
-        std::string RLname = Form("_RL%.3f-%.3f", RL_min, RL_max);
-        std::string RLname_leg = Form("RL = %.3f-%.3f", RL_min, RL_max);
+        std::string RLname = Form("_pTRL%.3f-%.3f", RL_min, RL_max);
+        std::string RLname_leg = Form("p_{T}R_{L} = %.3f-%.3f", RL_min, RL_max);
         std::string hist_addname = jetRname + thrname + "_pt" + ptname + RLname + "_" + norm_string;
         if (debug) cout << " in RL bin" << j << " with " << RL_min << " - " << RL_max << endl;
         
@@ -724,7 +735,8 @@ void plot_corrected_data() {
     
    
     // filenames
-    TString filename = "/Volumes/WORK USB/dEEC/storage/rootfiles/binbybincorrections/unmatched/rebinx4/DataHists_BinByBinCorr.root";
+    // TString filename = "/Volumes/WORK USB/dEEC/storage/rootfiles/binbybincorrections/unmatched/rebinx4/DataHists_BinByBinCorr.root";
+    TString filename = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/binbybincorrections/unmatched/data_fourthattempt_ptrlbins/rebinx4/DataHists_BinByBinCorr.root";
     TFile* root_file = new TFile(filename, "READ");
     
     // Output file for binned results
@@ -735,10 +747,19 @@ void plot_corrected_data() {
     const int pt_bins[] = { 20, 40, 60, 80 };
     const int n_bins = sizeof(pt_bins) / sizeof(pt_bins[0]) - 1; //3;
     
-    const double RL_bins[3][8] = { { 0, 1e-2, 3e-2, 7e-2, 1.5e-1, 3e-1, 4e-1, 1 },
-                            { 0, 1e-2, 2.5e-2, 4e-2, 8e-2, 2.5e-1, 4e-1, 1 },
-                            { 0, 1e-2, 2.5e-2, 3e-2, 4.5e-2, 2e-1, 4e-1, 1 } };
-    const int n_RLbins = sizeof(RL_bins[0]) / sizeof(RL_bins[0][0]) - 1; //gets the columns //6; //7; //5;
+    // const double RL_bins[3][8] = { { 0, 1e-2, 3e-2, 7e-2, 1.5e-1, 3e-1, 4e-1, 1 },
+    //                         { 0, 1e-2, 2.5e-2, 4e-2, 8e-2, 2.5e-1, 4e-1, 1 },
+    //                         { 0, 1e-2, 2.5e-2, 3e-2, 4.5e-2, 2e-1, 4e-1, 1 } };
+    // const int n_RLbins = sizeof(RL_bins[0]) / sizeof(RL_bins[0][0]) - 1; //gets the columns //6; //7; //5;
+    const double RL_bins[3][8] = { { 0, 2e-1, 8e-1, 5.0, 10.0, 30.0, 100.0, -1 },
+                            { 0, 2e-1, 8e-1, 5.0, 10.0, 30.0, 100.0, -1 },
+                            { 0, 2e-1, 8e-1, 5.0, 10.0, 30.0, 100.0, -1 } };
+    const int n_RLbins = 6; //assuming first and last bins get skipped
+    
+    colors[2] = kBlue;
+    colors[3] = kOrange+1;
+    colors[4] = kViolet+1;
+    colors[5] = kGreen+2;
 
 
     if (debug2) cout << "pt_bins " << n_bins << " n_RLbins " << n_RLbins << endl;
@@ -757,12 +778,12 @@ void plot_corrected_data() {
 
     
     // analyze for plots
-    norm_string = "norm_by_jets";
-    analyze(root_file, "deltap", jetRname, thrname, norm_string, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1, debug, debug2);
-    analyze(root_file, "deltapt", jetRname, thrname, norm_string, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1, debug, debug2);
-    analyze(root_file, "deltapl", jetRname, thrname, norm_string, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1, debug, debug2);
-    analyze(root_file, "deltajt", jetRname, thrname, norm_string, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1, debug, debug2);
-    analyze(root_file, "deltajl", jetRname, thrname, norm_string, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1, debug, debug2);
+    norm_string = "self_normalized"; //"norm_by_jets";
+    if (deltap_bool) analyze(root_file, "deltap", jetRname, thrname, norm_string, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1, debug, debug2);
+    if (deltapt_bool) analyze(root_file, "deltapt", jetRname, thrname, norm_string, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1, debug, debug2);
+    if (deltapl_bool) analyze(root_file, "deltapl", jetRname, thrname, norm_string, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1, debug, debug2);
+    if (deltajt_bool) analyze(root_file, "deltajt", jetRname, thrname, norm_string, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1, debug, debug2);
+    if (deltajl_bool) analyze(root_file, "deltajl", jetRname, thrname, norm_string, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1, debug, debug2);
 
     
 

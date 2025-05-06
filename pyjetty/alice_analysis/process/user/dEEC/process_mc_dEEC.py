@@ -480,7 +480,7 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
     # Create THn of response for ENC
     pt_bins = linbins(0,200,200)
     if observable == "corr_deltap":
-      obs_bins = linbins(0,90,180)
+      obs_bins = linbins(0,90,144) #180)
       obstitle_det = "#Deltap_{det}"
       obstitle_truth = "#Deltap_{truth}"
     elif observable == "corr_deltapt":
@@ -556,6 +556,8 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
         RL_bins = RL_bins_all[i]
 
         num_bins = 180
+        if observable == "corr_deltap":
+          num_bins = 144
         if observable == "corr_deltapl":
           num_bins = 80
         if observable == "corr_deltajt":
@@ -858,13 +860,14 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
       mcid1 = _v[EEC_indicies1[i]].python_info().particle_mcid
       mcid2 = _v[EEC_indicies2[i]].python_info().particle_mcid
 
-      pairs.append(EEC_pair(event_index1, event_index2, EEC_weights[i], EEC_rs[i], jet_pt, deltap_rs[i], deltapt_rs[i], deltajt_rs[i], jt1_rs[i], jt2_rs[i], deltapl_rs[i],  deltajl_rs[i], jl1_rs[i], jl2_rs[i], pair_q1q2, mcid1, mcid2))
+      pairs.append(EEC_pair(event_index1, event_index2, EEC_weights[i], EEC_rs[i], jet_pt, deltap_rs[i], deltapt_rs[i], deltajt_rs[i], jt1_rs[i], jt2_rs[i], deltapl_rs[i], deltajl_rs[i], jl1_rs[i], jl2_rs[i], pair_q1q2, mcid1, mcid2))
 
     return pairs
 
   #---------------------------------------------------------------
   # This function is called once for each jet subconfiguration
   # Fill 2D histogram of (pt, obs)
+  # This function gets called once for truth level, then again for det level
   #---------------------------------------------------------------
   def fill_observable_histograms(self, hname, jet, jet_groomed_lund, jetR, obs_setting,
                                  grooming_setting, obs_label, jet_pt_ungroomed):
@@ -915,10 +918,6 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
       jet_pt = jet_pt_ungroomed
     else:
       jet_pt = jet.perp()
-
-    # Fill 1D jet pt histogram regardless
-    getattr(self, hname.format("1Djet_pt",obs_label)).Fill(jet_pt)
-
 
     new_corr = ecorrel.CorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut)
     deltap_obs_corr = othercorrel.OtherCorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "deltap")
@@ -1006,15 +1005,74 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
           # TODO: don't do this until you've figured out how...
           # getattr(self, 'tn_JETINFOjet_pt_R{}_{}'.format(jetR, obs_label)).Fill(self.event_number, self.jet_number, self.ijet, jet_pt*weights_pair[index], len(constituents), nconst_jet, leadq_subleadq, leading_q, subleading_q, num_baryons_tot, num_baryons_aftercut, num_mesons_tot, num_mesons_aftercut)
 
+          # if jet_pt >= 40 and jet_pt < 60:
+          #   print("FILLING JET PT", jet_pt, "with num const after cut: ", len(c_select), "and nconst_jet:", nconst_jet)
+            
+
         else: # Truth level
           getattr(self, hname.format("1D"+observable,obs_label)).Fill(jet_pt)
           getattr(self, hname.format('Nconst', obs_label)).Fill(jet_pt, nconst_jet) 
 
-          getattr(self, 'tn_JETINFOjet_pt_Truth_R{}_{}'.format(jetR, obs_label)).Fill(self.event_number, self.jet_number, self.ijet, jet_pt, len(constituents), nconst_jet, leadq_subleadq, leading_q, subleading_q, num_baryons_tot, num_baryons_aftercut, num_mesons_tot, num_mesons_aftercut)
+          # getattr(self, 'tn_JETINFOjet_pt_Truth_R{}_{}'.format(jetR, obs_label)).Fill(self.event_number, self.jet_number, self.ijet, jet_pt, len(constituents), nconst_jet, leadq_subleadq, leading_q, subleading_q, num_baryons_tot, num_baryons_aftercut, num_mesons_tot, num_mesons_aftercut)
 
 
+      # now save gen and reco pair level dEEC information
+      if 'corr' in observable:
+        if 'Truth' in hname:
+          hstring = 'gen'
+        elif 'Det' in hname:
+          hstring = 'reco'
+        else:
+          print("hstring not specified?!?")
+
+        jet_pairs = self.get_EEC_pairs(jet, jet_pt)
+
+        for j_pair in jet_pairs:
+          ptbin_index = -1
+          if j_pair.jetpt >= 20 and j_pair.jetpt < 40:
+            ptbin_index = 0
+          if j_pair.jetpt >= 40 and j_pair.jetpt < 60:
+            # print("IN PT BIN 1 FOR JET PAIR!!!")
+            ptbin_index = 1
+          if j_pair.jetpt >= 60 and j_pair.jetpt < 80:
+            ptbin_index = 2
+            
         
+    #      for i in range(0,3):
+          if ptbin_index != -1:
+            if 'corr_energyweights' in observable:
+              name = '{}_energyweights_unmatched_PTBIN{}'.format(hstring, ptbin_index)
+              getattr(self, name).Fill(j_pair.weight, j_pair.r, j_pair.jetpt)
 
+            if 'corr_deltap' in observable:
+              name = '{}_deltap_unmatched_PTBIN{}'.format(hstring, ptbin_index)
+              getattr(self, name).Fill(j_pair.deltap, j_pair.r, j_pair.jetpt)
+
+            if 'corr_deltapt' in observable:
+              name = '{}_deltapt_unmatched_PTBIN{}'.format(hstring, ptbin_index)
+              getattr(self, name).Fill(j_pair.deltapt, j_pair.r, j_pair.jetpt)
+
+            if 'corr_deltajt' in observable:
+              name = '{}_deltajt_unmatched_PTBIN{}'.format(hstring, ptbin_index)
+              getattr(self, name).Fill(j_pair.deltajt, j_pair.r, j_pair.jetpt)
+
+            if 'corr_deltapl' in observable:
+              name = '{}_deltapl_unmatched_PTBIN{}'.format(hstring, ptbin_index)
+              getattr(self, name).Fill(j_pair.deltapl, j_pair.r, j_pair.jetpt)
+
+            if 'corr_deltajl' in observable:
+              name = '{}_deltajl_unmatched_PTBIN{}'.format(hstring, ptbin_index)
+              getattr(self, name).Fill(j_pair.deltajl, j_pair.r, j_pair.jetpt)
+
+            if 'corr_charge' in observable:
+              name = '{}_charge_unmatched_PTBIN{}'.format(hstring, ptbin_index)
+              getattr(self, name).Fill(j_pair.charge, j_pair.r, j_pair.jetpt)
+
+          # if not match_found:
+          #   getattr(self, "response").Miss(t_pair.weight, t_pair.r, t_pair.pt)
+
+
+    """
     # now save pair level dEEC information
     ipoint = 2
     for index in range(new_corr.correlator(ipoint).rs().size()):
@@ -1053,9 +1111,12 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
           # print("indices 6, 7, 8:",self.fsparsepartonJetvalue_tuple[6], self.fsparsepartonJetvalue_tuple[7], self.fsparsepartonJetvalue_tuple[8] )
         
         elif observable == 'corr_deltajt':
-          if 'corr_deltajt' == self.observable_list[2]:
+          # print("JUST CHECKING", self.observable_list[4], self.observable_list)
+          if 'corr_deltajt' == self.observable_list[2]: # should this have been 3??
             ind_in_tuple = 6
             self.fsparsepartonJetvalue_tuple[5] = new_corr.correlator(ipoint).weights()[index]
+          if 'corr_deltajt' == self.observable_list[4]:
+            ind_in_tuple = 9
           else:
             ind_in_tuple = 21 # fix this???
           # print("IND IN TUPLE IS", ind_in_tuple, "and ", self.observable_list)
@@ -1081,11 +1142,15 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
           self.fsparsepartonJetvalue_tuple[ind_in_tuple+2] = jl2_obs_corr.correlator(ipoint).rs()[index]
          
         elif observable == 'corr_charge':
+          if 'corr_charge' == self.observable_list[5]:
+            ind_in_tuple = 12
+          else:
+            ind_in_tuple = 15
           samecharge_boolean = self.is_same_charge(new_corr, ipoint, c_select, index)
-          self.fsparsepartonJetvalue_tuple[15] = 1 if samecharge_boolean else -1
+          self.fsparsepartonJetvalue_tuple[ind_in_tuple] = 1 if samecharge_boolean else -1
           q1, q2 = self.charge_p1p2(new_corr, ipoint, c_select, index)
-          self.fsparsepartonJetvalue_tuple[16] = q1
-          self.fsparsepartonJetvalue_tuple[17] = q2
+          self.fsparsepartonJetvalue_tuple[ind_in_tuple+1] = q1
+          self.fsparsepartonJetvalue_tuple[ind_in_tuple+2] = q2
           # print("indices 12, 13, 14:",self.fsparsepartonJetvalue_tuple[12], self.fsparsepartonJetvalue_tuple[13], self.fsparsepartonJetvalue_tuple[14] )
 
         elif ("baryonmeson" in observable): # not done anymore!!!
@@ -1106,7 +1171,7 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
             elif abs(pid) == 211: #pion
               getattr(self, meson_tn_name).Fill(jet_pt, c.pt())
             
-        elif 'end' in observable:
+        # elif 'end' in observable:
           # print("IN CORR_END WRITING", self.fsparsepartonJetvalue_tuple)
           # print("IN CORR_END WRITING", self.fsparsepartonJetvalue_tuple[0])
           #TODO: again, don't do det level until you know what you're doing
@@ -1114,8 +1179,8 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
           #   getattr(self, 'tn_pairlevel_R{}_{}'.format(jetR, obs_label)).Fill(np.array(list(self.fsparsepartonJetvalue_tuple), dtype='float32'))
           # else:
           # print("IN END!!!!", self.fsparsepartonJetvalue_tuple )
-          getattr(self, 'tn_pairlevel_Truth_R{}_{}'.format(jetR, obs_label)).Fill(np.array(list(self.fsparsepartonJetvalue_tuple), dtype='float32'))
-
+          # getattr(self, 'tn_pairlevel_Truth_R{}_{}'.format(jetR, obs_label)).Fill(np.array(list(self.fsparsepartonJetvalue_tuple), dtype='float32'))
+    """
         
 
 
@@ -1331,91 +1396,6 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
                 energyweights_response_name = "energyweights_response_PTBIN{}".format(i)
                 getattr(self, energyweights_response_name).Fill(d_pair.weight, d_pair.r, d_pair.jetpt, t_pair.weight, t_pair.r, t_pair.jetpt, self.pt_hat)
     '''
-    for d_pair in det_pairs:
-      ptbin_index = -1
-      if d_pair.jetpt >= 20 and d_pair.jetpt < 40:
-        ptbin_index = 0
-      if d_pair.jetpt >= 40 and d_pair.jetpt < 60:
-        ptbin_index = 1
-      if d_pair.jetpt >= 60 and d_pair.jetpt < 80:
-        ptbin_index = 2
-        
-    
-#      for i in range(0,3):
-      if ptbin_index != -1:
-        # for purity correction
-        if 'corr_energyweights' in self.observable_list:
-          name = 'reco_energyweights_unmatched_PTBIN{}'.format(ptbin_index)
-          getattr(self, name).Fill(d_pair.weight, d_pair.r, d_pair.jetpt)
-
-        if 'corr_deltap' in self.observable_list:
-          name = 'reco_deltap_unmatched_PTBIN{}'.format(ptbin_index)
-          getattr(self, name).Fill(d_pair.deltap, d_pair.r, d_pair.jetpt)
-
-        if 'corr_deltapt' in self.observable_list:
-          name = 'reco_deltapt_unmatched_PTBIN{}'.format(ptbin_index)
-          getattr(self, name).Fill(d_pair.deltapt, d_pair.r, d_pair.jetpt)
-
-        if 'corr_deltajt' in self.observable_list:
-          name = 'reco_deltajt_unmatched_PTBIN{}'.format(ptbin_index)
-          getattr(self, name).Fill(d_pair.deltajt, d_pair.r, d_pair.jetpt)
-
-        if 'corr_deltapl' in self.observable_list:
-          name = 'reco_deltapl_unmatched_PTBIN{}'.format(ptbin_index)
-          getattr(self, name).Fill(d_pair.deltapl, d_pair.r, d_pair.jetpt)
-
-        if 'corr_deltajl' in self.observable_list:
-          name = 'reco_deltajl_unmatched_PTBIN{}'.format(ptbin_index)
-          getattr(self, name).Fill(d_pair.deltajl, d_pair.r, d_pair.jetpt)
-
-        if 'corr_charge' in self.observable_list:
-          name = 'reco_charge_unmatched_PTBIN{}'.format(ptbin_index)
-          getattr(self, name).Fill(d_pair.charge, d_pair.r, d_pair.jetpt)
-
-
-
-    for t_pair in truth_pairs:
-      ptbin_index = -1
-      if d_pair.jetpt >= 20 and d_pair.jetpt < 40:
-        ptbin_index = 0
-      if d_pair.jetpt >= 40 and d_pair.jetpt < 60:
-        ptbin_index = 1
-      if d_pair.jetpt >= 60 and d_pair.jetpt < 80:
-        ptbin_index = 2
-        
-#      for i in range(0,3):
-      if ptbin_index != -1:
-        if 'corr_deltap' in self.observable_list:
-          name = 'gen_deltap_unmatched_PTBIN{}'.format(ptbin_index)
-          getattr(self, name).Fill(t_pair.deltap, t_pair.r, t_pair.jetpt)
-
-        if 'corr_deltapt' in self.observable_list:
-          name = 'gen_deltapt_unmatched_PTBIN{}'.format(ptbin_index)
-          getattr(self, name).Fill(t_pair.deltapt, t_pair.r, t_pair.jetpt)
-
-        if 'corr_deltajt' in self.observable_list:
-          name = 'gen_deltajt_unmatched_PTBIN{}'.format(ptbin_index)
-          getattr(self, name).Fill(t_pair.deltajt, t_pair.r, t_pair.jetpt)
-
-        if 'corr_deltapl' in self.observable_list:
-          name = 'gen_deltapl_unmatched_PTBIN{}'.format(ptbin_index)
-          getattr(self, name).Fill(t_pair.deltapl, t_pair.r, t_pair.jetpt)
-
-        if 'corr_deltajl' in self.observable_list:
-          name = 'gen_deltajl_unmatched_PTBIN{}'.format(ptbin_index)
-          getattr(self, name).Fill(t_pair.deltajl, t_pair.r, t_pair.jetpt)
-
-        if 'corr_charge' in self.observable_list:
-          name = 'gen_charge_unmatched_PTBIN{}'.format(ptbin_index)
-          getattr(self, name).Fill(t_pair.charge, t_pair.r, t_pair.jetpt)
-
-        if 'corr_energyweights' in self.observable_list:
-          name = 'gen_energyweights_unmatched_PTBIN{}'.format(ptbin_index)
-          getattr(self, name).Fill(t_pair.weight, t_pair.r, t_pair.jetpt)
-
-      # if not match_found:
-      #   getattr(self, "response").Miss(t_pair.weight, t_pair.r, t_pair.pt)
-
 
 
 

@@ -7,6 +7,10 @@
     // corr_data_and_raw_data_[obs_PTBINX_RLBINY].pdf
 // Beatrice Liang-Gilman, beatrice_lg@berkeley.edu
 
+// global variables
+Double_t colors[16] = {kGray, kMagenta, kGreen+2, kBlue, kOrange+1, kViolet+1, kRed, kYellow+1, kCyan+1};
+Double_t markers[10] = {kFullCircle, kFullSquare, kFullDiamond, kFullTriangleUp, kFullStar, kOpenCircle, kOpenTriangleUp, kOpenDiamond, kOpenSquare, kOpenStar};
+Double_t marker_size = 1.5;
 
 std::string compsystem = "perlmutter"; //"local"; //"perlmutter"
 bool unmatched = true; // set true for unmatched, false for matched
@@ -15,9 +19,17 @@ bool anchmc = true; // set true for anchored mc, set false for fastsim
 
 bool self_normalize = true; // DO NOT CHANGE // -- this from any data_thirdattempt
 bool ptrl_bins = true; // DO NOT CHANGE
-bool less_RLbins = true; // DO NOT CHANGE // set true for using 3 "RL" bins, set false for using 5
+bool less_RLbins = true; // DO NOT CHANGE // set true for using 4 "RL" bins, set false for using 5
 
-std::string attempt_dir = ""; //Form("binbybincorrections/rebinx%.0f",rebin);
+bool deltap_bool = true;
+bool deltapt_bool = false; 
+bool deltapl_bool = false;
+bool deltajt_bool = true;
+bool deltajl_bool = false;
+bool weights_bool = false;
+bool charge_bool = false;
+
+std::string attempt_dir = Form("data_fourthattempt_ptrlbins/rebinx%.0f",rebin);
 
 
 void SetStyle(Bool_t graypalette=true) {
@@ -461,7 +473,7 @@ TH1D * get_binbybin_corrfactors(TFile *fin_mc, TFile *fout, std::string observab
 
     // find observable maximums
     int obs_max_val = 0;
-    if (observable == "deltap" || observable == "deltapt") obs_max_val = pt_max+5;
+    if (observable == "deltap" || observable == "deltapt") obs_max_val = 85; //pt_max+5;
     else if (observable == "deltapl") obs_max_val = pt_max/2;
     else if (observable == "deltajt") obs_max_val = 5;
     else if (observable == "deltajl") obs_max_val = pt_max+5;
@@ -524,7 +536,7 @@ TH1D * get_binbybin_corrfactors(TFile *fin_mc, TFile *fout, std::string observab
     }
 
     // rebin
-    if (observable != "charge" && ptrl_bins == false) {
+    if (observable != "charge") { // && ptrl_bins == false) {
         hist_det->Rebin(rebin);
         hist_truth->Rebin(rebin);
     }
@@ -549,10 +561,10 @@ TH1D * get_binbybin_corrfactors(TFile *fin_mc, TFile *fout, std::string observab
         hist_truth->Scale(num_jets_truth, "width");
     }
 
-    // scale by the RL bin width
+    // update: DO NOT scale by the RL bin width (esp for self_normalize)
     double RL_bin_width = RL_max - RL_min;
-    if ( scalebyRLbinwidth ) hist_det->Scale(RL_bin_width);
-    if ( scalebyRLbinwidth ) hist_truth->Scale(RL_bin_width);
+    // if ( scalebyRLbinwidth ) hist_det->Scale(RL_bin_width);
+    // if ( scalebyRLbinwidth ) hist_truth->Scale(RL_bin_width);
         
     // add name string
     std::string addname = Form("_PTBIN%d_RLBIN%d", ptbin, rlbin);
@@ -601,9 +613,9 @@ TH1D * get_binbybin_corrfactors(TFile *fin_mc, TFile *fout, std::string observab
     double fit_max = pt_max;
     if (observable == "deltapl") fit_max = pt_max/2;
     if (observable == "deltajt") fit_max = 5;
-    TF1 * linfit = fit_histogram_linearfit(hratio, observable, addname, fit_max);
-    TF1 * quadfit = fit_histogram_quadfit(hratio, observable, addname, fit_max);
-    TF1 * expofit = fit_histogram_expofit(hratio, observable, addname, fit_max);
+    // TF1 * linfit = fit_histogram_linearfit(hratio, observable, addname, fit_max);
+    // TF1 * quadfit = fit_histogram_quadfit(hratio, observable, addname, fit_max);
+    // TF1 * expofit = fit_histogram_expofit(hratio, observable, addname, fit_max);
 
     // extract the fcorr from fitted function, then return this new histogram instead of hratio
     // std::vector<double> bincenters_vector = get_bin_centers(hratio);
@@ -621,7 +633,10 @@ TH1D * get_binbybin_corrfactors(TFile *fin_mc, TFile *fout, std::string observab
 TH1D * get_rawdata(TFile *fin_data, std::string observable, int pt_min, int pt_max, double RL_min, double RL_max) {
 
     fin_data->cd();
-    std::string histname = Form("h_%s_R0.4_t1.0_pt%d-%d_RL%.3f-%.3f_norm_by_jets", observable.c_str(), pt_min, pt_max, RL_min, RL_max);
+    std::string histname = "";
+    if (self_normalize && ptrl_bins) histname = Form("h_%s_R0.4_t1.0_pt%d-%d_pTRL%.3f-%.3f_self_normalized", observable.c_str(), pt_min, pt_max, RL_min, RL_max);
+    else cout << "youre gonna get an error because no histogram defined for dif normalizations or RL (instead of pTRL) bins" << endl;
+    cout << "raw data histname: " << histname << endl;
     TH1D * hist = (TH1D *)gDirectory->Get(histname.c_str())->Clone(histname.c_str());
 
     // rebin -- now already done in original DataHists file
@@ -793,6 +808,8 @@ void analyze(TFile *f_in_data, TFile *f_in_mc, TFile *f_out, const int pt_bins[]
     
     // do i need this?
     // save_noncorrected_hists(f_in, f_out, weightstr, jetRname, thrname);
+
+    cout << "in analyze function for observable " << observable << endl;
     
     for (int i = 0; i < n_bins; i++) {
         cout << "in pt bin" << i << endl;
@@ -848,13 +865,13 @@ void extract_binbybin_corrections() {
     const int pt_bins[] = { 20, 40, 60, 80 };
     const int n_bins = sizeof(pt_bins) / sizeof(pt_bins[0]) - 1; //3;
     
-    const double RL_bins[3][8] = { { 0, 1e-2, 3e-2, 7e-2, 1.5e-1, 3e-1, 4e-1, 1 },
+    double RL_bins[3][8] = { { 0, 1e-2, 3e-2, 7e-2, 1.5e-1, 3e-1, 4e-1, 1 },
                             { 0, 1e-2, 2.5e-2, 4e-2, 8e-2, 2.5e-1, 4e-1, 1 },
                             { 0, 1e-2, 2.5e-2, 3e-2, 4.5e-2, 2e-1, 4e-1, 1 } };
-    const int n_RLbins = sizeof(RL_bins[0]) / sizeof(RL_bins[0][0]) - 1; //gets the columns //6; //7; //5;
+    int n_RLbins = sizeof(RL_bins[0]) / sizeof(RL_bins[0][0]) - 1; //gets the columns //6; //7; //5;
 
     if (less_RLbins == true) {
-        n_RLbins = 5; // (assuming that first and last bins get skipped)
+        n_RLbins = 6; // (assuming that first and last bins get skipped)
         // colors[16] = {kGray, kMagenta, kGreen+2, kBlue, kOrange+1, kViolet+1, kRed, kYellow+1, kCyan+1};
         colors[2] = kBlue; colors[3] = kViolet+1; colors[5] = kGreen+2;
         if (ptrl_bins == false) {
@@ -866,14 +883,14 @@ void extract_binbybin_corrections() {
                 RL_bins[a][6] = -1; 
                 RL_bins[a][7] = -1;
             }
-        } else { //3 ptrl bins
+        } else { //4 ptrl bins
             for (int a=0; a<3; a++) {
                 RL_bins[a][1] = 2e-1;
                 RL_bins[a][2] = 8e-1;
                 RL_bins[a][3] = 5.0;
-                RL_bins[a][4] = 30.0;
-                RL_bins[a][5] = 100.0;
-                RL_bins[a][6] = -1;
+                RL_bins[a][4] = 10.0;
+                RL_bins[a][5] = 30.0;
+                RL_bins[a][6] = 100.0;
                 RL_bins[a][7] = -1;
             }
         }
@@ -890,22 +907,24 @@ void extract_binbybin_corrections() {
     // attempt_dir name
     std::string matched_str = "matched";
     if (unmatched) matched_str = "unmatched";
-    if (anchmc) attempt_dir = Form("binbybincorrections/%s/rebinx%.0f", matched_str.c_str(), rebin);
-    else attempt_dir = Form("fastsim_binbybincorrections/%s/rebinx%.0f", matched_str.c_str(), rebin);
+    std::string input_attempt_dir = "data_fourthattempt_ptrlbins";
+    if (anchmc) attempt_dir = Form("binbybincorrections/%s/%s/rebinx%.0f", matched_str.c_str(), input_attempt_dir.c_str(), rebin);
+    else attempt_dir = Form("fastsim_binbybincorrections/%s/%s/rebinx%.0f", matched_str.c_str(), input_attempt_dir.c_str(), rebin);
     if (ptrl_bins) Form("binbybincorrections_ptrlbins");
     
     
     // filenames
     // file that needs correcting:
     // TString input_histograms_filename = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/data_secondattempt/rebinx4/DataHists.root"; //"/software/users/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/analysis/user/dEEC/datahists/DataHists.root";
-    TString input_histograms_filename = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/data_thirdattempt_ptrlbins/logbins/DataHists.root"; //"/software/users/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/analysis/user/dEEC/datahists/DataHists.root";
+    TString input_histograms_filename = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/data_fourthattempt_ptrlbins/rebinx4/DataHists.root"; //"/software/users/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/analysis/user/dEEC/datahists/DataHists.root";
     // if (compsystem == "local") input_histograms_filename = "/Volumes/WORK USB/dEEC/storage/rootfiles/data_secondattempt/rebinx4/DataHists.root";
     TFile* root_data_file = new TFile(input_histograms_filename, "READ");
 
     // file with anchored mc - truth vs det level information
     TString input_mc_filename = "";
     if (anchmc) {
-        input_mc_filename = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/34547495/scaling/AnalysisResultsFinal.root"; //LHC23a3
+        // input_mc_filename = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/34547495/scaling/AnalysisResultsFinal.root"; //LHC23a3
+        input_mc_filename = "/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/37996247/scaling/AnalysisResultsFinal.root"; //LHC23a3
         if (compsystem == "local") input_mc_filename = "/Volumes/WORK USB/dEEC/storage/slurmfiles/perly/34547495/AnalysisResultsFinal.root";
     } else {
         input_mc_filename = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/35235011/scaling/AnalysisResultsFinal.root"; //pythia fastsim
@@ -913,28 +932,29 @@ void extract_binbybin_corrections() {
     }
     TFile* root_mc_file = new TFile(input_mc_filename, "READ");
     
-    TFile* root_mc_jtjl_file;
+    // TString input_mc_jtjl_filename = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/35235011/scaling/AnalysisResultsFinal.root";
+    TString input_mc_jtjl_filename = "/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/37996247/scaling/AnalysisResultsFinal.root"; //LHC23a3
     if (compsystem == "local") {
-        TString input_mc_jtjl_filename = "/Volumes/WORK USB/dEEC/storage/slurmfiles/perly/35235011/AnalysisResultsFinal.root";
-        root_mc_jtjl_file = new TFile(input_mc_jtjl_filename, "READ");
+        input_mc_jtjl_filename = "/Volumes/WORK USB/dEEC/storage/slurmfiles/perly/35235011/AnalysisResultsFinal.root";   
     }
+    TFile* root_mc_jtjl_file = new TFile(input_mc_jtjl_filename, "READ");
     
 
     // Output file with corrected results
     // std::string outfile = "/software/users/blianggi/mypyjetty/storage/dEEC/rootfiles/" + attempt_dir + "/DataHists.root";
-    std::string outfile = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/rootfiles/" + attempt_dir + "/DataHists_BinByBinCorr.root";
+    std::string outfile = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/" + attempt_dir + "/DataHists_BinByBinCorr.root";
     if (compsystem == "local") outfile = "/Volumes/WORK USB/dEEC/storage/rootfiles/" + attempt_dir + "/DataHists_BinByBinCorr.root";
     TFile* root_outfile = new TFile(outfile.c_str(), "RECREATE");
 
-    analyze(root_data_file, root_mc_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "deltap", weightstr, jetRname, thrname, include_RL0, include_RL1);
-    // analyze(root_data_file, root_mc_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "deltapt", weightstr, jetRname, thrname, include_RL0, include_RL1);
-    // analyze(root_data_file, root_mc_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "deltapl", weightstr, jetRname, thrname, include_RL0, include_RL1);
+    if (deltap_bool) analyze(root_data_file, root_mc_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "deltap", weightstr, jetRname, thrname, include_RL0, include_RL1);
+    if (deltapt_bool) analyze(root_data_file, root_mc_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "deltapt", weightstr, jetRname, thrname, include_RL0, include_RL1);
+    if (deltapl_bool) analyze(root_data_file, root_mc_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "deltapl", weightstr, jetRname, thrname, include_RL0, include_RL1);
     
-    // analyze_charge(root_data_file, root_mc_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "charge", weightstr, jetRname, thrname, include_RL0, include_RL1);
+    if (charge_bool) analyze_charge(root_data_file, root_mc_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "charge", weightstr, jetRname, thrname, include_RL0, include_RL1);
     
 
-    analyze(root_data_file, root_mc_jtjl_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "deltajt", weightstr, jetRname, thrname, include_RL0, include_RL1);
-    // analyze(root_data_file, root_mc_jtjl_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "deltajl", weightstr, jetRname, thrname, include_RL0, include_RL1);
+    if (deltajt_bool) analyze(root_data_file, root_mc_jtjl_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "deltajt", weightstr, jetRname, thrname, include_RL0, include_RL1);
+    if (deltajl_bool) analyze(root_data_file, root_mc_jtjl_file, root_outfile, pt_bins, n_bins, RL_bins, n_RLbins, "deltajl", weightstr, jetRname, thrname, include_RL0, include_RL1);
     
 
 
