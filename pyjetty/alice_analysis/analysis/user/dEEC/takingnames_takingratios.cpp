@@ -20,10 +20,10 @@ bool ptrl_bins = true;
 bool jetpt_bool = true;
 
 bool deltap_bool = true;
-bool p_bool = true;
+bool p_bool = false; //true;
 bool deltajt_bool = true;
-bool jt_bool = true;
-bool ew_bool = true;
+bool jt_bool = false; //true;
+bool ew_bool = false; //true;
 bool twoDhists_bool = false;
 bool rc_bool = false;
 
@@ -202,7 +202,9 @@ std::vector<double> get_bin_centers(TH1D * hist) {
 TH1D * getHist(TFile * file, std::string observable, int pt_min, int pt_max, 
              double RL_min, double RL_max, std::string norm_string) {
     
-    std::string histname = Form("h_%s_R0.4_t1.0_pt%d-%d_pTRL%.3f-%.3f_%s", observable.c_str(), pt_min, pt_max, RL_min, RL_max, norm_string.c_str());
+    // std::string histname = Form("h_%s_R0.4_t1.0_pt%d-%d_pTRL%.3f-%.3f_%s", observable.c_str(), pt_min, pt_max, RL_min, RL_max, norm_string.c_str());
+    std::string histname = Form("h_%s_R0.4_t1.0_pt%d-%d_pTRL%.3f-%.3f_%s_corrected", observable.c_str(), pt_min, pt_max, RL_min, RL_max, norm_string.c_str());
+    cout << "HIST: " << observable << " // " << pt_min << "-" << pt_max << " // " << RL_min << "-" << RL_max << " // " << histname << endl;
     TH1D * hist = (TH1D * )file->Get(histname.c_str());
 
     return hist;
@@ -411,7 +413,9 @@ void takingnames_takingratios() {
 
     
     // filenames
-    TString input_histograms_filename = Form("/software/users/blianggi/mypyjetty/storage/dEEC/rootfiles/%s/DataHists.root",attempt_dir.c_str());
+    // TString input_histograms_filename = Form("/software/users/blianggi/mypyjetty/storage/dEEC/rootfiles/%s/DataHists.root",attempt_dir.c_str()); // raw data
+    TString input_histograms_filename = Form("/software/users/blianggi/mypyjetty/storage/dEEC/rootfiles/%s/DataHists_BinByBinCorr.root",attempt_dir.c_str()); // corr data
+
     TFile* root_data_file = new TFile(input_histograms_filename, "READ");
 
     

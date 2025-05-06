@@ -747,10 +747,12 @@ void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
     vector<TH1D*> jt_vec;
     vector<TH1D*> jl_vec;
 
-    TLegend *leg = new TLegend(0.2, 0.16, 0.4, 0.39); //(0.6, 0.6, 0.85, 0.87);
+    // TLegend *leg = new TLegend(0.2, 0.16, 0.4, 0.39); //(0.6, 0.6, 0.85, 0.87);
+    TLegend *leg = new TLegend(0.5, 0.62, 0.85, 0.85);
     leg->SetTextSize(0.037);
     leg->SetBorderSize(0);
     // leg->AddEntry(NULL, Form("%d #leq p_{T, jet} < %d", pt_min, pt_max)); //, "pl");
+    cout << "ADDING TO LEGEND HERE!!!!" << pt_min << " " << pt_max << endl;
     leg->AddEntry("NULL",Form("%d #leq p_{T, jet} < %d", pt_min, pt_max),"h");
     TLegend *leg_dummy = new TLegend();
     
@@ -774,7 +776,7 @@ void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
         if (debug) cout << " in RL bin" << j << " with " << RL_min << " - " << RL_max << endl;
         
         // bin sizes
-        double deltap_binsize = 0.5;
+        double deltap_binsize = 0.625; // for 2.5 size bins later!(=2.5/4) //0.5;
         // int deltap_numbins = int((pt_max+5)/deltap_binsize);
         int deltap_numbins = int((85)/deltap_binsize);
         double deltapl_binsize = 0.5;
