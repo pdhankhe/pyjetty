@@ -6,10 +6,12 @@
 #SBATCH --qos=shared
 #SBATCH --constraint=cpu
 #SBATCH --time=24:00:00
-#SBATCH --array=1-437
+#SBATCH --array=425,355,433,436
 #SBATCH --exclude=nid004104,nid004160,nid004149,nid004117
 #SBATCH --output=/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/slurm-%A_%a.out
 #SBATCH --mem=32GB
+
+#1-437 # only one needed: 425
 
 # FILE_PATHS='/global/cfs/projectdirs/alice/blianggi/mypyjetty/dEEC/filelist_LHC18b8_charge_804.txt' #pass 1 mc production
 FILE_PATHS='/global/cfs/projectdirs/alice/blianggi/mypyjetty/dEEC/filelist_LHC23a3_806.txt' #using pass 2 version here

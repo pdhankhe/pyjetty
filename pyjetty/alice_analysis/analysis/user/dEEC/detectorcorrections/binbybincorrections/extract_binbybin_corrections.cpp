@@ -924,7 +924,7 @@ void extract_binbybin_corrections() {
     TString input_mc_filename = "";
     if (anchmc) {
         // input_mc_filename = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/34547495/scaling/AnalysisResultsFinal.root"; //LHC23a3
-        input_mc_filename = "/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/37996247/scaling/AnalysisResultsFinal.root"; //LHC23a3
+        input_mc_filename = "/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/38597383/scaling/AnalysisResultsFinal.root"; //LHC23a3
         if (compsystem == "local") input_mc_filename = "/Volumes/WORK USB/dEEC/storage/slurmfiles/perly/34547495/AnalysisResultsFinal.root";
     } else {
         input_mc_filename = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/35235011/scaling/AnalysisResultsFinal.root"; //pythia fastsim
@@ -933,7 +933,7 @@ void extract_binbybin_corrections() {
     TFile* root_mc_file = new TFile(input_mc_filename, "READ");
     
     // TString input_mc_jtjl_filename = "/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/35235011/scaling/AnalysisResultsFinal.root";
-    TString input_mc_jtjl_filename = "/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/37996247/scaling/AnalysisResultsFinal.root"; //LHC23a3
+    TString input_mc_jtjl_filename = "/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/38597383/scaling/AnalysisResultsFinal.root"; //LHC23a3
     if (compsystem == "local") {
         input_mc_jtjl_filename = "/Volumes/WORK USB/dEEC/storage/slurmfiles/perly/35235011/AnalysisResultsFinal.root";   
     }

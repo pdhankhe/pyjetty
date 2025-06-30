@@ -511,9 +511,9 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
       return
 
     jetpt_bins = np.array([5, 10, 20, 40, 60, 80, 100, 150]).astype(float)
-    RL_bins_all = [np.array([0, 1e-2, 3e-2, 7e-2, 1.5e-1, 3e-1, 4e-1, 1]).astype(float), \
-          np.array([0, 1e-2, 2.5e-2, 4e-2, 8e-2, 2.5e-1, 4e-1, 1]).astype(float), \
-          np.array([0, 1e-2, 2.5e-2, 3e-2, 4.5e-2, 2e-1, 4e-1, 1]).astype(float) ]
+    RL_bins_all = [np.array([0, 2e-1, 8e-1, 5.0, 10, 30, 100]).astype(float), \
+          np.array([0, 2e-1, 8e-1, 5.0, 10, 30, 100]).astype(float), \
+          np.array([0, 2e-1, 8e-1, 5.0, 10, 30, 100]).astype(float) ] # these are really ptRL bins!!!!
     
     binnings = (pt_bins, pt_bins, obs_bins, obs_bins)
     dim = 4;
@@ -564,11 +564,11 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
           num_bins = 200
 
         name = 'reco_{}_unmatched_PTBIN{}'.format(observable[5:], i)
-        h = ROOT.TH3D("reco_{}_unmatched_PTBIN{}".format(observable[5:], i), "reco_{}_unmatched_PTBIN{}".format(observable[5:], i), num_bins, obs_bins, 7, RL_bins, 7, jetpt_bins)
+        h = ROOT.TH3D("reco_{}_unmatched_PTBIN{}".format(observable[5:], i), "reco_{}_unmatched_PTBIN{}".format(observable[5:], i), num_bins, obs_bins, 6, RL_bins, 7, jetpt_bins)
         setattr(self, name, h)
 
         name = 'gen_{}_unmatched_PTBIN{}'.format(observable[5:], i)
-        h = ROOT.TH3D("gen_{}_unmatched_PTBIN{}".format(observable[5:], i), "gen_{}_unmatched_PTBIN{}".format(observable[5:], i), num_bins, obs_bins, 7, RL_bins, 7, jetpt_bins)
+        h = ROOT.TH3D("gen_{}_unmatched_PTBIN{}".format(observable[5:], i), "gen_{}_unmatched_PTBIN{}".format(observable[5:], i), num_bins, obs_bins, 6, RL_bins, 7, jetpt_bins)
         setattr(self, name, h)
 
     # for me
@@ -578,11 +578,11 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
         RL_bins = RL_bins_all[i]
 
         name = 'reco_charge_unmatched_PTBIN{}'.format(i)
-        h = ROOT.TH3D("reco_charge_unmatched_PTBIN{}".format(i), "reco_charge_unmatched_PTBIN{}".format(i), 6, obs_bins, 7, RL_bins, 7, jetpt_bins)
+        h = ROOT.TH3D("reco_charge_unmatched_PTBIN{}".format(i), "reco_charge_unmatched_PTBIN{}".format(i), 6, obs_bins, 6, RL_bins, 7, jetpt_bins)
         setattr(self, name, h)
 
         name = 'gen_charge_unmatched_PTBIN{}'.format(i)
-        h = ROOT.TH3D("gen_charge_unmatched_PTBIN{}".format(i), "gen_charge_unmatched_PTBIN{}".format(i), 6, obs_bins, 7, RL_bins, 7, jetpt_bins)
+        h = ROOT.TH3D("gen_charge_unmatched_PTBIN{}".format(i), "gen_charge_unmatched_PTBIN{}".format(i), 6, obs_bins, 6, RL_bins, 7, jetpt_bins)
         setattr(self, name, h)
 
 
@@ -605,12 +605,12 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
 
         # for purity correction
         name = 'reco_energyweights_unmatched_PTBIN{}'.format(i)
-        h = ROOT.TH3D("reco_energyweights_unmatched_PTBIN{}".format(i), "reco_energyweights_unmatched_PTBIN{}".format(i), 60, obs_bins, 7, RL_bins, 7, jetpt_bins)
+        h = ROOT.TH3D("reco_energyweights_unmatched_PTBIN{}".format(i), "reco_energyweights_unmatched_PTBIN{}".format(i), 60, obs_bins, 6, RL_bins, 7, jetpt_bins)
         setattr(self, name, h)
 
         # for me
         name = 'gen_energyweights_unmatched_PTBIN{}'.format(i)
-        h = ROOT.TH3D("gen_energyweights_unmatched_PTBIN{}".format(i), "gen_energyweights_unmatched_PTBIN{}".format(i), 60, obs_bins, 7, RL_bins, 7, jetpt_bins)
+        h = ROOT.TH3D("gen_energyweights_unmatched_PTBIN{}".format(i), "gen_energyweights_unmatched_PTBIN{}".format(i), 60, obs_bins, 6, RL_bins, 7, jetpt_bins)
         setattr(self, name, h)
   
 
@@ -1042,31 +1042,31 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
           if ptbin_index != -1:
             if 'corr_energyweights' in observable:
               name = '{}_energyweights_unmatched_PTBIN{}'.format(hstring, ptbin_index)
-              getattr(self, name).Fill(j_pair.weight, j_pair.r, j_pair.jetpt)
+              getattr(self, name).Fill(j_pair.weight, j_pair.jetpt*j_pair.r, j_pair.jetpt)
 
             if 'corr_deltap' in observable:
               name = '{}_deltap_unmatched_PTBIN{}'.format(hstring, ptbin_index)
-              getattr(self, name).Fill(j_pair.deltap, j_pair.r, j_pair.jetpt)
+              getattr(self, name).Fill(j_pair.deltap, j_pair.jetpt*j_pair.r, j_pair.jetpt)
 
             if 'corr_deltapt' in observable:
               name = '{}_deltapt_unmatched_PTBIN{}'.format(hstring, ptbin_index)
-              getattr(self, name).Fill(j_pair.deltapt, j_pair.r, j_pair.jetpt)
+              getattr(self, name).Fill(j_pair.deltapt, j_pair.jetpt*j_pair.r, j_pair.jetpt)
 
             if 'corr_deltajt' in observable:
               name = '{}_deltajt_unmatched_PTBIN{}'.format(hstring, ptbin_index)
-              getattr(self, name).Fill(j_pair.deltajt, j_pair.r, j_pair.jetpt)
+              getattr(self, name).Fill(j_pair.deltajt, j_pair.jetpt*j_pair.r, j_pair.jetpt)
 
             if 'corr_deltapl' in observable:
               name = '{}_deltapl_unmatched_PTBIN{}'.format(hstring, ptbin_index)
-              getattr(self, name).Fill(j_pair.deltapl, j_pair.r, j_pair.jetpt)
+              getattr(self, name).Fill(j_pair.deltapl, j_pair.jetpt*j_pair.r, j_pair.jetpt)
 
             if 'corr_deltajl' in observable:
               name = '{}_deltajl_unmatched_PTBIN{}'.format(hstring, ptbin_index)
-              getattr(self, name).Fill(j_pair.deltajl, j_pair.r, j_pair.jetpt)
+              getattr(self, name).Fill(j_pair.deltajl, j_pair.jetpt*j_pair.r, j_pair.jetpt)
 
             if 'corr_charge' in observable:
               name = '{}_charge_unmatched_PTBIN{}'.format(hstring, ptbin_index)
-              getattr(self, name).Fill(j_pair.charge, j_pair.r, j_pair.jetpt)
+              getattr(self, name).Fill(j_pair.charge, j_pair.jetpt*j_pair.r, j_pair.jetpt)
 
           # if not match_found:
           #   getattr(self, "response").Miss(t_pair.weight, t_pair.r, t_pair.pt)
@@ -1272,9 +1272,9 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
 
 
     # defining RL bin ranges - not including bins that include 0 or 1
-    PTBIN0_RLBINS = [ 1e-2, 3e-2, 7e-2, 1.5e-1, 3e-1, 4e-1 ]
-    PTBIN1_RLBINS = [ 1e-2, 2.5e-2, 4e-2, 8e-2, 2.5e-1, 4e-1 ]
-    PTBIN2_RLBINS = [ 1e-2, 2.5e-2, 3e-2, 4.5e-2, 2e-1, 4e-1 ]
+    PTBIN0_RLBINS = [ 2e-1, 8e-1, 5.0, 10, 30 ] #1e-2, 3e-2, 7e-2, 1.5e-1, 3e-1, 4e-1 ]
+    PTBIN1_RLBINS = [ 2e-1, 8e-1, 5.0, 10, 30 ] #1e-2, 2.5e-2, 4e-2, 8e-2, 2.5e-1, 4e-1 ]
+    PTBIN2_RLBINS = [ 2e-1, 8e-1, 5.0, 10, 30 ] #1e-2, 2.5e-2, 3e-2, 4.5e-2, 2e-1, 4e-1 ]
     
     
     #hname = 'hResponse_JetPt_{}_PTBIN{}_RLBIN{}_R'.format(observable, i, j)
