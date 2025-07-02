@@ -1,0 +1,30 @@
+
+# files
+attempt_dir: data_fourthattempt_ptrlbins
+# input_file: data/input.csv
+# output_file: results/output.csv
+
+# run settings
+rebin: 4
+logbins: false
+write_to_root_file: false
+
+# observables!
+jetpt_bool: false
+deltap_bool: false
+deltapt_bool: false
+deltapl_bool: false
+deltajt_bool: false
+deltajl_bool: false
+ew_bool: false
+twoDhists_bool: true
+rc_bool: false
+
+# normalizations
+unnormalized_bool: false
+self_normalized_bool: true
+norm_by_jets_bool: false
+
+# weightings
+unweighted_bool: true
+weighted_bool: true

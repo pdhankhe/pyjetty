@@ -52,7 +52,7 @@ def logbins(xmin, xmax, nbins):
 
 ################################################################
 class EEC_pair:
-  def __init__(self, _index1, _index2, _weight, _r, _jetpt, _deltap, _deltapt, _deltajt, _jt1, _jt2, _deltapl, _deltajl, _jl1, _jl2, _charge, _mcid1, _mcid2):
+  def __init__(self, _index1, _index2, _weight, _r, _jetpt, _deltap, _deltapt, _deltajt, _jt1, _jt2, _q1q2, _mcid1, _mcid2):
     self.index1 = _index1 #kyle's indexing
     self.index2 = _index2
     self.weight = _weight
@@ -63,11 +63,7 @@ class EEC_pair:
     self.deltajt = _deltajt
     self.jt1 = _jt1
     self.jt2 = _jt2
-    self.deltapl = _deltapl
-    self.deltajl = _deltajl
-    self.jl1 = _jl1
-    self.jl2 = _jl2
-    self.charge = _charge
+    self.q1q2 = _q1q2
     self.mcid1 = _mcid1 # my indexing
     self.mcid2 = _mcid2
 
@@ -458,11 +454,11 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
             name = 'tn_pairlevel_Det_R{}_{}'.format(jetR, obs_label)
             tn = ROOT.TNtuple(name, name, self.tuple_obs_string)
             setattr(self, name, tn)
-            self.fsparsepartonJetvalue_Det?_tuple = array.array( 'd', np.zeros(colon_count+1))
+            self.fsparsepartonJetvalue_Det_tuple = array.array( 'd', np.zeros(colon_count+1))
             '''
           else:
             self.create_corr_tuples(observable, jetR, obs_label)
-            self.create_corr_response_histograms(observable, jetR, obs_label)
+            self.create_corr_histograms(observable, jetR, obs_label)
 
           
 
@@ -470,7 +466,7 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
   # This function is called once for each jet subconfiguration
   # Fill 2D histogram of (pt, obs)
   #---------------------------------------------------------------
-  def create_corr_response_histograms(self, observable, jetR, obs_label, R_max = None):
+  def create_corr_histograms(self, observable, jetR, obs_label, R_max = None):
   
     if R_max:
       suffix = '_Rmax{}'.format(R_max)
@@ -480,25 +476,17 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
     # Create THn of response for ENC
     pt_bins = linbins(0,200,200)
     if observable == "corr_deltap":
-      obs_bins = linbins(0,90,144) #180)
+      obs_bins = linbins(0,84,42) #linbins(0,90,144) #180)
       obstitle_det = "#Deltap_{det}"
       obstitle_truth = "#Deltap_{truth}"
     elif observable == "corr_deltapt":
-      obs_bins = linbins(0,90,180)
+      obs_bins = linbins(0,84,42) #linbins(0,90,180)
       obstitle_det = "#Deltap_{T, det}"
       obstitle_truth = "#Deltap_{T, truth}"
     elif observable == "corr_deltajt":
-      obs_bins = linbins(0,5,200)
-      obstitle_det = "#Deltaj_{, det}"
+      obs_bins = linbins(0,5,50) #linbins(0,5,200)
+      obstitle_det = "#Deltaj_{T, det}"
       obstitle_truth = "#Deltaj_{T, truth}"
-    elif observable == "corr_deltapl":
-      obs_bins = linbins(0,40,80)
-      obstitle_det = "#Deltap_{L, det}"
-      obstitle_truth = "#Deltap_{L, truth}"
-    elif observable == "corr_deltajl":
-      obs_bins = linbins(0,90,180)
-      obstitle_det = "#Deltaj_{L, det}"
-      obstitle_truth = "#Deltaj_{L, truth}"
     elif observable == "corr_energyweights":
       obs_bins = linbins(0,0.3,60)
       obstitle_det = "EW_{det}"
@@ -511,15 +499,16 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
       return
 
     jetpt_bins = np.array([5, 10, 20, 40, 60, 80, 100, 150]).astype(float)
-    RL_bins_all = [np.array([0, 2e-1, 8e-1, 5.0, 10, 30, 100]).astype(float), \
-          np.array([0, 2e-1, 8e-1, 5.0, 10, 30, 100]).astype(float), \
-          np.array([0, 2e-1, 8e-1, 5.0, 10, 30, 100]).astype(float) ] # these are really ptRL bins!!!!
+    ptRL_bins = np.array([0, 2e-1, 8e-1, 5.0, 10, 30, 100]).astype(float) 
+    # ptRL_bins_all = [np.array([0, 2e-1, 8e-1, 5.0, 10, 30, 100]).astype(float), \
+    #       np.array([0, 2e-1, 8e-1, 5.0, 10, 30, 100]).astype(float), \
+    #       np.array([0, 2e-1, 8e-1, 5.0, 10, 30, 100]).astype(float) ] # these are really ptRL bins!!!!
     
+    '''
     binnings = (pt_bins, pt_bins, obs_bins, obs_bins)
     dim = 4;
     title = ['#it{p}_{T,det}', '#it{p}_{T,truth}', obstitle_det, obstitle_truth]#'#it{R}_{L,det}', '#it{R}_{L,truth}']
     
-    '''
     # for each observable, need to make 15 configurations for each possible RL bin
     for i in range(0,3):
       for j in range(0,5):
@@ -552,77 +541,161 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
       """
 
       # for me
-      for i in range(0,3):
-        RL_bins = RL_bins_all[i]
+      # for i in range(0,3):
+        # ptRL_bins = ptRL_bins_all[i]
 
-        num_bins = 180
-        if observable == "corr_deltap":
-          num_bins = 144
-        if observable == "corr_deltapl":
-          num_bins = 80
-        if observable == "corr_deltajt":
-          num_bins = 200
+      num_bins = 42
+      if observable == "corr_deltajt":
+        num_bins = 50
 
-        name = 'reco_{}_unmatched_PTBIN{}'.format(observable[5:], i)
-        h = ROOT.TH3D("reco_{}_unmatched_PTBIN{}".format(observable[5:], i), "reco_{}_unmatched_PTBIN{}".format(observable[5:], i), num_bins, obs_bins, 6, RL_bins, 7, jetpt_bins)
-        setattr(self, name, h)
+      name = 'reco_{}_unmatched'.format(observable[5:])
+      h = ROOT.TH3D("reco_{}_unmatched".format(observable[5:]), "reco_{}_unmatched".format(observable[5:]), num_bins, obs_bins, 6, ptRL_bins, 7, jetpt_bins)
+      h.GetXaxis().SetTitle(obstitle_det)
+      h.GetYaxis().SetTitle('#langlep_{T}#rangleR_{L,det}')
+      h.GetZaxis().SetTitle('p_{T,jet,det}')
+      setattr(self, name, h)
 
-        name = 'gen_{}_unmatched_PTBIN{}'.format(observable[5:], i)
-        h = ROOT.TH3D("gen_{}_unmatched_PTBIN{}".format(observable[5:], i), "gen_{}_unmatched_PTBIN{}".format(observable[5:], i), num_bins, obs_bins, 6, RL_bins, 7, jetpt_bins)
-        setattr(self, name, h)
+      name = 'gen_{}_unmatched'.format(observable[5:])
+      h = ROOT.TH3D("gen_{}_unmatched".format(observable[5:]), "gen_{}_unmatched".format(observable[5:]), num_bins, obs_bins, 6, ptRL_bins, 7, jetpt_bins)
+      h.GetXaxis().SetTitle(obstitle_truth)
+      h.GetYaxis().SetTitle('#langlep_{T}#rangleR_{L,truth}')
+      h.GetZaxis().SetTitle('p_{T,jet,truth}')
+      setattr(self, name, h)
 
     # for me
     if "charge" in observable:
 
-      for i in range(0,3):
-        RL_bins = RL_bins_all[i]
+      # for i in range(0,3):
+        # ptRL_bins = ptRL_bins_all[i]
 
-        name = 'reco_charge_unmatched_PTBIN{}'.format(i)
-        h = ROOT.TH3D("reco_charge_unmatched_PTBIN{}".format(i), "reco_charge_unmatched_PTBIN{}".format(i), 6, obs_bins, 6, RL_bins, 7, jetpt_bins)
-        setattr(self, name, h)
+      name = 'reco_charge_unmatched'
+      h = ROOT.TH3D("reco_charge_unmatched", "reco_charge_unmatched", 6, obs_bins, 6, ptRL_bins, 7, jetpt_bins)
+      h.GetXaxis().SetTitle('q_{1}q_{2,det}')
+      h.GetYaxis().SetTitle('#langlep_{T}#rangleR_{L,det}')
+      h.GetZaxis().SetTitle('p_{T,jet,det}')
+      setattr(self, name, h)
 
-        name = 'gen_charge_unmatched_PTBIN{}'.format(i)
-        h = ROOT.TH3D("gen_charge_unmatched_PTBIN{}".format(i), "gen_charge_unmatched_PTBIN{}".format(i), 6, obs_bins, 6, RL_bins, 7, jetpt_bins)
-        setattr(self, name, h)
+      name = 'gen_charge_unmatched'
+      h = ROOT.TH3D("gen_charge_unmatched", "gen_charge_unmatched", 6, obs_bins, 6, ptRL_bins, 7, jetpt_bins)
+      h.GetXaxis().SetTitle('q_{1}q_{2,truth}')
+      h.GetYaxis().SetTitle('#langlep_{T}#rangleR_{L,truth}')
+      h.GetZaxis().SetTitle('p_{T,jet,truth}')
+      setattr(self, name, h)
 
 
     # make unfolding histograms from kyle's 3D unfolding code - for EW ONLY
     if "energyweights" in observable:
 
-      for i in range(0,3):
-        RL_bins = RL_bins_all[i]
+      # for i in range(0,3):
+      #   ptRL_bins = ptRL_bins_all[i]
 
-        #(EW, rL, jet pt)
-        '''
-        h3_energyweights_reco = ROOT.TH3D("energyweights_reco_PTBIN{}".format(i), "energyweights_reco_PTBIN{}".format(i), 60, obs_bins, 7, RL_bins, 7, jetpt_bins)
-        setattr(self, "energyweights_reco_PTBIN{}".format(i), h3_energyweights_reco)
-        h3_energyweights_gen = ROOT.TH3D("energyweights_gen_PTBIN{}".format(i), "energyweights_gen_PTBIN{}".format(i), 60, obs_bins, 7, RL_bins, 7, jetpt_bins)
-        setattr(self, "energyweights_gen_PTBIN{}".format(i), h3_energyweights_gen)
+        # #(EW, rL, jet pt)
+        # '''
+        # h3_energyweights_reco = ROOT.TH3D("energyweights_reco_PTBIN{}".format(i), "energyweights_reco_PTBIN{}".format(i), 60, obs_bins, 7, ptRL_bins, 7, jetpt_bins)
+        # setattr(self, "energyweights_reco_PTBIN{}".format(i), h3_energyweights_reco)
+        # h3_energyweights_gen = ROOT.TH3D("energyweights_gen_PTBIN{}".format(i), "energyweights_gen_PTBIN{}".format(i), 60, obs_bins, 7, ptRL_bins, 7, jetpt_bins)
+        # setattr(self, "energyweights_gen_PTBIN{}".format(i), h3_energyweights_gen)
 
-        energyweights_response = ROOT.RooUnfoldResponse(h3_energyweights_reco, h3_energyweights_gen, "energyweights_response_PTBIN{}".format(i), "energyweights_response_PTBIN{}".format(i))
-        setattr(self, "energyweights_response_PTBIN{}".format(i), energyweights_response)
-        '''
+        # energyweights_response = ROOT.RooUnfoldResponse(h3_energyweights_reco, h3_energyweights_gen, "energyweights_response_PTBIN{}".format(i), "energyweights_response_PTBIN{}".format(i))
+        # setattr(self, "energyweights_response_PTBIN{}".format(i), energyweights_response)
+        # '''
 
-        # for purity correction
-        name = 'reco_energyweights_unmatched_PTBIN{}'.format(i)
-        h = ROOT.TH3D("reco_energyweights_unmatched_PTBIN{}".format(i), "reco_energyweights_unmatched_PTBIN{}".format(i), 60, obs_bins, 6, RL_bins, 7, jetpt_bins)
-        setattr(self, name, h)
+      # for purity correction
+      name = 'reco_weights_unmatched'
+      h = ROOT.TH3D("reco_weights_unmatched", "reco_weights_unmatched", 60, obs_bins, 6, ptRL_bins, 7, jetpt_bins)
+      h.GetXaxis().SetTitle('EW_{det}')
+      h.GetYaxis().SetTitle('#langlep_{T}#rangleR_{L,det}')
+      h.GetZaxis().SetTitle('p_{T,jet,det}')
+      setattr(self, name, h)
 
-        # for me
-        name = 'gen_energyweights_unmatched_PTBIN{}'.format(i)
-        h = ROOT.TH3D("gen_energyweights_unmatched_PTBIN{}".format(i), "gen_energyweights_unmatched_PTBIN{}".format(i), 60, obs_bins, 6, RL_bins, 7, jetpt_bins)
-        setattr(self, name, h)
+      # for me
+      name = 'gen_weights_unmatched'
+      h = ROOT.TH3D("gen_weights_unmatched", "gen_weights_unmatched", 60, obs_bins, 6, ptRL_bins, 7, jetpt_bins)
+      h.GetXaxis().SetTitle('EW_{truth}')
+      h.GetYaxis().SetTitle('#langlep_{T}#rangleR_{L,truth}')
+      h.GetZaxis().SetTitle('p_{T,jet,truth}')
+      setattr(self, name, h)
+
+    # 2D histograms!! - (x_obs, y_obs, pTRL, jet pt)
+    deltap_bins = linbins(0,84,42) 
+    deltajt_bins = linbins(0,5,50)
+    weight_bins = linbins(0,0.3,60)
+    z_bins = linbins(0,1,50)
+    dim = 4
+
+    if observable is "corr_deltap":
+      # delta p vs EW, truth
+      name = 'h2D_weights_vs_deltap_Truth_R{}_{}'.format(jetR, obs_label)
+      title = ['#Deltap_{truth}', 'EW_{truth}', '#langlep_{T}#rangleR_{L,truth}', 'p_{T,ch jet,truth}']
+
+      nbins  = [ len(deltap_bins)-1, len(weight_bins)-1, len(ptRL_bins)-1, len(jetpt_bins)-1 ]
+      min = [ deltap_bins[0],      weight_bins[0],     ptRL_bins[0],     jetpt_bins[0]  ]
+      max = [ deltap_bins[-1],     weight_bins[-1],    ptRL_bins[-1],    jetpt_bins[-1] ]
+      self.create_thn(name, title, dim, nbins, min, max)
+
+      # delta p vs EW, det
+      name = 'h2D_weights_vs_deltap_Det_R{}_{}'.format(jetR, obs_label)
+      title = ['#Deltap_{det}', 'EW_{det}', '#langlep_{T}#rangleR_{L,det}', 'p_{T,ch jet,det}']
+
+      self.create_thn(name, title, dim, nbins, min, max)
+
+      # p1 vs EW, truth
+      name = 'h2D_weights_vs_p1_Truth_R{}_{}'.format(jetR, obs_label)
+      title = ['p_{1,truth}', 'EW_{truth}', '#langlep_{T}#rangleR_{L,truth}', 'p_{T,ch jet,truth}']
+
+      nbins  = [ len(deltap_bins)-1, len(weight_bins)-1, len(ptRL_bins)-1, len(jetpt_bins)-1 ]
+      min = [ deltap_bins[0],      weight_bins[0],     ptRL_bins[0],     jetpt_bins[0]  ]
+      max = [ deltap_bins[-1],     weight_bins[-1],    ptRL_bins[-1],    jetpt_bins[-1] ]
+      self.create_thn(name, title, dim, nbins, min, max)
+
+      # p1 vs EW, det
+      name = 'h2D_weights_vs_p1_Det_R{}_{}'.format(jetR, obs_label)
+      title = ['p_{1,det}', 'EW_{det}', '#langlep_{T}#rangleR_{L,det}', 'p_{T,ch jet,det}']
+
+      self.create_thn(name, title, dim, nbins, min, max)
+
+    if observable is "corr_deltapt":
+      # zi vs zj, truth
+      name = 'h2D_zj_vs_zi_Truth_R{}_{}'.format(jetR, obs_label)
+      title = ['z_{i,truth}', 'z_{j,truth}', '#langlep_{T}#rangleR_{L,truth}', 'p_{T,ch jet,truth}']
+
+      nbins  = [ len(z_bins)-1, len(z_bins)-1, len(ptRL_bins)-1, len(jetpt_bins)-1 ]
+      min = [ z_bins[0],      z_bins[0],     ptRL_bins[0],     jetpt_bins[0]  ]
+      max = [ z_bins[-1],     z_bins[-1],    ptRL_bins[-1],    jetpt_bins[-1] ]
+      self.create_thn(name, title, dim, nbins, min, max)
+
+      # zi vs zj, det
+      name = 'h2D_zj_vs_zi_Det_R{}_{}'.format(jetR, obs_label)
+      title = ['z_{i,det}', 'z_{j,det}', '#langlep_{T}#rangleR_{L,det}', 'p_{T,ch jet,det}']
+
+      self.create_thn(name, title, dim, nbins, min, max)
+      
+    if observable is "corr_deltajt":
+      # delta jt vs EW, truth
+      name = 'h2D_weights_vs_deltajt_Truth_R{}_{}'.format(jetR, obs_label)
+      title = ['#Deltaj_{T,truth}', 'EW_{truth}', '#langlep_{T}#rangleR_{L,truth}', 'p_{T,ch jet,truth}']
+
+      nbins  = [ len(deltajt_bins)-1, len(weight_bins)-1, len(ptRL_bins)-1, len(jetpt_bins)-1 ]
+      min = [ deltajt_bins[0],      weight_bins[0],     ptRL_bins[0],     jetpt_bins[0]  ]
+      max = [ deltajt_bins[-1],     weight_bins[-1],    ptRL_bins[-1],    jetpt_bins[-1] ]
+      self.create_thn(name, title, dim, nbins, min, max)
+
+      # delta jt vs EW, det
+      name = 'h2D_weights_vs_deltajt_Det_R{}_{}'.format(jetR, obs_label)
+      title = ['#Deltaj_{T,det}', 'EW_{det}', '#langlep_{T}#rangleR_{L,det}', 'p_{T,ch jet,det}']
+
+      self.create_thn(name, title, dim, nbins, min, max)
   
 
   
   def create_corr_tuples(self, observable, jetR, obs_label):
 
-    if observable == "corr_energyweights" or observable == "corr_rc":
+    if observable == "corr_energyweights":
       return
     
     if observable.startswith("corr_"):
       obs_string = observable[5:] #cut out the "corr_"
-      if observable == "corr_charge":
+      if observable == "corr_rc":
         obs_string = "q1q2"
     
 
@@ -638,12 +711,6 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
     elif observable == "corr_deltajt":
       self.tuple_obs_string += ":jt1"
       self.tuple_obs_string += ":jt2"
-    elif observable == "corr_deltapl":
-      self.tuple_obs_string += ":pl1"
-      self.tuple_obs_string += ":pl2"
-    elif observable == "corr_deltajl":
-      self.tuple_obs_string += ":jl1"
-      self.tuple_obs_string += ":jl2"
     elif observable == "corr_charge":
       self.tuple_obs_string += ":q1"
       self.tuple_obs_string += ":q2"
@@ -819,36 +886,24 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
     # now do other correlations
     deltap_obs_corr = othercorrel.OtherCorrelatorBuilder(_v, jet_pt, max_npoint, weight_power, dphi_cut, deta_cut, "deltap")
     deltapt_obs_corr = othercorrel.OtherCorrelatorBuilder(_v, jet_pt, max_npoint, weight_power, dphi_cut, deta_cut, "deltapt")
-    deltapl_obs_corr = othercorrel.OtherCorrelatorBuilder(_v, jet_pt, max_npoint, weight_power, dphi_cut, deta_cut, "deltapl")
     
     jt1_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, _v, jet_pt, 2, 1, dphi_cut, deta_cut, "jt1")
     jt2_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, _v, jet_pt, 2, 1, dphi_cut, deta_cut, "jt2")
     deltajt_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, _v, jet_pt, 2, 1, dphi_cut, deta_cut, "deltajt")
-    jl1_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, _v, jet_pt, 2, 1, dphi_cut, deta_cut, "jl1")
-    jl2_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, _v, jet_pt, 2, 1, dphi_cut, deta_cut, "jl2")
-    deltajl_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, _v, jet_pt, 2, 1, dphi_cut, deta_cut, "deltajl")
     
     deltap_cb = deltap_obs_corr.correlator(ipoint)
     deltapt_cb = deltapt_obs_corr.correlator(ipoint)
-    deltapl_cb = deltapl_obs_corr.correlator(ipoint)
 
     jt1_cb = jt1_obs_corr.correlator(ipoint)
     jt2_cb = jt2_obs_corr.correlator(ipoint)
     deltajt_cb = deltajt_obs_corr.correlator(ipoint)
-    jl1_cb = jl1_obs_corr.correlator(ipoint)
-    jl2_cb = jl2_obs_corr.correlator(ipoint)
-    deltajl_cb = deltajl_obs_corr.correlator(ipoint)
 
     deltap_rs = deltap_cb.rs()
     deltapt_rs = deltapt_cb.rs()
-    deltapl_rs = deltapl_cb.rs()
 
     jt1_rs = jt1_cb.rs()
     jt2_rs = jt2_cb.rs()
     deltajt_rs = deltajt_cb.rs()
-    jl1_rs = jl1_cb.rs()
-    jl2_rs = jl2_cb.rs()
-    deltajl_rs = deltajl_cb.rs()
 
     for i in range(len(EEC_rs)):
       event_index1 = _v[EEC_indicies1[i]].user_index()
@@ -860,7 +915,7 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
       mcid1 = _v[EEC_indicies1[i]].python_info().particle_mcid
       mcid2 = _v[EEC_indicies2[i]].python_info().particle_mcid
 
-      pairs.append(EEC_pair(event_index1, event_index2, EEC_weights[i], EEC_rs[i], jet_pt, deltap_rs[i], deltapt_rs[i], deltajt_rs[i], jt1_rs[i], jt2_rs[i], deltapl_rs[i], deltajl_rs[i], jl1_rs[i], jl2_rs[i], pair_q1q2, mcid1, mcid2))
+      pairs.append(EEC_pair(event_index1, event_index2, EEC_weights[i], EEC_rs[i], jet_pt, deltap_rs[i], deltapt_rs[i], deltajt_rs[i], jt1_rs[i], jt2_rs[i], pair_q1q2, mcid1, mcid2))
 
     return pairs
 
@@ -920,17 +975,7 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
       jet_pt = jet.perp()
 
     new_corr = ecorrel.CorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut)
-    deltap_obs_corr = othercorrel.OtherCorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "deltap")
-    deltapt_obs_corr = othercorrel.OtherCorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "deltapt")
-    deltapl_obs_corr = othercorrel.OtherCorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "deltapl")
     # print("THERE ARE ", new_corr.correlator(2).rs().size(), "NUM OF ENTRIES IN NEW CORR")
-    
-    jt1_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "jt1")
-    jt2_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "jt2")
-    deltajt_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "deltajt")
-    jl1_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "jl1")
-    jl2_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "jl2")
-    deltajl_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "deltajl")
     
     # save jet pt - because it is a jet quantity (not pair)
     self.fsparsepartonJetvalue_tuple[0] = self.event_number
@@ -1020,53 +1065,66 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
       if 'corr' in observable:
         if 'Truth' in hname:
           hstring = 'gen'
+          h2string = 'Truth'
         elif 'Det' in hname:
           hstring = 'reco'
+          h2string = 'Det'
         else:
           print("hstring not specified?!?")
 
         jet_pairs = self.get_EEC_pairs(jet, jet_pt)
 
-        for j_pair in jet_pairs:
-          ptbin_index = -1
-          if j_pair.jetpt >= 20 and j_pair.jetpt < 40:
-            ptbin_index = 0
-          if j_pair.jetpt >= 40 and j_pair.jetpt < 60:
-            # print("IN PT BIN 1 FOR JET PAIR!!!")
-            ptbin_index = 1
-          if j_pair.jetpt >= 60 and j_pair.jetpt < 80:
-            ptbin_index = 2
+        for index,j_pair in enumerate(jet_pairs):
+          # ptbin_index = -1
+          # if j_pair.jetpt >= 20 and j_pair.jetpt < 40:
+          #   ptbin_index = 0
+          # if j_pair.jetpt >= 40 and j_pair.jetpt < 60:
+          #   # print("IN PT BIN 1 FOR JET PAIR!!!")
+          #   ptbin_index = 1
+          # if j_pair.jetpt >= 60 and j_pair.jetpt < 80:
+          #   ptbin_index = 2
             
         
     #      for i in range(0,3):
-          if ptbin_index != -1:
-            if 'corr_energyweights' in observable:
-              name = '{}_energyweights_unmatched_PTBIN{}'.format(hstring, ptbin_index)
-              getattr(self, name).Fill(j_pair.weight, j_pair.jetpt*j_pair.r, j_pair.jetpt)
+          # if ptbin_index != -1:
+          if 'corr_energyweights' in observable:
+            name = '{}_weights_unmatched'.format(hstring)
+            getattr(self, name).Fill(j_pair.weight, j_pair.jetpt*j_pair.r, j_pair.jetpt)
 
-            if 'corr_deltap' in observable:
-              name = '{}_deltap_unmatched_PTBIN{}'.format(hstring, ptbin_index)
-              getattr(self, name).Fill(j_pair.deltap, j_pair.jetpt*j_pair.r, j_pair.jetpt)
+          if 'corr_deltap' in observable:
+            name = '{}_deltap_unmatched'.format(hstring)
+            getattr(self, name).Fill(j_pair.deltap, j_pair.jetpt*j_pair.r, j_pair.jetpt)
 
-            if 'corr_deltapt' in observable:
-              name = '{}_deltapt_unmatched_PTBIN{}'.format(hstring, ptbin_index)
-              getattr(self, name).Fill(j_pair.deltapt, j_pair.jetpt*j_pair.r, j_pair.jetpt)
+          if 'corr_deltapt' in observable:
+            name = '{}_deltapt_unmatched'.format(hstring)
+            getattr(self, name).Fill(j_pair.deltapt, j_pair.jetpt*j_pair.r, j_pair.jetpt)
 
-            if 'corr_deltajt' in observable:
-              name = '{}_deltajt_unmatched_PTBIN{}'.format(hstring, ptbin_index)
-              getattr(self, name).Fill(j_pair.deltajt, j_pair.jetpt*j_pair.r, j_pair.jetpt)
+          if 'corr_deltajt' in observable:
+            name = '{}_deltajt_unmatched'.format(hstring)
+            getattr(self, name).Fill(j_pair.deltajt, j_pair.jetpt*j_pair.r, j_pair.jetpt)
 
-            if 'corr_deltapl' in observable:
-              name = '{}_deltapl_unmatched_PTBIN{}'.format(hstring, ptbin_index)
-              getattr(self, name).Fill(j_pair.deltapl, j_pair.jetpt*j_pair.r, j_pair.jetpt)
+          if 'corr_charge' in observable:
+            name = '{}_charge_unmatched'.format(hstring)
+            getattr(self, name).Fill(j_pair.charge, j_pair.jetpt*j_pair.r, j_pair.jetpt)
 
-            if 'corr_deltajl' in observable:
-              name = '{}_deltajl_unmatched_PTBIN{}'.format(hstring, ptbin_index)
-              getattr(self, name).Fill(j_pair.deltajl, j_pair.jetpt*j_pair.r, j_pair.jetpt)
+          if observable is 'corr_deltap':
+            name = 'h2D_weights_vs_deltap_{}_R{}_{}'.format(h2string, jetR, obs_label)
+            getattr(self, name).Fill(j_pair.deltap, j_pair.weight, j_pair.jetpt*j_pair.r, j_pair.jetpt)
+            
+            name = 'h2D_weights_vs_p1_{}_R{}_{}'.format(h2string, jetR, obs_label)
+            p1, _ = self.mom_p1p2(new_corr, ipoint, c_select, index) #TODO: check this?? - i think it's good though
+            getattr(self, name).Fill(p1, j_pair.weight, j_pair.jetpt*j_pair.r, j_pair.jetpt)
+          
+          if observable is 'corr_deltapt':
+            name = 'h2D_zj_vs_zi_{}_R{}_{}'.format(jetR, obs_label)
+            p1, p2 = self.mom_p1p2(new_corr, ipoint, c_select, index)
+            getattr(self, name).Fill(p1/j_pair.jetpt, p2/j_pair.jetpt, j_pair.jetpt*j_pair.r, j_pair.jetpt)
 
-            if 'corr_charge' in observable:
-              name = '{}_charge_unmatched_PTBIN{}'.format(hstring, ptbin_index)
-              getattr(self, name).Fill(j_pair.charge, j_pair.jetpt*j_pair.r, j_pair.jetpt)
+          if observable is 'corr_deltajt':
+            name = 'h2D_weights_vs_deltajt_{}_R{}_{}'.format(jetR, obs_label)
+            getattr(self, name).Fill(j_pair.deltajt, j_pair.weight, j_pair.jetpt*j_pair.r, j_pair.jetpt)
+            
+      
 
           # if not match_found:
           #   getattr(self, "response").Miss(t_pair.weight, t_pair.r, t_pair.pt)
@@ -1202,7 +1260,7 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
     #   print('Nconst in cone',len(constituents))
     # if cone_parts==None and 'Truth' in hname:
     #   print('Nconst in jet',len(constituents))
-
+    '''
     c_select = fj.vectorPJ()
     trk_thrd = obs_setting
 
@@ -1223,9 +1281,9 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
       jet_pt = jet_pt_ungroomed
     else:
       jet_pt = jet.perp()
-
+    
     new_corr = ecorrel.CorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut)
-    '''
+    
     if 'ENC' in observable or 'EEC_noweight' in observable or 'EEC_weight2' in observable:
       for ipoint in range(2, 3):
         if self.ENC_fastsim and (not 'Truth' in hname): # NB: only apply pair efficiency effect for fast sim and det level distributions

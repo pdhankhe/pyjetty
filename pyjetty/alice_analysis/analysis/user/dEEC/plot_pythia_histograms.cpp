@@ -581,17 +581,17 @@ void plot_rc(vector<vector<double>>& RL_vals, vector<vector<double>>& rc_vals, v
 // ======================================================= //
 
 void analyze_ptbin(TFile *file_in, TFile *f_out, std::string weightstr, std::string jetRname, std::string thrname,
-             std::string norm_string, int pt_min, int pt_max, const double RL_bins[], int n_RLbins, 
+             std::string norm_string, int pt_min, int pt_max, const double ptRL_bins[], int n_ptRLbins, 
              vector<vector<double>>& RL_vals, vector<vector<double>>& rc_vals, vector<vector<double>>& rc_errors,
              bool include_RL0, bool include_RL1, bool debug, bool debug2) {
     
     std::string ptname = to_string(pt_min) + "-" + to_string(pt_max);
     
-    double RL_bin_width[8] = {0}; 
-    double RL_bin_centers[8] = {0};
-    for (int j = 0; j < n_RLbins; ++j) {
-        RL_bin_width[j] = RL_bins[j+1] - RL_bins[j];
-        RL_bin_centers[j] = (RL_bins[j+1] + RL_bins[j])/2;
+    double RL_bin_width[7] = {0}; 
+    double RL_bin_centers[7] = {0};
+    for (int j = 0; j < n_ptRLbins; ++j) {
+        RL_bin_width[j] = ptRL_bins[j+1] - ptRL_bins[j];
+        RL_bin_centers[j] = (ptRL_bins[j+1] + ptRL_bins[j])/2;
         // cout << "RL BIN WIDTH HERE" << RL_bin_width[i][j] << endl;
         // cout << " AND CENTERS " << RL_bin_centers[j] << endl;
     }
@@ -614,16 +614,16 @@ void analyze_ptbin(TFile *file_in, TFile *f_out, std::string weightstr, std::str
     leg->SetBorderSize(0);
     TLegend *leg_dummy = new TLegend();
     
-    for ( int j = 0; j < n_RLbins; j++ ) {
+    for ( int j = 0; j < n_ptRLbins; j++ ) {
         int k = j;
         if (!include_RL0) {
             k = j-1;
             if (j == 0) continue; // can add something here to change the filename for ALL
         }
-        if (!include_RL1 && j == n_RLbins-1) continue;
+        if (!include_RL1 && j == n_ptRLbins-1) continue;
         
-        double RL_min = RL_bins[j];
-        double RL_max = RL_bins[j+1];
+        double RL_min = ptRL_bins[j];
+        double RL_max = ptRL_bins[j+1];
         std::string RLname = Form("_RL%.3f-%.3f", RL_min, RL_max);
         std::string RLname_leg = Form("RL = %.3f-%.3f", RL_min, RL_max);
         std::string hist_addname = weightstr + jetRname + thrname + "_pt" + ptname + RLname;
@@ -729,7 +729,7 @@ void analyze_ptbin(TFile *file_in, TFile *f_out, std::string weightstr, std::str
 
 //TODO: do something about norm_string!!
 void analyze(std::string infile_name, TFile *f_out, std::string weightstr, std::string jetRname, std::string thrname,
-             std::string norm_string, const int pt_bins[], int n_bins, const double RL_bins[][8], int n_RLbins,
+             std::string norm_string, const int pt_bins[], int n_bins, const double ptRL_bins[][7], int n_ptRLbins,
              bool include_RL0, bool include_RL1, bool debug, bool debug2 ) {
 
     TFile *file_in = TFile::Open(infile_name.c_str(), "READ");
@@ -773,7 +773,7 @@ void analyze(std::string infile_name, TFile *f_out, std::string weightstr, std::
         ptcenter_bins.push_back( (pt_min+pt_max)/2 );
            
         if (debug) cout << " in pt bin" << i << " with " << pt_min << " - " << pt_max << endl;
-        analyze_ptbin(file_in, f_out, weightstr, jetRname, thrname, norm_string, pt_min, pt_max, RL_bins[i], n_RLbins, RL_vals, rc_vals, rc_errors, include_RL0, include_RL1, debug, debug2);
+        analyze_ptbin(file_in, f_out, weightstr, jetRname, thrname, norm_string, pt_min, pt_max, ptRL_bins[i], n_ptRLbins, RL_vals, rc_vals, rc_errors, include_RL0, include_RL1, debug, debug2);
         
     }
 
@@ -833,13 +833,13 @@ void plot_pythia_histograms() {
     const int pt_bins[] = { 20, 40, 60, 80 };
     const int n_bins = sizeof(pt_bins) / sizeof(pt_bins[0]) - 1; //3;
     
-    const double RL_bins[3][8] = { { 0, 1e-2, 3e-2, 7e-2, 1.5e-1, 3e-1, 4e-1, 1 },
-                            { 0, 1e-2, 2.5e-2, 4e-2, 8e-2, 2.5e-1, 4e-1, 1 },
-                            { 0, 1e-2, 2.5e-2, 3e-2, 4.5e-2, 2e-1, 4e-1, 1 } };
-    const int n_RLbins = sizeof(RL_bins[0]) / sizeof(RL_bins[0][0]) - 1; //gets the columns //6; //7; //5;
+    const double ptRL_bins[3][7] = { { 0., 2e-1, 8e-1, 5.0, 10.0, 30.0, 100.0 },
+                            { 0., 2e-1, 8e-1, 5.0, 10.0, 30.0, 100.0 },
+                            { 0., 2e-1, 8e-1, 5.0, 10.0, 30.0, 100.0 } };
+    const int n_ptRLbins = sizeof(ptRL_bins[0]) / sizeof(ptRL_bins[0][0]) - 1; //gets the columns //6; //7; //5;
 
 
-    if (debug2) cout << "pt_bins " << n_bins << " n_RLbins " << n_RLbins << endl;
+    if (debug2) cout << "pt_bins " << n_bins << " n_ptRLbins " << n_ptRLbins << endl;
     
 
     std::string jetRname = "_R0.4"; // + jetR;
@@ -860,13 +860,13 @@ void plot_pythia_histograms() {
 
     // analyze for plots
     norm_string = "unnormalized";
-    analyze(root_infile, f_out, weightstr, jetRname, thrname, norm_string, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1, debug, debug2);
+    analyze(root_infile, f_out, weightstr, jetRname, thrname, norm_string, pt_bins, n_bins, ptRL_bins, n_ptRLbins, include_RL0, include_RL1, debug, debug2);
     
     norm_string = "self_normalized";
-    analyze(root_infile, f_out, weightstr, jetRname, thrname, norm_string, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1, debug, debug2);
+    analyze(root_infile, f_out, weightstr, jetRname, thrname, norm_string, pt_bins, n_bins, ptRL_bins, n_ptRLbins, include_RL0, include_RL1, debug, debug2);
     
     norm_string = "norm_by_jets";
-    analyze(root_infile, f_out, weightstr, jetRname, thrname, norm_string, pt_bins, n_bins, RL_bins, n_RLbins, include_RL0, include_RL1, debug, debug2);
+    analyze(root_infile, f_out, weightstr, jetRname, thrname, norm_string, pt_bins, n_bins, ptRL_bins, n_ptRLbins, include_RL0, include_RL1, debug, debug2);
     
 
 
