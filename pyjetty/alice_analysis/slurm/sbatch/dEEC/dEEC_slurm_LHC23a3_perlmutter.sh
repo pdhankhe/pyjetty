@@ -42,5 +42,5 @@ do
   
   # FILE=/global/cfs/projectdirs/alice/alicepro/hiccup$(sed -n "$JOB_N"p $FILE_PATHS)
   FILE=$(sed -n "$JOB_N"p $FILE_PATHS)
-  srun dEEC_LHC18b8_perlmutter.sh $FILE $SLURM_ARRAY_JOB_ID $SLURM_ARRAY_TASK_ID
+  srun dEEC_LHC23a3_perlmutter.sh $FILE $SLURM_ARRAY_JOB_ID $SLURM_ARRAY_TASK_ID
 done
