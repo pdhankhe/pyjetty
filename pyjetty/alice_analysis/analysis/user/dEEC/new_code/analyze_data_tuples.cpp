@@ -299,35 +299,7 @@ vector<double> getRcFromTChain(TChain *chain, Observable obs, int pt_min, int pt
     return { rc, rc_err };
 }
 
-/* Get the r_c from TChain */
-// double getRcErr(TChain *chain, Observable obs_rc, int pt_min, int pt_max, 
-//                 double ptRL_min, double ptRL_max, double ptavg, bool weighting=false) 
-// {
-//     // draw regular charge histogram, where like sign = +1, and unlike sign = -1
-//     // TH1D *hist_charge = new TH1D("hist_charge", "hist_charge", num_bins, hist_xmin, hist_xmax);
-//     // chain->Draw("q1q2>>hist_charge", Form("jet_pt >= %d && jet_pt < %d && %f*RL >= %f && %f*RL < %f", pt_min, pt_max, ptavg, ptRL_min, ptavg, ptRL_max), "e");
-//     TH1D *hist_charge = getObs1DHistFromTChain(chain, obs_rc, pt_min, pt_max, ptRL_min, ptRL_max, ptavg, weighting);
-    
-//     // do i need to scale by the RL bin width here?? - I think this would be redundant.
-//     // if both like sign bin and unlike sign get scaled by RL bin width, then the ratio still stays the same
 
-//     //---====---====---====---====---====---====---====---====---====---====---====
-//     //---====---====---====---====---====---====---====---====---====---====---====
-
-//     // get # of like sign and # of unlike sign
-//     double num_likesign = hist_charge->GetBinContent(hist_charge->FindBin(1));
-//     double num_unlikesign = hist_charge->GetBinContent(hist_charge->FindBin(-1));
-
-//     cout << "NUM LIKE SIGN PAIRS IS " << num_likesign << " and NUM DISLIKE" << num_unlikesign << endl;
-
-//     // calculate the rc error for this pt & RL bin
-//     double num_totalpairs = num_likesign + num_unlikesign;
-//     double rc_err = ( 2 * sqrt( num_totalpairs * num_likesign * num_unlikesign ) ) / (num_totalpairs * num_totalpairs);
-
-//     cout << "RC ERR IN FUNC IS " << rc_err << endl;
-        
-//     return rc_err;
-// }
 
 /* get a typical 2D histogram from the TChain */
 TH2D * getObs2DHistFromTChain(TChain *chain, Observable obs_x, Observable obs_y, 
@@ -443,6 +415,13 @@ void Format2DHist(Observable obs_x, Observable obs_y, TH2D *hist2D, TH1D *jetpt_
     hist2D->GetYaxis()->SetTitle(ytitle.c_str());
 }
 
+
+void FormatGraphMarker(TGraphErrors * g, int markercolor, double markeralpha, int markerstyle, double markersize) {
+    g->SetMarkerColorAlpha(markercolor, markeralpha);
+    g->SetMarkerStyle(markerstyle);
+    g->SetMarkerSize(markersize);
+    g->SetLineColorAlpha(markercolor, markeralpha);
+}
 
 TGraphErrors * MakeFormatGraph(vector<double> xvals, vector<double> yvals, vector<double> yval_errors, int markercolor, double markeralpha,
                   int markerstyle, std::string xtitle, std::string ytitle, std::string obs_name, std::string hist_addname="") {
@@ -659,12 +638,7 @@ void plotandsave_combined_hists(Observable obs, TLegend *l, std::string ptname, 
 
 }
 
-void FormatGraphMarker(TGraphErrors * g, int markercolor, int markerstyle, double markersize, double markeralpha) {
-    g->SetMarkerColorAlpha(markercolor, markeralpha);
-    g->SetMarkerStyle(markerstyle);
-    g->SetMarkerSize(markersize);
-    g->SetLineColorAlpha(markercolor, markeralpha);
-}
+
 
 // ======================================================= //
 //                   SPECIFIC FUNCTIONS
@@ -707,14 +681,14 @@ void plot_rc(vector<double>& ptRLcenters_vec, vector<vector<double>>& rc_vec, ve
 
         // for graphs as a function of RL
         TGraphErrors *g = new TGraphErrors(ptRLcenters_vec.size(), ptRLcenters_vec.data(), rc_vec[i].data(), RL_err.data(), rc_errors_vec[i].data());
-        FormatGraphMarker(g, kBlack, markers[i], 1.5, 1.0);
+        FormatGraphMarker(g, kBlack, 1.0, markers[i], marker_size);
         vector<TGraphErrors*> ind_temp_vec;
 
         for (int j=0; j<ptRLcenters_vec.size(); j++){
             int k=j+1;
             TGraphErrors *g_ind = new TGraphErrors(1, &ptRLcenters_vec[j], &rc_vec[i][j], &RL_err[j], &rc_errors_vec[i][j]);
             cout << "i: " << i << " j: " << j << " err: " << rc_errors_vec[i][j] << endl;
-            FormatGraphMarker(g_ind, colors[k], markers[i], 1.5, 1.0);
+            FormatGraphMarker(g_ind, colors[k], 1.0, markers[i], marker_size);
             ind_temp_vec.push_back(g_ind);
             
             if (i==0) {
@@ -774,7 +748,7 @@ void plot_rc(vector<double>& ptRLcenters_vec, vector<vector<double>>& rc_vec, ve
             int k=j+1;
             TGraphErrors *g_ind = new TGraphErrors(1, &ptcenters_vec[i], &rc_vec[i][j], &pt_err[i], &rc_errors_vec[i][j]);
             cout << "i: " << i << " j: " << j << " err: " << rc_errors_vec[i][j] << endl;
-            FormatGraphMarker(g_ind, colors[k], markers[i], 1.5, 1.0);
+            FormatGraphMarker(g_ind, colors[k], 1.0, markers[i], marker_size);
             ind_temp_vec.push_back(g_ind);
         }
         rc_vals_func_of_pT.push_back(temp_vec);

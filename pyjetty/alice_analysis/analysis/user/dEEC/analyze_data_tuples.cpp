@@ -638,7 +638,7 @@ void plotandsave_combined_hists(TCanvas *can_all, vector<TH1D*> h_vec, TLegend *
 //                   SPECIFIC FUNCTIONS
 // ======================================================= //
 
-void plot_rc(vector<vector<double>>& RL_vals, vector<vector<double>>& rc_vals, vector<double>& ptcenter_bins,
+void plot_rc(vector<double>& ptcenter_bins, vector<vector<double>>& RL_vals, vector<vector<double>>& rc_vals, 
              vector<vector<double>> rc_errors) {
             //  TLegend& leg_RLbins, TLegend& leg_ptbins) {
     
@@ -1230,7 +1230,7 @@ void analyze(TChain * JETINFO_tree, TChain * PAIRINFO_tree,
         cout << "size of rc_vals[0] " << rc_vals[0].size() << endl;
         cout << "size of ptcenter_bins " << ptcenter_bins.size() << endl;
 
-        plot_rc(RL_vals, rc_vals, ptcenter_bins, rc_errors); //, leg_RLbins, leg_ptbins);
+        plot_rc(ptcenter_bins, RL_vals, rc_vals, rc_errors); //, leg_RLbins, leg_ptbins);
     }
     
 

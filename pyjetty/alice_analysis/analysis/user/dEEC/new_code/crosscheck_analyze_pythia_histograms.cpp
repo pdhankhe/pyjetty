@@ -12,50 +12,149 @@ Double_t colors[16] = {kGray, kMagenta, kBlue, kOrange+1, kViolet+1, kGreen+2, k
 Double_t markers[10] = {kFullCircle, kFullSquare, kFullDiamond, kFullTriangleUp, kFullStar, kOpenCircle, kOpenTriangleUp, kOpenDiamond, kOpenSquare, kOpenStar};
 Double_t marker_size = 1.5;
 
-// int rebin = 4;
-std::string attempt_dir = Form("pythia5TeV_histograms_crosscheck"); //rebinx%d", rebin);
-std::string outdir = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir;
-// std::string outdir = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir;
+std::string attempt_dir = Form("pythia5TeV_histograms_crosscheck"); //;
+std::string outdir = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir; //;
+
+bool write_to_root_file = true; 
+
+// bool jetpt_bool = false;
+bool deltap_bool = false;
+bool deltapt_bool = false;
+bool deltajt_bool = false;
+bool ew_bool = false;
+bool twoDhists_bool = false;
+bool rc_bool = true; 
+
+bool p1_bool = false;
+bool jt1_bool = false;
+
+bool unnormalized_bool = false;
+bool self_normalized_bool = true;
+bool norm_by_jets_bool = false;
+
+bool unweighted_bool = true;
+bool weighted_bool = true;
+
+class Observable {
+public:
+    std::string name;
+    bool obs_bool;
+    
+    int num_bins;
+    double min_bound;
+    double max_bound;
+    
+    std::string axis_label;
+    std::string cs_label; //cross section label
+    std::string filepath_plots;
+
+    std::vector<TH1D*> obs_vec;
+
+    Observable(std::string name_val, bool obs_bool_val, int num_bins_val, double min_bound_val, double max_bound_val, 
+               std::string axis_label_val, std::string cs_label_val) {
+        name = name_val;
+        obs_bool = obs_bool_val;
+        
+        num_bins = num_bins_val;
+        min_bound = min_bound_val;
+        max_bound = max_bound_val;
+
+        axis_label = axis_label_val;
+        cs_label = cs_label_val; //cross section label, in y axis
+
+        filepath_plots = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir + "%s/%s/" + name + "/%s"; // ptname, norm_string, filename
+        if (name.find("jet_") != std::string::npos || name.find("const") != std::string::npos) filepath_plots = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir + "%s"; // filename
+
+    }
+
+    void addHist(TH1D* hist) {
+        obs_vec.push_back(hist);
+    }
+
+    void recreate_output_root_file() {
+        std::string root_outfile = "/software/users/blianggi/mypyjetty/storage/dEEC/rootfiles/" + attempt_dir + "/DataHists_" + name + ".root";
+        TFile * f_out = new TFile(root_outfile.c_str(), "RECREATE");
+        f_out->Close();
+    }
+
+    TFile * get_output_root_file() {
+        std::string root_outfile = "/software/users/blianggi/mypyjetty/storage/dEEC/rootfiles/" + attempt_dir + "/DataHists_" + name + ".root";
+        TFile * f_out = new TFile(root_outfile.c_str(), "UPDATE");
+        return f_out;
+    }
+};
+
+class Observable2D {
+public:
+    Observable obsx;
+    Observable obsy;
+    std::string name;
+    bool obs_bool;
+    
+    std::string filepath_plots;
+
+    // Observable2D(const Observable& o1, const Observable& o2, bool obs_bool_val)
+    //     : obs1(o1), obs2(o2), name(name_val), obs_bool(obs_bool_val) {}
+    Observable2D(Observable ox, Observable oy, bool obs_bool_val)
+        : obsx(ox), obsy(oy), obs_bool(obs_bool_val) // required for non-default-constructible members
+    {
+        name = obsy.name + "_vs_" + obsx.name;
+        filepath_plots = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir + "%s/%s/" + name + "/%s"; // ptname, norm_string, filename
+    }
+
+    void recreate_output_root_file() {
+        std::string root_outfile = "/software/users/blianggi/mypyjetty/storage/dEEC/rootfiles/" + attempt_dir + "/DataHists_" + name + ".root";
+        TFile * f_out = new TFile(root_outfile.c_str(), "RECREATE");
+        f_out->Close();
+    }
+
+    TFile* get_output_root_file() {
+        std::string root_outfile = "/software/users/blianggi/mypyjetty/storage/dEEC/rootfiles/" + attempt_dir + "/DataHists_" + name + ".root";
+        TFile * f_out = new TFile(root_outfile.c_str(), "UPDATE");
+        return f_out;
+    }
+};
+
 
 void SetStyle(Bool_t graypalette=true) {
-  	cout << "Setting style!" << endl;
+    cout << "Setting style!" << endl;
   
-  	gStyle->Reset("Plain");
-  	gStyle->SetOptTitle(0);
-  	gStyle->SetOptStat(0);
-  	// if(graypalette) gStyle->SetPalette(8,0);
-  	// else gStyle->SetPalette(1);
-    gStyle->SetPalette(kRainbow);
-  	gStyle->SetCanvasColor(10);
-  	gStyle->SetCanvasBorderMode(0);
-  	gStyle->SetFrameLineWidth(1);
-  	gStyle->SetFrameFillColor(kWhite);
-  	gStyle->SetPadColor(10);
-  	gStyle->SetPadTickX(1);
-  	gStyle->SetPadTickY(1);
-  	gStyle->SetPadBottomMargin(0.15);
- 	gStyle->SetPadLeftMargin(0.15);
-  	gStyle->SetHistLineWidth(1);
-  	gStyle->SetHistLineColor(kRed);
-  	gStyle->SetFuncWidth(2);
-  	gStyle->SetFuncColor(kGreen);
- 	gStyle->SetLineWidth(1);
-  	gStyle->SetLabelSize(0.045,"xyz");
-  	gStyle->SetLabelOffset(0.005,"y"); //(0.01,"y");
-  	gStyle->SetLabelOffset(0.005,"x"); //(0.01,"x");
-  	gStyle->SetLabelColor(kBlack,"xyz");
-	gStyle->SetTitleSize(0.05,"xyz");
-  	gStyle->SetTitleOffset(1.25,"y");
- 	gStyle->SetTitleOffset(1.2,"x");
-	gStyle->SetTitleFillColor(kWhite);
- 	gStyle->SetTextSizePixels(26);
- 	gStyle->SetTextFont(42);
- 	//gStyle->SetTickLength(0.04,"X");  gStyle->SetTickLength(0.04,"Y");
-	
-	gStyle->SetLegendBorderSize(0);
-	gStyle->SetLegendFillColor(kWhite);
-	//gStyle->SetFillColor(kWhite);
-	gStyle->SetLegendFont(42);
+    gStyle->Reset("Plain");
+    gStyle->SetOptTitle(0);
+    gStyle->SetOptStat(0);
+    // if(graypalette) gStyle->SetPalette(8,0);
+    // else gStyle->SetPalette(1);
+    gStyle->SetPalette(kRainbow); //kBird
+    gStyle->SetCanvasColor(10);
+    gStyle->SetCanvasBorderMode(0);
+    gStyle->SetFrameLineWidth(1);
+    gStyle->SetFrameFillColor(kWhite);
+    gStyle->SetPadColor(10);
+    gStyle->SetPadTickX(1);
+    gStyle->SetPadTickY(1);
+    gStyle->SetPadBottomMargin(0.15);
+    gStyle->SetPadLeftMargin(0.15);
+    gStyle->SetHistLineWidth(1);
+    gStyle->SetHistLineColor(kRed);
+    gStyle->SetFuncWidth(2);
+    gStyle->SetFuncColor(kGreen);
+    gStyle->SetLineWidth(1);
+    gStyle->SetLabelSize(0.045,"xyz");
+    gStyle->SetLabelOffset(0.005,"y"); //(0.01,"y");
+    gStyle->SetLabelOffset(0.005,"x"); //(0.01,"x");
+    gStyle->SetLabelColor(kBlack,"xyz");
+    gStyle->SetTitleSize(0.05,"xyz");
+    gStyle->SetTitleOffset(1.25,"y");
+    gStyle->SetTitleOffset(1.2,"x");
+    gStyle->SetTitleFillColor(kWhite);
+    gStyle->SetTextSizePixels(26);
+    gStyle->SetTextFont(42);
+    //gStyle->SetTickLength(0.04,"X");  gStyle->SetTickLength(0.04,"Y");
+    
+    gStyle->SetLegendBorderSize(0);
+    gStyle->SetLegendFillColor(kWhite);
+    //gStyle->SetFillColor(kWhite);
+    gStyle->SetLegendFont(42);
 
 }
 
@@ -74,12 +173,41 @@ void ProcessCanvas(TCanvas *Canvas, bool moveright=false) {
  	Canvas->SetFrameBorderMode(1);
 }
 
-void FormatHist(TLegend *l, TH1 *hist, TString text, int markercolor=1, int markerstyle=8, double linealpha=1., bool drawline=false) 
-{
+
+void Format1DHist(TH1D *hist, TH1D *jetpt_hist, std::string norm_string, double x_left, double x_right,
+                  int markercolor, double markeralpha, int markerstyle, std::string xtitle, std::string ytitle, 
+                  TLegend& leg, TString leg_text, 
+                  bool drawline=false, double linealpha=1., std::string obs_name="",
+                  std::string hist_addname = "") {
+
+    std::string new_name = Form("h_%s%s", obs_name.c_str(), hist_addname.c_str());        
+    // ^ = Form("h_%s_R0.4_t1.0_pt%d-%d_RL%.3f-%.3f_%s", obsname.c_str(), pt_min, pt_max, RL_min, RL_max, norm.c_str());
+    hist->SetNameTitle(new_name.c_str(), new_name.c_str());
+
+    // set x range
+    // hist->GetXaxis()->SetRangeUser(x_left, x_right); //comment out for now... //TODO: see if can be fully removed
+    
+    // normalization
+    if ( norm_string == "self_normalized" ) {
+        double selfnorm_value = hist->Integral();
+        hist->Scale(1/selfnorm_value, "width");
+    } else if ( norm_string == "norm_by_jets" ) { // this is pretty much unused
+        double numjets = jetpt_hist->Integral();
+        cout << "Number of jets in " << leg_text << ": " << numjets << endl;
+        hist->Scale(1/numjets, "width");
+    }
+
+    // stylization
+    hist->SetLineColorAlpha(markercolor, markeralpha);
+    hist->SetMarkerColorAlpha(markercolor, markeralpha);
+    hist->SetMarkerStyle(markerstyle);
+    hist->SetMarkerSize(1.5);
     if (drawline) {
-        // for (int k=0; k < hist->GetNbinsX();k++){
-        //     hist->SetBinError(k+1, 0);
-        // }
+
+        for (int a=0; a < hist->GetNbinsX(); a++){
+            hist->SetBinError(a+1, 0);
+        }
+
         hist->SetMarkerStyle(20);
         hist->SetMarkerColorAlpha(markercolor, 0);
 
@@ -88,106 +216,113 @@ void FormatHist(TLegend *l, TH1 *hist, TString text, int markercolor=1, int mark
         hist->SetFillColor(markercolor);
         hist->SetLineStyle(1);
         hist->SetLineWidth(3);
-    } else {
-        hist->SetLineColor(markercolor);
-        hist->SetMarkerColor(markercolor);
-        hist->SetMarkerStyle(markerstyle);
-        hist->SetMarkerSize(1.5);
     }
-    l->AddEntry(hist, text, "pl");
 
-	//gPad->SetTickx(); 
-	//gPad->SetTicky(); 
-	// h->SetLineWidth(2);
-	hist->GetYaxis()->SetTitleOffset(1.05); 
+    // axes
+    hist->GetXaxis()->SetLabelFont(42);
+    hist->GetXaxis()->SetTitleFont(42);
+	if (obs_name == "weights") {
+        hist->GetXaxis()->SetTitleSize(0.035);
+        hist->GetXaxis()->SetTitleOffset(1.5);
+    } else {
+        hist->GetXaxis()->SetTitleSize(0.06); //(0.042);
+        hist->GetXaxis()->SetTitleOffset(1.0);
+    }
+	hist->GetXaxis()->SetLabelSize(0.05);
+    hist->GetXaxis()->SetTitle(xtitle.c_str());
+
+    hist->GetYaxis()->SetLabelFont(42);
+	hist->GetYaxis()->SetTitleFont(42);
+    hist->GetYaxis()->SetTitleOffset(1.05); 
 	hist->GetYaxis()->SetTitleSize(0.06); //(0.042);
 	hist->GetYaxis()->SetLabelSize(0.05); //(0.042);
-	hist->GetYaxis()->SetLabelFont(42);
-	hist->GetXaxis()->SetLabelFont(42);
-	hist->GetYaxis()->SetTitleFont(42);
-	hist->GetXaxis()->SetTitleFont(42);
-	hist->GetXaxis()->SetTitleOffset(1.0);
-	hist->GetXaxis()->SetTitleSize(0.06); //(0.042);
-	hist->GetXaxis()->SetLabelSize(0.05); //(0.042);
+    hist->GetYaxis()->SetTitle(ytitle.c_str());
 
+    // legend
+    leg.AddEntry(hist, leg_text, "pl");
 
-    return;
 }
 
-void FormatGraph(TGraph *gr, TLegend *l, TString l_text, TString xtitle, TString ytitle, 
-                 double markersize=1.5, int markerstyle=20, int markercolor=kBlack, 
-                 double markeralpha=1.0) // TString text, int markercolor=1, int markerstyle=8, double linealpha=1., bool drawline=false) 
-{
-    gr->SetMarkerSize(markersize);
-    gr->SetMarkerStyle(markerstyle);
-    gr->SetMarkerColorAlpha(markercolor, markeralpha);
-    // hist->SetMarkerColorAlpha(markercolor, 0);
 
-    // hist->SetFillStyle(0);
-    // hist->SetLineColorAlpha(markercolor, linealpha);
-    // hist->SetFillColor(markercolor);
-    // hist->SetLineStyle(1);
-    // hist->SetLineWidth(3);
+void Format2DHist(TH2D *hist2D, TH1D *jetpt_hist, std::string norm_string,
+                  std::string xtitle, std::string ytitle, std::string obs_name="", std::string hist_addname = "") {
+
+    std::string new_name = Form("h_%s%s", obs_name.c_str(), hist_addname.c_str());        
+    // ^ = Form("h_%s_R0.4_t1.0_pt%d-%d_RL%.3f-%.3f_%s", obsname.c_str(), pt_min, pt_max, RL_min, RL_max, norm.c_str());
+    hist2D->SetNameTitle(new_name.c_str(), new_name.c_str());
+
+    // set x and y ranges //comment out for now... //TODO: see if can be fully removed
+    // hist2D->GetXaxis()->SetRangeUser(0, ptmax);
+    // hist2D->GetZaxis()->SetRangeUser(bounds[0], bounds[1]);
     
-    l->AddEntry(gr, l_text, "pl");
-
-	//gPad->SetTickx(); 
-	//gPad->SetTicky(); 
-	// h->SetLineWidth(2);
-	gr->GetYaxis()->SetTitleOffset(1.05); 
-	gr->GetYaxis()->SetTitleSize(0.06); //(0.042);
-	gr->GetYaxis()->SetLabelSize(0.05); //(0.042);
-	gr->GetYaxis()->SetLabelFont(42);
-	gr->GetXaxis()->SetLabelFont(42);
-	gr->GetYaxis()->SetTitleFont(42);
-	gr->GetXaxis()->SetTitleFont(42);
-	gr->GetXaxis()->SetTitleOffset(1.0);
-	gr->GetXaxis()->SetTitleSize(0.06); //(0.042);
-	gr->GetXaxis()->SetLabelSize(0.05); //(0.042);
-
-    gr->GetXaxis()->SetTitle(xtitle);
-    gr->GetYaxis()->SetTitle(ytitle);
-
-
-    return;
-}
-
-// ptrl is a boolean that says whether ptRL is being plotted (instead of RL)
-// --> controls where the cutoff is to not look for the max point
-//checkExtra is how many point-to-point slopes after finding a decreasing slope I want to check
-int findTopOfCurve(TH1* hist, bool ptrl, int checkExtra=1) {
-    
-    // define the x axis start of bin search
-    double startbinsearchat = ptrl ? 0.1 : 0.01;
-
-    //for each point, find the slope from the 
-    int numbins = hist->GetNbinsX();
-    int binstart = hist->FindBin(startbinsearchat);
-    bool falsealarm = false;
-
-    for (int i=binstart; i<numbins; i++) {
-
-        double y1 = hist->GetBinContent(i);
-        double y2 = hist->GetBinContent(i+1);
-        double slope_num = y2-y1;
-
-        if (slope_num < 0) {
-            for (int j=1; j<=checkExtra; j++) {
-                y1 = hist->GetBinContent(i+j);
-                y2 = hist->GetBinContent(i+1+j);
-                slope_num = y2-y1;
-                if (slope_num >= 0) {
-                    falsealarm = true;
-                    break;
-                }
-            }
-            if (!falsealarm) return i; //return the bin number
-        }
-        falsealarm = false;
+    // normalization
+    if ( norm_string == "self_normalized" ) {
+        double selfnorm_value = hist2D->Integral();
+        hist2D->Scale(1/selfnorm_value, "width");
+    } else if ( norm_string == "norm_by_jets" ) { // this is pretty much unused
+        double numjets = jetpt_hist->Integral();
+        cout << "Number of jets in " << obs_name << ": " << numjets << endl;
+        hist2D->Scale(1/numjets, "width");
     }
 
-    return 0; //return 0 if nothing found
+    // axes
+    hist2D->GetXaxis()->SetLabelFont(42);
+    hist2D->GetXaxis()->SetTitleFont(42);
+	hist2D->GetXaxis()->SetTitleSize(0.06); //(0.042);
+    hist2D->GetXaxis()->SetTitleOffset(1.0); 
+	hist2D->GetXaxis()->SetLabelSize(0.05);
+    hist2D->GetXaxis()->SetTitle(xtitle.c_str());
+
+    hist2D->GetYaxis()->SetLabelFont(42);
+	hist2D->GetYaxis()->SetTitleFont(42);
+    if (obs_name.find("weights") != std::string::npos) { // if weights is found in the string
+        hist2D->GetYaxis()->SetTitleSize(0.035);
+        hist2D->GetYaxis()->SetTitleOffset(1.5);
+    } else {
+        hist2D->GetYaxis()->SetTitleSize(0.05); //(0.042);
+        hist2D->GetYaxis()->SetTitleOffset(1.0);
+    }	
+	hist2D->GetYaxis()->SetLabelSize(0.05); //(0.042);
+    hist2D->GetYaxis()->SetTitle(ytitle.c_str());
+
 }
+
+void FormatGraphMarker(TGraphErrors * g, int markercolor, double markeralpha, int markerstyle, double markersize) {
+    g->SetMarkerColorAlpha(markercolor, markeralpha);
+    g->SetMarkerStyle(markerstyle);
+    g->SetMarkerSize(markersize);
+    g->SetLineColorAlpha(markercolor, markeralpha);
+}
+
+// imported function from data
+TGraphErrors * MakeFormatGraph(vector<double> xvals, vector<double> yvals, int markercolor, double markeralpha,
+                  int markerstyle, std::string xtitle, std::string ytitle, std::string obs_name) {
+    
+                    TGraphErrors * graph = new TGraphErrors(xvals.size(), xvals.data(), yvals.data());
+    graph->SetTitle(Form("Charge Ratio;%s;%s", xtitle.c_str(), ytitle.c_str())); // Set the title and axis labels
+
+    // Set graph styles
+    FormatGraphMarker(graph, markercolor, markeralpha, markerstyle, marker_size);
+
+    // axes
+    graph->GetXaxis()->SetLabelFont(42);
+    graph->GetXaxis()->SetTitleFont(42);
+	graph->GetXaxis()->SetTitleSize(0.06); //(0.042);
+    graph->GetXaxis()->SetTitleOffset(1.0);
+	graph->GetXaxis()->SetLabelSize(0.05);
+    // graph->GetXaxis()->SetTitle(xtitle.c_str());
+
+    graph->GetYaxis()->SetLabelFont(42);
+	graph->GetYaxis()->SetTitleFont(42);
+    graph->GetYaxis()->SetTitleOffset(1.05); 
+	graph->GetYaxis()->SetTitleSize(0.06); //(0.042);
+	graph->GetYaxis()->SetLabelSize(0.05); //(0.042);
+    // graph->GetYaxis()->SetTitle(ytitle.c_str());
+
+
+    return graph;
+}
+
 
 // find the full width at half max
 // returns a vector that gives (halfmax_height, leftPos, rightPos, full_width)
@@ -335,152 +470,6 @@ TH2D * getObs2DHist(TFile *filename, std::string h_name,
 }
 
 
-void Format1DHist(TH1D *hist, TH1D *jetpt_hist, std::string norm_string, double x_left, double x_right,
-                  int markercolor, double markeralpha, int markerstyle, std::string xtitle, std::string ytitle, 
-                  TLegend& leg, TString leg_text, 
-                  bool drawline=false, double linealpha=1., std::string obs_name="",
-                  std::string hist_addname = "") {
-
-    std::string new_name = Form("h_%s%s", obs_name.c_str(), hist_addname.c_str());        
-    // ^ = Form("h_%s_R0.4_t1.0_pt%d-%d_RL%.3f-%.3f_%s", obsname.c_str(), pt_min, pt_max, RL_min, RL_max, norm.c_str());
-    hist->SetNameTitle(new_name.c_str(), new_name.c_str());
-
-    // set x range
-    // hist->GetXaxis()->SetRangeUser(x_left, x_right); //comment out for now... //TODO: see if can be fully removed
-    
-    // normalization
-    if ( norm_string == "self_normalized" ) {
-        double selfnorm_value = hist->Integral();
-        hist->Scale(1/selfnorm_value, "width");
-    } else if ( norm_string == "norm_by_jets" ) { // this is pretty much unused
-        double numjets = jetpt_hist->Integral();
-        cout << "Number of jets in " << leg_text << ": " << numjets << endl;
-        hist->Scale(1/numjets, "width");
-    }
-
-    // stylization
-    hist->SetLineColorAlpha(markercolor, markeralpha);
-    hist->SetMarkerColorAlpha(markercolor, markeralpha);
-    hist->SetMarkerStyle(markerstyle);
-    hist->SetMarkerSize(1.5);
-    if (drawline) {
-
-        for (int a=0; a < hist->GetNbinsX(); a++){
-            hist->SetBinError(a+1, 0);
-        }
-
-        hist->SetMarkerStyle(20);
-        hist->SetMarkerColorAlpha(markercolor, 0);
-
-        hist->SetFillStyle(0);
-        hist->SetLineColorAlpha(markercolor, linealpha);
-        hist->SetFillColor(markercolor);
-        hist->SetLineStyle(1);
-        hist->SetLineWidth(3);
-    }
-
-    // axes
-    hist->GetXaxis()->SetLabelFont(42);
-    hist->GetXaxis()->SetTitleFont(42);
-	if (obs_name == "weights") {
-        hist->GetXaxis()->SetTitleSize(0.035);
-        hist->GetXaxis()->SetTitleOffset(1.5);
-    } else {
-        hist->GetXaxis()->SetTitleSize(0.06); //(0.042);
-        hist->GetXaxis()->SetTitleOffset(1.0);
-    }
-	hist->GetXaxis()->SetLabelSize(0.05);
-    hist->GetXaxis()->SetTitle(xtitle.c_str());
-
-    hist->GetYaxis()->SetLabelFont(42);
-	hist->GetYaxis()->SetTitleFont(42);
-    hist->GetYaxis()->SetTitleOffset(1.05); 
-	hist->GetYaxis()->SetTitleSize(0.06); //(0.042);
-	hist->GetYaxis()->SetLabelSize(0.05); //(0.042);
-    hist->GetYaxis()->SetTitle(ytitle.c_str());
-
-    // legend
-    leg.AddEntry(hist, leg_text, "pl");
-
-}
-
-
-void Format2DHist(TH2D *hist2D, TH1D *jetpt_hist, std::string norm_string,
-                  std::string xtitle, std::string ytitle, std::string obs_name="", std::string hist_addname = "") {
-
-    std::string new_name = Form("h_%s%s", obs_name.c_str(), hist_addname.c_str());        
-    // ^ = Form("h_%s_R0.4_t1.0_pt%d-%d_RL%.3f-%.3f_%s", obsname.c_str(), pt_min, pt_max, RL_min, RL_max, norm.c_str());
-    hist2D->SetNameTitle(new_name.c_str(), new_name.c_str());
-
-    // set x and y ranges //comment out for now... //TODO: see if can be fully removed
-    // hist2D->GetXaxis()->SetRangeUser(0, ptmax);
-    // hist2D->GetZaxis()->SetRangeUser(bounds[0], bounds[1]);
-    
-    // normalization
-    if ( norm_string == "self_normalized" ) {
-        double selfnorm_value = hist2D->Integral();
-        hist2D->Scale(1/selfnorm_value, "width");
-    } else if ( norm_string == "norm_by_jets" ) { // this is pretty much unused
-        double numjets = jetpt_hist->Integral();
-        cout << "Number of jets in " << obs_name << ": " << numjets << endl;
-        hist2D->Scale(1/numjets, "width");
-    }
-
-    // axes
-    hist2D->GetXaxis()->SetLabelFont(42);
-    hist2D->GetXaxis()->SetTitleFont(42);
-	hist2D->GetXaxis()->SetTitleSize(0.06); //(0.042);
-    hist2D->GetXaxis()->SetTitleOffset(1.0); 
-	hist2D->GetXaxis()->SetLabelSize(0.05);
-    hist2D->GetXaxis()->SetTitle(xtitle.c_str());
-
-    hist2D->GetYaxis()->SetLabelFont(42);
-	hist2D->GetYaxis()->SetTitleFont(42);
-    if (obs_name.find("weights") != std::string::npos) { // if weights is found in the string
-        hist2D->GetYaxis()->SetTitleSize(0.035);
-        hist2D->GetYaxis()->SetTitleOffset(1.5);
-    } else {
-        hist2D->GetYaxis()->SetTitleSize(0.05); //(0.042);
-        hist2D->GetYaxis()->SetTitleOffset(1.0);
-    }	
-	hist2D->GetYaxis()->SetLabelSize(0.05); //(0.042);
-    hist2D->GetYaxis()->SetTitle(ytitle.c_str());
-
-}
-
-
-
-// imported function from data
-TGraphErrors * MakeFormatGraph(vector<double> xvals, vector<double> yvals, int markercolor, double markeralpha,
-                  int markerstyle, std::string xtitle, std::string ytitle, std::string obs_name) {
-    TGraphErrors * graph = new TGraphErrors(xvals.size(), xvals.data(), yvals.data());
-    graph->SetTitle(Form("Charge Ratio;%s;%s", xtitle.c_str(), ytitle.c_str())); // Set the title and axis labels
-
-    // Set graph styles
-    graph->SetLineColorAlpha(markercolor, markeralpha);
-    graph->SetMarkerColorAlpha(markercolor, markeralpha);
-    graph->SetMarkerStyle(markerstyle);
-    graph->SetMarkerSize(1.5);
-
-    // axes
-    graph->GetXaxis()->SetLabelFont(42);
-    graph->GetXaxis()->SetTitleFont(42);
-	graph->GetXaxis()->SetTitleSize(0.06); //(0.042);
-    graph->GetXaxis()->SetTitleOffset(1.0);
-	graph->GetXaxis()->SetLabelSize(0.05);
-    // graph->GetXaxis()->SetTitle(xtitle.c_str());
-
-    graph->GetYaxis()->SetLabelFont(42);
-	graph->GetYaxis()->SetTitleFont(42);
-    graph->GetYaxis()->SetTitleOffset(1.05); 
-	graph->GetYaxis()->SetTitleSize(0.06); //(0.042);
-	graph->GetYaxis()->SetLabelSize(0.05); //(0.042);
-    // graph->GetYaxis()->SetTitle(ytitle.c_str());
-
-
-    return graph;
-}
-
 
 
 
@@ -557,21 +546,17 @@ void draw_save_del_hists(TFile *fout, TCanvas *can, TObject* obj, std::string ob
         hist2D->Draw("COLZ");
     } else if (TH1* hist = dynamic_cast<TH1*>(obj)) {
         hist->Draw();
-    } else if (TGraph* graph = dynamic_cast<TGraph*>(obj)) {
-        graph->Draw("ALP");
     } else if (TGraphErrors* graph = dynamic_cast<TGraphErrors*>(obj)) {
+        graph->Draw("ALP");
+    } else if (TGraph* graph = dynamic_cast<TGraph*>(obj)) {
         graph->Draw("ALP");
     } else {
         cout << "Error: Unsupported object type. Only TH1, TGraph, TGraphErrors, and TH2 are supported." << endl;
     }
-    // hist->Draw();
 
     fout->cd();
     // hist->Write();
     obj->Write(); //TODO: this might not be right! Might have to use the casted type
-
-    // size_t length = hist_vec.size();
-    // if ( length > 0 ) hist_vec.push_back(hist);
 
     
 
@@ -587,6 +572,66 @@ void draw_save_del_hists(TFile *fout, TCanvas *can, TObject* obj, std::string ob
     // delete hist;
     delete can;
 }
+
+void draw_save_del_hists(Observable& obs, TObject* obj,  
+                         std::string ptname, std::string norm_string, std::string hist_addname,
+                         bool logx, bool logy, bool logz=false, //std::string obs_filename="", 
+                         const double ptRL_bins[] = nullptr, int n_ptRLbins = 0,
+                         bool include_RL0=true, bool include_RL1=true) {
+    
+    TCanvas *can = new TCanvas();
+    can->cd();
+    if (logx) gPad->SetLogx();
+    if (logy) gPad->SetLogy();
+
+    if (TH2* hist2D = dynamic_cast<TH2*>(obj)) { // put this first bc TH2 is a subclass of TH1!! (and it will go into the other loop :( )
+        cout << "TH2D should not be running in this function for now!" << endl;
+        return;
+        // gPad->SetRightMargin(0.12);
+        // if (logz) gPad->SetLogz();
+        // can->SetFillColor(kWhite);
+        // hist2D->Draw("COLZ");
+    } else if (TH1* hist = dynamic_cast<TH1*>(obj)) {
+        hist->Draw();
+    } else if (TGraphErrors* graph = dynamic_cast<TGraphErrors*>(obj)) {
+        graph->Draw("ALP");
+    } else if (TGraph* graph = dynamic_cast<TGraph*>(obj)) { // this is specifically for delta jt scatter
+        graph->Draw("ALP");
+    } else {
+        cout << "Error: Unsupported object type. Only TH1, TGraph, TGraphErrors, and TH2 are supported." << endl;
+        return;
+    }
+
+    TFile * fout = obs.get_output_root_file();
+    fout->cd();
+    if (write_to_root_file) obj->Write(); //TODO: this might not be right! Might have to use the casted type
+    fout->Close();
+
+
+    // std::string outdir = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/data_firstattempt"; // + ptbin_name + "/";//"plots/test/";
+    /*std::string add_dir = "";
+    if (obs_name != "jet_pt" && obs_name != "total_num_const" && obs_name != "num_const_aftercut") {
+        if (obs_name == "rc") add_dir = "/" + ptname + "/" + norm_string + "/" + obs_name;
+        else if (obs_name == "deltajt_scatter") add_dir = "/" + ptname;
+        // else if (obs_name == "deltajt_scatter_ind") add_dir = "/" + ptname + "self_normalized/deltajt";
+        else add_dir = "/" + ptname + "/" + norm_string + "/" + obs_name + "/individuals";
+    }
+    std::string usethisname = (obs_filename == "") ? obs_name : obs_filename;
+    
+    std::string fname_out = outdir + add_dir + "/corrhist_" + usethisname + hist_addname + ".pdf";*/
+
+    std::string fname_out = "";
+    if (obs.name.find("jet_") != std::string::npos || obs.name.find("const") != std::string::npos) fname_out = Form(obs.filepath_plots.c_str(), ("corrhist_" + obs.name + hist_addname + ".pdf").c_str());
+    else {
+        fname_out = Form(obs.filepath_plots.c_str(), ptname.c_str(), norm_string.c_str(), ("corrhist_" + obs.name + hist_addname + ".pdf").c_str());
+    }
+    can->SaveAs(fname_out.c_str());
+
+    // delete hist;
+    delete can;
+}
+
+
 
 /* Delete a vector of histograms */
 void deleteVecOfHists(std::vector<TH1D*>& histVector) {
