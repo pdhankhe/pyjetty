@@ -644,90 +644,278 @@ void plotandsave_combined_hists(Observable obs, TLegend *l, std::string ptname, 
 //                   SPECIFIC FUNCTIONS
 // ======================================================= //
 
-void plot_rc(vector<double>& ptRLcenters_vec, vector<vector<double>>& rc_vec, vector<double>& ptcenters_vec,
+void func() {
+    TCanvas *can = new TCanvas("can", "can", 750, 500);
+    can->cd();
+    for ( int i = 0; i < ptcenters_vec.size(); i++ ) {
+        if ( i == 0 ) {
+            rc_graphs_func_of_ptRL[i]->SetMinimum(-0.5);  // Lower y limit
+            rc_graphs_func_of_ptRL[i]->SetMaximum(0.025); 
+            rc_graphs_func_of_ptRL[i]->GetXaxis()->SetTitle("R_{L} bin center"); //change!!
+            rc_graphs_func_of_ptRL[i]->GetYaxis()->SetTitle("r_{c}"); 
+            rc_graphs_func_of_ptRL[i]->Draw("AP");
+        } 
+
+        for (int j = 0; j < ptRLcenters_vec.size(); j++) {
+            rc_graphs_func_of_ptRL_ind[i][j]->Draw("P SAME");
+        }
+    }
+    leg_RLbins.Draw("same");
+    leg_ptbins.Draw("same");
+    can->SaveAs(fname_func_of_RL_out.c_str());
+    delete can;
+
+}
+
+// void plot_rc(vector<double>& ptcenters_vec, vector<double>& ptRLcenters_vec, vector<vector<double>>& rc_vec,
+//              vector<vector<double>>& rc_errors_vec) {
+//             //  TLegend& leg_RLbins, TLegend& leg_ptbins) {
+    
+//     vector<TGraphErrors *> rc_graphs_func_of_ptRL;
+//     vector<TGraphErrors *> rc_graphs_func_of_pT;
+//     vector<vector<TGraphErrors*>> rc_graphs_func_of_ptRL_ind;
+//     vector<vector<TGraphErrors*>> rc_graphs_func_of_pT_ind;
+
+//     vector<double> ptRL_err;
+//     vector<double> pt_err;
+//     for (int i=0; i<ptcenters_vec.size(); i++) pt_err.push_back(0);
+//     for (int j=0; j<ptRLcenters_vec.size(); j++) ptRL_err.push_back(0);
+
+//     cout <<" ptRL_err size " << ptRL_err.size() << endl;
+//     cout <<" pt_err size " << pt_err.size() << endl;
+
+//     // std::string outdir = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/data_firstattempt"; // + ptbin_name + "/";//"plots/test/";
+//     std::string fname_func_of_RL_out = outdir + "/corrhist_rc_func_of_RL.pdf"; // could add jetR and threshold info later??, maybe not needed tho 
+//     std::string fname_func_of_pT_out = outdir + "/corrhist_rc_func_of_pT.pdf";
+
+//     TLegend leg_RLbins(0.2, 0.2, 0.4, 0.45); 
+//     TLegend leg_ptbins(0.5, 0.3, 0.65, 0.45); 
+
+//     leg_RLbins.SetTextSize(0.037);
+//     leg_RLbins.SetBorderSize(0);
+//     leg_ptbins.SetTextSize(0.037);
+//     leg_ptbins.SetBorderSize(0);
+
+//     // delete hist;
+
+//     // get graphs of r_c as a function of RL
+//     // loop over pt bins
+//     for ( int i = 0; i < ptcenters_vec.size(); i++ ) { 
+
+//         // for graphs as a function of ptRL
+//         TGraphErrors *g = new TGraphErrors(ptRLcenters_vec.size(), ptRLcenters_vec.data(), rc_vec[i].data(), ptRL_err.data(), rc_errors_vec[i].data());
+//         FormatGraphMarker(g, kBlack, 1.0, markers[i], marker_size);
+//         leg_ptbins.AddEntry(g, Form("p_{T} = %d-%d", (int)ptcenters_vec[i]-10, (int)ptcenters_vec[i]+10), "P");
+        
+//         vector<TGraphErrors*> ind_temp_vec;
+//         for (int j=0; j<ptRLcenters_vec.size(); j++){
+//             int k=j+1;
+//             TGraphErrors *g_ind = new TGraphErrors(1, &ptRLcenters_vec[j], &rc_vec[i][j], &ptRL_err[j], &rc_errors_vec[i][j]);
+//             cout << "i: " << i << " j: " << j << " err: " << rc_errors_vec[i][j] << endl;
+//             FormatGraphMarker(g_ind, colors[k], 1.0, markers[i], marker_size);
+//             ind_temp_vec.push_back(g_ind);
+            
+//             if (i==0) leg_RLbins.AddEntry(g_ind, Form("R_{L} bin %d", j+1), "P");
+            
+//         }
+//         rc_graphs_func_of_ptRL.push_back(g); 
+//         rc_graphs_func_of_ptRL_ind.push_back(ind_temp_vec); 
+                 
+
+//     }
+
+//     // plot r_c as a function of ptRL
+//     func();
+//     TCanvas *can_func_of_ptRL = new TCanvas("can_func_of_ptRL", "can_func_of_ptRL", 750, 500);
+//     can_func_of_ptRL->cd();
+//     for ( int i = 0; i < ptcenters_vec.size(); i++ ) {
+//         if ( i == 0 ) {
+//             rc_graphs_func_of_ptRL[i]->SetMinimum(-0.5);  // Lower y limit
+//             rc_graphs_func_of_ptRL[i]->SetMaximum(0.025); 
+//             rc_graphs_func_of_ptRL[i]->GetXaxis()->SetTitle("R_{L} bin center"); 
+//             rc_graphs_func_of_ptRL[i]->GetYaxis()->SetTitle("r_{c}"); 
+//             rc_graphs_func_of_ptRL[i]->Draw("AP");
+//         } 
+
+//         for (int j = 0; j < ptRLcenters_vec.size(); j++) {
+//             rc_graphs_func_of_ptRL_ind[i][j]->Draw("P SAME");
+//         }
+//     }
+//     leg_RLbins.Draw("same");
+//     leg_ptbins.Draw("same");
+//     can_func_of_ptRL->SaveAs(fname_func_of_RL_out.c_str());
+//     delete can_func_of_ptRL;
+
+//     //========================================================
+
+//     // get graphs of r_c as a function of pT
+//     vector<vector<double>> rc_vals_func_of_pT;
+//     vector<vector<double>> rc_err_vals_func_of_pT;
+//     // loop over RL bins
+//     for ( int j = 0; j < ptRLcenters_vec.size(); j++ ) {
+//         vector<double> temp_vec;
+//         vector<TGraphErrors*> ind_temp_vec;
+//         vector<double> err_temp_vec;
+
+//         // save values into appropriate vectors
+//         for ( int i = 0; i < ptcenters_vec.size(); i++ ) { 
+//             temp_vec.push_back(rc_vec[i][j]);
+//             err_temp_vec.push_back(rc_errors_vec[i][j]);
+            
+//             int k=j+1;
+//             TGraphErrors *g_ind = new TGraphErrors(1, &ptcenters_vec[i], &rc_vec[i][j], &pt_err[i], &rc_errors_vec[i][j]);
+//             cout << "i: " << i << " j: " << j << " err: " << rc_errors_vec[i][j] << endl;
+//             FormatGraphMarker(g_ind, colors[k], 1.0, markers[i], marker_size);
+//             ind_temp_vec.push_back(g_ind);
+//         }
+//         rc_vals_func_of_pT.push_back(temp_vec);
+//         rc_err_vals_func_of_pT.push_back(err_temp_vec);
+//         rc_graphs_func_of_pT_ind.push_back(ind_temp_vec); 
+
+//         // for graphs as a function of RL
+//         TGraphErrors *g = new TGraphErrors(ptcenters_vec.size(), ptcenters_vec.data(), rc_vals_func_of_pT[j].data(), pt_err.data(), rc_err_vals_func_of_pT[j].data());
+//         for (int aa = 0; aa < ptcenters_vec.size(); aa++) {
+//             // cout << "studying pt=" << ptcenters_vec[aa] << " // " << rc_vals_func_of_pT[j][aa] << endl;
+//         }
+//         rc_graphs_func_of_pT.push_back(g); 
+//     }
+    
+//     // plot r_c as a function of pT
+//     TCanvas *can_func_of_pT = new TCanvas("can_func_of_pT", "can_func_of_pT", 750, 500);
+//     can_func_of_pT->cd();
+//     for ( int j = 0; j < ptRLcenters_vec.size(); j++ ) {
+//         int k = j+1;
+//         // rc_graphs_func_of_pT[j]->SetMarkerSize(1.0);
+//         // rc_graphs_func_of_pT[j]->SetMarkerStyle(markers[0]);
+//         rc_graphs_func_of_pT[j]->SetMarkerColorAlpha(colors[k], 0.0);
+//         if ( j == 0 ) {
+//             rc_graphs_func_of_pT[j]->SetMinimum(-0.5);  // Lower y limit
+//             rc_graphs_func_of_pT[j]->SetMaximum(0.025); 
+//             rc_graphs_func_of_pT[j]->GetXaxis()->SetTitle("p_{T} bin center"); 
+//             rc_graphs_func_of_pT[j]->GetYaxis()->SetTitle("r_{c}"); 
+//             rc_graphs_func_of_pT[j]->Draw("AP");
+//         } // else { 
+//         //     rc_graphs_func_of_pT[j]->Draw("P SAME");
+//         // }
+
+//         for (int i = 0; i < ptcenters_vec.size(); i++) {
+//             rc_graphs_func_of_pT_ind[j][i]->Draw("P SAME");
+//         }
+//     }
+//     leg_RLbins.Draw("same");
+//     leg_ptbins.Draw("same");
+//     can_func_of_pT->SaveAs(fname_func_of_pT_out.c_str());
+//     delete can_func_of_pT;
+
+
+
+// }
+
+// xaxis can be "pt" or "ptrl"
+void idkyet(std::string xaxis, vector<double>& x_vec, vector<double>& x_err,
+            vector<vector<double>>& rc_vec, vector<vector<double>>& rc_errors_vec) {
+
+    int num_ptbins = rc_vec.size();
+    int num_ptrlbins = rc_vec[0].size();
+
+    for ( int i = 0; i < num_ptbins; i++ ) { // loop over number pt bins
+        for ( int j = 0; j < num_ptrlbins; j++ ) { // loop over number of ptRL bins
+            TGraphErrors * g_ind = new TGraphErrors(1, &x_vec[i], &rc_vec[i][j], &x_err[i], &rc_errors_vec[i][j]);
+        }
+    }
+
+
+    
+
+}
+
+void plot_rc(vector<double>& ptcenters_vec, vector<double>& ptRLcenters_vec, vector<vector<double>>& rc_vec,
              vector<vector<double>>& rc_errors_vec) {
             //  TLegend& leg_RLbins, TLegend& leg_ptbins) {
     
-    vector<TGraphErrors *> rc_graphs_func_of_RL;
-    vector<TGraphErrors *> rc_graphs_func_of_pT;
-    vector<vector<TGraphErrors*>> rc_graphs_func_of_RL_ind;
+    vector<TGraphErrors*> ptbin_graph_labels;
+    vector<vector<TGraphErrors*>> rc_graphs_func_of_ptRL_ind;
     vector<vector<TGraphErrors*>> rc_graphs_func_of_pT_ind;
 
-    vector<double> RL_err;
+    vector<double> ptRL_err;
     vector<double> pt_err;
     for (int i=0; i<ptcenters_vec.size(); i++) pt_err.push_back(0);
-    for (int j=0; j<ptRLcenters_vec.size(); j++) RL_err.push_back(0);
+    for (int j=0; j<ptRLcenters_vec.size(); j++) ptRL_err.push_back(0);
 
-    cout <<" RL_err size " << RL_err.size() << endl;
+    cout <<" ptRL_err size " << ptRL_err.size() << endl;
     cout <<" pt_err size " << pt_err.size() << endl;
 
     // std::string outdir = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/data_firstattempt"; // + ptbin_name + "/";//"plots/test/";
     std::string fname_func_of_RL_out = outdir + "/corrhist_rc_func_of_RL.pdf"; // could add jetR and threshold info later??, maybe not needed tho 
     std::string fname_func_of_pT_out = outdir + "/corrhist_rc_func_of_pT.pdf";
 
-    TLegend leg_RLbins(0.2, 0.2, 0.4, 0.45); 
+    TLegend leg_ptRLbins(0.2, 0.2, 0.4, 0.45); 
     TLegend leg_ptbins(0.5, 0.3, 0.65, 0.45); 
 
-    leg_RLbins.SetTextSize(0.037);
-    leg_RLbins.SetBorderSize(0);
+    leg_ptRLbins.SetTextSize(0.037);
+    leg_ptRLbins.SetBorderSize(0);
     leg_ptbins.SetTextSize(0.037);
     leg_ptbins.SetBorderSize(0);
 
-    // delete hist;
 
+
+    // get graphs of r_c as a function of RL
+    idkyet("pt", ptcenters_vec, pt_err, rc_vec, rc_errors_vec);
+            // get rid of "pt"??
+
+    // get graphs of r_c as a function of ptRL
+    idkyet("ptrl", ptRLcenters_vec, ptRL_err, rc_vec, rc_errors_vec)
+
+
+
+    //----====----====----====----====----====----====----====----====----====----====----====----====
     // get graphs of r_c as a function of RL
     // loop over pt bins
     for ( int i = 0; i < ptcenters_vec.size(); i++ ) { 
 
-        // for graphs as a function of RL
-        TGraphErrors *g = new TGraphErrors(ptRLcenters_vec.size(), ptRLcenters_vec.data(), rc_vec[i].data(), RL_err.data(), rc_errors_vec[i].data());
+        // for graphs as a function of ptRL
+        TGraphErrors *g = new TGraphErrors(ptRLcenters_vec.size(), ptRLcenters_vec.data(), rc_vec[i].data(), ptRL_err.data(), rc_errors_vec[i].data());
         FormatGraphMarker(g, kBlack, 1.0, markers[i], marker_size);
+        leg_ptbins.AddEntry(g, Form("p_{T} = %d-%d", (int)ptcenters_vec[i]-10, (int)ptcenters_vec[i]+10), "P");
+        
         vector<TGraphErrors*> ind_temp_vec;
-
         for (int j=0; j<ptRLcenters_vec.size(); j++){
             int k=j+1;
-            TGraphErrors *g_ind = new TGraphErrors(1, &ptRLcenters_vec[j], &rc_vec[i][j], &RL_err[j], &rc_errors_vec[i][j]);
+            TGraphErrors *g_ind = new TGraphErrors(1, &ptRLcenters_vec[j], &rc_vec[i][j], &ptRL_err[j], &rc_errors_vec[i][j]);
             cout << "i: " << i << " j: " << j << " err: " << rc_errors_vec[i][j] << endl;
             FormatGraphMarker(g_ind, colors[k], 1.0, markers[i], marker_size);
             ind_temp_vec.push_back(g_ind);
             
-            if (i==0) {
-                leg_RLbins.AddEntry(g_ind, Form("R_{L} bin %d", j+1), "P");
-            }
+            if (i==0) leg_ptRLbins.AddEntry(g_ind, Form("R_{L} bin %d", j+1), "P");
+            
         }
-        rc_graphs_func_of_RL.push_back(g); 
-        rc_graphs_func_of_RL_ind.push_back(ind_temp_vec); 
-        
-        // Should fix what gets subbed into %d so it is more flexible if the bins are not 20 GeV big?
-        leg_ptbins.AddEntry(g, Form("p_{T} = %d-%d", (int)ptcenters_vec[i]-10, (int)ptcenters_vec[i]+10), "P");
-         
+        rc_graphs_func_of_ptRL.push_back(g); 
+        rc_graphs_func_of_ptRL_ind.push_back(ind_temp_vec); 
+                 
 
     }
 
-    // plot r_c as a function of RL
-    TCanvas *can_func_of_RL = new TCanvas("can_func_of_RL", "can_func_of_RL", 750, 500);
-    can_func_of_RL->cd();
+    // plot r_c as a function of ptRL
+    func();
+    TCanvas *can_func_of_ptRL = new TCanvas("can_func_of_ptRL", "can_func_of_ptRL", 750, 500);
+    can_func_of_ptRL->cd();
     for ( int i = 0; i < ptcenters_vec.size(); i++ ) {
-        // rc_graphs_func_of_RL[i]->SetMarkerSize(1.0);
-        // rc_graphs_func_of_RL[i]->SetMarkerStyle(markers[i]);
         if ( i == 0 ) {
-            rc_graphs_func_of_RL[i]->SetMinimum(-0.5);  // Lower y limit
-            rc_graphs_func_of_RL[i]->SetMaximum(0.025); 
-            rc_graphs_func_of_RL[i]->GetXaxis()->SetTitle("R_{L} bin center"); 
-            rc_graphs_func_of_RL[i]->GetYaxis()->SetTitle("r_{c}"); 
-            rc_graphs_func_of_RL[i]->Draw("AP");
-        } // else {
-        //     rc_graphs_func_of_RL[i]->Draw("P SAME");
-        // }
+            rc_graphs_func_of_ptRL[i]->SetMinimum(-0.5);  // Lower y limit
+            rc_graphs_func_of_ptRL[i]->SetMaximum(0.025); 
+            rc_graphs_func_of_ptRL[i]->GetXaxis()->SetTitle("R_{L} bin center"); 
+            rc_graphs_func_of_ptRL[i]->GetYaxis()->SetTitle("r_{c}"); 
+            rc_graphs_func_of_ptRL[i]->Draw("AP");
+        } 
 
         for (int j = 0; j < ptRLcenters_vec.size(); j++) {
-            rc_graphs_func_of_RL_ind[i][j]->Draw("P SAME");
+            rc_graphs_func_of_ptRL_ind[i][j]->Draw("P SAME");
         }
     }
-    leg_RLbins.Draw("same");
+    leg_ptRLbins.Draw("same");
     leg_ptbins.Draw("same");
-    can_func_of_RL->SaveAs(fname_func_of_RL_out.c_str());
-    delete can_func_of_RL;
+    can_func_of_ptRL->SaveAs(fname_func_of_RL_out.c_str());
+    delete can_func_of_ptRL;
 
     //========================================================
 
@@ -785,7 +973,7 @@ void plot_rc(vector<double>& ptRLcenters_vec, vector<vector<double>>& rc_vec, ve
             rc_graphs_func_of_pT_ind[j][i]->Draw("P SAME");
         }
     }
-    leg_RLbins.Draw("same");
+    leg_ptRLbins.Draw("same");
     leg_ptbins.Draw("same");
     can_func_of_pT->SaveAs(fname_func_of_pT_out.c_str());
     delete can_func_of_pT;
@@ -1019,7 +1207,7 @@ void analyze_rc(TChain * JETINFO_tree, TChain * PAIRINFO_tree, std::string weigh
     // cout << "size of rc_vec " << rc_vec.size() << endl;
     // cout << "size of rc_vec[0] " << rc_vec[0].size() << endl;
     // cout << "size of ptcenters_vec " << ptcenters_vec.size() << endl;
-    plot_rc(ptRLcenters_vec, rc_vec, ptcenters_vec, rc_errors_vec); //, leg_RLbins, leg_ptbins);
+    plot_rc(ptcenters_vec, ptRLcenters_vec, rc_vec, rc_errors_vec); //, leg_RLbins, leg_ptbins);
 
 }
 
