@@ -138,7 +138,8 @@ namespace EnergyCorrelators
                 { // if deta_cut is on, apply it to pairs
                     if ( !ApplyDeltaEtaRejection(deta_cut, _eta12) ) continue;
                 }
-                double _d12 = parts[i].delta_R(parts[j]);
+                // double _d12 = parts[i].delta_R(parts[j]);
+                double _d12 = std::sqrt(std::pow(parts[i].delta_phi_to(parts[j]),2) + std::pow(parts[i].eta() - parts[j].eta(), 2));
 		
 		
 		double _w2 = 0;
@@ -156,8 +157,10 @@ namespace EnergyCorrelators
                     continue;
                 for (size_t k = 0; k < parts.size(); k++)
                 {
-                    double _d13 = parts[i].delta_R(parts[k]);
-                    double _d23 = parts[j].delta_R(parts[k]);
+                    // double _d13 = parts[i].delta_R(parts[k]);
+                    // double _d23 = parts[j].delta_R(parts[k]);
+                    double _d13 = std::sqrt(std::pow(parts[i].delta_phi_to(parts[k]),2) + std::pow(parts[i].eta() - parts[k].eta(), 2));
+                    double _d23 = std::sqrt(std::pow(parts[j].delta_phi_to(parts[k]),2) + std::pow(parts[j].eta() - parts[k].eta(), 2));
                     double _w3 = parts[i].perp() * parts[j].perp() * parts[k].perp() / std::pow(scale, 3);
                     _w3 = pow(_w3, power);
                     double _d3max = std::max({_d12, _d13, _d23});
@@ -168,9 +171,12 @@ namespace EnergyCorrelators
                         continue;
                     for (size_t l = 0; l < parts.size(); l++)
                     {
-                        double _d14 = parts[i].delta_R(parts[l]);
-                        double _d24 = parts[j].delta_R(parts[l]);
-                        double _d34 = parts[k].delta_R(parts[l]);
+                        // double _d14 = parts[i].delta_R(parts[l]);
+                        // double _d24 = parts[j].delta_R(parts[l]);
+                        // double _d34 = parts[k].delta_R(parts[l]);
+                        double _d14 = std::sqrt(std::pow(parts[i].delta_phi_to(parts[l]),2) + std::pow(parts[i].eta() - parts[l].eta(), 2));
+                        double _d24 = std::sqrt(std::pow(parts[j].delta_phi_to(parts[l]),2) + std::pow(parts[j].eta() - parts[l].eta(), 2));
+                        double _d34 = std::sqrt(std::pow(parts[k].delta_phi_to(parts[l]),2) + std::pow(parts[k].eta() - parts[l].eta(), 2));                    
                         double _w4 = parts[i].perp() * parts[j].perp() * parts[k].perp() * parts[l].perp() / std::pow(scale, 4);
                         _w4 = pow(_w4, power);
                         double _d4max = std::max({_d12, _d13, _d23, _d14, _d24, _d34});
@@ -184,10 +190,14 @@ namespace EnergyCorrelators
                             continue;
                         for (size_t m = 0; m < parts.size(); m++)
                         {
-                            double _d15 = parts[i].delta_R(parts[m]);
-                            double _d25 = parts[j].delta_R(parts[m]);
-                            double _d35 = parts[k].delta_R(parts[m]);
-                            double _d45 = parts[l].delta_R(parts[m]);
+                            // double _d15 = parts[i].delta_R(parts[m]);
+                            // double _d25 = parts[j].delta_R(parts[m]);
+                            // double _d35 = parts[k].delta_R(parts[m]);
+                            // double _d45 = parts[l].delta_R(parts[m]);
+                            double _d15 = std::sqrt(std::pow(parts[i].delta_phi_to(parts[m]),2) + std::pow(parts[i].eta() - parts[m].eta(), 2));
+                            double _d25 = std::sqrt(std::pow(parts[j].delta_phi_to(parts[m]),2) + std::pow(parts[j].eta() - parts[m].eta(), 2));
+                            double _d35 = std::sqrt(std::pow(parts[k].delta_phi_to(parts[m]),2) + std::pow(parts[k].eta() - parts[m].eta(), 2));
+                            double _d45 = std::sqrt(std::pow(parts[l].delta_phi_to(parts[m]),2) + std::pow(parts[l].eta() - parts[m].eta(), 2));
                             double _w5 = parts[i].perp() * parts[j].perp() * parts[k].perp() * parts[l].perp() * parts[m].perp() / std::pow(scale, 5);
                             _w5 = pow(_w5, power);
                             double _d5max = std::max({_d12, _d13, _d23, _d14, _d24, _d34, _d15, _d25, _d35, _d45});
@@ -366,7 +376,8 @@ namespace EnergyCorrelators
             { // if deta_cut is on, apply it to pairs
                 if ( !ApplyDeltaEtaRejection(deta_cut, _eta12) ) continue;
             }
-            double _d12 = parts[i].delta_R(softpion);
+            // double _d12 = parts[i].delta_R(softpion);
+            double _d12 = std::sqrt(std::pow(parts[i].delta_phi_to(softpion),2) + std::pow(parts[i].eta() - softpion.eta(), 2));
             double _w2 = 0;
     
 
@@ -425,7 +436,8 @@ namespace EnergyCorrelators
         { // if deta_cut is on, apply it to pairs
             if ( !ApplyDeltaEtaRejection(deta_cut, _eta12) ) return;
         }
-        double _d12 = Dmeson.delta_R(softpion);
+        // double _d12 = Dmeson.delta_R(softpion);
+        double _d12 = std::sqrt(std::pow(Dmeson.delta_phi_to(softpion),2) + std::pow(Dmeson.eta() - softpion.eta(), 2));
         double _w2 = 0;
 
         // we want only pairs where we are matching the soft pion from D* to every other charged particle

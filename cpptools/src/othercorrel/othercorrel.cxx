@@ -144,7 +144,7 @@ namespace OtherCorrelators
                 // cout << "correltype " << correltype << "; " << strcmp(correltype, "deltap") << endl;
 
                 if (strcmp(correltype, "deltap") == 0) {
-                    // _d12 = fabs(parts[i].p() - parts[j].p()); //parts[i].delta_R(parts[j]);
+                    // _d12 = fabs(parts[i].p() - parts[j].p());
                     double p1 = sqrt(parts[i].px()*parts[i].px() + parts[i].py()*parts[i].py() + parts[i].pz()*parts[i].pz()); //parts[i].charge();
                     double p2 = sqrt(parts[j].px()*parts[j].px() + parts[j].py()*parts[j].py() + parts[j].pz()*parts[j].pz());
                     _d12 = fabs(p1 - p2);

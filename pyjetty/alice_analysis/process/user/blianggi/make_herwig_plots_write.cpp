@@ -252,6 +252,73 @@ void make_herwig_plots_write() {
 
                 //==================================================//
 
+                // save jet pt spectrum and D0 spectra with rapidity cut only
+                if (dname == "D0") {
+                    THnSparse *hsparse_jetinfo_clone_forjetspectra = (THnSparse *) hsparse_jetinfo->Clone(("hsparse_jetinfo_clone_forjetspectra_trkthrd" + trkthrd).c_str());
+                    hsparse_jetinfo_clone_forjetspectra->GetAxis(0)->SetRangeUser(0,200); // jet pt
+                    hsparse_jetinfo_clone_forjetspectra->GetAxis(1)->SetRangeUser(0,200); // D0 pt
+                    hsparse_jetinfo_clone_forjetspectra->GetAxis(2)->SetRangeUser(-0.8, 0.8); // D0 y
+                    double num_norm = hsparse_jetinfo_clone_forjetspectra->Projection(0)->Integral();
+
+                    TH1D * jet_pt_spectrum_from_thnsparse_unnorm = hsparse_jetinfo_clone_forjetspectra->Projection(0); // jet pt
+                    TH1D * D0_pt_spectrum_from_thnsparse_unnorm = hsparse_jetinfo_clone_forjetspectra->Projection(1); // D0 pt
+                    TH1D * D0_z_spectrum_from_thnsparse_unnorm = hsparse_jetinfo_clone_forjetspectra->Projection(3); // D0 z
+
+                    TH1D * jet_pt_spectrum_from_thnsparse_norm = (TH1D *) jet_pt_spectrum_from_thnsparse_unnorm->Clone(("jet_pt_spectrum_from_thnsparse_trkthrd" + trkthrd +"_norm").c_str()); // jet pt
+                    TH1D * D0_pt_spectrum_from_thnsparse_norm = (TH1D *) D0_pt_spectrum_from_thnsparse_unnorm->Clone(("D0_pt_spectrum_from_thnsparse_trkthrd" + trkthrd +"_norm").c_str()); // D0 pt
+                    TH1D * D0_z_spectrum_from_thnsparse_norm = (TH1D *) D0_z_spectrum_from_thnsparse_unnorm->Clone(("D0_z_spectrum_from_thnsparse_trkthrd" + trkthrd +"_norm").c_str()); // D0 z
+
+                    jet_pt_spectrum_from_thnsparse_norm->Scale(1/num_norm, "width");
+                    D0_pt_spectrum_from_thnsparse_norm->Scale(1/num_norm, "width");
+                    D0_z_spectrum_from_thnsparse_norm->Scale(1/num_norm, "width");
+
+                    jet_pt_spectrum_from_thnsparse_unnorm->SetNameTitle(("jet_pt_spectrum_from_thnsparse_trkthrd" + trkthrd + "_unnormalized").c_str(), ("jet pt spectrum from thnsparse, trkthrd" + trkthrd + "unnormalized").c_str());
+                    D0_pt_spectrum_from_thnsparse_unnorm->SetNameTitle(("D0_pt_spectrum_from_thnsparse_trkthrd" + trkthrd + "_unnormalized").c_str(), ("D0 pt spectrum from thnsparse, trkthrd" + trkthrd + "unnormalized").c_str());
+                    D0_z_spectrum_from_thnsparse_unnorm->SetNameTitle(("D0_z_spectrum_from_thnsparse_trkthrd" + trkthrd + "_unnormalized").c_str(), ("D0 z spectrum from thnsparse, trkthrd" + trkthrd + "unnormalized").c_str());
+                    jet_pt_spectrum_from_thnsparse_norm->SetNameTitle(("jet_pt_spectrum_from_thnsparse_trkthrd" + trkthrd + "_normalized").c_str(), ("jet pt spectrum from thnsparse, trkthrd" + trkthrd + "normalized").c_str());
+                    D0_pt_spectrum_from_thnsparse_norm->SetNameTitle(("D0_pt_spectrum_from_thnsparse_trkthrd" + trkthrd + "_normalized").c_str(), ("D0 pt spectrum from thnsparse, trkthrd" + trkthrd + "normalized").c_str());
+                    D0_z_spectrum_from_thnsparse_norm->SetNameTitle(("D0_z_spectrum_from_thnsparse_trkthrd" + trkthrd + "_normalized").c_str(), ("D0 z spectrum from thnsparse, trkthrd" + trkthrd + "normalized").c_str());
+
+                    // cout << "WRITING!!" << jetR << " and " << trkthrd << endl;
+                    jet_pt_spectrum_from_thnsparse_unnorm->Write();
+                    D0_pt_spectrum_from_thnsparse_unnorm->Write();
+                    D0_z_spectrum_from_thnsparse_unnorm->Write();
+                    jet_pt_spectrum_from_thnsparse_norm->Write();
+                    D0_pt_spectrum_from_thnsparse_norm->Write();
+                    D0_z_spectrum_from_thnsparse_norm->Write();
+
+                    // now do cuts on jet pt and look at D0 spectral
+                    THnSparse *hsparse_clone_2a = (THnSparse *) hsparse_jetinfo_clone_forjetspectra->Clone("hsparse_clone_2a");
+                    THnSparse *hsparse_clone_2b = (THnSparse *) hsparse_jetinfo_clone_forjetspectra->Clone("hsparse_clone_2b");
+                    hsparse_clone_2a->GetAxis(0)->SetRangeUser(10,15); // jet pt
+                    hsparse_clone_2b->GetAxis(0)->SetRangeUser(15,30); // jet pt
+                    double num_norm_a = hsparse_clone_2a->Projection(0)->Integral();
+                    double num_norm_b = hsparse_clone_2b->Projection(0)->Integral();
+
+                    TH1D * D0_pt_spectrum_from_thnsparse_pt1015_norm = hsparse_clone_2a->Projection(1); // D0 pt
+                    TH1D * D0_z_spectrum_from_thnsparse_pt1015_norm = hsparse_clone_2a->Projection(3); // D0 z
+                    TH1D * D0_pt_spectrum_from_thnsparse_pt1530_norm = hsparse_clone_2b->Projection(1); // D0 pt
+                    TH1D * D0_z_spectrum_from_thnsparse_pt1530_norm = hsparse_clone_2b->Projection(3); // D0 z
+
+                    D0_pt_spectrum_from_thnsparse_pt1015_norm->Scale(1/num_norm_a, "width");
+                    D0_z_spectrum_from_thnsparse_pt1015_norm->Scale(1/num_norm_a, "width");
+                    D0_pt_spectrum_from_thnsparse_pt1530_norm->Scale(1/num_norm_b, "width");
+                    D0_z_spectrum_from_thnsparse_pt1530_norm->Scale(1/num_norm_b, "width");
+
+                    D0_pt_spectrum_from_thnsparse_pt1015_norm->SetNameTitle(("D0_pt_spectrum_from_thnsparse_pt1015_trkthrd" + trkthrd + "_normalized").c_str(), ("D0 pt spectrum from thnsparse, pt10-15, trkthrd" + trkthrd + "normalized").c_str());
+                    D0_z_spectrum_from_thnsparse_pt1015_norm->SetNameTitle(("D0_z_spectrum_from_thnsparse_pt1015_trkthrd" + trkthrd + "_normalized").c_str(), ("D0 z spectrum from thnsparse, pt15-30, trkthrd" + trkthrd + "normalized").c_str());
+                    D0_pt_spectrum_from_thnsparse_pt1530_norm->SetNameTitle(("D0_pt_spectrum_from_thnsparse_pt1530_trkthrd" + trkthrd + "_normalized").c_str(), ("D0 pt spectrum from thnsparse, pt10-15, trkthrd" + trkthrd + "normalized").c_str());
+                    D0_z_spectrum_from_thnsparse_pt1530_norm->SetNameTitle(("D0_z_spectrum_from_thnsparse_pt1530_trkthrd" + trkthrd + "_normalized").c_str(), ("D0 z spectrum from thnsparse, pt15-30, trkthrd" + trkthrd + "normalized").c_str());
+
+                    D0_pt_spectrum_from_thnsparse_pt1015_norm->Write();
+                    D0_z_spectrum_from_thnsparse_pt1015_norm->Write();
+                    D0_pt_spectrum_from_thnsparse_pt1530_norm->Write();
+                    D0_z_spectrum_from_thnsparse_pt1530_norm->Write();
+                }
+
+                //==================================================//
+
+
 
                 // pt bins
                 const int pt_bins[] = { 7, 10, 15, 30 }; //{ 10, 20, 40 }; // CHANGE HERE!!
