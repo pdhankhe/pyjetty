@@ -201,6 +201,13 @@ TLine * drawHoriLine(double x1, double x2, double y1, int color, int linestyle=2
 
 }
 
+void define_ratio_yaxis(TH1D * hratio){
+    hratio->GetYaxis()->SetTitle("#frac{Herwig}{PYTHIA}");
+    hratio->GetYaxis()->SetNdivisions(5);
+    hratio->GetYaxis()->SetTitleSize(0.04);
+    hratio->GetYaxis()->SetTitleOffset(1.5);
+}
+
 
 void make_herwig_pythia_comparison() {
 
@@ -239,7 +246,7 @@ void make_herwig_pythia_comparison() {
     // 4 = adding in Mateusz's sherpa to sherpa vs herwig vs pythia D0 and also Mateusz's inclusive 5 GeV cut
     
     //CONTOL VARIABLES HERE
-    int plot_case = 2;
+    int plot_case = 0;
     bool logstring = false;
 
     TString label1 = "";
@@ -386,11 +393,7 @@ void make_herwig_pythia_comparison() {
 
 
     FormatHist(l2, hratio, "ratio", kBlack, markers[2]); //, 0.05, 0.04, 1.2, 0.035, 0.03, 1.5);
-    hratio->GetYaxis()->SetTitle("#frac{Herwig}{PYTHIA}");
-    hratio->GetYaxis()->SetNdivisions(5);
-    hratio->GetYaxis()->SetTitleSize(0.04);
-    hratio->GetYaxis()->SetTitleOffset(1.5);
-
+    define_ratio_yaxis(hratio);
     hratio->Draw();
 
     // // draw line at 1
@@ -445,11 +448,7 @@ void make_herwig_pythia_comparison() {
 
 
     FormatHist(l2, hratioz, "ratio", kBlack, markers[2]); //, 0.05, 0.04, 1.2, 0.035, 0.03, 1.5);
-    hratioz->GetYaxis()->SetTitle("#frac{Herwig}{PYTHIA}");
-    hratioz->GetYaxis()->SetNdivisions(5);
-    hratioz->GetYaxis()->SetTitleSize(0.04);
-    hratioz->GetYaxis()->SetTitleOffset(1.5);
-
+    define_ratio_yaxis(hratioz);
     hratioz->Draw();
 
     // // draw line at 1
@@ -462,6 +461,252 @@ void make_herwig_pythia_comparison() {
     const char* fname_zc = fname_z.c_str();
     c_z->SaveAs(fname_zc);
     delete c_z;
+
+
+
+    //--------------------------------------------------------//
+
+    TLegend* l_movefake = new TLegend(0.5097168,0.370741,0.7362155,0.5885185,""); //not so fake anymore but whatever
+    l_movefake->AddEntry((TObject*)0,"in charged jets, anti-#it{k}_{T}, #it{R} = 0.4","h");
+    l_movefake->SetTextSize(0.037);
+    l_movefake->SetBorderSize(0);
+    
+    TCanvas* c_jet_pt_from_thnsparse = new TCanvas();
+    ProcessCanvas(c_jet_pt_from_thnsparse);
+    c_jet_pt_from_thnsparse->cd();
+    gPad->SetLogy();
+    gPad->SetBottomMargin(0.4);
+
+    TH1D* h_jet_pt_from_thnsparse_pythia = (TH1D*) f_pythia_D0->Get("jet_pt_spectrum_from_thnsparse_trkthrd1.0_normalized");
+    TH1D* h_jet_pt_from_thnsparse_herwig = (TH1D*) f_herwig->Get("jet_pt_spectrum_from_thnsparse_trkthrd1.0_normalized");
+    
+
+    TPad *pad5 = new TPad("pad5","pad5",0.,0.,1.,1.);
+
+    // h_jet_pt_from_thnsparse_pythia->GetXaxis()->SetTitle("D^{0} z");
+    // h_jet_pt_from_thnsparse_herwig->GetXaxis()->SetTitle("D^{0} z");
+
+    FormatHist(l2, h_jet_pt_from_thnsparse_pythia, label1, markercolor1, markerstyle1, 0.80);
+    FormatHist(l2, h_jet_pt_from_thnsparse_herwig, label3, markercolor3, markerstyle3, 0.80);
+
+    h_jet_pt_from_thnsparse_pythia->Draw("same");
+    h_jet_pt_from_thnsparse_herwig->Draw("same");
+
+    l_fake->Draw("same");
+    h_jet_pt_from_thnsparse_pythia->GetXaxis()->SetLabelSize(0);
+
+    TPad *pad6 = new TPad("pad5","",0.,0.,1.,1.);
+    pad6->SetTopMargin(0.61); pad6->SetFillColor(0); pad6->SetFillStyle(0);
+    pad6->Draw();
+    pad6->SetLogy();
+    pad6->cd();
+
+    ratio_name = "hratio_jet_pt_from_thnsparse";
+    TH1D* hratio_jet_pt_from_thnsparse = (TH1D*) h_jet_pt_from_thnsparse_herwig->Clone(ratio_name.c_str());
+    hratio_jet_pt_from_thnsparse->Divide(h_jet_pt_from_thnsparse_pythia);
+    hratio_jet_pt_from_thnsparse->SetMinimum(0.5);
+    hratio_jet_pt_from_thnsparse->SetMaximum(10.);
+
+
+    FormatHist(l2, hratio_jet_pt_from_thnsparse, "ratio", kBlack, markers[2]); //, 0.05, 0.04, 1.2, 0.035, 0.03, 1.5);
+    define_ratio_yaxis(hratio_jet_pt_from_thnsparse);
+    hratio_jet_pt_from_thnsparse->SetLineWidth(2);
+    hratio_jet_pt_from_thnsparse->Draw("hist c");
+
+    // // draw line at 1
+    drawHoriLine(0., 200., 1., kGray+2, 1)->Draw();
+
+    //PT STUFF FIGURE OUT WHERE TO PUT THIS LATER
+    std::string fname_temp = outdir + "herwig-pythia_comparison_jet_pt_from_thnsparse_R0.4.pdf";
+    const char* fname_tempc = fname_temp.c_str();
+    c_jet_pt_from_thnsparse->SaveAs(fname_tempc);
+    delete c_jet_pt_from_thnsparse;
+
+    // =========
+
+    TCanvas* c_D0_pt_from_thnsparse = new TCanvas();
+    ProcessCanvas(c_D0_pt_from_thnsparse);
+    c_D0_pt_from_thnsparse->cd();
+    gPad->SetLogy();
+    gPad->SetBottomMargin(0.4);
+
+    TH1D* h_D0_pt_from_thnsparse_pythia = (TH1D*) f_pythia_D0->Get("D0_pt_spectrum_from_thnsparse_trkthrd1.0_normalized");
+    TH1D* h_D0_pt_from_thnsparse_herwig = (TH1D*) f_herwig->Get("D0_pt_spectrum_from_thnsparse_trkthrd1.0_normalized");
+    
+
+    TPad *pad7 = new TPad("pad7","pad7",0.,0.,1.,1.);
+
+    // h_D0_pt_from_thnsparse_pythia->GetXaxis()->SetTitle("D^{0} z");
+    // h_D0_pt_from_thnsparse_herwig->GetXaxis()->SetTitle("D^{0} z");
+
+    FormatHist(l2, h_D0_pt_from_thnsparse_pythia, label1, markercolor1, markerstyle1, 0.80);
+    FormatHist(l2, h_D0_pt_from_thnsparse_herwig, label3, markercolor3, markerstyle3, 0.80);
+
+    h_D0_pt_from_thnsparse_pythia->Draw("same");
+    h_D0_pt_from_thnsparse_herwig->Draw("same");
+
+    l_fake->Draw("same");
+    h_D0_pt_from_thnsparse_pythia->GetXaxis()->SetLabelSize(0);
+
+    TPad *pad8 = new TPad("pad7","",0.,0.,1.,1.);
+    pad8->SetTopMargin(0.61); pad8->SetFillColor(0); pad8->SetFillStyle(0);
+    pad8->Draw();
+    pad8->SetLogy();
+    pad8->cd();
+
+    ratio_name = "hratio_D0_pt_from_thnsparse";
+    TH1D* hratio_D0_pt_from_thnsparse = (TH1D*) h_D0_pt_from_thnsparse_herwig->Clone(ratio_name.c_str());
+    hratio_D0_pt_from_thnsparse->Divide(h_D0_pt_from_thnsparse_pythia);
+    hratio_D0_pt_from_thnsparse->SetMinimum(0.5);
+    hratio_D0_pt_from_thnsparse->SetMaximum(10.);
+
+
+    FormatHist(l2, hratio_D0_pt_from_thnsparse, "ratio", kBlack, markers[2]); //, 0.05, 0.04, 1.2, 0.035, 0.03, 1.5);
+    define_ratio_yaxis(hratio_D0_pt_from_thnsparse);
+    hratio_D0_pt_from_thnsparse->SetLineWidth(2);
+    hratio_D0_pt_from_thnsparse->Draw("hist c");
+
+    // // draw line at 1
+    drawHoriLine(0., 200., 1., kGray+2, 1)->Draw();
+
+    //PT STUFF FIGURE OUT WHERE TO PUT THIS LATER
+    std::string fname_temp2 = outdir + "herwig-pythia_comparison_D0_pt_from_thnsparse_R0.4.pdf";
+    const char* fname_temp2c = fname_temp2.c_str();
+    c_D0_pt_from_thnsparse->SaveAs(fname_temp2c);
+    delete c_D0_pt_from_thnsparse;
+
+    // =========
+
+    TCanvas* c_D0_z_from_thnsparse = new TCanvas();
+    ProcessCanvas(c_D0_z_from_thnsparse);
+    c_D0_z_from_thnsparse->cd();
+    gPad->SetLogy();
+    gPad->SetBottomMargin(0.4);
+
+    TH1D* h_D0_z_from_thnsparse_pythia = (TH1D*) f_pythia_D0->Get("D0_z_spectrum_from_thnsparse_trkthrd1.0_normalized");
+    TH1D* h_D0_z_from_thnsparse_herwig = (TH1D*) f_herwig->Get("D0_z_spectrum_from_thnsparse_trkthrd1.0_normalized");
+    
+
+    TPad *pad9 = new TPad("pad9","pad9",0.,0.,1.,1.);
+
+    // h_D0_z_from_thnsparse_pythia->GetXaxis()->SetTitle("D^{0} z");
+    // h_D0_z_from_thnsparse_herwig->GetXaxis()->SetTitle("D^{0} z");
+
+    FormatHist(l_movefake, h_D0_z_from_thnsparse_pythia, label1, markercolor1, markerstyle1, 0.80);
+    FormatHist(l_movefake, h_D0_z_from_thnsparse_herwig, label3, markercolor3, markerstyle3, 0.80);
+
+    h_D0_z_from_thnsparse_pythia->Draw("same");
+    h_D0_z_from_thnsparse_herwig->Draw("same");
+
+    l_movefake->Draw("same");
+    h_D0_z_from_thnsparse_pythia->GetXaxis()->SetLabelSize(0);
+
+    TPad *pad10 = new TPad("pad9","",0.,0.,1.,1.);
+    pad10->SetTopMargin(0.61); pad10->SetFillColor(0); pad10->SetFillStyle(0);
+    pad10->Draw();
+    pad10->SetLogy();
+    pad10->cd();
+
+    ratio_name = "hratio_D0_z_from_thnsparse";
+    TH1D* hratio_D0_z_from_thnsparse = (TH1D*) h_D0_z_from_thnsparse_herwig->Clone(ratio_name.c_str());
+    hratio_D0_z_from_thnsparse->Divide(h_D0_z_from_thnsparse_pythia);
+    // hratio_D0_z_from_thnsparse->SetMinimum(0.5);
+    // hratio_D0_z_from_thnsparse->SetMaximum(10.);
+
+
+    FormatHist(l2, hratio_D0_z_from_thnsparse, "ratio", kBlack, markers[2]); //, 0.05, 0.04, 1.2, 0.035, 0.03, 1.5);
+    define_ratio_yaxis(hratio_D0_z_from_thnsparse);
+    hratio_D0_z_from_thnsparse->SetLineWidth(2);
+    hratio_D0_z_from_thnsparse->Draw("hist c");
+
+    // // draw line at 1
+    drawHoriLine(0., 1.01, 1., kGray+2, 1)->Draw();
+
+    //PT STUFF FIGURE OUT WHERE TO PUT THIS LATER
+    std::string fname_temp3 = outdir + "herwig-pythia_comparison_D0_z_from_thnsparse_R0.4.pdf";
+    const char* fname_temp3c = fname_temp3.c_str();
+    c_D0_z_from_thnsparse->SaveAs(fname_temp3c);
+    delete c_D0_z_from_thnsparse;
+
+    // look at D0 spectra with jet pt cuts
+    TCanvas *can_D0_withptcuts = new TCanvas("can_D0_withptcuts", "D0 spectra with jet pt cuts", 800, 800);
+    can_D0_withptcuts->Divide(2,2);
+    TString hnames_D0spectra_withptcuts[] = { "D0_pt_spectrum_from_thnsparse_pt1015_trkthrd1.0_normalized",
+                                            "D0_z_spectrum_from_thnsparse_pt1015_trkthrd1.0_normalized",
+                                            "D0_pt_spectrum_from_thnsparse_pt1530_trkthrd1.0_normalized",
+                                            "D0_z_spectrum_from_thnsparse_pt1530_trkthrd1.0_normalized" };
+    TFile * fout_for_mateusz = new TFile("/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/EEC/rootfiles/D0_spectra_for_Mateusz.root", "RECREATE");
+    
+    for (int a = 1; a <= 4; a++) {
+        can_D0_withptcuts->cd(a);
+        gPad->SetLogy();
+        gPad->SetBottomMargin(0.4);
+
+        TH1D* h_D0_spectra_withjetptcut_from_thnsparse_pythia = (TH1D*) f_pythia_D0->Get(hnames_D0spectra_withptcuts[a-1]);
+        TH1D* h_D0_spectra_withjetptcut_from_thnsparse_herwig = (TH1D*) f_herwig->Get(hnames_D0spectra_withptcuts[a-1]);
+
+        if (a % 2 == 1) {
+            h_D0_spectra_withjetptcut_from_thnsparse_pythia->GetXaxis()->SetRangeUser(0, 50);
+            h_D0_spectra_withjetptcut_from_thnsparse_herwig->GetXaxis()->SetRangeUser(0, 50);
+        }
+        TPad *pad11 = new TPad("pad11","pad11",0.,0.,1.,1.);
+
+        TLegend *leg_pt = new TLegend(0.6, 0.5, 0.8, 0.6, "");
+        leg_pt->SetTextSize(0.037);
+        leg_pt->SetBorderSize(0);
+        if (a <= 2) leg_pt->AddEntry((TObject*)0, "jet p_{T} = 10-15", "");
+        else leg_pt->AddEntry((TObject*)0, "jet p_{T} = 15-30", "");
+
+        TLegend* l_movefake2 = new TLegend(0.4097168,0.670741,0.6362155,0.8885185,""); //not so fake anymore but whatever
+        l_movefake2->AddEntry((TObject*)0,"in charged jets, anti-#it{k}_{T}, #it{R} = 0.4","h");
+        l_movefake2->SetTextSize(0.037);
+        l_movefake2->SetBorderSize(0);
+
+        FormatHist(l_movefake2, h_D0_spectra_withjetptcut_from_thnsparse_pythia, label1, markercolor1, markerstyle1, 0.80);
+        FormatHist(l_movefake2, h_D0_spectra_withjetptcut_from_thnsparse_herwig, label3, markercolor3, markerstyle3, 0.80);
+
+        h_D0_spectra_withjetptcut_from_thnsparse_pythia->Draw("same");
+        h_D0_spectra_withjetptcut_from_thnsparse_herwig->Draw("same");
+
+        leg_pt->Draw("same");
+        if (a == 1) l_movefake2->Draw("same");
+        h_D0_spectra_withjetptcut_from_thnsparse_pythia->GetXaxis()->SetLabelSize(0);
+
+        fout_for_mateusz->cd();
+        h_D0_spectra_withjetptcut_from_thnsparse_pythia->SetName(Form("%s_pythia", h_D0_spectra_withjetptcut_from_thnsparse_pythia->GetName()));
+        h_D0_spectra_withjetptcut_from_thnsparse_herwig->SetName(Form("%s_herwig", h_D0_spectra_withjetptcut_from_thnsparse_herwig->GetName()));
+        h_D0_spectra_withjetptcut_from_thnsparse_pythia->Write();
+        h_D0_spectra_withjetptcut_from_thnsparse_herwig->Write();
+        
+
+        TPad *pad12 = new TPad("pad11","",0.,0.,1.,1.);
+        pad12->SetTopMargin(0.61); pad12->SetFillColor(0); pad12->SetFillStyle(0);
+        pad12->Draw();
+        pad12->SetLogy();
+        pad12->cd();
+
+        ratio_name = "hratio_D0_spectra_withptcut_from_thnsparse";
+        TH1D* hratio_D0_spectra_withptcut_from_thnsparse = (TH1D*) h_D0_spectra_withjetptcut_from_thnsparse_herwig->Clone(ratio_name.c_str());
+        hratio_D0_spectra_withptcut_from_thnsparse->Divide(h_D0_spectra_withjetptcut_from_thnsparse_pythia);
+        // hratio_D0_spectra_withptcut_from_thnsparse->SetMinimum(0.5);
+        // hratio_D0_spectra_withptcut_from_thnsparse->SetMaximum(10.);
+
+
+        FormatHist(l2, hratio_D0_spectra_withptcut_from_thnsparse, "ratio", kBlack, markers[2]); //, 0.05, 0.04, 1.2, 0.035, 0.03, 1.5);
+        define_ratio_yaxis(hratio_D0_spectra_withptcut_from_thnsparse);
+        hratio_D0_spectra_withptcut_from_thnsparse->SetLineWidth(2);
+        hratio_D0_spectra_withptcut_from_thnsparse->Draw("hist c");
+
+        // // draw line at 1
+        if (a % 2 == 0) drawHoriLine(0., 1.01, 1., kGray+2, 1)->Draw();
+        else drawHoriLine(0., 50, 1., kGray+2, 1)->Draw();
+    }
+    fout_for_mateusz->Close();
+
+    std::string fname_temp4 = outdir + "herwig-pythia_comparison_D0_spectra_withptcuts_from_thnsparse_R0.4.pdf";
+    const char* fname_temp4c = fname_temp4.c_str();
+    can_D0_withptcuts->SaveAs(fname_temp4c);
+    delete can_D0_withptcuts;
 
 
 
