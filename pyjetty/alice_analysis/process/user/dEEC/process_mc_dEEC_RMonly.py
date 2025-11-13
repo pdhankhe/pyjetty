@@ -95,10 +95,10 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
   #---------------------------------------------------------------
   # Constructor
   #---------------------------------------------------------------
-  def __init__(self, input_file='', config_file='', output_dir='', save_tuples=1, debug_level=0, **kwargs):
+  def __init__(self, input_file='', config_file='', output_dir='', debug_level=0, **kwargs):
   
     # Initialize base class
-    super(ProcessMC_dEEC, self).__init__(input_file, config_file, output_dir, save_tuples, debug_level, **kwargs)
+    super(ProcessMC_dEEC, self).__init__(input_file, config_file, output_dir, debug_level, **kwargs)
     
     self.observable = self.observable_list[0]
 
@@ -1643,5 +1643,5 @@ if __name__ == '__main__':
     print('File \"{0}\" does not exist! Exiting!'.format(args.configFile))
     sys.exit(0)
 
-  analysis = ProcessMC_dEEC(input_file=args.inputFile, config_file=args.configFile, output_dir=args.outputDir, save_tuples=args.saveTuples)
+  analysis = ProcessMC_dEEC(input_file=args.inputFile, config_file=args.configFile, output_dir=args.outputDir) #, save_tuples=args.saveTuples)
   analysis.process_mc()

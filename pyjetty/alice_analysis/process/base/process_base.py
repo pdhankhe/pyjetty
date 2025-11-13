@@ -36,12 +36,12 @@ class ProcessBase(common_base.CommonBase):
   #---------------------------------------------------------------
   # Constructor
   #---------------------------------------------------------------
-  def __init__(self, input_file='', config_file='', output_dir='', save_tuples=1, event_start_offset=0, dstar=0, debug_level=0, **kwargs):
+  def __init__(self, input_file='', config_file='', output_dir='', event_start_offset=0, dstar=0, debug_level=0, **kwargs):
     super(ProcessBase, self).__init__(**kwargs)
     self.input_file = input_file
     self.config_file = config_file
     self.output_dir = output_dir
-    self.save_tuples = save_tuples
+    # self.save_tuples = save_tuples
     self.event_start_offset = event_start_offset
     self.dstar = dstar
     self.debug_level = debug_level # (0 = no debug info, 1 = some debug info, 2 = all debug info)
@@ -286,7 +286,7 @@ class ProcessBase(common_base.CommonBase):
   # hname is the name of a matching QA histogram that will be created
   # it can be anything you want, e.g. 'hJetMatchingQA_R{}'.format(jetR)
   #---------------------------------------------------------------
-  def set_matches_pp(self, jet_det, hname):
+  def set_matches_pp(self, jet_det, hname, check_for_D0_match=False):
 
     # Create pp matching QA histogram, if not already created
     if hname and not hasattr(self, hname):
@@ -314,12 +314,29 @@ class ProcessBase(common_base.CommonBase):
         if jet_truth.has_user_info():
           jet_info_truth = jet_truth.python_info()
           if len(jet_info_truth.matching_candidates) == 1:
-                  
+
             # Set accepted match
-            jet_info_det.match = jet_truth
-            jet_det.set_python_info(jet_info_det)
-            if hname:
-                h.Fill('unique_match', jet_det.pt(), 1)
+            if check_for_D0_match:
+              # check that both jets have a D0 before matching them
+              truth_const = jet_truth.constituents()
+              det_const = jet_det.constituents()
+              
+              truth_const_pids = [c.python_info().particle_pid for c in truth_const]
+              det_const_pids = [c.python_info().particle_pid for c in det_const]
+
+              d0_in_truth = 421 in truth_const_pids or -412 in truth_const_pids
+              d0_in_det = 421 in det_const_pids or -412 in det_const_pids
+
+              if d0_in_truth and d0_in_det:
+                jet_info_det.match = jet_truth
+                jet_det.set_python_info(jet_info_det)
+                if hname:
+                    h.Fill('unique_match', jet_det.pt(), 1)
+            else:
+              jet_info_det.match = jet_truth
+              jet_det.set_python_info(jet_info_det)
+              if hname:
+                  h.Fill('unique_match', jet_det.pt(), 1)
 
   #---------------------------------------------------------------
   # Set accepted jet matches for Pb-Pb case

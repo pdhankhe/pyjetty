@@ -19,7 +19,7 @@ bool logbins = false;
 std::string attempt_dir; // = Form("data_secondattempt/rebinx%d", rebin);
 std::string outdir; // = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir;
 
-int filecounter_cutoff = -1; //total: 845 // IDK why I thought it was 7601?
+int filecounter_cutoff = 100; //-1; //total: 845 // IDK why I thought it was 7601?
 bool write_to_root_file = true; 
 
 // bool jetpt_bool = false;
@@ -28,7 +28,8 @@ bool deltapt_bool = false;
 bool deltajt_bool = false;
 bool ew_bool = false;
 bool twoDhists_bool = false;
-bool rc_bool = true; 
+bool rc_bool = false; 
+bool deltajt_vs_ptrl_bool = true;
 
 bool p1_bool = false;
 bool jt1_bool = false;
@@ -38,7 +39,7 @@ bool self_normalized_bool = true;
 bool norm_by_jets_bool = false;
 
 bool unweighted_bool = true;
-bool weighted_bool = true;
+bool weighted_bool = false;
 
 
 class Observable {
@@ -314,6 +315,24 @@ TH2D * getObs2DHistFromTChain(TChain *chain, Observable obs_x, Observable obs_y,
     } else if (obs_x.name == "maxpt") { //weights vs maxpt
         cout << "this isn't implemented yet! (idk how to )" << endl;
         return hist2D;
+    } else if ( obs_x.name == "ptrl" || obs_y.name == "deltajt") {
+        cout << "this is delta jt vs ptrl" << endl;
+        Float_t deltajt; Float_t weight; 
+        Float_t jetpt; Float_t rl;
+        chain->SetBranchAddress("deltajt", &deltajt); // this won't work if obs.name == weights, bc it will overwrite in next row
+        chain->SetBranchAddress("weights", &weight);
+        chain->SetBranchAddress("jet_pt", &jetpt);
+        chain->SetBranchAddress("RL", &rl);
+
+        int entries = chain->GetEntries();
+        for ( int i = 0; i < entries; i++ ) {
+            chain->GetEntry(i);
+            if (jetpt >= pt_min && jetpt < pt_max) {
+                hist2D->Fill(ptavg*rl, deltajt); //unweighted only!!!!
+            }
+        }
+
+        chain->ResetBranchAddresses();
     } else {
         chain->Draw(Form("%s:%s>>%s_vs_%s_hist", obs_y.name.c_str(), obs_x.name.c_str(), obs_y.name.c_str(), obs_x.name.c_str()), Form("jet_pt >= %d && jet_pt < %d && %f*RL >= %f && %f*RL < %f", pt_min, pt_max, ptavg, ptRL_min, ptavg, ptRL_max));
     }
@@ -644,6 +663,7 @@ void plotandsave_combined_hists(Observable obs, TLegend *l, std::string ptname, 
 //                   SPECIFIC FUNCTIONS
 // ======================================================= //
 
+/* // TODO: work on this! commented out so i could run code
 void func() {
     TCanvas *can = new TCanvas("can", "can", 750, 500);
     can->cd();
@@ -666,6 +686,7 @@ void func() {
     delete can;
 
 }
+*/
 
 // void plot_rc(vector<double>& ptcenters_vec, vector<double>& ptRLcenters_vec, vector<vector<double>>& rc_vec,
 //              vector<vector<double>>& rc_errors_vec) {
@@ -829,6 +850,7 @@ void idkyet(std::string xaxis, vector<double>& x_vec, vector<double>& x_err,
 
 }
 
+/* // TODO: work on this! commented out so i could run code
 void plot_rc(vector<double>& ptcenters_vec, vector<double>& ptRLcenters_vec, vector<vector<double>>& rc_vec,
              vector<vector<double>>& rc_errors_vec) {
             //  TLegend& leg_RLbins, TLegend& leg_ptbins) {
@@ -860,11 +882,11 @@ void plot_rc(vector<double>& ptcenters_vec, vector<double>& ptRLcenters_vec, vec
 
 
     // get graphs of r_c as a function of RL
-    idkyet("pt", ptcenters_vec, pt_err, rc_vec, rc_errors_vec);
+    // idkyet("pt", ptcenters_vec, pt_err, rc_vec, rc_errors_vec); // TODO: work on this! commented out so i could run code
             // get rid of "pt"??
 
     // get graphs of r_c as a function of ptRL
-    idkyet("ptrl", ptRLcenters_vec, ptRL_err, rc_vec, rc_errors_vec)
+    // idkyet("ptrl", ptRLcenters_vec, ptRL_err, rc_vec, rc_errors_vec); // TODO: work on this! commented out so i could run code
 
 
 
@@ -978,9 +1000,9 @@ void plot_rc(vector<double>& ptcenters_vec, vector<double>& ptRLcenters_vec, vec
     can_func_of_pT->SaveAs(fname_func_of_pT_out.c_str());
     delete can_func_of_pT;
 
-
-
 }
+
+*/
 
 void get_deltajt_scatter(TChain * PAIRINFO_tree, vector<double>& ptrl_vals, vector<double>& deltajt_vals,
                         int pt_min, int pt_max){
@@ -1045,7 +1067,8 @@ void analyze_2D_obs(TChain * PAIRINFO_tree, TH1D * jetpt_inptbin_hist, Observabl
     Format2DHist(obs_x, obs_y, hist2D, jetpt_inptbin_hist, norm_string, ytitle_norm + obs_x.axis_label, ytitle_norm + obs_y.axis_label, hist_addname, true);
     
     // plot and save
-    draw_save_del_hists2D(obs2D, hist2D, ptname, norm_string, hist_addname, false, false, true);
+    if (obs_x.name == "ptrl") draw_save_del_hists2D(obs2D, hist2D, ptname, norm_string, hist_addname, true, false, true);
+    else draw_save_del_hists2D(obs2D, hist2D, ptname, norm_string, hist_addname, false, false, true);
     delete hist2D;
 
 } 
@@ -1207,7 +1230,7 @@ void analyze_rc(TChain * JETINFO_tree, TChain * PAIRINFO_tree, std::string weigh
     // cout << "size of rc_vec " << rc_vec.size() << endl;
     // cout << "size of rc_vec[0] " << rc_vec[0].size() << endl;
     // cout << "size of ptcenters_vec " << ptcenters_vec.size() << endl;
-    plot_rc(ptcenters_vec, ptRLcenters_vec, rc_vec, rc_errors_vec); //, leg_RLbins, leg_ptbins);
+    // plot_rc(ptcenters_vec, ptRLcenters_vec, rc_vec, rc_errors_vec); //, leg_RLbins, leg_ptbins); // TODO: work on this! commented out so i could run code
 
 }
 
@@ -1323,10 +1346,13 @@ void analyze_data_tuples() {
     Observable2D obs_weights_vs_deltajt(obs_deltajt, obs_weights, twoDhists_bool);
     Observable2D obs_weights_vs_p1(obs_p1, obs_weights, twoDhists_bool);
     Observable2D obs_zj_vs_zi(obs_z, obs_z, false);
+
+    Observable obs_ptrl("ptrl", deltajt_vs_ptrl_bool, 50, 0.2, 35, "#LTp_{T}#GTR_{L}", "");
+    Observable2D obs_deltajt_vs_ptrl(obs_ptrl, obs_deltajt, deltajt_vs_ptrl_bool);
             
 
     vector<Observable> obs_1D_list = { obs_deltap, obs_deltapt, obs_deltajt, obs_weights, obs_p1, obs_jt1 };
-    vector<Observable2D> obs_2D_list = { obs_weights_vs_deltap, obs_weights_vs_deltajt, obs_weights_vs_p1, obs_zj_vs_zi };
+    vector<Observable2D> obs_2D_list = { obs_weights_vs_deltap, obs_weights_vs_deltajt, obs_weights_vs_p1, obs_zj_vs_zi, obs_deltajt_vs_ptrl };
     for (Observable obs : obs_1D_list) {
         if (obs.obs_bool) obs.recreate_output_root_file();
     }
@@ -1412,10 +1438,10 @@ void analyze_data_tuples() {
     if (debug2) PAIRINFO_tree->Print();
 
     // analyze jet level for plots
-    analyze_jetlevel_observables(JETINFO_tree, jetRname, thrname, debug, debug2);
+    // analyze_jetlevel_observables(JETINFO_tree, jetRname, thrname, debug, debug2);
 
     // rc analysis
-    analyze_rc(JETINFO_tree, PAIRINFO_tree, weightstr, jetRname, thrname, pt_bins, n_bins, pt_avgs, ptRL_bins, n_ptRLbins, include_RL0, include_RL1);
+    // analyze_rc(JETINFO_tree, PAIRINFO_tree, weightstr, jetRname, thrname, pt_bins, n_bins, pt_avgs, ptRL_bins, n_ptRLbins, include_RL0, include_RL1);
 
     // analyze for plots
     if (unweighted_bool) {

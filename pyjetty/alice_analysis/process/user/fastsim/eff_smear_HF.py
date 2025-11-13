@@ -84,24 +84,37 @@ class eff_smear_HF:
             self.df_fjparticles = self.add_mc_index(self.df_fjparticles)
             print('--- {} seconds ---'.format(time.time() - start_time))
 
+            if self.use_D0_info:
+                self.df_D0particles = self.add_mc_index(self.df_D0particles)
+
         # ------------------------------------------------------------------------
 
+        print("INITIAL NUM IN DF: ", len(self.df_fjparticles), "AND IN DF DO: ", len(self.df_D0particles))
+
         # Build truth-level histogram of track pT multiplicity
-        print("Building truth-level track pT histogram...")
-        self.hist_list.append( ("truth_pt", self.build_pt_hist()) )
+        print("Building truth-level track and D0 pT histogram...")
+        self.hist_list.append( ("truth_pt", self.build_pt_hist(self.df_fjparticles)) )
+        self.hist_list.append( ("D0_truth_pt", self.build_pt_hist(self.df_D0particles)) )
         print('--- {} seconds ---'.format(time.time() - start_time))
 
-        print("Building truth-level track pid histogram...")
-        self.hist_list.append( ("truth_pid", self.build_pid_hist()) )
+        print("Building truth-level track and D0 pid histogram...")
+        self.hist_list.append( ("truth_pid", self.build_pid_hist(self.df_fjparticles)) )
+        self.hist_list.append( ("D0_truth_pid", self.build_pid_hist(self.df_D0particles)) ) # should all be +-421
         print('--- {} seconds ---'.format(time.time() - start_time))
 
         # Apply eta cut at the end of the TPC
-        self.df_fjparticles = self.apply_eta_cut(self.df_fjparticles)
+        self.df_fjparticles = self.apply_eta_cut(self.df_fjparticles, self.nTracks_truth)
+        self.df_D0particles = self.apply_eta_cut(self.df_D0particles, self.nD0_truth)
         print('--- {} seconds ---'.format(time.time() - start_time))
 
+        print("POST ETA CUT // NUM IN DF: ", len(self.df_fjparticles), "AND IN DF DO: ", len(self.df_D0particles))
+
         # Apply efficiency cut
-        self.df_fjparticles = self.apply_eff_cut(self.df_fjparticles)
+        self.df_fjparticles = self.apply_eff_cut(self.df_fjparticles, self.nTracks_truth)
+        self.df_D0particles = self.apply_eff_cut(self.df_D0particles, self.nD0_truth)
         print('--- {} seconds ---'.format(time.time() - start_time))
+
+        print("POST EFF CUT // NUM IN DF: ", len(self.df_fjparticles), "AND IN DF DO: ", len(self.df_D0particles))
 
         # comment this part and try to appy pair efficiency later in the analysis code
         # # uncomment this for now to check the pair efficiency
@@ -115,16 +128,20 @@ class eff_smear_HF:
 
         # Build truth-level histogram of track pT multiplicity after efficiency cuts
         print("Building truth-level track pT histogram after efficiency cuts...")
-        self.hist_list.append( ("truth_pt_eff_cuts", self.build_pt_hist()) )
+        self.hist_list.append( ("truth_pt_eff_cuts", self.build_pt_hist(self.df_fjparticles)) )
+        self.hist_list.append( ("D0_truth_pt_eff_cuts", self.build_pt_hist(self.df_D0particles)) )
         print('--- {} seconds ---'.format(time.time() - start_time))
 
         # Apply pT smearing
         self.df_fjparticles = self.apply_pt_smear(self.df_fjparticles)
+        self.df_D0particles = self.apply_pt_smear(self.df_D0particles, D0_tree_in_use = True)
         print('--- {} seconds ---'.format(time.time() - start_time))
+        print("POST PT SMEARING // NUM IN DF: ", len(self.df_fjparticles), "AND IN DF DO: ", len(self.df_D0particles))
 
         # Build truth-level histogram of track pT multiplicity
         print("Building detector-level track pT histogram...")
-        self.hist_list.append( ("fastsim_pt", self.build_pt_hist()) )
+        self.hist_list.append( ("fastsim_pt", self.build_pt_hist(self.df_fjparticles)) )
+        self.hist_list.append( ("D0_fastsim_pt", self.build_pt_hist(self.df_D0particles)) )
         print('--- {} seconds ---'.format(time.time() - start_time))
 
         # ------------------------------------------------------------------------
@@ -133,7 +150,7 @@ class eff_smear_HF:
         print(self.df_fjparticles)
         print("Writing fast simulation to ROOT TTree...")
         self.io.save_dataframe("AnalysisResultsFastSim.root", self.df_fjparticles,
-                               df_true=True, histograms=self.hist_list, is_jetscape=self.is_jetscape, is_ENC=self.is_ENC, using_D0 = True)
+                               df_true=True, histograms=self.hist_list, is_jetscape=self.is_jetscape, is_ENC=self.is_ENC, using_D0 = True, df_D0 = self.df_D0particles)
         print('--- {} seconds ---'.format(time.time() - start_time))
 
 
@@ -150,10 +167,13 @@ class eff_smear_HF:
                                         use_ev_id_ext=False,
                                         use_D0_info=True,
                                         is_jetscape=self.is_jetscape, is_ENC=self.is_ENC)
-        self.df_fjparticles = self.io.load_dataframe(self.numberOfSkipEvents,self.numberOfSkipEvents+self.numberOfEvents)
+        self.df_fjparticles, self.df_D0particles = self.io.load_dataframe(self.numberOfSkipEvents,self.numberOfSkipEvents+self.numberOfEvents)
         self.nTracks_truth = len(self.df_fjparticles)
+        self.nD0_truth = len(self.df_D0particles)
         print("DataFrame loaded from data.")
         print(self.df_fjparticles)
+        print("DO DataFrame loaded from data.")
+        print(self.df_D0particles)
         print(f'columns: {list(self.df_fjparticles.columns)}')
         # Initialize a list of histograms to be written to file
         self.hist_list = []
@@ -179,11 +199,11 @@ class eff_smear_HF:
 
         pt = df['ParticlePt'].to_numpy()
         ev_id = df['ev_id'].to_numpy()
-        ev_id_unique = np.unique(ev_id)
+        # ev_id_unique = np.unique(ev_id) #not used... so I commented it out
 
 
         for ievt in range(self.evt_range_lo, self.evt_range_hi):
-            if ievt % 100 == 0:
+            if ievt % 1000 == 0:
                 print("Processing event ",ievt,"/ [",self.evt_range_lo,"-",self.evt_range_hi,"]",datetime.datetime.now(),flush=True)
             pt_evt = pt[ev_id==ievt]
             for itrk in range(len(pt_evt)): # could improve this function by making linspace of this range and appending to the list...
@@ -199,38 +219,38 @@ class eff_smear_HF:
     #---------------------------------------------------------------
     # Apply eta cuts
     #---------------------------------------------------------------
-    def apply_eta_cut(self, df):
+    def apply_eta_cut(self, df, orig_num_tracks):
         df = df[df["ParticleEta"].map(abs) < 0.9]
-        print("%i out of %i total truth tracks deleted after eta cut." % \
-              (self.nTracks_truth - len(df), self.nTracks_truth))
+        print("%i out of %i total truth tracks deleted after eta cut (%.2f%%)." % \
+              (orig_num_tracks - len(df), orig_num_tracks, (orig_num_tracks - len(df))/orig_num_tracks*100))
         return df
 
     #---------------------------------------------------------------
     # Build histogram of pT values and return it
     #---------------------------------------------------------------
-    def build_pt_hist(self):
+    def build_pt_hist(self, df):
         bins = np.concatenate((np.arange(0, 0.3, 0.05), np.arange(0.3, 1, 0.1), np.arange(1, 3, 0.2), 
                                np.arange(3, 10, 0.5), np.arange(10, 20, 1),
                                np.arange(20, 50, 2), np.arange(50, 155, 5)))
-        return np.histogram(self.df_fjparticles["ParticlePt"], bins=bins)
+        return np.histogram(df["ParticlePt"], bins=bins)
 
     #---------------------------------------------------------------
     # Build histogram of PID values and return it (FIX ME: can be deleted later)
     #---------------------------------------------------------------
-    def build_pid_hist(self):
+    def build_pid_hist(self, df):
         bins = np.arange(-500, 500, 1)
-        return np.histogram(self.df_fjparticles["ParticlePID"], bins=bins)
+        return np.histogram(df["ParticlePID"], bins=bins)
 
     #---------------------------------------------------------------
     # Apply efficiency cuts
     #---------------------------------------------------------------
-    def apply_eff_cut(self, df):
+    def apply_eff_cut(self, df, orig_num_tracks):
 
         # Apply efficiency cut for fastjet particles
         eff_smearer = alice_efficiency.AliceChargedParticleEfficiency()
         df = df[df["ParticlePt"].map(lambda x: eff_smearer.pass_eff_cut(x))]
-        print("%i out of %i total truth tracks deleted after efficiency cut." % \
-              (self.nTracks_truth - len(df), self.nTracks_truth))
+        print("%i out of %i total truth tracks deleted after efficiency cut (%.2f%%)." % \
+              (orig_num_tracks - len(df), orig_num_tracks, (orig_num_tracks - len(df))/orig_num_tracks*100))
         return df
 
     def pass_pair_eff(self, dist, dq_over_p):
@@ -448,14 +468,21 @@ class eff_smear_HF:
     #---------------------------------------------------------------
     # Apply pt smearing
     #---------------------------------------------------------------
-    def apply_pt_smear(self, df):
+    def apply_pt_smear(self, df, D0_tree_in_use=False):
         true_pt = df["ParticlePt"]
         smeared_pt = [ np.random.normal(pt, sigma_pt(pt)) for pt in true_pt ]
         if self.use_D0_info:
-            df = pd.DataFrame({"run_number": df["run_number"], "ev_id": df["ev_id"],
+            if D0_tree_in_use:
+                df = pd.DataFrame({"run_number": df["run_number"], "ev_id": df["ev_id"],
                                 "ParticlePt": smeared_pt, "ParticleEta": df["ParticleEta"],
-                                "ParticlePhi": df["ParticlePhi"], "ParticlePID": df["ParticlePID"],
-                                "MotherPID": df["MotherPID"], "ParticleMCIndex": df["ParticleMCIndex"], 
+                                "ParticlePhi": df["ParticlePhi"], "ParticleRapidity": df["ParticleRapidity"],
+                                "ParticleMCIndex": df["ParticleMCIndex"], "ParticlePID": df["ParticlePID"], 
+                                "MotherPID": df["MotherPID"], "z_vtx_reco": df["z_vtx_reco"], "is_ev_rej": df["is_ev_rej"]})
+            else:
+                df = pd.DataFrame({"run_number": df["run_number"], "ev_id": df["ev_id"],
+                                "ParticlePt": smeared_pt, "ParticleEta": df["ParticleEta"],
+                                "ParticlePhi": df["ParticlePhi"], "ParticleMCIndex": df["ParticleMCIndex"],
+                                "ParticlePID": df["ParticlePID"], "MotherPID": df["MotherPID"],  
                                 "z_vtx_reco": df["z_vtx_reco"], "is_ev_rej": df["is_ev_rej"]})
         else:
             if self.is_jetscape:
@@ -482,7 +509,10 @@ class eff_smear_HF:
                                   np.arange(20, 50, 2), np.arange(50, 95, 5)))
         dif_bins = np.arange(-0.5, 0.5, .001)
         pt_smearing_dists = np.histogram2d(true_pt, pt_dif, bins=[pt_bins, dif_bins])
-        self.hist_list.append( ("pt_smearing", pt_smearing_dists) )
+        if D0_tree_in_use:
+            self.hist_list.append( ("D0_pt_smearing", pt_smearing_dists) )
+        else:
+            self.hist_list.append( ("pt_smearing", pt_smearing_dists) )
 
         return df
 

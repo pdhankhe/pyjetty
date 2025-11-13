@@ -22,6 +22,8 @@ ENC_fastsim: True # only set to True when fast_simulation is set to True
 ENC_pair_cut: False
 study_D0: True
 pair_eff_file: '/software/users/blianggi/mypyjetty/ENC/PairEff.root'
+comp_system: 'hiccup'
+generator: 'herwig'
 
 # Observable block
 jet_ENC_RL:

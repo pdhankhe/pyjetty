@@ -41,12 +41,12 @@ from pyjetty.mputils.csubtractor import CEventSubtractor
 
 def linbins(xmin, xmax, nbins):
   lspace = np.linspace(xmin, xmax, nbins+1)
-  arr = array.array('f', lspace)
+  arr = array.array('d', lspace)
   return arr
 
 def logbins(xmin, xmax, nbins):
   lspace = np.logspace(np.log10(xmin), np.log10(xmax), nbins+1)
-  arr = array.array('f', lspace)
+  arr = array.array('d', lspace)
   return arr
 
 ################################################################
@@ -56,11 +56,11 @@ class ProcessMC_ENC_HF(process_mc_base.ProcessMCBase):
   # Constructor
   #---------------------------------------------------------------
   def __init__(self, input_file='', config_file='', output_dir='', event_start_offset=0, dstar=0, debug_level=0, **kwargs):
-  
     # Initialize base class
     super(ProcessMC_ENC_HF, self).__init__(input_file, config_file, output_dir, event_start_offset, dstar, debug_level, **kwargs)
     
     self.observable = self.observable_list[0]
+    self.dstar = dstar
 
     if self.ENC_fastsim:
       self.pair_eff_file = ROOT.TFile.Open(self.pair_eff_file,"READ")
@@ -142,16 +142,36 @@ class ProcessMC_ENC_HF(process_mc_base.ProcessMCBase):
                 RL_bins = logbins(1E-4,1,50)
                 z_bins = np.linspace(0, 1.01, 102)
 
-                # Truth histograms
+                # Truth histograms - unmatched
                 name = 'h_{}{}{}_JetPt_Truth_R{}_{}'.format(observable, ipoint, pair_type_label, jetR, obs_label) #pair_type_label is blank for me
-                title_truth = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'D^{0} y', 'D^{0} z', '#it{R}_{L}' ]
-                binnings = [pt_bins, rapi_bins, z_bins, RL_bins]
-                self.create_thn_EEC(name, title_truth, dim, binnings, obs='rl')
+                title_truth = [ '#it{p}_{T}^{ch jet, tr}', '#it{p}_{T}^{D^{0}_{tr}}', 'D^{0} y_{tr}', 'D^{0} z_{tr}', '#it{R}_{L, tr}' ]
+                binnings = (pt_bins, pt_bins, rapi_bins, z_bins, RL_bins)
+                self.create_thn(name, title_truth, dim, binnings)
 
                 name = 'h_{}{}{}Pt_JetPt_Truth_R{}_{}'.format(observable, ipoint, pair_type_label, jetR, obs_label) # pt scaled histograms (currently only for unmatched jets)
                 title = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'D^{0} y', 'D^{0} z', '#it{p}_{T}#it{R}_{L}' ]
                 binnings = (pt_bins, rapi_bins, z_bins, ptRL_bins)
                 self.create_thn_EEC(name, title_truth, dim, binnings, obs='ptrl') 
+
+                # Det histogram - unmatched
+                name = 'h_{}{}{}_JetPt_Det_R{}_{}'.format(observable, ipoint, pair_type_label, jetR, obs_label) #pair_type_label is blank for me
+                title_det = [ '#it{p}_{T}^{ch jet, det}', '#it{p}_{T}^{D^{0}_{det}}', 'D^{0} y_{det}', 'D^{0} z_{det}', '#it{R}_{L, det}' ]
+                binnings = (pt_bins, pt_bins, rapi_bins, z_bins, RL_bins)
+                self.create_thn(name, title_det, dim, binnings)
+
+                # Truth histogram - matched
+                name = 'h_matched_{}{}{}_JetPt_Truth_R{}_{}'.format(observable, ipoint, pair_type_label, jetR, obs_label) #pair_type_label is blank for me
+                title_truth = [ '#it{p}_{T}^{ch jet, tr}', '#it{p}_{T}^{D^{0}_{tr}}', 'D^{0} y_{tr}', 'D^{0} z_{tr}', '#it{R}_{L, tr}' ]
+                binnings = (pt_bins, pt_bins, rapi_bins, z_bins, RL_bins)
+                self.create_thn(name, title_truth, dim, binnings)
+
+                # Det histogram - matched
+                name = 'h_matched_{}{}{}_JetPt_Det_R{}_{}'.format(observable, ipoint, pair_type_label, jetR, obs_label) #pair_type_label is blank for me
+                title_det = [ '#it{p}_{T}^{ch jet, det}', '#it{p}_{T}^{D^{0}_{det}}', 'D^{0} y_{det}', 'D^{0} z_{det}', '#it{R}_{L, det}' ]
+                binnings = (pt_bins, pt_bins, rapi_bins, z_bins, RL_bins)
+                self.create_thn(name, title_det, dim, binnings)
+
+
                 
             if 'EEC_noweight' in observable or 'EEC_weight2' in observable:
               
@@ -163,9 +183,27 @@ class ProcessMC_ENC_HF(process_mc_base.ProcessMCBase):
 
               # Truth histograms
               name = 'h_{}{}_JetPt_Truth_R{}_{}'.format(observable, pair_type_label, jetR, obs_label)
-              title = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'D^{0} y', 'D^{0} z', '#it{R}_{L}' ]
-              binnings = (pt_bins, rapi_bins, z_bins, RL_bins)
-              self.create_thn_EEC(name, title_truth, dim, binnings, obs='rl') # this will need to be fixed later! - add more dimensions to also include jet pt?
+              title_truth = [ '#it{p}_{T}^{ch jet, tr}', '#it{p}_{T}^{D^{0}_{tr}}', 'D^{0} y_{tr}', 'D^{0} z_{tr}', '#it{R}_{L, tr}' ]
+              binnings = (pt_bins, pt_bins, rapi_bins, z_bins, RL_bins)
+              self.create_thn(name, title_truth, dim, binnings)
+
+              # Det histogram - unmatched
+              name = 'h_{}{}_JetPt_Det_R{}_{}'.format(observable, pair_type_label, jetR, obs_label) #pair_type_label is blank for me
+              title_det = [ '#it{p}_{T}^{ch jet, det}', '#it{p}_{T}^{D^{0}_{det}}', 'D^{0} y_{det}', 'D^{0} z_{det}', '#it{R}_{L, det}' ]
+              binnings = (pt_bins, pt_bins, rapi_bins, z_bins, RL_bins)
+              self.create_thn(name, title_det, dim, binnings)
+
+              # Truth histogram - matched
+              name = 'h_matched_{}{}_JetPt_Truth_R{}_{}'.format(observable, pair_type_label, jetR, obs_label) #pair_type_label is blank for me
+              title_truth = [ '#it{p}_{T}^{ch jet, tr}', '#it{p}_{T}^{D^{0}_{tr}}', 'D^{0} y_{tr}', 'D^{0} z_{tr}', '#it{R}_{L, tr}' ]
+              binnings = (pt_bins, pt_bins, rapi_bins, z_bins, RL_bins)
+              self.create_thn(name, title_truth, dim, binnings)
+
+              # Det histogram - matched
+              name = 'h_matched_{}{}_JetPt_Det_R{}_{}'.format(observable, pair_type_label, jetR, obs_label) #pair_type_label is blank for me
+              title_det = [ '#it{p}_{T}^{ch jet, det}', '#it{p}_{T}^{D^{0}_{det}}', 'D^{0} y_{det}', 'D^{0} z_{det}', '#it{R}_{L, det}' ]
+              binnings = (pt_bins, pt_bins, rapi_bins, z_bins, RL_bins)
+              self.create_thn(name, title_det, dim, binnings)
 
         
         if 'jet_pt' in observable:
@@ -175,11 +213,29 @@ class ProcessMC_ENC_HF(process_mc_base.ProcessMCBase):
           rapi_bins = np.linspace(-5,5,201)
           z_bins = np.linspace(0, 1.01, 102)
 
-          # Truth histograms
+          # Truth histograms - unmatched
           name = 'h_{}_JetPt_Truth_R{}_{}'.format(observable, jetR, obs_label)
-          title = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'D^{0} y', 'D^{0} z' ]
-          binnings = (pt_bins, rapi_bins, z_bins)
-          self.create_thn_EEC(name, title_truth, dim, binnings) # this will need to be fixed later! - add more dimensions to also include jet pt?
+          title_truth = [ '#it{p}_{T}^{ch jet, tr}', '#it{p}_{T}^{D^{0}_{tr}}', 'D^{0} y_{tr}', 'D^{0} z_{tr}' ]
+          binnings = (pt_bins, pt_bins, rapi_bins, z_bins)
+          self.create_thn(name, title_truth, dim, binnings)
+
+          # Det histogram - unmatched
+          name = 'h_{}_JetPt_Det_R{}_{}'.format(observable, jetR, obs_label)
+          title_det = [ '#it{p}_{T}^{ch jet, det}', '#it{p}_{T}^{D^{0}_{det}}', 'D^{0} y_{det}', 'D^{0} z_{det}' ]
+          binnings = (pt_bins, pt_bins, rapi_bins, z_bins)
+          self.create_thn(name, title_det, dim, binnings)
+
+          # Truth histogram - matched
+          name = 'h_matched_{}_JetPt_Truth_R{}_{}'.format(observable, jetR, obs_label)
+          title_truth = [ '#it{p}_{T}^{ch jet, tr}', '#it{p}_{T}^{D^{0}_{tr}}', 'D^{0} y_{tr}', 'D^{0} z_{tr}' ]
+          binnings = (pt_bins, pt_bins, rapi_bins, z_bins)
+          self.create_thn(name, title_truth, dim, binnings)
+
+          # Det histogram - matched
+          name = 'h_matched_{}_JetPt_Det_R{}_{}'.format(observable, jetR, obs_label)
+          title_det = [ '#it{p}_{T}^{ch jet, det}', '#it{p}_{T}^{D^{0}_{det}}', 'D^{0} y_{det}', 'D^{0} z_{det}' ]
+          binnings = (pt_bins, pt_bins, rapi_bins, z_bins)
+          self.create_thn(name, title_det, dim, binnings)
 
         #Make some blank arrays to be filled if thnsparse
         self.fsparsepartonJetvalue = array.array( 'd', ( 0, 0, 0, 0, 0 ))
@@ -370,6 +426,13 @@ class ProcessMC_ENC_HF(process_mc_base.ProcessMCBase):
       if c.pt() < trk_thrd:
         break
       c_select.append(c) # NB: use the break statement since constituents are already sorted
+
+    # if 'Truth' in hname:
+    #   printing_truth_or_det = "Truth"
+    # else:
+    #   printing_truth_or_det = "Det"
+    # print(self.event_number-1, printing_truth_or_det, "; num c_sel:", len(c_select))
+    # [print(" ", printing_truth_or_det, c.python_info().particle_pid) for c in c_select]
     
     if self.ENC_pair_cut and (not 'Truth' in hname):
       dphi_cut = -9999 # means no dphi cut
@@ -405,9 +468,12 @@ class ProcessMC_ENC_HF(process_mc_base.ProcessMCBase):
         self.fsparsejetlevelJetvalue[3] = D0_pt/jet_pt
         self.fsparsepartonJetvalue[3] = D0_pt/jet_pt
         if self.firsttimejet:
-          print('event {}'.format(self.event_number))
+          print('event {}, in fill_observable histogram'.format(self.event_number-1))
           print("D0 pt is ", D0_pt, "and D0 rapidity is", self.D0particleinfo.python_info().particle_rap) #self.D0particleinfo.rap())
-          self.alld0counter+=1          
+          if 'Truth' in hname:
+            self.alld0counter_truth+=1
+          else:
+            self.alld0counter_det+=1
         break # break after one D0 found in a jet
     if d0injetfound_bool == False:
       # print("in else NOT a D0 jet IS THIS WRONG")
@@ -417,12 +483,14 @@ class ProcessMC_ENC_HF(process_mc_base.ProcessMCBase):
     # print("checking D*")
     if self.firsttimejet:
       print("D0 mother is", self.D0particleinfo.python_info().particle_mid)
-    # print("here", hname)
-    if abs(self.D0particleinfo.python_info().particle_mid) == 413: # D*
+    if not self.dstar and abs(self.D0particleinfo.python_info().particle_mid) == 413: # D*
       return
 
     if self.firsttimejet:
-      self.d0nodstar_counter+=1    
+      if 'Truth' in hname:
+        self.d0nodstar_counter_truth+=1
+      else:
+        self.d0nodstar_counter_det+=1
       print("------- saving to hists -------")
 
     for observable in self.observable_list:
@@ -448,11 +516,13 @@ class ProcessMC_ENC_HF(process_mc_base.ProcessMCBase):
               pair_type = self.check_pair_type(new_corr, ipoint, c_select, index)
               pair_type_label = self.pair_type_labels[pair_type]
 
+            # Fill RL into array to be filled in hist
+            self.fsparsepartonJetvalue[4] = new_corr.correlator(ipoint).rs()[index]
+
             if 'ENC' in observable:
               if self.ENC_fastsim and (not 'Truth' in hname):
-                getattr(self, hname.format(observable + str(ipoint) + pair_type_label,obs_label)).Fill(jet_pt, new_corr.correlator(ipoint).rs()[index], new_corr.correlator(ipoint).weights()[index]*weights_pair[index])
-                getattr(self, hname.format(observable + str(ipoint) + pair_type_label + 'Pt',obs_label)).Fill(jet_pt, jet_pt*new_corr.correlator(ipoint).rs()[index], new_corr.correlator(ipoint).weights()[index]*weights_pair[index]) # NB: fill pt*RL
-
+                getattr(self, hname.format(observable + str(ipoint) + pair_type_label,obs_label)).Fill(self.fsparsepartonJetvalue, new_corr.correlator(ipoint).weights()[index]*weights_pair[index])
+                
               else:
                 # only change truth level hists to thnsparse
                 # save in thnsparse
@@ -462,12 +532,10 @@ class ProcessMC_ENC_HF(process_mc_base.ProcessMCBase):
                 self.fsparsepartonJetvalue[4] = jet_pt*new_corr.correlator(ipoint).rs()[index]
                 getattr(self, hname.format(observable + str(ipoint) + pair_type_label + 'Pt',obs_label)).Fill(self.fsparsepartonJetvalue, new_corr.correlator(ipoint).weights()[index])
 
-                # getattr(self, hname.format(observable + str(ipoint) + pair_type_label,obs_label)).Fill(jet_pt, new_corr.correlator(ipoint).rs()[index], new_corr.correlator(ipoint).weights()[index])
-                # getattr(self, hname.format(observable + str(ipoint) + pair_type_label + 'Pt',obs_label)).Fill(jet_pt, jet_pt*new_corr.correlator(ipoint).rs()[index], new_corr.correlator(ipoint).weights()[index])
-
             if ipoint==2 and 'EEC_noweight' in observable:
               if self.ENC_fastsim and (not 'Truth' in hname):
-                getattr(self, hname.format(observable + pair_type_label,obs_label)).Fill(jet_pt, new_corr.correlator(ipoint).rs()[index], weights_pair[index])
+                getattr(self, hname.format(observable + pair_type_label,obs_label)).Fill(self.fsparsepartonJetvalue, weights_pair[index])
+                # getattr(self, hname.format(observable + pair_type_label,obs_label)).Fill(jet_pt, new_corr.correlator(ipoint).rs()[index], weights_pair[index])
               else:
                 #change truth level hists to thnsparse
                 self.fsparsepartonJetvalue[4] = new_corr.correlator(ipoint).rs()[index]
@@ -475,9 +543,9 @@ class ProcessMC_ENC_HF(process_mc_base.ProcessMCBase):
 
             if ipoint==2 and 'EEC_weight2' in observable:
               if self.ENC_fastsim and (not 'Truth' in hname):
-                getattr(self, hname.format(observable + pair_type_label,obs_label)).Fill(jet_pt, new_corr.correlator(ipoint).rs()[index], pow(new_corr.correlator(ipoint).weights()[index]*weights_pair[index],2))
+                getattr(self, hname.format(observable + pair_type_label,obs_label)).Fill(self.fsparsepartonJetvalue, pow(new_corr.correlator(ipoint).weights()[index]*weights_pair[index],2))
               else:
-                getattr(self, hname.format(observable + pair_type_label,obs_label)).Fill(jet_pt, new_corr.correlator(ipoint).rs()[index], pow(new_corr.correlator(ipoint).weights()[index],2))
+                getattr(self, hname.format(observable + pair_type_label,obs_label)).Fill(self.fsparsepartonJetvalue, pow(new_corr.correlator(ipoint).weights()[index],2))
 
       if 'jet_pt' in observable:
         getattr(self, hname.format(observable,obs_label)).Fill(self.fsparsejetlevelJetvalue)
@@ -551,12 +619,80 @@ class ProcessMC_ENC_HF(process_mc_base.ProcessMCBase):
             getattr(self, hname.format(observable+str(ipoint),obs_label)).Fill(fsparsejetlevelJetvalue, new_corr.correlator(ipoint).weights()[index])
 
 
-  #---------------------------------------------------------------
+  # ---------------------------------------------------------------
   # This function is called per observable per jet subconfigration 
   # used in fill_matched_jet_histograms
   # This function is created because we cannot use fill_observable_histograms 
   # directly because observable list loop inside that function
+  # ---------------------------------------------------------------
   #---------------------------------------------------------------
+  # This function is called per jet subconfigration 
+  # Fill matched jet histograms
+  #---------------------------------------------------------------
+  def fill_matched_jet_histograms(self, jet_det, jet_det_groomed_lund, jet_truth,
+                                  jet_truth_groomed_lund, jet_pp_det, jetR,
+                                  obs_setting, grooming_setting, obs_label,
+                                  jet_pt_det_ungroomed, jet_pt_truth_ungroomed, R_max, suffix, **kwargs):
+    # If jetscape, we will need to correct substructure observable for holes (pt is corrected in base class)
+    # For ENC in PbPb, jet_pt_det_ungroomed stores the corrected jet pT
+    if self.jetscape:
+      holes_in_det_jet = kwargs['holes_in_det_jet']
+      holes_in_truth_jet = kwargs['holes_in_truth_jet']
+
+    cone_parts_in_det_jet = kwargs['cone_parts_in_det_jet']
+    cone_parts_in_truth_jet = kwargs['cone_parts_in_truth_jet']
+    cone_R = kwargs['cone_R']
+
+    # Todo: add additonal weight for jet pT spectrum
+    # if self.rewight_pt:
+    #   w_pt = 1+pow(jet_truth,0.2)
+    # else:
+    #   w_pt = 1
+    
+    if self.do_rho_subtraction:
+      # print('evt #',self.event_number-1)
+      jet_pt_det = jet_pt_det_ungroomed
+      # print('Det: pT',jet_det.perp(),'(',jet_pt_det,')','phi',jet_det.phi(),'eta',jet_det.eta())
+      # print('Truth: pT',jet_truth.perp(),'phi',jet_truth.phi(),'eta',jet_truth.eta())
+      # print('Difference pT (truth-det)',jet_truth.perp()-jet_pt_det_ungroomed)
+    else:
+      jet_pt_det = jet_det.perp()
+
+    for observable in self.observable_list:
+
+      if cone_R == 0: # fill for jet constituents
+        hname = 'h_matched_{{}}_JetPt_Det_R{}_{{}}'.format(jetR)
+        self.fill_matched_observable_histograms(hname, observable, jet_det, jet_det_groomed_lund, jetR, obs_setting, grooming_setting, obs_label, jet_pt_det, jet_pt_det)
+
+        hname = 'h_matched_{{}}_JetPt_Truth_R{}_{{}}'.format(jetR)
+        self.fill_matched_observable_histograms(hname, observable, jet_truth, jet_truth_groomed_lund, jetR, obs_setting, grooming_setting, obs_label, jet_pt_det, jet_truth.pt())
+
+        # # fill RL vs matched truth jet pT for det jets (only fill these extra histograms for ENC or pair distributions)
+        # if 'ENC' in observable or 'EEC_noweight' in observable:
+        #   hname = 'h_matched_extra_{{}}_JetPt_R{}_{{}}'.format(jetR)
+        #   self.fill_matched_observable_histograms(hname, observable, jet_det, jet_det_groomed_lund, jetR, obs_setting, grooming_setting, obs_label, jet_pt_det, jet_truth.pt()) # NB: use the truth jet pt so the reco jets histograms are comparable to matched truth jets. However this also means that two identical histograms will be filled fot jet_pt observable
+
+        # Fill correlation between matched det and truth jets
+        if 'jet_pt' in observable:
+          # hname = 'h_matched_{}_JetPt_Truth_vs_Det_R{}_{}'.format("1D"+observable, jetR, obs_label)
+          '''
+          hname = 'hResponse_JetPt_{}_R{}_{}'.format(observable, jetR, obs_label)
+          getattr(self, hname).Fill(jet_pt_det, jet_truth.pt())
+          '''
+
+      else: # fill for cone parts around jet
+        if 'ENC' in observable or 'EEC_noweight' in observable or 'EEC_weight2' in observable:
+          hname = 'h_jetcone{}_matched_{{}}_JetPt_R{}_{{}}'.format(cone_R, jetR)
+          self.fill_matched_observable_histograms(hname, observable, jet_det, jet_det_groomed_lund, jetR, obs_setting, grooming_setting, obs_label, jet_pt_det, jet_pt_det, cone_parts_in_det_jet)
+
+          hname = 'h_jetcone{}_matched_{{}}_JetPt_Truth_R{}_{{}}'.format(cone_R, jetR)
+          self.fill_matched_observable_histograms(hname, observable, jet_truth, jet_truth_groomed_lund, jetR, obs_setting, grooming_setting, obs_label, jet_pt_det, jet_truth.pt(), cone_parts_in_truth_jet)
+
+          hname = 'h_jetcone{}_matched_extra_{{}}_JetPt_R{}_{{}}'.format(cone_R, jetR)
+          self.fill_matched_observable_histograms(hname, observable, jet_det, jet_det_groomed_lund, jetR, obs_setting, grooming_setting, obs_label, jet_pt_det, jet_truth.pt(), cone_parts_in_det_jet)          
+ 
+
+           
   def fill_matched_observable_histograms(self, hname, observable, jet, jet_groomed_lund, jetR, obs_setting, grooming_setting, obs_label, jet_pt_ungroomed, jet_pt_matched, cone_parts = None):
     
     constituents = fj.sorted_by_pt(jet.constituents())
@@ -590,6 +726,55 @@ class ProcessMC_ENC_HF(process_mc_base.ProcessMCBase):
       jet_pt = jet.perp()
 
     new_corr = ecorrel.CorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut)
+
+    # save jet level information to thnsparse arrays
+    self.fsparsejetlevelJetvalue[0] = jet_pt
+    self.fsparsepartonJetvalue[0] = jet_pt
+    
+    # find the D0's - assuming one D0 per jet
+    d0injetfound_bool = False
+    for part in c_select:
+      if self.findD0(part): # if self.D0particleinfo != None:
+
+        d0injetfound_bool = True
+        D0_px = self.D0particleinfo.px()
+        D0_py = self.D0particleinfo.py()
+        D0_pt = math.sqrt(D0_px*D0_px + D0_py*D0_py)
+
+        self.fsparsejetlevelJetvalue[1] = D0_pt
+        self.fsparsepartonJetvalue[1] = D0_pt
+        self.fsparsejetlevelJetvalue[2] = self.D0particleinfo.python_info().particle_rap #self.D0particleinfo.rap()
+        self.fsparsepartonJetvalue[2] = self.D0particleinfo.python_info().particle_rap #self.D0particleinfo.rap()
+        self.fsparsejetlevelJetvalue[3] = D0_pt/jet_pt
+        self.fsparsepartonJetvalue[3] = D0_pt/jet_pt
+
+        if self.firsttimejet and observable == self.observable_list[0]:
+          print('event {}, in fill_matched_observable_histograms'.format(self.event_number-1))
+          print("D0 pt is ", D0_pt, "and D0 rapidity is", self.D0particleinfo.python_info().particle_rap) #self.D0particleinfo.rap())
+          if 'Truth' in hname:
+            self.alld0counter_truthmatched+=1
+          else:
+            self.alld0counter_detmatched+=1
+        break # break after one D0 found in a jet
+    if d0injetfound_bool == False:
+      # print("in else NOT a D0 jet IS THIS WRONG")
+      return # don't want to look at jets that don't have a D0
+
+    # now check if the D0 comes from a D*. if yes, skip. if no, move on
+    # print("checking D*")
+    if self.firsttimejet and observable == self.observable_list[0]:
+      print("D0 mother is", self.D0particleinfo.python_info().particle_mid)
+    if not self.dstar and abs(self.D0particleinfo.python_info().particle_mid) == 413: # D*
+      return
+
+    if self.firsttimejet and observable == self.observable_list[0]:
+      if 'Truth' in hname:
+        self.d0nodstar_counter_truthmatched+=1
+      else:
+        self.d0nodstar_counter_detmatched+=1  
+      print("------- saving to hists -------")
+
+
     if 'ENC' in observable or 'EEC_noweight' in observable or 'EEC_weight2' in observable:
       for ipoint in range(2, 3):
         if self.ENC_fastsim and (not 'Truth' in hname): # NB: only apply pair efficiency effect for fast sim and det level distributions
@@ -600,27 +785,37 @@ class ProcessMC_ENC_HF(process_mc_base.ProcessMCBase):
           if self.do_rho_subtraction or self.do_constituent_subtraction:
             pair_type = self.check_pair_type(new_corr, ipoint, c_select, index)
             pair_type_label = self.pair_type_labels[pair_type]
+
+          self.fsparsepartonJetvalue[4] = new_corr.correlator(ipoint).rs()[index]
           
           if 'ENC' in observable:
             if self.ENC_fastsim and (not 'Truth' in hname):
-              getattr(self, hname.format(observable + str(ipoint) + pair_type_label,obs_label)).Fill(jet_pt_matched, new_corr.correlator(ipoint).rs()[index], new_corr.correlator(ipoint).weights()[index]*weights_pair[index])
+              # print("--> filling matched enc", hname.format(observable + str(ipoint) + pair_type_label,obs_label))
+              getattr(self, hname.format(observable + str(ipoint) + pair_type_label,obs_label)).Fill(self.fsparsepartonJetvalue, new_corr.correlator(ipoint).weights()[index]*weights_pair[index]) # NB: use jet_pt_matched instead of jet_pt so if jet_pt_matched is different from jet_pt, it will be used. This is mainly for matched jets study
             else:
-              getattr(self, hname.format(observable + str(ipoint) + pair_type_label,obs_label)).Fill(jet_pt_matched, new_corr.correlator(ipoint).rs()[index], new_corr.correlator(ipoint).weights()[index]) # NB: use jet_pt_matched instead of jet_pt so if jet_pt_matched is different from jet_pt, it will be used. This is mainly for matched jets study
+              self.fsparsepartonJetvalue[4] = new_corr.correlator(ipoint).rs()[index]
+              getattr(self, hname.format(observable + str(ipoint) + pair_type_label,obs_label)).Fill(self.fsparsepartonJetvalue, new_corr.correlator(ipoint).weights()[index]) # NB: use jet_pt_matched instead of jet_pt so if jet_pt_matched is different from jet_pt, it will be used. This is mainly for matched jets study
 
           if ipoint==2 and 'EEC_noweight' in observable:
             if self.ENC_fastsim and (not 'Truth' in hname):
-              getattr(self, hname.format(observable + pair_type_label,obs_label)).Fill(jet_pt_matched, new_corr.correlator(ipoint).rs()[index], weights_pair[index])
+              # print("--> filling matched EEC_noweight", hname.format(observable + pair_type_label,obs_label))
+              getattr(self, hname.format(observable + pair_type_label,obs_label)).Fill(self.fsparsepartonJetvalue, weights_pair[index])
             else:
-              getattr(self, hname.format(observable + pair_type_label,obs_label)).Fill(jet_pt_matched, new_corr.correlator(ipoint).rs()[index])
+              # print("--> filling matched EEC_noweight, det", hname.format(observable + pair_type_label,obs_label))
+              getattr(self, hname.format(observable + pair_type_label,obs_label)).Fill(self.fsparsepartonJetvalue)
 
           if ipoint==2 and 'EEC_weight2' in observable:
             if self.ENC_fastsim and (not 'Truth' in hname):
-              getattr(self, hname.format(observable + pair_type_label,obs_label)).Fill(jet_pt_matched, new_corr.correlator(ipoint).rs()[index], pow(new_corr.correlator(ipoint).weights()[index]*weights_pair[index],2))
+              # print("--> filling matched EEC_weight2", hname.format(observable + pair_type_label,obs_label))
+              getattr(self, hname.format(observable + pair_type_label,obs_label)).Fill(self.fsparsepartonJetvalue, pow(new_corr.correlator(ipoint).weights()[index]*weights_pair[index],2))
             else:
-              getattr(self, hname.format(observable + pair_type_label,obs_label)).Fill(jet_pt_matched, new_corr.correlator(ipoint).rs()[index], pow(new_corr.correlator(ipoint).weights()[index],2))
+              # print("--> filling matched EEC_noweight, det", hname.format(observable + pair_type_label,obs_label))
+              getattr(self, hname.format(observable + pair_type_label,obs_label)).Fill(self.fsparsepartonJetvalue, pow(new_corr.correlator(ipoint).weights()[index],2))
 
     if 'jet_pt' in observable:
-      getattr(self, hname.format(observable,obs_label)).Fill(jet_pt)
+      # getattr(self, hname.format(observable,obs_label)).Fill(jet_pt)
+      # print("--> filling matched jet_pt!")
+      getattr(self, hname.format(observable,obs_label)).Fill(self.fsparsejetlevelJetvalue)
 
   
  #---------------------------------------------------------------

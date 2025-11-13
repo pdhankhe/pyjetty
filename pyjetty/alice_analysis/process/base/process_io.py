@@ -84,33 +84,36 @@ class ProcessIO(common_base.CommonBase):
     if is_jetscape:
         self.track_columns += ['status']
     if is_ENC:
-        print("hello 1")
         if is_det_level:
-          print("hello 2")
-          self.track_columns += ['ParticleMCIndex']
+          self.track_columns += ['ParticleMCIndex'] #this accomadates inclusive case
         else:
-          print("hello 3")
-          self.track_columns += ['ParticlePID']
+          self.track_columns += ['ParticlePID'] #this accomadates inclusive case
     else:
       print("hello 4")
       self.track_columns += ['ParticleCharge']
 
-    # could get rid of this later. Also this is not currently compatible with D0
+    # could get rid of this later. Also this is not currently compatible with D0 mcprod. (is compatible with D0 fastsim)
     if is_mcprod:
       print("hello 5")
       self.track_columns += ['ParticleMCid']
 
+    # For D0 case, both the track columns and D0 columns are a little different 
     print("USE D0 INFO IS SET TO", self.use_D0_info)
     if self.use_D0_info:
       print("entering here????")
-      self.track_columns += ['MotherPID']
+      if is_det_level: 
+        self.track_columns += ['ParticlePID']
+      self.track_columns += ['MotherPID'] # For D0 case, need to read in the MotherPID of tracks to know which tracks came from D0. 
       # self.track_columns += ['ParticleRapidity']
 
-      # Set relevant columns of D0 tree
-      if (self.using_dstar):
-        self.D0_columns = self.unique_identifier + ['ParticlePt', 'ParticleEta', 'ParticlePhi', 'ParticleRapidity', 'ParticlePID']
+      # Set relevant columns of D0 tree. MotherPID of D0_tree only needed to get D*, but I will include it anyways.
+      # if (self.using_dstar):
+      #   self.D0_columns = self.unique_identifier + ['ParticlePt', 'ParticleEta', 'ParticlePhi', 'ParticleRapidity', 'ParticlePID']
+      # else:
+      #   print("or here????")
+      if is_det_level: 
+        self.D0_columns = self.unique_identifier + ['ParticlePt', 'ParticleEta', 'ParticlePhi', 'ParticleRapidity', 'ParticleMCIndex', 'ParticlePID', 'MotherPID']
       else:
-        print("or here????")
         self.D0_columns = self.unique_identifier + ['ParticlePt', 'ParticleEta', 'ParticlePhi', 'ParticleRapidity', 'ParticlePID', 'MotherPID']
     
     
@@ -169,8 +172,8 @@ class ProcessIO(common_base.CommonBase):
   def load_dataframe(self):
 
     print("IN LOAD DATAFRAMEEEEE")
-    print("OPTIONS", "treedir", self.tree_dir, "tracktree", self.track_tree_name, "eventtree", self.event_tree_name) #, "d0tree", self.D0_tree_name)
-    print("OPTIONS", "useD0", self.use_D0_info, "isENC", self.is_ENC, "isDetlevel", self.is_det_level)
+    print("OPTIONS:", "treedir:", self.tree_dir, "tracktree:", self.track_tree_name, "eventtree:", self.event_tree_name) #, "d0tree", self.D0_tree_name)
+    print("OPTIONS:", "useD0:", self.use_D0_info, "isENC:", self.is_ENC, "isDetlevel:", self.is_det_level)
 
     # Load event tree into dataframe
     if not self.skip_event_tree:
@@ -203,13 +206,14 @@ class ProcessIO(common_base.CommonBase):
       event_df.reset_index(drop=True)
 
     # Load D0 tree into datadrame
-    if (self.track_tree_name == "tree_D0_gen"):
+    if ("tree_D0" in self.track_tree_name):
       track_tree = None
       track_df_orig = None
       track_tree_name = self.tree_dir + self.track_tree_name
       with uproot.open(self.input_file)[track_tree_name] as track_tree:
         if not track_tree:
           raise ValueError("Tree %s not found in file %s" % (track_tree_name, self.input_file))
+        print("COLUMNS:", self.D0_columns)
         track_df_orig = uproot.concatenate(track_tree, self.D0_columns, library="pd")
       # print("D0 DF ORIG", D0_df_orig)
 
@@ -224,9 +228,14 @@ class ProcessIO(common_base.CommonBase):
       with uproot.open(self.input_file)[track_tree_name] as track_tree:
         if not track_tree:
           raise ValueError("Tree %s not found in file %s" % (track_tree_name, self.input_file))
-        print("TESTING", self.track_columns)
-        print("TESTING2", track_tree_name, track_tree)
+        print("COLUMNS:", self.track_columns)
         track_df_orig = uproot.concatenate(track_tree, self.track_columns, library="pd")
+      
+      # Add dummy rapidity column for the particle tree if analyzing D0's
+      if self.use_D0_info:
+        track_df_orig["ParticleRapidity"] = -1 # this adds a column where every entry has rap = -1
+        self.track_columns += ['ParticleRapidity']
+      print("UPDATED TRACK DF", track_df_orig)
 
       
       
@@ -388,14 +397,14 @@ class ProcessIO(common_base.CommonBase):
       track_df_grouped = None
       track_df_grouped = self.track_df.groupby(self.unique_identifier)
       print('debug2',self.track_df) #type(track_df_grouped))
-      print('debug2',track_df_grouped.aggregate(np.sum))
+      # print('debug2',track_df_grouped.aggregate(np.sum))
       # print('debug2',track_df_grouped.columns['ParticlePID'].values)
     
       # (ii) Transform the DataFrameGroupBy object to a SeriesGroupBy of fastjet particles
       df_fjparticles = None
 
       #take care of D0s separately
-      if self.track_tree_name == "tree_D0_gen":
+      if "tree_D0" in self.track_tree_name:
         df_fjparticles_orig = track_df_grouped.apply(
         self.get_fjparticles, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
           
@@ -403,21 +412,24 @@ class ProcessIO(common_base.CommonBase):
         self.get_particles_evid, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
         df_fjparticles_rap = track_df_grouped.apply(
         self.get_particles_rap, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt, notD0=False)
+
+        if self.is_det_level:
+          df_fjparticles_mcindex = track_df_grouped.apply(
+          self.get_particles_mc_index, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
+
         df_fjparticles_pid = track_df_grouped.apply(
         self.get_particles_pid, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
-        if (self.using_dstar): # fill in a dummy axis for "MotherID" - 
-          # could replace with default values of -1, but right now all the values will be +-421 (which won't be a Dstar, so it'll be wrong but ok)
-          df_fjparticles_mid = track_df_grouped.apply(
-          self.get_particles_pid, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
-        else:
-          df_fjparticles_mid = track_df_grouped.apply(
-          self.get_particles_mother_id, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
+        df_fjparticles_mother_id = track_df_grouped.apply(
+        self.get_particles_mother_id, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
         
         print('debug d0',df_fjparticles_orig)
         print('debug d0 aux: evid',df_fjparticles_evid)
         print('debug d0 aux: rap',df_fjparticles_rap)
         print('debug d0 aux: pid',df_fjparticles_pid)
-        df_fjparticles = pandas.DataFrame({"fj_particle": df_fjparticles_orig, "ev_id": df_fjparticles_evid, "ParticleRapidity": df_fjparticles_rap, "ParticlePID": df_fjparticles_pid, "MotherPID": df_fjparticles_mid})
+        if self.is_det_level:
+          df_fjparticles = pandas.DataFrame({"fj_particle": df_fjparticles_orig, "ev_id": df_fjparticles_evid, "ParticleRapidity": df_fjparticles_rap, "ParticleMCIndex": df_fjparticles_mcindex, "ParticlePID": df_fjparticles_pid, "MotherPID": df_fjparticles_mother_id})
+        else:
+          df_fjparticles = pandas.DataFrame({"fj_particle": df_fjparticles_orig, "ev_id": df_fjparticles_evid, "ParticleRapidity": df_fjparticles_rap, "ParticlePID": df_fjparticles_pid, "MotherPID": df_fjparticles_mother_id})
         print('debug d0 : evid',df_fjparticles)
 
         return df_fjparticles
@@ -426,26 +438,41 @@ class ProcessIO(common_base.CommonBase):
       if self.is_ENC:
         df_fjparticles_orig = track_df_grouped.apply(
         self.get_fjparticles, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
-        if self.is_det_level:
+        if self.is_det_level: #inclusive case
           df_fjparticles_aux = track_df_grouped.apply(
           self.get_particles_mc_index, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
+
+          if self.use_D0_info: # all tracks in D0 case
+            f_fjparticles_evid = track_df_grouped.apply(
+            self.get_particles_evid, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
+            f_fjparticles_pid = track_df_grouped.apply(
+            self.get_particles_pid, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
+            f_fjparticles_rap = track_df_grouped.apply(
+            self.get_particles_rap, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
+            f_fjparticles_mother_id = track_df_grouped.apply(
+            self.get_particles_mother_id, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
+            df_fjparticles = pandas.DataFrame({"fj_particle": df_fjparticles_orig, "ev_id": f_fjparticles_evid, "ParticleMCIndex": df_fjparticles_aux, "ParticlePID": f_fjparticles_pid, "ParticleRapidity": f_fjparticles_rap, "MotherPID": f_fjparticles_mother_id})
+          else: #inclusive case
+            df_fjparticles = pandas.DataFrame({"fj_particle": df_fjparticles_orig, "ParticleMCIndex": df_fjparticles_aux})
           print('debug3',df_fjparticles)
           print('debug3 aux: mcid',df_fjparticles_aux)
-          df_fjparticles = pandas.DataFrame({"fj_particle": df_fjparticles_orig, "ParticleMCIndex": df_fjparticles_aux})
-        else:
-          df_fjparticles_aux = track_df_grouped.apply(
+        else: #inclusive case
+          df_fjparticles_pid = track_df_grouped.apply(
           self.get_particles_pid, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
           print('debug3',df_fjparticles)
-          print('debug3 aux: pid',df_fjparticles_aux)
-          if self.use_D0_info:
+          print('debug3 aux: pid',df_fjparticles_pid)
+          if self.use_D0_info: # all tracks in D0 case
             print('debug3a', track_df_grouped)
-            df_fjparticles_aux2 = track_df_grouped.apply(
+            df_fjparticles_rap = track_df_grouped.apply(
+            self.get_particles_rap, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
+            df_fjparticles_mother_id = track_df_grouped.apply(
             self.get_particles_mother_id, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
-            df_fjparticles_aux3 = track_df_grouped.apply(
-            self.get_particles_rap, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt, notD0=True)
-            df_fjparticles = pandas.DataFrame({"fj_particle": df_fjparticles_orig, "ParticlePID": df_fjparticles_aux, "MotherPID": df_fjparticles_aux2, "ParticleRapidity": df_fjparticles_aux3})
-          else:
-            df_fjparticles = pandas.DataFrame({"fj_particle": df_fjparticles_orig, "ParticlePID": df_fjparticles_aux})
+            df_fjparticles = pandas.DataFrame({"fj_particle": df_fjparticles_orig, "ParticlePID": df_fjparticles_pid, "ParticleRapidity": df_fjparticles_rap, "MotherPID": df_fjparticles_mother_id})
+            # df_fjparticles_aux3 = track_df_grouped.apply(
+            # self.get_particles_rap, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt, notD0=True)
+            # df_fjparticles = pandas.DataFrame({"fj_particle": df_fjparticles_orig, "ParticlePID": df_fjparticles_pid, "MotherPID": df_fjparticles_mother_id, "ParticleRapidity": df_fjparticles_aux3})
+          else: #inclusive case
+            df_fjparticles = pandas.DataFrame({"fj_particle": df_fjparticles_orig, "ParticlePID": df_fjparticles_pid})
       elif self.is_mcprod:
         df_fjparticles_orig = track_df_grouped.apply(
         self.get_fjparticles, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
