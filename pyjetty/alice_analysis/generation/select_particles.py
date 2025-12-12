@@ -3,8 +3,8 @@
 from __future__ import print_function
 
 import os
-# import pyhepmc
-import pyhepmc_ng
+import pyhepmc # use this for perlmutter
+# import pyhepmc_ng # use this for hiccup
 
 import ROOT
 ROOT.gROOT.SetBatch(True)

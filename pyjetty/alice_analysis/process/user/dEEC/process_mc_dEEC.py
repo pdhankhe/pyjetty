@@ -562,6 +562,20 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
       h.GetZaxis().SetTitle('p_{T,jet,truth}')
       setattr(self, name, h)
 
+      name = 'reco_{}Weighted_unmatched'.format(observable[5:])
+      h = ROOT.TH3D("reco_{}Weighted_unmatched".format(observable[5:]), "reco_{}Weighted_unmatched".format(observable[5:]), num_bins, obs_bins, 6, ptRL_bins, 7, jetpt_bins)
+      h.GetXaxis().SetTitle(obstitle_det)
+      h.GetYaxis().SetTitle('#langlep_{T}#rangleR_{L,det}')
+      h.GetZaxis().SetTitle('p_{T,jet,det}')
+      setattr(self, name, h)
+
+      name = 'gen_{}Weighted_unmatched'.format(observable[5:])
+      h = ROOT.TH3D("gen_{}Weighted_unmatched".format(observable[5:]), "gen_{}Weighted_unmatched".format(observable[5:]), num_bins, obs_bins, 6, ptRL_bins, 7, jetpt_bins)
+      h.GetXaxis().SetTitle(obstitle_truth)
+      h.GetYaxis().SetTitle('#langlep_{T}#rangleR_{L,truth}')
+      h.GetZaxis().SetTitle('p_{T,jet,truth}')
+      setattr(self, name, h)
+
     # for me
     if "rc" in observable:
 
@@ -577,6 +591,20 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
 
       name = 'gen_charge_unmatched'
       h = ROOT.TH3D("gen_charge_unmatched", "gen_charge_unmatched", 6, obs_bins, 6, ptRL_bins, 7, jetpt_bins)
+      h.GetXaxis().SetTitle('q_{1}q_{2,truth}')
+      h.GetYaxis().SetTitle('#langlep_{T}#rangleR_{L,truth}')
+      h.GetZaxis().SetTitle('p_{T,jet,truth}')
+      setattr(self, name, h)
+
+      name = 'reco_chargeWeighted_unmatched'
+      h = ROOT.TH3D("reco_chargeWeighted_unmatched", "reco_chargeWeighted_unmatched", 6, obs_bins, 6, ptRL_bins, 7, jetpt_bins)
+      h.GetXaxis().SetTitle('q_{1}q_{2,det}')
+      h.GetYaxis().SetTitle('#langlep_{T}#rangleR_{L,det}')
+      h.GetZaxis().SetTitle('p_{T,jet,det}')
+      setattr(self, name, h)
+
+      name = 'gen_chargeWeighted_unmatched'
+      h = ROOT.TH3D("gen_chargeWeighted_unmatched", "gen_chargeWeighted_unmatched", 6, obs_bins, 6, ptRL_bins, 7, jetpt_bins)
       h.GetXaxis().SetTitle('q_{1}q_{2,truth}')
       h.GetYaxis().SetTitle('#langlep_{T}#rangleR_{L,truth}')
       h.GetZaxis().SetTitle('p_{T,jet,truth}')
@@ -1075,21 +1103,29 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
             name = '{}_weights_unmatched'.format(hstring)
             getattr(self, name).Fill(j_pair.weight, j_pair.jetpt*j_pair.r, j_pair.jetpt)
 
-          if 'corr_deltap' in observable:
+          if observable == 'corr_deltap':
             name = '{}_deltap_unmatched'.format(hstring)
             getattr(self, name).Fill(j_pair.deltap, j_pair.jetpt*j_pair.r, j_pair.jetpt)
+            name = '{}_deltapWeighted_unmatched'.format(hstring)
+            getattr(self, name).Fill(j_pair.deltap, j_pair.jetpt*j_pair.r, j_pair.jetpt, j_pair.weight)
 
-          if 'corr_deltapt' in observable:
+          if 'deltapt' in observable:
             name = '{}_deltapt_unmatched'.format(hstring)
             getattr(self, name).Fill(j_pair.deltapt, j_pair.jetpt*j_pair.r, j_pair.jetpt)
+            name = '{}_deltaptWeighted_unmatched'.format(hstring)
+            getattr(self, name).Fill(j_pair.deltapt, j_pair.jetpt*j_pair.r, j_pair.jetpt, j_pair.weight)
 
-          if 'corr_deltajt' in observable:
+          if 'deltajt' in observable:
             name = '{}_deltajt_unmatched'.format(hstring)
             getattr(self, name).Fill(j_pair.deltajt, j_pair.jetpt*j_pair.r, j_pair.jetpt)
+            name = '{}_deltajtWeighted_unmatched'.format(hstring)
+            getattr(self, name).Fill(j_pair.deltajt, j_pair.jetpt*j_pair.r, j_pair.jetpt, j_pair.weight)
 
           if 'corr_rc' in observable:
             name = '{}_charge_unmatched'.format(hstring)
             getattr(self, name).Fill(j_pair.q1q2, j_pair.jetpt*j_pair.r, j_pair.jetpt)
+            name = '{}_chargeWeighted_unmatched'.format(hstring)
+            getattr(self, name).Fill(j_pair.q1q2, j_pair.jetpt*j_pair.r, j_pair.jetpt, j_pair.weight)
 
           if observable == 'corr_deltap':
             name = 'h2D_weights_vs_deltap_{}_R{}_{}'.format(h2string, jetR, obs_label)

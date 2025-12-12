@@ -2,8 +2,10 @@
 // it is currently able to plot 5 TeV pythia histograms (old method)
 // Beatrice Liang-Gilman (beatrice_lg@berkeley.edu)
 
+// TODO: figure out how to make this possible with gen or reco, matched or unmatched
+
 #include <iostream>
-#include <yaml-cpp/yaml.h>
+using namespace std;
 
 
 // global variables
@@ -13,33 +15,37 @@ Double_t markers[10] = {kFullCircle, kFullSquare, kFullDiamond, kFullTriangleUp,
 Double_t marker_size = 1.5;
 
 std::string attempt_dir = Form("pythia5TeV_histograms_crosscheck"); //;
-std::string outdir = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir; //;
+std::string outdir = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir; //; // PERLY_FIX: REVERT TO THIS
+std::string outdir_rootfiles = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/" + attempt_dir; //; // PERLY_FIX: REVERT TO THIS
+// std::string outdir = "~/Documents/research/code/dEEC/new_code/storage/plots/" + attempt_dir;
+// std::string outdir_rootfiles = "~/Documents/research/code/dEEC/new_code/storage/rootfiles/" + attempt_dir;
 
 bool write_to_root_file = true; 
 
 // bool jetpt_bool = false;
-bool deltap_bool = false;
-bool deltapt_bool = false;
-bool deltajt_bool = false;
-bool ew_bool = false;
-bool twoDhists_bool = false;
-bool rc_bool = true; 
+bool deltap_bool = true;
+bool deltajt_bool = true;
+bool ew_bool = true;
+bool twoDhists_bool = true;
+bool rc_bool = false;
 
 bool p1_bool = false;
-bool jt1_bool = false;
+bool jt1_bool = false; 
+bool deltajt_vs_ptrl_bool = false; // this doesn't work yet bc histogram doesn't exist yet
 
 bool unnormalized_bool = false;
 bool self_normalized_bool = true;
 bool norm_by_jets_bool = false;
 
 bool unweighted_bool = true;
-bool weighted_bool = true;
+bool weighted_bool = true; 
 
 class Observable {
 public:
     std::string name;
     bool obs_bool;
-    
+    std::string hist_toextract_name; // this is the histogram taken from the AnalysisResults file, could be 1D, 3D, whatever
+
     int num_bins;
     double min_bound;
     double max_bound;
@@ -50,20 +56,22 @@ public:
 
     std::vector<TH1D*> obs_vec;
 
-    Observable(std::string name_val, bool obs_bool_val, int num_bins_val, double min_bound_val, double max_bound_val, 
+    Observable(std::string name_val, bool obs_bool_val, std::string hist_toextract_name_val, 
+               int num_bins_val, double min_bound_val, double max_bound_val,
                std::string axis_label_val, std::string cs_label_val) {
         name = name_val;
         obs_bool = obs_bool_val;
-        
+        hist_toextract_name = hist_toextract_name_val;
+
         num_bins = num_bins_val;
         min_bound = min_bound_val;
         max_bound = max_bound_val;
 
         axis_label = axis_label_val;
         cs_label = cs_label_val; //cross section label, in y axis
-
-        filepath_plots = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir + "%s/%s/" + name + "/%s"; // ptname, norm_string, filename
-        if (name.find("jet_") != std::string::npos || name.find("const") != std::string::npos) filepath_plots = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir + "%s"; // filename
+        
+        filepath_plots = outdir + "/%s/%s/" + name + "/%s"; // ptname, norm_string, filename
+        if (name.find("jet_") != std::string::npos || name.find("const") != std::string::npos) filepath_plots = outdir + "/%s"; // filename
 
     }
 
@@ -72,13 +80,13 @@ public:
     }
 
     void recreate_output_root_file() {
-        std::string root_outfile = "/software/users/blianggi/mypyjetty/storage/dEEC/rootfiles/" + attempt_dir + "/DataHists_" + name + ".root";
+        std::string root_outfile = outdir_rootfiles + "/PYTHIAHists_" + name + ".root";
         TFile * f_out = new TFile(root_outfile.c_str(), "RECREATE");
         f_out->Close();
     }
 
     TFile * get_output_root_file() {
-        std::string root_outfile = "/software/users/blianggi/mypyjetty/storage/dEEC/rootfiles/" + attempt_dir + "/DataHists_" + name + ".root";
+        std::string root_outfile = outdir_rootfiles + "/PYTHIAHists_" + name + ".root";
         TFile * f_out = new TFile(root_outfile.c_str(), "UPDATE");
         return f_out;
     }
@@ -93,23 +101,21 @@ public:
     
     std::string filepath_plots;
 
-    // Observable2D(const Observable& o1, const Observable& o2, bool obs_bool_val)
-    //     : obs1(o1), obs2(o2), name(name_val), obs_bool(obs_bool_val) {}
     Observable2D(Observable ox, Observable oy, bool obs_bool_val)
         : obsx(ox), obsy(oy), obs_bool(obs_bool_val) // required for non-default-constructible members
     {
         name = obsy.name + "_vs_" + obsx.name;
-        filepath_plots = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir + "%s/%s/" + name + "/%s"; // ptname, norm_string, filename
+        filepath_plots = outdir + "/%s/%s/" + name + "/%s"; // ptname, norm_string, filename
     }
 
     void recreate_output_root_file() {
-        std::string root_outfile = "/software/users/blianggi/mypyjetty/storage/dEEC/rootfiles/" + attempt_dir + "/DataHists_" + name + ".root";
+        std::string root_outfile = outdir_rootfiles + "/PYTHIAHists_" + name + ".root";
         TFile * f_out = new TFile(root_outfile.c_str(), "RECREATE");
         f_out->Close();
     }
 
     TFile* get_output_root_file() {
-        std::string root_outfile = "/software/users/blianggi/mypyjetty/storage/dEEC/rootfiles/" + attempt_dir + "/DataHists_" + name + ".root";
+        std::string root_outfile = outdir_rootfiles + "/PYTHIAHists_" + name + ".root";
         TFile * f_out = new TFile(root_outfile.c_str(), "UPDATE");
         return f_out;
     }
@@ -173,25 +179,31 @@ void ProcessCanvas(TCanvas *Canvas, bool moveright=false) {
  	Canvas->SetFrameBorderMode(1);
 }
 
+bool legendContainsLabel(TLegend& leg, const TString& label) {
+    TList* list = leg.GetListOfPrimitives();
+    for (int i = 0; i < list->GetSize(); ++i) {
+        TLegendEntry* entry = dynamic_cast<TLegendEntry*>(list->At(i));
+        if (entry && entry->GetLabel() && label == entry->GetLabel()) {
+            return true;
+        }
+    }
+    return false;
+}
 
-void Format1DHist(TH1D *hist, TH1D *jetpt_hist, std::string norm_string, double x_left, double x_right,
-                  int markercolor, double markeralpha, int markerstyle, std::string xtitle, std::string ytitle, 
-                  TLegend& leg, TString leg_text, 
-                  bool drawline=false, double linealpha=1., std::string obs_name="",
-                  std::string hist_addname = "") {
 
-    std::string new_name = Form("h_%s%s", obs_name.c_str(), hist_addname.c_str());        
-    // ^ = Form("h_%s_R0.4_t1.0_pt%d-%d_RL%.3f-%.3f_%s", obsname.c_str(), pt_min, pt_max, RL_min, RL_max, norm.c_str());
-    hist->SetNameTitle(new_name.c_str(), new_name.c_str());
+/* Format and adjust histograms */
+void Format1DHist(Observable obs, TH1D *hist, TH1D *jetpt_hist, std::string norm_string, int markercolor, double markeralpha,
+                  int markerstyle, std::string xtitle, std::string ytitle, TLegend& leg, TString leg_text, bool drawline=false,
+                  std::string hist_addname="") {
 
-    // set x range
-    // hist->GetXaxis()->SetRangeUser(x_left, x_right); //comment out for now... //TODO: see if can be fully removed
-    
+    hist->SetTitle(Form("h_%s%s", obs.name.c_str(), hist_addname.c_str()));
+    hist->SetName(Form("h_%s%s", obs.name.c_str(), hist_addname.c_str()));
+
     // normalization
     if ( norm_string == "self_normalized" ) {
         double selfnorm_value = hist->Integral();
         hist->Scale(1/selfnorm_value, "width");
-    } else if ( norm_string == "norm_by_jets" ) { // this is pretty much unused
+    } else if ( norm_string == "norm_by_jets" ) {
         double numjets = jetpt_hist->Integral();
         cout << "Number of jets in " << leg_text << ": " << numjets << endl;
         hist->Scale(1/numjets, "width");
@@ -203,17 +215,15 @@ void Format1DHist(TH1D *hist, TH1D *jetpt_hist, std::string norm_string, double 
     hist->SetMarkerStyle(markerstyle);
     hist->SetMarkerSize(1.5);
     if (drawline) {
-
         for (int a=0; a < hist->GetNbinsX(); a++){
             hist->SetBinError(a+1, 0);
         }
 
-        hist->SetMarkerStyle(20);
-        hist->SetMarkerColorAlpha(markercolor, 0);
+//        hist->SetMarkerStyle(20);
+//        hist->SetMarkerColorAlpha(markercolor, 0);
 
         hist->SetFillStyle(0);
-        hist->SetLineColorAlpha(markercolor, linealpha);
-        hist->SetFillColor(markercolor);
+//        hist->SetFillColor(markercolor);
         hist->SetLineStyle(1);
         hist->SetLineWidth(3);
     }
@@ -221,71 +231,73 @@ void Format1DHist(TH1D *hist, TH1D *jetpt_hist, std::string norm_string, double 
     // axes
     hist->GetXaxis()->SetLabelFont(42);
     hist->GetXaxis()->SetTitleFont(42);
-	if (obs_name == "weights") {
+    if (obs.name == "weights") {
         hist->GetXaxis()->SetTitleSize(0.035);
         hist->GetXaxis()->SetTitleOffset(1.5);
     } else {
         hist->GetXaxis()->SetTitleSize(0.06); //(0.042);
         hist->GetXaxis()->SetTitleOffset(1.0);
     }
-	hist->GetXaxis()->SetLabelSize(0.05);
+    hist->GetXaxis()->SetLabelSize(0.05);
     hist->GetXaxis()->SetTitle(xtitle.c_str());
 
     hist->GetYaxis()->SetLabelFont(42);
-	hist->GetYaxis()->SetTitleFont(42);
-    hist->GetYaxis()->SetTitleOffset(1.05); 
-	hist->GetYaxis()->SetTitleSize(0.06); //(0.042);
-	hist->GetYaxis()->SetLabelSize(0.05); //(0.042);
+    hist->GetYaxis()->SetTitleFont(42);
+    hist->GetYaxis()->SetTitleOffset(1.05);
+    hist->GetYaxis()->SetTitleSize(0.06); //(0.042);
+    hist->GetYaxis()->SetLabelSize(0.05); //(0.042);
     hist->GetYaxis()->SetTitle(ytitle.c_str());
 
     // legend
-    leg.AddEntry(hist, leg_text, "pl");
+    if (!legendContainsLabel(leg, leg_text)) leg.AddEntry(hist, leg_text, "pl");
 
 }
 
+void Format2DHist(Observable obs_x, Observable obs_y, TH2D *hist2D, TH1D *jetpt_hist, std::string norm_string, std::string xtitle, std::string ytitle,
+                  std::string hist_addname="", bool restrictzaxis=false) {
 
-void Format2DHist(TH2D *hist2D, TH1D *jetpt_hist, std::string norm_string,
-                  std::string xtitle, std::string ytitle, std::string obs_name="", std::string hist_addname = "") {
+    double ptvsew_normbounds[3][2] = { { 0, 500 }, { 1e-2, 5e2 }, { 1e-4, 2e2 }}; //TODO: make this less pt specific?
+    // also TODO: potentially set all lower boundaries to 0 for data??
 
-    std::string new_name = Form("h_%s%s", obs_name.c_str(), hist_addname.c_str());        
-    // ^ = Form("h_%s_R0.4_t1.0_pt%d-%d_RL%.3f-%.3f_%s", obsname.c_str(), pt_min, pt_max, RL_min, RL_max, norm.c_str());
-    hist2D->SetNameTitle(new_name.c_str(), new_name.c_str());
+    hist2D->SetTitle(Form("h_%s_vs_%s%s", obs_y.name.c_str(), obs_x.name.c_str(), hist_addname.c_str()));
+    hist2D->SetName(Form("h_%s_vs_%s%s", obs_y.name.c_str(), obs_x.name.c_str(), hist_addname.c_str()));
 
-    // set x and y ranges //comment out for now... //TODO: see if can be fully removed
-    // hist2D->GetXaxis()->SetRangeUser(0, ptmax);
-    // hist2D->GetZaxis()->SetRangeUser(bounds[0], bounds[1]);
-    
     // normalization
+    int norm_index = 0;
     if ( norm_string == "self_normalized" ) {
         double selfnorm_value = hist2D->Integral();
         hist2D->Scale(1/selfnorm_value, "width");
-    } else if ( norm_string == "norm_by_jets" ) { // this is pretty much unused
+        norm_index = 1;
+    } else if ( norm_string == "norm_by_jets" ) {
         double numjets = jetpt_hist->Integral();
-        cout << "Number of jets in " << obs_name << ": " << numjets << endl;
         hist2D->Scale(1/numjets, "width");
+        norm_index = 2;
     }
 
-    // axes
+    // set z axis bounds
+    // if (restrictzaxis) hist2D->GetZaxis()->SetRangeUser(ptvsew_normbounds[norm_index][0], ptvsew_normbounds[norm_index][1]);
+
+    // label axes
     hist2D->GetXaxis()->SetLabelFont(42);
     hist2D->GetXaxis()->SetTitleFont(42);
-	hist2D->GetXaxis()->SetTitleSize(0.06); //(0.042);
-    hist2D->GetXaxis()->SetTitleOffset(1.0); 
-	hist2D->GetXaxis()->SetLabelSize(0.05);
+    hist2D->GetXaxis()->SetTitleSize(0.04); //(0.042);
+    hist2D->GetXaxis()->SetTitleOffset(1.3);
+    hist2D->GetXaxis()->SetLabelSize(0.05);
     hist2D->GetXaxis()->SetTitle(xtitle.c_str());
 
     hist2D->GetYaxis()->SetLabelFont(42);
-	hist2D->GetYaxis()->SetTitleFont(42);
-    if (obs_name.find("weights") != std::string::npos) { // if weights is found in the string
-        hist2D->GetYaxis()->SetTitleSize(0.035);
-        hist2D->GetYaxis()->SetTitleOffset(1.5);
-    } else {
-        hist2D->GetYaxis()->SetTitleSize(0.05); //(0.042);
-        hist2D->GetYaxis()->SetTitleOffset(1.0);
-    }	
-	hist2D->GetYaxis()->SetLabelSize(0.05); //(0.042);
+    hist2D->GetYaxis()->SetTitleFont(42);
+    // if (obs_name_y == "weights") {
+    //     hist2D->GetYaxis()->SetTitleSize(0.035);
+    //     hist2D->GetYaxis()->SetTitleOffset(1.5);
+    // } else {
+        hist2D->GetYaxis()->SetTitleSize(0.04); //0.06 //(0.042);
+        hist2D->GetYaxis()->SetTitleOffset(1.3);
+    // }
+    hist2D->GetYaxis()->SetLabelSize(0.04); //(0.042);
     hist2D->GetYaxis()->SetTitle(ytitle.c_str());
-
 }
+
 
 void FormatGraphMarker(TGraphErrors * g, int markercolor, double markeralpha, int markerstyle, double markersize) {
     g->SetMarkerColorAlpha(markercolor, markeralpha);
@@ -413,23 +425,23 @@ std::vector<double> get_bin_edges(TH1D * hist) {
 // ======================================================= //
 
 //get histogram and clone it
-TH3D * get3DHistAndClone(TFile *f, std::string histname) {
+TH3D * get3DHistAndClone(TFile *f, std::string histname, int pt_min, int pt_max, int pTRL_bin) {
     TH3D *h3D = (TH3D*) f->Get(histname.c_str());
     cout << "HNAME: " << histname.c_str() << endl;
-    std::string hn = h3D->GetName();
-    hn += "_clone";
-    TH3D *h3D_clone = (TH3D *) h3D->Clone( hn.c_str() ); //TODO: change this name!
+    // std::string hn = Form("%s_clone_pt%d-%d_ptRLbin%d", h3D->GetName(), pt_min, pt_max, ptRL_bin);
+    std::string hn = Form("%s_clone", h3D->GetName());
+    TH3D *h3D_clone = (TH3D *) h3D->Clone( Form("%s_pt%d-%d_ptRLbin%d",hn.c_str(), pt_min, pt_max, pTRL_bin) );
 
     return h3D_clone;
 }
 
 
 //get histogram and clone it
-THnSparse * getTHnSparseAndClone(TFile *f, std::string histname) {
+THnSparse * getTHnSparseAndClone(TFile *f, std::string histname, int pt_min, int pt_max, int pTRL_bin) {
     THnSparse *hnsparse = (THnSparse*) f->Get(histname.c_str());
     std::string hn = hnsparse->GetName();
     hn += "_clone";
-    THnSparse *hnsparse_clone = (THnSparse *) hnsparse->Clone( hn.c_str() ); //TODO: change this name!
+    THnSparse *hnsparse_clone = (THnSparse *) hnsparse->Clone( Form("%s_pt%d-%d_ptRLbin%d",hn.c_str(), pt_min, pt_max, pTRL_bin) );
 
     return hnsparse_clone;
 }
@@ -438,30 +450,50 @@ THnSparse * getTHnSparseAndClone(TFile *f, std::string histname) {
 
 /* get just 1D histogram */
 // takes in a 1D histogram
-TH1D * getObs1DHist_direct(TFile *filename, std::string h_name, bool debug=false) {
+TH1D * getObs1DHist_direct(TFile *filename, std::string h_name, bool apply_cuts = false, int x_min = 0, int x_max = 1000, bool debug=false) {
     TH1D *hist = (TH1D*) filename->Get(h_name.c_str());
+    if (apply_cuts) hist->GetXaxis()->SetRangeUser(x_min, x_max);
     return hist;
 }
 
 /* get a typical 1D histogram */
 // takes in a 3D histogram w/ 3 axes: (obs, pTRL, jet pT)
-TH1D * getObs1DHistFrom3D(TFile *filename, std::string h_name,
-                    int pt_min, int pt_max, double pTRL_min, double pTRL_max, bool debug=false) {
+TH1D * getObs1DHistFrom3D(TFile *filename, Observable obs, std::string mc_level, 
+                    int pt_min, int pt_max, double pTRL_min, double pTRL_max, int pTRL_bin = 0, bool weighting=false, bool debug=false) {
 
-    TH3D *h3d = get3DHistAndClone(filename, h_name);
-    h3d->GetYaxis()->SetRangeUser(pTRL_min, pTRL_max);
-    h3d->GetZaxis()->SetRangeUser(pt_min, pt_max);
-    TH1D *hist1D = h3d->ProjectionX();
+    // std::string h_name = obs.hist_toextract_name;
+    // if (h_name.find("%s") != std::string::npos) h_name.replace(h_name.find("%s"), 2, weighting ? "Weighted" : "" );
+    std::string weight_str = weighting ? "Weighted" : "";
+    std::string mc_keyword = (mc_level == "truth") ? "gen" : "reco";
+    std::string h_name = Form(obs.hist_toextract_name.c_str(), mc_keyword.c_str(), weight_str.c_str());// TODO: FIX WHAT IS BEING ACCESSED HERE, include jet pt and ptrl bin?
+
+    TH3D *h3d = get3DHistAndClone(filename, h_name, pt_min, pt_max, pTRL_bin);
+    cout << "making cuts " << pTRL_min << ", " << pTRL_max << " // " << pt_min << ", " << pt_max << endl;
+    cout << " x axis name " << h3d->GetXaxis()->GetTitle() << endl;
+    cout << " y axis name " << h3d->GetYaxis()->GetTitle() << endl;
+    cout << " z axis name " << h3d->GetZaxis()->GetTitle() << endl;
+    // h3d->GetYaxis()->SetRangeUser(pTRL_min, pTRL_max);
+    // h3d->GetZaxis()->SetRangeUser(pt_min, pt_max);
+    // TH1D *hist1D = h3d->ProjectionX(Form("%s_proj_pt%d-%d_ptRLbin%d", h3d->GetName(), pt_min, pt_max, pTRL_bin));
+
+    // making cuts and projecting directly doesn't work... need to specify in ProjectionX() function
+    int hist_ptrl_bin = h3d->GetYaxis()->FindBin(pTRL_min);
+    int hist_pt_bin = h3d->GetZaxis()->FindBin(pt_min);
+    cout << "using name: " << Form("h%s%s_proj_pt%d-%d_ptRLbin%d_%s", obs.name.c_str(), weight_str.c_str(), pt_min, pt_max, pTRL_bin, mc_keyword.c_str()) << " and hist_ptrl_bin: " << hist_ptrl_bin << " and hist_pt_bin: " << hist_pt_bin << endl;
+    TH1D *hist1D = h3d->ProjectionX(Form("h%s%s_proj_pt%d-%d_ptRLbin%d_%s", obs.name.c_str(), weight_str.c_str(), pt_min, pt_max, pTRL_bin, mc_keyword.c_str()), hist_ptrl_bin, hist_ptrl_bin, hist_pt_bin, hist_pt_bin); // ybin1, ybin2, zbin1, zbin2
+    cout << "integral: " << hist1D->Integral() << endl;
 
     return hist1D;
 }
 
 /* get a typical 2D histogram */
 // takes in a THnSparse w/ 4 axes: (x_obs, y_obs, pTRL, jet pT)
-TH2D * getObs2DHist(TFile *filename, std::string h_name,
-                    int pt_min, int pt_max, double pTRL_min, double pTRL_max, bool debug=false) {
+TH2D * getObs2DHist(TFile *filename, Observable obs_x, Observable obs_y, std::string jetRname, std::string threshold,
+                    int pt_min, int pt_max, int pTRL_bin, double pTRL_min, double pTRL_max, bool debug=false) {
+    
+    std::string h_name = Form("h2D_%s_vs_%s_Truth%s_%sScaled", obs_y.name.c_str(), obs_x.name.c_str(), jetRname.c_str(), threshold.c_str()); //i.e. "h2D_weights_vs_deltap_Truth%s_%sScaled"
 
-    THnSparse *hnsparse = getTHnSparseAndClone(filename, h_name);
+    THnSparse *hnsparse = getTHnSparseAndClone(filename, h_name, pt_min, pt_max, pTRL_bin);
     hnsparse->GetAxis(2)->SetRangeUser(pTRL_min, pTRL_max);
     hnsparse->GetAxis(3)->SetRangeUser(pt_min, pt_max);
     TH2D *hist2D = hnsparse->Projection(1, 0);
@@ -529,51 +561,7 @@ void fit_hist(TCanvas *c, TH1D* hist, double fit_xmin, double fit_xmax) {
 
 
 /* Save and delete histograms */
-// (TFile *fout, TCanvas *can, TH1D* hist, std::string obs_name, 
-//                          std::string ptname, std::string norm_string, std::string hist_addname,
-//                          bool logx, bool logy)
-void draw_save_del_hists(TFile *fout, TCanvas *can, TObject* obj, std::string obs_name, 
-                         std::string ptname, std::string norm_string, std::string hist_addname,
-                         bool logx, bool logy, bool logz=false) {
-    can->cd();
-    if (logx) gPad->SetLogx();
-    if (logy) gPad->SetLogy();
-
-    if (TH2* hist2D = dynamic_cast<TH2*>(obj)) { // put this first bc TH2 is a subclass of TH1!! (and it will go into the other loop :( )
-        gPad->SetRightMargin(0.12);
-        if (logz) gPad->SetLogz();
-        can->SetFillColor(kWhite);
-        hist2D->Draw("COLZ");
-    } else if (TH1* hist = dynamic_cast<TH1*>(obj)) {
-        hist->Draw();
-    } else if (TGraphErrors* graph = dynamic_cast<TGraphErrors*>(obj)) {
-        graph->Draw("ALP");
-    } else if (TGraph* graph = dynamic_cast<TGraph*>(obj)) {
-        graph->Draw("ALP");
-    } else {
-        cout << "Error: Unsupported object type. Only TH1, TGraph, TGraphErrors, and TH2 are supported." << endl;
-    }
-
-    fout->cd();
-    // hist->Write();
-    obj->Write(); //TODO: this might not be right! Might have to use the casted type
-
-    
-
-    // std::string outdir = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/data_firstattempt"; // + ptbin_name + "/";//"plots/test/";
-    std::string add_dir = "";
-    if (obs_name != "jet_pt" && obs_name != "total_num_const" && obs_name != "num_const_aftercut") {
-        if (obs_name == "rc") add_dir = "/" + ptname + "/" + norm_string + "/" + obs_name;
-        else add_dir = "/" + ptname + "/" + norm_string + "/" + obs_name + "/individuals";
-    }
-    std::string fname_out = outdir + add_dir + "/corrhist_" + obs_name + hist_addname + ".pdf";
-    can->SaveAs(fname_out.c_str());
-
-    // delete hist;
-    delete can;
-}
-
-void draw_save_del_hists(Observable& obs, TObject* obj,  
+void draw_save_del_hists(Observable& obs, TObject* obj,
                          std::string ptname, std::string norm_string, std::string hist_addname,
                          bool logx, bool logy, bool logz=false, //std::string obs_filename="", 
                          const double ptRL_bins[] = nullptr, int n_ptRLbins = 0,
@@ -604,21 +592,8 @@ void draw_save_del_hists(Observable& obs, TObject* obj,
 
     TFile * fout = obs.get_output_root_file();
     fout->cd();
-    if (write_to_root_file) obj->Write(); //TODO: this might not be right! Might have to use the casted type
+    if (write_to_root_file) obj->Write();
     fout->Close();
-
-
-    // std::string outdir = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/data_firstattempt"; // + ptbin_name + "/";//"plots/test/";
-    /*std::string add_dir = "";
-    if (obs_name != "jet_pt" && obs_name != "total_num_const" && obs_name != "num_const_aftercut") {
-        if (obs_name == "rc") add_dir = "/" + ptname + "/" + norm_string + "/" + obs_name;
-        else if (obs_name == "deltajt_scatter") add_dir = "/" + ptname;
-        // else if (obs_name == "deltajt_scatter_ind") add_dir = "/" + ptname + "self_normalized/deltajt";
-        else add_dir = "/" + ptname + "/" + norm_string + "/" + obs_name + "/individuals";
-    }
-    std::string usethisname = (obs_filename == "") ? obs_name : obs_filename;
-    
-    std::string fname_out = outdir + add_dir + "/corrhist_" + usethisname + hist_addname + ".pdf";*/
 
     std::string fname_out = "";
     if (obs.name.find("jet_") != std::string::npos || obs.name.find("const") != std::string::npos) fname_out = Form(obs.filepath_plots.c_str(), ("corrhist_" + obs.name + hist_addname + ".pdf").c_str());
@@ -631,6 +606,36 @@ void draw_save_del_hists(Observable& obs, TObject* obj,
     delete can;
 }
 
+void draw_save_del_hists2D(Observable2D& obs2D, TH2D* hist2D,
+                         std::string ptname, std::string norm_string, std::string hist_addname,
+                         bool logx, bool logy, bool logz=false,
+                         const double ptRL_bins[] = nullptr, int n_ptRLbins = 0,
+                         bool include_RL0=true, bool include_RL1=true) {
+    
+    TCanvas *can_hist2D = new TCanvas("", "", 800, 500); //"can_weights_vs_deltap"
+    can_hist2D->cd();
+    if (logx) gPad->SetLogx();
+    if (logy) gPad->SetLogy();
+
+    gPad->SetRightMargin(0.12);
+    if (logz) gPad->SetLogz();
+    can_hist2D->SetFillColor(kWhite);
+    hist2D->Draw("COLZ");
+    
+
+    TFile * fout = obs2D.get_output_root_file();
+    fout->cd();
+    if (write_to_root_file) hist2D->Write();
+    fout->Close();
+
+
+    std::string fname_out = Form(obs2D.filepath_plots.c_str(), ptname.c_str(), norm_string.c_str(), ("corrhist_" + obs2D.name + hist_addname + ".pdf").c_str());
+    if (obs2D.name.find("z") != std::string::npos) fname_out = Form(obs2D.filepath_plots.c_str(), ("corrhist_zj_vs_zi" + hist_addname + ".pdf").c_str());
+    can_hist2D->SaveAs(fname_out.c_str());
+
+    // delete hist;
+    delete can_hist2D;
+}
 
 
 /* Delete a vector of histograms */
@@ -645,72 +650,43 @@ void deleteVecOfHists(std::vector<TH1D*>& histVector) {
 }
 
 /* plot all RL bins in one plot */
-void plotandsave_combined_hists(TCanvas *can_all, vector<TH1D*> h_vec, TLegend *l, 
-                          std::string obs_name, std::string ptname, 
-                          std::string norm_string, std::string hist_addname,
-                          int pt_max, bool logx, bool logy, double pl_axis_cut=-1, bool debug=false) {
+void plotandsave_combined_hists(Observable obs, TLegend *l, std::string ptname, std::string norm_string, 
+                          std::string hist_addname, bool weighting, bool logx, bool logy, bool debug=false) {
 
+    if (weighting && obs.name == "weights") return;
+    
     // go into canvas
+    TCanvas *can_all = new TCanvas();
     can_all->cd();
     if (logx) gPad->SetLogx();
     if (logy) gPad->SetLogy();
 
-    // if momentum axis, adjust x bounds accordingly
-    size_t length = h_vec.size();
-    for (int j=0; j<length; j++) {
-        // cout << j << ": " << pTRL_bin_width[j] << endl;
-        // if (scalebyRLbinwidth) h_vec[j]->Scale(pTRL_bin_width[j]); // this needs to be done before normalization
-        // if (mom_axis) {
-        //     // h_vec[j]->Rebin(4);
-        //     // h_vec[j]->GetXaxis()->SetRangeUser(0, pt_max+5);
-        //     // cout << h_vec[j]->GetEntries() << endl;
-        //     h_vec[j]->Scale(pTRL_bin_width[j]); // this needs to be done before normalization
-        // }
-        if (pl_axis_cut > 0) {
-            h_vec[j]->GetXaxis()->SetRangeUser(0, pl_axis_cut);
-        }
+    // set min and max
+    size_t num_curves = obs.obs_vec.size();
+    double max_val = 0.0; double min_val = 999.0;
+    for (int j=0; j<num_curves; j++) {
+        double max_temp = obs.obs_vec[j]->GetMaximum();
+        double min_temp = obs.obs_vec[j]->GetMinimum();
+        if (max_temp > max_val) max_val = max_temp;
+        if (min_temp < min_val) min_val = min_temp;
     }
-
-    // set maximum based on maximum of all curves
-    double max = 0;
-    for (int j=0; j<length; j++) {
-        double max_cand = h_vec[j]->GetMaximum();
-        if (max_cand > max) max = max_cand;
-    }
-    if (debug) cout << "max is " << max << " which goes to " << max*1.5 << endl;
-    h_vec[0]->SetMaximum( max * 1.5 );
-
+    obs.obs_vec[0]->SetMaximum(max_val*1.2);
+    // obs.obs_vec[0]->SetMinimum(min_val*1.2);
+    cout << "max value is: " << max_val << endl;
+    cout << "min value is: " << min_val << endl;
+    
     // draw!
-    for (int j=0; j<length; j++) {
-        h_vec[j]->Draw("same");
+    for (int j=0; j<num_curves; j++) {
+        obs.obs_vec[j]->Draw("same");
     }
 
-    // // axes
-    // hist->GetXaxis()->SetLabelFont(42);
-    // hist->GetXaxis()->SetTitleFont(42);
-	// hist->GetXaxis()->SetTitleOffset(1.0);
-	// hist->GetXaxis()->SetTitleSize(0.06); //(0.042);
-	// hist->GetXaxis()->SetLabelSize(0.05);
-    // hist->GetXaxis()->SetTitle(xtitle.c_str());
-
-    // hist->GetYaxis()->SetLabelFont(42);
-	// hist->GetYaxis()->SetTitleFont(42);
-    // hist->GetYaxis()->SetTitleOffset(1.05); 
-	// hist->GetYaxis()->SetTitleSize(0.06); //(0.042);
-	// hist->GetYaxis()->SetLabelSize(0.05); //(0.042);
-    // hist->GetYaxis()->SetTitle(ytitle.c_str());
-
-    // can_all->Modified();
-    // can_all->Update();
     l->Draw("same");
 
     //save as PDF
-    // std::string outdir = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/data_firstattempt/"; // + ptbin_name + "/";//"plots/test/";
-    std::string add_dir = "/" + ptname + "/" + norm_string + "/" + obs_name;
-    std::string fname_out = outdir + add_dir + "/corrhist_" + obs_name + "_ALL" + hist_addname + ".pdf";
+    std::string fname_out = Form(obs.filepath_plots.c_str(), ptname.c_str(), norm_string.c_str(), ("corrhist_" + obs.name + "_ALL" + hist_addname + ".pdf").c_str());
     can_all->SaveAs(fname_out.c_str());
 
-    deleteVecOfHists(h_vec);
+    // deleteVecOfHists(h_vec);
     delete can_all;
 
 }
@@ -720,17 +696,63 @@ void plotandsave_combined_hists(TCanvas *can_all, vector<TH1D*> h_vec, TLegend *
 //                   SPECIFIC FUNCTIONS
 // ======================================================= //
 
+// need an address on Observable so that the original is modified, not a copy
+void analyze_1D_obs(TFile * f_in, TH1D * jetpt_inptbin_hist, TLegend& leg, int j, int k,
+                    Observable& obs, std::string mc_level, int pt_min, int pt_max, double pTRL_min, double pTRL_max,
+                    bool weighting, std::string norm_string, std::string ytitle_norm,
+                    std::string ytitle_weight_str, std::string ptRLname_leg, std::string hist_addname,
+                    std::string ptname) {
+
+    if (weighting && obs.name == "weights") return;
+    cout << " in analyze_1d_obs! with " << obs.name << endl;
+
+    // get histograms
+    TH1D *obs_hist = getObs1DHistFrom3D(f_in, obs, mc_level, pt_min, pt_max, pTRL_min, pTRL_max, j, weighting);
+    
+    // push to vectors
+    obs.addHist((TH1D*) obs_hist->Clone(obs_hist->GetName()));
+
+    // format histograms in vector
+    Format1DHist(obs, obs.obs_vec[k], jetpt_inptbin_hist, norm_string, colors[j], 0.6, markers[0], obs.axis_label, ytitle_norm + obs.cs_label + ytitle_weight_str, leg, ptRLname_leg, true, hist_addname);
+    
+    // draw, save, and delete histograms
+    draw_save_del_hists(obs, obs.obs_vec[k], ptname, norm_string, hist_addname, false, true);
+    delete obs_hist;    
+
+}
+
+
+void analyze_2D_obs(TFile * f_in, TH1D * jetpt_inptbin_hist, Observable2D obs2D, int pt_min, int pt_max, int pTRL_bin,
+                    double pTRL_min, double pTRL_max, bool weighting, std::string jetRname, std::string threshold, std::string norm_string,
+                    std::string ytitle_norm, std::string ytitle_weight_str, std::string hist_addname, std::string ptname) {
+
+    Observable obs_x = obs2D.obsx;
+    Observable obs_y = obs2D.obsy;
+    cout << "in analyze_2d_obs! with " << obs_y.name << "_vs_" << obs_x.name << endl;
+
+    // get histogram
+    TH2D * hist2D = getObs2DHist(f_in, obs_x, obs_y, jetRname, threshold, pt_min, pt_max, pTRL_bin, pTRL_min, pTRL_max);
+    
+    // format histograms
+    Format2DHist(obs_x, obs_y, hist2D, jetpt_inptbin_hist, norm_string, ytitle_norm + obs_x.axis_label, ytitle_norm + obs_y.axis_label, hist_addname, true);
+    
+    // plot and save
+    if (obs_x.name == "ptrl") draw_save_del_hists2D(obs2D, hist2D, ptname, norm_string, hist_addname, true, false, true);
+    else draw_save_del_hists2D(obs2D, hist2D, ptname, norm_string, hist_addname, false, false, true);
+    delete hist2D;
+
+}
+
 
 // ======================================================= //
 //                   2ND MAIN FUNCTION 
 // ======================================================= //
-
-void analyze_ptbin(TFile * f_in, TFile * f_out, std::string weightstr, std::string jetR, std::string threshold, 
-                   std::string norm_string, int pt_min, int pt_max, const double ptRL_bins[], int n_ptRLbins, 
+void analyze_ptbin(TFile * f_in, vector<Observable> obs_1D_list, vector<Observable2D> obs_2D_list, std::string mc_level, 
+                   std::string weightstr, std::string jetRname, std::string threshold,
+                   std::string norm_string, int pt_min, int pt_max, const double ptRL_bins[], int n_ptRLbins,
                    vector<vector<double>>& pTRL_vals, vector<vector<double>>& rc_vals, vector<vector<double>>& rc_errors, 
                    bool include_RL0, bool include_RL1, bool debug, bool debug2) {
 
-    std::string jetRname = Form("_R%s", jetR.c_str());
     std::string thrname = Form("_t%s", threshold.c_str());
     std::string ptname = to_string(pt_min) + "-" + to_string(pt_max);
     cout << "pt min " << pt_min << " and pt max " << pt_max << endl;
@@ -747,40 +769,33 @@ void analyze_ptbin(TFile * f_in, TFile * f_out, std::string weightstr, std::stri
         // cout << "RL BIN WIDTH HERE" << pTRL_bin_width[i][j] << endl;
         // cout << " AND CENTERS " << pTRL_bin_centers[j] << endl;
     }
+    
+    bool weighting = (weightstr == "_Weighted");
+    std::string ytitle_weight_str = (weighting) ? " #times #frac{p_{T,1}p_{T,2}}{p_{T,jet}^{2}}" : "";
 
     std::string ytitle_norm = "";
     if (norm_string == "self_normalized") ytitle_norm = "#frac{1}{N_{pair}} ";
     else if (norm_string == "norm_by_jets") ytitle_norm = "#frac{1}{N_{jet}} ";
     
-    vector<TH1D*> deltap_vec;
-    vector<TH1D*> deltapt_vec;
-    vector<TH1D*> deltajt_vec;
-    vector<TH1D*> weights_vec;
-    // vector<TH1D*> q1q2_vec;
     vector<double> rc_vec;
     vector<double> rc_err_vec;
     vector<double> pTRLcenters_vec;
 
+    TCanvas *cdumdum = new TCanvas(); // need a canvas so legend can be made
     TLegend *leg = new TLegend(0.6, 0.6, 0.85, 0.87);
     leg->SetTextSize(0.037);
     leg->SetBorderSize(0);
+    leg->AddEntry("NULL",Form("%d #leq p_{T, jet} < %d", pt_min, pt_max),"h");
     TLegend *leg_dummy = new TLegend();
 
     // Names of histograms in the file
-    // std::string deltap_truth_name = Form("h_corr_deltap%s_JetPt_Truth_R%s_%sScaled", weightstr.c_str(), jetR.c_str(), threshold.c_str());
-    std::string deltap_truth_name = Form("gen_deltap_unmatchedScaled");
-    std::string deltapt_truth_name = Form("gen_deltapt_unmatchedScaled");
-    std::string deltajt_truth_name = Form("gen_deltajt_unmatchedScaled");
-    std::string weights_truth_name = Form("gen_weights_unmatchedScaled");
-    std::string charge_truth_name = Form("gen_charge_unmatchedScaled");
-        
-    std::string jet_pt_truth_name = Form("h_1Djet_pt_JetPt_Truth_R%s_%sScaled", jetR.c_str(), threshold.c_str());
+    std::string jet_pt_truth_name = Form("h_1Djet_pt_JetPt_Truth%s_%sScaled", jetRname.c_str(), threshold.c_str());
     // std::string deltaptvsEW_truth_name = Form("h_ptvsenergyweights_JetPt_Truth_R%s_%sScaled", jetR.c_str(), threshold.c_str()); //not implemented yet
 
-    std::string weights_vs_deltap_truth_name = Form("h2D_weights_vs_deltap_Truth_R%s_%sScaled", jetR.c_str(), threshold.c_str());
-    std::string weights_vs_p1_truth_name = Form("h2D_weights_vs_p1_Truth_R%s_%sScaled", jetR.c_str(), threshold.c_str());
-    std::string weights_vs_deltajt_truth_name = Form("h2D_weights_vs_deltajt_Truth_R%s_%sScaled", jetR.c_str(), threshold.c_str());
-    std::string zj_vs_zi_truth_name = Form("h2D_zj_vs_zi_Truth_R%s_%sScaled", jetR.c_str(), threshold.c_str());
+//    std::string weights_vs_deltap_truth_name = Form("h2D_weights_vs_deltap_Truth%s_%sScaled", jetRname.c_str(), threshold.c_str());
+//    std::string weights_vs_p1_truth_name = Form("h2D_weights_vs_p1_Truth%s_%sScaled", jetRname.c_str(), threshold.c_str());
+//    std::string weights_vs_deltajt_truth_name = Form("h2D_weights_vs_deltajt_Truth%s_%sScaled", jetRname.c_str(), threshold.c_str());
+//    std::string zj_vs_zi_truth_name = Form("h2D_zj_vs_zi_Truth%s_%sScaled", jetRname.c_str(), threshold.c_str());
     
     for ( int j = 0; j < n_ptRLbins; j++ ) {
         int k = j;
@@ -789,28 +804,35 @@ void analyze_ptbin(TFile * f_in, TFile * f_out, std::string weightstr, std::stri
             if (j == 0) continue; // can add something here to change the filename for ALL
         }
         if (!include_RL1 && j == n_ptRLbins-1) continue;
-
-        // int i = 0;
-        // if (pt_min == 40) i = 1;
-        // else if (pt_min == 60) i = 2;
         
         double pTRL_min = ptRL_bins[j];
         double pTRL_max = ptRL_bins[j+1];
-        std::string pTRLname = Form("_pTRL%.3f-%.3f", pTRL_min, pTRL_max);
+        std::string pTRLname = Form("_pTRL%.1f-%.1f", pTRL_min, pTRL_max);
         std::string pTRLname_leg = Form("#LTpT#GTR_{L} = %.1f-%.1f", pTRL_min, pTRL_max);
-        // if (debug) cout << " in pTRL bin" << j << " with " << pTRL_min << " - " << pTRL_max << endl;
+        cout << " in pTRL bin" << j << " with " << pTRL_min << " - " << pTRL_max << endl;
         
-        std::string hist_addname = weightstr + jetRname + thrname + "_pt" + ptname + pTRLname + "_" + norm_string;
+        std::string hist_addname = weightstr + jetRname + thrname + "_pt" + ptname + pTRLname + "_" + norm_string + "_" + mc_level;
         
-
+        std::string mc_keyword = (mc_level == "truth") ? "Truth" : "Det";
+        std::string jet_pt_name = Form("h_1Djet_pt_JetPt_%s%s_%sScaled", mc_keyword.c_str(), jetRname.c_str(), threshold.c_str());
+        
         // get histograms
         // get jet pT range - no D0 reconstruction, so don't make D0 cuts
-        TH1D *hcorr_jetpt_inptbin_hist = getObs1DHist_direct(f_in, jet_pt_truth_name);
-        TH1D *hcorr_deltap_truth_hist = getObs1DHistFrom3D(f_in, deltap_truth_name, pt_min, pt_max, pTRL_min, pTRL_max);
-        cout << "checkpoint 1 " << hcorr_deltap_truth_hist->GetEntries() << endl;
-        TH1D *hcorr_deltapt_truth_hist = getObs1DHistFrom3D(f_in, deltapt_truth_name, pt_min, pt_max, pTRL_min, pTRL_max);
-        TH1D *hcorr_deltajt_truth_hist = getObs1DHistFrom3D(f_in, deltajt_truth_name, pt_min, pt_max, pTRL_min, pTRL_max);
-        TH1D *hcorr_weights_truth_hist = getObs1DHistFrom3D(f_in, weights_truth_name, pt_min, pt_max, pTRL_min, pTRL_max);
+        TH1D * hcorr_jetpt_inptbin_hist;
+        Observable obs_jet_pt("jet_pt", true, jet_pt_name, 200, 0, 200, "p_{T,jet}", "#frac{dN}{dp_{T,jet}}");
+        if (norm_by_jets_bool) hcorr_jetpt_inptbin_hist = getObs1DHist_direct(f_in, obs_jet_pt.name, true, pt_min, pt_max);
+        for (Observable& obs : obs_1D_list) { // passing reference to not make a copy!
+            if (obs.obs_bool) analyze_1D_obs(f_in, hcorr_jetpt_inptbin_hist, *leg, j, k, obs, mc_level,
+                              pt_min, pt_max, pTRL_min, pTRL_max, weighting, norm_string,
+                              ytitle_norm, ytitle_weight_str, pTRLname_leg, hist_addname, ptname);
+        }
+        
+        for (Observable2D obs2D : obs_2D_list) {
+            if (obs2D.obs_bool) analyze_2D_obs(f_in, hcorr_jetpt_inptbin_hist, obs2D, pt_min, pt_max, j, pTRL_min, pTRL_max, weighting, jetRname, threshold,
+                                norm_string, ytitle_norm, ytitle_weight_str, hist_addname, ptname);
+        }
+        
+        
 
         
         double rc_value = 0.0;
@@ -829,197 +851,141 @@ void analyze_ptbin(TFile * f_in, TFile * f_out, std::string weightstr, std::stri
         // }
 
         // 2D histograms!
-        TH2D * weights_vs_deltap_hist2D = getObs2DHist(f_in, weights_vs_deltap_truth_name, pt_min, pt_max, pTRL_min, pTRL_max);
-        TH2D * weights_vs_p1_hist2D = getObs2DHist(f_in, weights_vs_p1_truth_name, pt_min, pt_max, pTRL_min, pTRL_max);
-        TH2D * weights_vs_deltajt_hist2D = getObs2DHist(f_in, weights_vs_deltajt_truth_name, pt_min, pt_max, pTRL_min, pTRL_max);
-        TH2D * zj_vs_zi_hist2D = getObs2DHist(f_in, zj_vs_zi_truth_name, pt_min, pt_max, pTRL_min, pTRL_max);
+//        TH2D * weights_vs_deltap_hist2D = getObs2DHist(f_in, weights_vs_deltap_truth_name, pt_min, pt_max, pTRL_min, pTRL_max);
+//        TH2D * weights_vs_p1_hist2D = getObs2DHist(f_in, weights_vs_p1_truth_name, pt_min, pt_max, pTRL_min, pTRL_max);
+//        TH2D * weights_vs_deltajt_hist2D = getObs2DHist(f_in, weights_vs_deltajt_truth_name, pt_min, pt_max, pTRL_min, pTRL_max);
+//        TH2D * zj_vs_zi_hist2D = getObs2DHist(f_in, zj_vs_zi_truth_name, pt_min, pt_max, pTRL_min, pTRL_max);
 
 
-        // push to vectors
-        deltap_vec.push_back((TH1D*) hcorr_deltap_truth_hist->Clone(hcorr_deltap_truth_hist->GetName()));
-        deltapt_vec.push_back((TH1D*) hcorr_deltapt_truth_hist->Clone(hcorr_deltapt_truth_hist->GetName()));
-        deltajt_vec.push_back((TH1D*) hcorr_deltajt_truth_hist->Clone(hcorr_deltajt_truth_hist->GetName()));
-        weights_vec.push_back((TH1D*) hcorr_weights_truth_hist->Clone(hcorr_weights_truth_hist->GetName()));
-        
+//        // Get the X-axis - just printing here
+//        TAxis *xAxis = deltap_vec[k]->GetXaxis();
+//
+//        // Get the number of bins, minimum, and maximum values
+//        int nBins = xAxis->GetNbins();
+//        double xmin = xAxis->GetXmin();
+//        double xmax = xAxis->GetXmax();
+//
+//        // Calculate the bin width
+//        double binWidth = (xmax - xmin) / nBins;
+//
+//        // Generate the array of bin edges
+//        std::vector<double> binEdges;
+//        std::cout << "NBINS: " << nBins << ", bin edges: " << endl;
+//        for (int i = 0; i <= nBins; ++i) {
+//            binEdges.push_back(xmin + i * binWidth);
+//            cout << binEdges[i] << " ";
+//        }
+//        cout << endl;
 
-        // format histograms in vector
-        Format1DHist(deltap_vec[k], hcorr_jetpt_inptbin_hist, norm_string, 0, pt_max+5, colors[j], 0.6, markers[0], "#Deltap", ytitle_norm + "#frac{dN}{d#Deltap}", *leg, pTRLname_leg, true, 1.0, "deltap", hist_addname);
-        Format1DHist(deltapt_vec[k], hcorr_jetpt_inptbin_hist, norm_string, 0, pt_max+5, colors[j], 0.6, markers[0], "#Deltap_{T}", ytitle_norm + "#frac{dN}{d#Deltap_{T}}", *leg_dummy, pTRLname_leg, true, 1.0, "deltapt", hist_addname);
-        Format1DHist(deltajt_vec[k], hcorr_jetpt_inptbin_hist, norm_string, 0, pt_max/2, colors[j], 0.6, markers[0], "#Deltap_{L}", ytitle_norm + "#frac{dN}{d#Deltap_{L}}", *leg_dummy, pTRLname_leg, true, 1.0, "deltajt", hist_addname);
-        Format1DHist(weights_vec[k], hcorr_jetpt_inptbin_hist, norm_string, 0, 0.3, colors[j], 0.6, markers[0], "#frac{p_{T,1}p_{T,2}}{p_{T,jet}^{2}}", ytitle_norm + "#frac{dN}{d[EW]}", *leg_dummy, pTRLname_leg, true, 1.0, "weights", hist_addname);
-        
-        Format2DHist(weights_vs_deltap_hist2D, hcorr_jetpt_inptbin_hist, norm_string, ytitle_norm + "#Deltap", ytitle_norm + "#frac{p_{T,1}p_{T,2}}{p_{T,jet}^{2}}", "weights_vs_deltap", hist_addname);
-        Format2DHist(weights_vs_p1_hist2D, hcorr_jetpt_inptbin_hist, norm_string, ytitle_norm + "p_{1}", ytitle_norm + "#frac{p_{T,1}p_{T,2}}{p_{T,jet}^{2}}", "weights_vs_p1", hist_addname);
-        Format2DHist(weights_vs_deltajt_hist2D, hcorr_jetpt_inptbin_hist, norm_string, ytitle_norm + "#Deltaj_{T}", ytitle_norm + "#frac{p_{T,1}p_{T,2}}{p_{T,jet}^{2}}", "weights_vs_deltajt", hist_addname);
-        Format2DHist(zj_vs_zi_hist2D, hcorr_jetpt_inptbin_hist, norm_string, ytitle_norm + "z_{i}", ytitle_norm + "z_{j}", "zj_vs_zi", hist_addname);
-        
-        // Get the X-axis
-        TAxis *xAxis = deltap_vec[k]->GetXaxis();
+//        f_out->cd();
 
-        // Get the number of bins, minimum, and maximum values
-        int nBins = xAxis->GetNbins();
-        double xmin = xAxis->GetXmin();
-        double xmax = xAxis->GetXmax();
-
-        // Calculate the bin width
-        double binWidth = (xmax - xmin) / nBins;
-
-        // Generate the array of bin edges
-        std::vector<double> binEdges;
-        std::cout << "NBINS: " << nBins << ", bin edges: " << endl;
-        for (int i = 0; i <= nBins; ++i) {
-            binEdges.push_back(xmin + i * binWidth);
-            cout << binEdges[i] << " ";
-        }
-        cout << endl;
-
-        f_out->cd();
-
-        // draw, save, and delete histograms
-        TCanvas *can_deltap = new TCanvas();
-        TCanvas *can_deltapt = new TCanvas();
-        TCanvas *can_deltajt = new TCanvas();
-        TCanvas *can_weights = new TCanvas();
-
-        draw_save_del_hists(f_out, can_deltap, deltap_vec[k], "deltap", ptname, norm_string, hist_addname, false, true);
-        draw_save_del_hists(f_out, can_deltapt, deltapt_vec[k], "deltapt", ptname, norm_string, hist_addname, false, true);
-        draw_save_del_hists(f_out, can_deltajt, deltajt_vec[k], "deltapl", ptname, norm_string, hist_addname, false, false);
-        draw_save_del_hists(f_out, can_weights, weights_vec[k], "weights", ptname, norm_string, hist_addname, false, true);
-        
-
-        TCanvas *can_weights_vs_deltap = new TCanvas("can_weights_vs_deltap", "can_weights_vs_deltap", 800, 500);
-        TCanvas *can_weights_vs_p1 = new TCanvas("can_weights_vs_p1", "can_weights_vs_p1", 800, 500);
-        TCanvas *can_weights_vs_deltajt = new TCanvas("can_weights_vs_deltajt", "can_weights_vs_deltajt", 800, 500);
-        TCanvas *can_zj_vs_zi = new TCanvas("can_zj_vs_zi", "can_zj_vs_zi", 800, 500);
- 
-        draw_save_del_hists(f_out, can_weights_vs_deltap, weights_vs_deltap_hist2D, "weights_vs_deltap", ptname, norm_string, hist_addname, false, false, true);
-        draw_save_del_hists(f_out, can_weights_vs_p1, weights_vs_p1_hist2D, "weights_vs_p1", ptname, norm_string, hist_addname, false, false, true);
-        draw_save_del_hists(f_out, can_weights_vs_deltajt, weights_vs_deltajt_hist2D, "weights_vs_deltajt", ptname, norm_string, hist_addname, false, false, true);
-        draw_save_del_hists(f_out, can_zj_vs_zi, zj_vs_zi_hist2D, "zj_vs_zi", ptname, norm_string, hist_addname, false, false, true);
-                
     }
 
     /* do pt bin stuff here */
     std::string hist_all_addname = weightstr + jetRname + thrname + "_pt" + ptname;
-
-	// combine RL plots to get 1 plot per pt bin
-
-    TCanvas *can_deltap_all = new TCanvas();
-    TCanvas *can_deltapt_all = new TCanvas();
-    TCanvas *can_deltajt_all = new TCanvas();
-    TCanvas *can_weights_all = new TCanvas();
-
-    // size_t length_deltap = deltap_vec.size();
-    // cout << " LENGTH DELTA P " << length_deltap << endl;
-	
-    plotandsave_combined_hists(can_deltap_all, deltap_vec, leg, "deltap", ptname, norm_string, hist_all_addname, pt_max, false, true, -1);
-    plotandsave_combined_hists(can_deltapt_all, deltapt_vec, leg, "deltapt", ptname, norm_string, hist_all_addname, pt_max, false, true, -1);
-    plotandsave_combined_hists(can_deltajt_all, deltajt_vec, leg, "deltajt", ptname, norm_string, hist_all_addname, pt_max, false, true, -1);
-    plotandsave_combined_hists(can_weights_all, weights_vec, leg, "weights", ptname, norm_string, hist_all_addname, pt_max, false, true, -1);
-
-    // // make graphs
-    // if (norm_string == "unnormalized") {
-    //     TCanvas *can_rc = new TCanvas();
-    //     ProcessCanvas(can_rc);
-    //     TGraphErrors *gr_rc = MakeFormatGraph(pTRLcenters_vec, rc_vec, kBlack, 1.0, markers[0], "R_{L}", "r_{c}", "rc");
-    //     draw_save_del_hists(f_out, can_rc, gr_rc, "rc", ptname, norm_string, hist_all_addname, false, false);
-        
-        
-    //     // save vectors here
-    //     pTRL_vals.push_back(pTRLcenters_vec);
-    //     rc_vals.push_back(rc_vec);
-    //     rc_errors.push_back(rc_err_vec);
-    // }
+    
+    // combine RL plots to get 1 plot per pt bin
+    for (Observable& obs : obs_1D_list) { // passing reference to not make a copy!
+        if (obs.obs_bool) plotandsave_combined_hists(obs, leg, ptname, norm_string, hist_all_addname, weighting, false, true);
+    }
 
 }
 
-// void plot_histograms(TFile* f, std::string add_name, int normed, bool weighted, bool include_RL0) {
-void plot_histograms(TFile* f_in, TFile* f_out, bool weighted, std::string norm_string, 
-                     const int pt_bins[], int n_bins, const double ptRL_bins[], int n_ptRLbins, 
-                     bool include_RL0, bool include_RL1, bool debug, bool debug2) {
-    
-    // //    gROOT->SetBatch(); //prevents plots from showing up
 
- 
-    std::string weightstr = "";
-    if (weighted == true) {
-        weightstr = "_Weighted";
+// don't separate by pt or RL bin
+void analyze_jetlevel_observables(TFile* f_in, std::string mc_level, std::string jetRname, std::string thrname,
+                                  bool debug, bool debug2) {
+
+    std::string threshold = "1.0";
+    std::string mc_keyword = (mc_level == "truth") ? "Truth" : "Det";
+
+    // Names of histograms in the file
+    std::string jet_pt_name = Form("h_1Djet_pt_JetPt_%s%s_%sScaled", mc_keyword.c_str(), jetRname.c_str(), threshold.c_str());
+    std::string jet_num_const_name = Form("h_Nconst_JetPt_%s%s_%sScaled", mc_keyword.c_str(), jetRname.c_str(), threshold.c_str());
+
+    Observable obs_jet_pt("jet_pt", true, jet_pt_name, 200, 0, 200, "p_{T,jet}", "#frac{dN}{dp_{T,jet}}");
+    // Observable obs_jet_const("total_num_const", true, "", 20, 0, 20, "Number Constituents (total)", "");
+    Observable obs_jet_const_aftercut("num_const_aftercut", true, jet_num_const_name, 20, 0, 20, "Number Constituents (after threshold cut)", "");
+
+    if (mc_level == "truth") { // could find a better way to do this, but for now... just recreate the file once (otherwise both versions won't save)
+        obs_jet_pt.recreate_output_root_file();
+        // obs_jet_const.recreate_output_root_file();
+        obs_jet_const_aftercut.recreate_output_root_file();
     }
 
 
-    // std::string RL0_string = "";
-    // if (include_RL0) RL0_string = "_withRL0";
+    TH1D * jetpt_hist = getObs1DHist_direct(f_in, obs_jet_pt.hist_toextract_name);
+    jetpt_hist->GetXaxis()->SetTitle(obs_jet_pt.axis_label.c_str());
+    jetpt_hist->SetNameTitle(Form("jet_pt_hist_%s", mc_level.c_str()), Form("jet_pt_hist_%s", mc_level.c_str()));
+    draw_save_del_hists(obs_jet_pt, jetpt_hist, "", "", jetRname + thrname + "_" + mc_level, false, true);
 
-    // add_name += norm_string + RL0_string;
+    // TH1D * jet_const = getObs1DHist_direct(f_in, obs_jet_const.hist_toextract_name);
+    // jet_const->GetXaxis()->SetTitle(obs_jet_const.axis_label.c_str()); 
+    // jet_const->SetNameTitle(Form("jet_const_hist_%s", mc_keyword.c_str()), Form("jet_const_hist_%s", mc_keyword.c_str()));
+    // draw_save_del_hists(obs_jet_const, jet_const, "", "", jetRname + thrname + "_" + mc_level, false, true);
+
+    TH1D * jet_const_aftercut = getObs1DHist_direct(f_in, obs_jet_const_aftercut.hist_toextract_name);
+    jet_const_aftercut->GetXaxis()->SetTitle(obs_jet_const_aftercut.axis_label.c_str());
+    jet_const_aftercut->SetNameTitle(Form("jet_const_aftercut_hist_%s", mc_keyword.c_str()), Form("jet_const_aftercut_hist_%s", mc_keyword.c_str()));
+    draw_save_del_hists(obs_jet_const_aftercut, jet_const_aftercut, "", "", jetRname + thrname + "_" + mc_level, false, true);
+
+}
 
 
-    // lists
-    std::string jetR_list[] = { "0.4" };
-    std::string threshold_list[] = { "1.0" }; // "0.15", "0.5"
+void plot_histograms(TFile* f_in, vector<Observable> obs_1D_list, vector<Observable2D> obs_2D_list,
+            std::string weightstr, std::string jetRname, std::string thrname, std::string norm_string,
+            const int pt_bins[], int n_bins, const double ptRL_bins[], int n_ptRLbins,
+                 bool include_RL0, bool include_RL1, bool debug, bool debug2 ) {
 
-     // Jet r value
-     for (std::string jetR : jetR_list) {
-        std::string jetRname = Form("_R%s", jetR.c_str());
+    // // lists
+    // std::string jetR_list[] = { "0.4" };
+    // std::string threshold_list[] = { "1.0" }; // "0.15", "0.5"
+
+    // // Jet r value
+    // for (std::string jetR : jetR_list) {
+    //     std::string jetRname = Form("_R%s", jetR.c_str());
         
-        for (std::string threshold : threshold_list) {
-            std::string thrname = Form("_t%s", threshold.c_str());
-
-            // Names of histograms in the file
-            std::string jet_pt_truth_name = Form("h_1Djet_pt_JetPt_Truth_R%s_%sScaled", jetR.c_str(), threshold.c_str());
-            std::string jet_num_const_truth_name = Form("h_Nconst_JetPt_Truth_R%s_%sScaled", jetR.c_str(), threshold.c_str());
-
-            if (norm_string == "unnormalized") {
-                TH1D * jetpt_hist = getObs1DHist_direct(f_in, jet_pt_truth_name);
-                jetpt_hist->GetXaxis()->SetTitle("p_{T,jet}");
-                TCanvas *can_jetpt = new TCanvas();
-                draw_save_del_hists(f_out, can_jetpt, jetpt_hist, "jet_pt", "", "", weightstr + jetRname + thrname, false, true);
-            
-                TH1D * jet_const = getObs1DHist_direct(f_in, jet_num_const_truth_name);
-                jet_const->GetXaxis()->SetTitle("Number Constituents"); // TODO: check if this is before or after the threshold cut!
-                TCanvas *can_numconst = new TCanvas();
-                draw_save_del_hists(f_out, can_numconst, jet_const, "total_num_const", "", "", weightstr + jetRname + thrname, false, true);
-            
-                // TH1D * jet_const_aftercut = getObs1DHist_direct(f_in, jet_pt_truth_name);
-                // jet_const_aftercut->GetXaxis()->SetTitle("Number Constituents (after threshold cut)");
-                // TCanvas *can_numconst_aftercut = new TCanvas();
-                // draw_save_del_hists(f_out, can_numconst_aftercut, jet_const_aftercut, "num_const_aftercut", "", "", weightstr + jetRname + thrname, false, true);
-            
-            }
-
-            //variables
-            vector<vector<double>> pTRL_vals;
-            vector<vector<double>> rc_vals;
-            vector<double> ptcenter_bins;
-            vector<vector<double>> rc_errors;
+    //     for (std::string threshold : threshold_list) {
+    //         std::string thrname = Form("_t%s", threshold.c_str());
     
-            for (int i = 0; i < n_bins; i++) {
-                cout << "in pt bin" << i << endl;
-                int pt_min = pt_bins[i];
-                int pt_max = pt_bins[i+1];
-                ptcenter_bins.push_back( (pt_min+pt_max)/2 );
-                // std::string ptname = "_pt" + std::to_string(pt_min) + '-' + std::to_string(pt_max);
+    std::string threshold = "1.0"; //TODO: figure out better way to do this?
 
-                if (debug) cout << " in pt bin" << i << " with " << pt_min << " - " << pt_max << endl;
-                analyze_ptbin(f_in, f_out, weightstr, jetR, threshold, norm_string, pt_min, pt_max, ptRL_bins, n_ptRLbins, pTRL_vals, rc_vals, rc_errors, include_RL0, include_RL1, debug, debug2);
+    //variables
+    vector<vector<double>> pTRL_vals;
+    vector<vector<double>> rc_vals;
+    vector<double> ptcenter_bins;
+    vector<vector<double>> rc_errors;
+
+    for (int i = 0; i < n_bins; i++) {
+        cout << "in pt bin" << i << endl;
+        int pt_min = pt_bins[i];
+        int pt_max = pt_bins[i+1];
+        ptcenter_bins.push_back( (pt_min+pt_max)/2 );
+
+        if (debug) cout << " in pt bin" << i << " with " << pt_min << " - " << pt_max << endl;
+
+        std::string mc_level = "truth";
+        analyze_ptbin(f_in, obs_1D_list, obs_2D_list, mc_level, weightstr, jetRname, threshold, norm_string, pt_min, pt_max, ptRL_bins, n_ptRLbins, pTRL_vals, rc_vals, rc_errors, include_RL0, include_RL1, debug, debug2);
+
+        mc_level = "det";
+        analyze_ptbin(f_in, obs_1D_list, obs_2D_list, mc_level, weightstr, jetRname, threshold, norm_string, pt_min, pt_max, ptRL_bins, n_ptRLbins, pTRL_vals, rc_vals, rc_errors, include_RL0, include_RL1, debug, debug2);
         
+    } // pT bins loop
 
-                
-            } // pT bins loop
+    // // plot r_c as a function of RL
+    // if (norm_string == "unnormalized") {
+    //     cout << "checkpoint 4" << endl;
+    //     cout << "size of pTRL_vals " << pTRL_vals.size() << endl;
+    //     cout << "size of pTRL_vals[0] " << pTRL_vals[0].size() << endl;
+    //     cout << "size of rc_vals " << rc_vals.size() << endl;
+    //     cout << "size of rc_vals[0] " << rc_vals[0].size() << endl;
+    //     cout << "size of ptcenter_bins " << ptcenter_bins.size() << endl;
 
-            // // plot r_c as a function of RL
-            // if (norm_string == "unnormalized") {
-            //     cout << "checkpoint 4" << endl;
-            //     cout << "size of pTRL_vals " << pTRL_vals.size() << endl;
-            //     cout << "size of pTRL_vals[0] " << pTRL_vals[0].size() << endl;
-            //     cout << "size of rc_vals " << rc_vals.size() << endl;
-            //     cout << "size of rc_vals[0] " << rc_vals[0].size() << endl;
-            //     cout << "size of ptcenter_bins " << ptcenter_bins.size() << endl;
+    //     plot_rc(pTRL_vals, rc_vals, ptcenter_bins, rc_errors); //, colors, markers); //, leg_RLbins, leg_ptbins);
+    // }
 
-            //     plot_rc(pTRL_vals, rc_vals, ptcenter_bins, rc_errors); //, colors, markers); //, leg_RLbins, leg_ptbins);
-            // }
-
-        } // threshold loop
-    } // jetR loop
+//        } // threshold loop
+//    } // jetR loop
 
     
 }
@@ -1036,8 +1002,12 @@ void crosscheck_analyze_pythia_histograms() {
     // CONTOL VARIABLES HERE
     // normed is 0 if unnormalized, 1 for self-normalization 
     // weighted is true if using "Weighted", false if using unweighted
-    bool weighted = false;
-    std::string norm_string = "";
+//    bool weighted = false;
+//    std::string norm_string = "";
+    std::string jetRname = "_R0.4"; // + jetR;
+    std::string thrname = "_t1.0"; // + threshold;
+    std::string weightstr = ""; //"_xx";
+    std::string norm_string = "unnormalized";
     bool include_RL0 = false;
     bool include_RL1 = false;
     
@@ -1050,16 +1020,10 @@ void crosscheck_analyze_pythia_histograms() {
     
     // Files
     // const char infile[] = "/rstorage/alice/AnalysisResults/blianggi/dEEC/445125/1132588/scaling/AnalysisResultsFinal.root"; //hiccup
-    const char infile[] = "/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/40154566/1132588/scaling/AnalysisResultsFinal.root"; //perlmutter, after june 2024
+    const char infile[] = "/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/46040507/1132588/scaling/AnalysisResultsFinal.root"; //perlmutter, after june 2024 // PERLY_FIX: REVERT TO THIS
+    // const char infile[] = "~/Documents/research/code/dEEC/new_code/AnalysisResultsFinal.root"; //local
     // const char infile[] = "/Volumes/NO NAME/AnalysisResultsFinal.root"; //local
     TFile* root_infile = new TFile(infile, "READ");
-
-    // Output file for binned results
-    // std::string outfile = "/software/users/blianggi/mypyjetty/storage/dEEC/rootfiles/" + attempt_dir + "/PYTHIAHists.root"; //plots/ntuples/DataHists.root"; //FinalDataHists.root
-    std::string outfile = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/" + attempt_dir + "/PYTHIAHists.root"; // perlmutter
-    TFile* root_outfile = new TFile(outfile.c_str(), "RECREATE");
-    // std::string add_name = ""; // "_othercorrel";
-    // cout << "output name will be " << add_name << endl;
 
 
     // analysis variables
@@ -1074,50 +1038,63 @@ void crosscheck_analyze_pythia_histograms() {
 
             
     // ====================================================================================
+    
+    Observable obs_deltap("deltap", deltap_bool, "%s_deltap%s_unmatchedScaled", 42, 0, 84, "#Deltap", "#frac{dN}{d#Deltap}"); // bin sizes of 2 GeV
+    Observable obs_deltajt("deltajt", deltajt_bool, "%s_deltajt%s_unmatchedScaled", 50, 0, 5, "#Deltaj_{T}", "#frac{dN}{d#Deltaj_{T}}");
+    Observable obs_weights("weights", ew_bool, "%s_weights_unmatchedScaled", 60, 0, 0.3, "#frac{p_{T,1}p_{T,2}}{p_{T,jet}^{2}}", "#frac{dN}{d[EW]}"); // bin sizes of 0.005
+    Observable obs_z("z", twoDhists_bool, "", 50, 0, 1, "z", "#frac{dN}{dz}");
 
+    Observable obs_p1("p1", p1_bool, "not implemented yet", 42, 0, 84, "p", "#frac{dN}{dp}");
+    Observable obs_jt1("jt1", jt1_bool, "not implemented yet", 50, 0, 5, "j_{T}", "#frac{dN}{dj_{T}}");
+
+    Observable2D obs_weights_vs_deltap(obs_deltap, obs_weights, twoDhists_bool);
+    Observable2D obs_weights_vs_deltajt(obs_deltajt, obs_weights, twoDhists_bool);
+    Observable2D obs_weights_vs_p1(obs_p1, obs_weights, twoDhists_bool);
+    Observable2D obs_zj_vs_zi(obs_z, obs_z, false);
+    
+    Observable obs_ptrl("ptrl", deltajt_vs_ptrl_bool, "", 50, 0.2, 35, "#LTp_{T}#GTR_{L}", "");
+    Observable2D obs_deltajt_vs_ptrl(obs_ptrl, obs_deltajt, deltajt_vs_ptrl_bool);
+    
+    vector<Observable> obs_1D_list = { obs_deltap, obs_deltajt, obs_weights };
+    vector<Observable2D> obs_2D_list = { obs_weights_vs_deltap, obs_weights_vs_deltajt, obs_zj_vs_zi, obs_deltajt_vs_ptrl };
+    for (Observable obs : obs_1D_list) {
+        if (obs.obs_bool) obs.recreate_output_root_file();
+    }
+    for (Observable2D obs2D : obs_2D_list) {
+        if (obs2D.obs_bool) obs2D.recreate_output_root_file();
+    }
+    
+    // ====================================================================================
+
+    // analyze jet level observables
+    analyze_jetlevel_observables(root_infile, "truth", jetRname, thrname, debug, debug2);
+    analyze_jetlevel_observables(root_infile, "det", jetRname, thrname, debug, debug2);
 
     // analyze for plots
-    // norm_string = "unnormalized";
-    // plot_histograms(root_infile, root_outfile, weighted, norm_string, pt_bins, n_bins, ptRL_bins, n_ptRLbins, include_RL0, include_RL1, debug, debug2);
-    
-    norm_string = "self_normalized";
-    plot_histograms(root_infile, root_outfile, weighted, norm_string, pt_bins, n_bins, ptRL_bins, n_ptRLbins, include_RL0, include_RL1, debug, debug2);
+    if (unweighted_bool) {
+        if (unnormalized_bool) plot_histograms(root_infile, obs_1D_list, obs_2D_list, weightstr, jetRname, thrname, norm_string, pt_bins, n_bins, ptRL_bins, n_ptRLbins, include_RL0, include_RL1, debug, debug2);
         
-    // norm_string = "norm_by_jets";
-    // plot_histograms(root_infile, root_outfile, weighted, norm_string, pt_bins, n_bins, ptRL_bins, n_ptRLbins, include_RL0, include_RL1, debug, debug2);
-    
+        norm_string = "self_normalized";
+        if (self_normalized_bool) plot_histograms(root_infile, obs_1D_list, obs_2D_list, weightstr, jetRname, thrname, norm_string, pt_bins, n_bins, ptRL_bins, n_ptRLbins, include_RL0, include_RL1, debug, debug2);
 
+        norm_string = "norm_by_jets";
+        if (norm_by_jets_bool) plot_histograms(root_infile, obs_1D_list, obs_2D_list, weightstr, jetRname, thrname, norm_string, pt_bins, n_bins, ptRL_bins, n_ptRLbins, include_RL0, include_RL1, debug, debug2);
+    }
 
-    // // first do unnormalized
-    // int normed = 0;
-    // // plot unweighted hists
-    // plot_histograms(f, add_name, normed, false, include_RL0);
-    // // // plot weighted hists
-    // // plot_histograms(f, add_name, normed, true, include_RL0);
+    if (weighted_bool) {
+        weightstr = "_Weighted";
+        norm_string = "unnormalized";
+        if (unnormalized_bool) plot_histograms(root_infile, obs_1D_list, obs_2D_list, weightstr, jetRname, thrname, norm_string, pt_bins, n_bins, ptRL_bins, n_ptRLbins, include_RL0, include_RL1, debug, debug2);
+        
+        norm_string = "self_normalized";
+        if (self_normalized_bool) plot_histograms(root_infile, obs_1D_list, obs_2D_list, weightstr, jetRname, thrname, norm_string, pt_bins, n_bins, ptRL_bins, n_ptRLbins, include_RL0, include_RL1, debug, debug2);
 
-
-    // // // now do self-normalized
-    // // normed = 1;
-    // // // plot unweighted hists
-    // // plot_histograms(f, add_name, normed, false, include_RL0);
-    // // // plot weighted hists
-    // // plot_histograms(f, add_name, normed, true, include_RL0);
-
-
-    // // // now do normalize by # of jets
-    // // normed = 2;
-    // // // plot unweighted hists
-    // // plot_histograms(f, add_name, normed, false, include_RL0);
-    // // // plot weighted hists
-    // // plot_histograms(f, add_name, normed, true, include_RL0);
-
-
+        norm_string = "norm_by_jets";
+        if (norm_by_jets_bool) plot_histograms(root_infile, obs_1D_list, obs_2D_list, weightstr, jetRname, thrname, norm_string, pt_bins, n_bins, ptRL_bins, n_ptRLbins, include_RL0, include_RL1, debug, debug2);
+    }
 
     root_infile->Close();
     delete root_infile;
-
-    root_outfile->Close();
-
 
     return;
 }
