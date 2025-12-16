@@ -35,7 +35,7 @@ fi
 
 # Define output path from relevant sub-path of input file
 # Note: suffix depends on file structure of input file -- need to edit appropriately for each dataset
-OUTPUT_SUFFIX=$(echo $INPUT_FILE | cut -d/ -f6-8)
+OUTPUT_SUFFIX=$(echo $INPUT_FILE | cut -d/ -f5-7) #changed suffix for temp_output_dir from -f6-8)
 echo "OUTPUT_SUFFIX SUPPOSED TO BE:"
 echo $OUTPUT_SUFFIX
 # OUTPUT_SUFFIX=${TASK_ID}
@@ -52,18 +52,29 @@ mkdir -p $OUTPUT_DIR
 source /home/blianggi/activate_pyjetty.sh
 module load herwig_with_deps
 
+# modify as needed but keep /scratch/u/$USER in front, operate on the node's local /scratch ...
+TEMP_OUTPUT_DIRECTORY="/scratch/u/${USER}/${OUTPUT_SUFFIX}/"
+mkdir -p ${TEMP_OUTPUT_DIRECTORY}
+
 # Run main script
 cd /software/users/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/generation
 if [ "$SAVE_D0" = true ] ; then
     echo 'Running with saving D0!'
-    echo "python hepmc2antuple_tn.py -i $INPUT_FILE -o $OUTPUT_DIR/AnalysisResultsGen.root -g herwig --no-progress-bar -d"
-    python hepmc2antuple_tn.py -i $INPUT_FILE -o $OUTPUT_DIR/AnalysisResultsGen.root -g herwig --no-progress-bar -d
+    echo "python hepmc2antuple_tn.py -i $INPUT_FILE -o $TEMP_OUTPUT_DIRECTORY/AnalysisResultsGen.root -g herwig --no-progress-bar -d"
+    python hepmc2antuple_tn.py -i $INPUT_FILE -o $TEMP_OUTPUT_DIRECTORY/AnalysisResultsGen.root -g herwig --no-progress-bar -d
+    # echo "python hepmc2antuple_tn.py -i $INPUT_FILE -o $OUTPUT_DIR/AnalysisResultsGen.root -g herwig --no-progress-bar -d"
+    # python hepmc2antuple_tn.py -i $INPUT_FILE -o $OUTPUT_DIR/AnalysisResultsGen.root -g herwig --no-progress-bar -d
 else
     echo 'Running inclusive'
-    echo "python hepmc2antuple_tn.py -i $INPUT_FILE -o $OUTPUT_DIR/AnalysisResultsGen.root -g herwig --no-progress-bar"
-    python hepmc2antuple_tn.py -i $INPUT_FILE -o $OUTPUT_DIR/AnalysisResultsGen.root -g herwig --no-progress-bar
+    echo "python hepmc2antuple_tn.py -i $INPUT_FILE -o $TEMP_OUTPUT_DIRECTORY/AnalysisResultsGen.root -g herwig --no-progress-bar"
+    python hepmc2antuple_tn.py -i $INPUT_FILE -o $TEMP_OUTPUT_DIRECTORY/AnalysisResultsGen.root -g herwig --no-progress-bar
+    # echo "python hepmc2antuple_tn.py -i $INPUT_FILE -o $OUTPUT_DIR/AnalysisResultsGen.root -g herwig --no-progress-bar"
+    # python hepmc2antuple_tn.py -i $INPUT_FILE -o $OUTPUT_DIR/AnalysisResultsGen.root -g herwig --no-progress-bar
 fi
 
+# now copy root file to /rstorage
+cp $TEMP_OUTPUT_DIRECTORY/AnalysisResultsGen.root ${OUTPUT_DIR}/
+rm $TEMP_OUTPUT_DIRECTORY/AnalysisResultsGen.root
 
 # Move stdout to appropriate folder
 # mkdir -p /rstorage/generators/herwig_alice/tree_gen/${JOB_ID}/slurm-output
