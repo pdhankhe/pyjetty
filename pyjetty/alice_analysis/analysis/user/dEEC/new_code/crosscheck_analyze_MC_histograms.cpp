@@ -1,5 +1,7 @@
 // ROOT macro make as a crosscheck
-// it is currently able to plot 5 TeV pythia histograms (old method)
+// it is currently able to plot 5 TeV pythia histograms (old method), and also herwig
+// To switch between pythia and herwig, change the attempt_dir in Line 18/19 and
+// also change 
 // Beatrice Liang-Gilman (beatrice_lg@berkeley.edu)
 
 // TODO: figure out how to make this possible with gen or reco, matched or unmatched
@@ -14,6 +16,7 @@ Double_t colors[16] = {kGray, kMagenta, kBlue, kOrange+1, kViolet+1, kGreen+2, k
 Double_t markers[10] = {kFullCircle, kFullSquare, kFullDiamond, kFullTriangleUp, kFullStar, kOpenCircle, kOpenTriangleUp, kOpenDiamond, kOpenSquare, kOpenStar};
 Double_t marker_size = 1.5;
 
+std::string generator = "herwig"; // "pythia" or "herwig"
 std::string attempt_dir = Form("pythia5TeV_histograms_crosscheck"); //;
 std::string outdir = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir; //; // PERLY_FIX: REVERT TO THIS
 std::string outdir_rootfiles = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/" + attempt_dir; //; // PERLY_FIX: REVERT TO THIS
@@ -81,12 +84,14 @@ public:
 
     void recreate_output_root_file() {
         std::string root_outfile = outdir_rootfiles + "/PYTHIAHists_" + name + ".root";
+        if (generator == "herwig") root_outfile = outdir_rootfiles + "/HERWIGHists_" + name + ".root";
         TFile * f_out = new TFile(root_outfile.c_str(), "RECREATE");
         f_out->Close();
     }
 
     TFile * get_output_root_file() {
         std::string root_outfile = outdir_rootfiles + "/PYTHIAHists_" + name + ".root";
+        if (generator == "herwig") root_outfile = outdir_rootfiles + "/HERWIGHists_" + name + ".root";
         TFile * f_out = new TFile(root_outfile.c_str(), "UPDATE");
         return f_out;
     }
@@ -994,7 +999,7 @@ void plot_histograms(TFile* f_in, vector<Observable> obs_1D_list, vector<Observa
 //                     MAIN FUNCTION 
 // ======================================================= //
 
-void crosscheck_analyze_pythia_histograms() {
+void crosscheck_analyze_MC_histograms() {
 
     gStyle->SetOptStat(0);
     SetStyle();
@@ -1017,12 +1022,19 @@ void crosscheck_analyze_pythia_histograms() {
 
     // int filecounter = 0;
     // int filecounter_cutoff = 500; //total: 5000
+
+    if (generator == "herwig") {
+        attempt_dir = Form("herwig_firstattempt");
+    }
     
     // Files
     // const char infile[] = "/rstorage/alice/AnalysisResults/blianggi/dEEC/445125/1132588/scaling/AnalysisResultsFinal.root"; //hiccup
-    const char infile[] = "/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/46040507/1132588/scaling/AnalysisResultsFinal.root"; //perlmutter, after june 2024 // PERLY_FIX: REVERT TO THIS
+    const char infile[];
+    infile = "/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/46040507/1132588/scaling/AnalysisResultsFinal.root"; //perlmutter, after june 2024 // PERLY_FIX: REVERT TO THIS
     // const char infile[] = "~/Documents/research/code/dEEC/new_code/AnalysisResultsFinal.root"; //local
     // const char infile[] = "/Volumes/NO NAME/AnalysisResultsFinal.root"; //local
+    if (generator == "herwig") infile = "/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/storage/herwig/519889/260023/AnalysisResultsFinal.root"; //perlmutter, after dec 2025;
+
     TFile* root_infile = new TFile(infile, "READ");
 
 
