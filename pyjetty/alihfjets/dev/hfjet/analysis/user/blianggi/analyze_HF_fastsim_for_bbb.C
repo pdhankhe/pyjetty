@@ -49,7 +49,7 @@ public:
 
     }
 
-    void addHist(std::vector<TH1D *> hist_vec, TH1D* hist) {
+    void addHist(std::vector<TH1D *>& hist_vec, TH1D* hist) {
         hist_vec.push_back(hist);
     }
 };
@@ -308,7 +308,7 @@ void plot_two_panels(std::vector<TH1D *> top_panel_hists_vec, std::vector<int> r
 
 void plot_pt_comparisons(MCHistCollection& MCHists, THnSparse * h_truth_jet_pt_thnsparse, THnSparse * h_det_jet_pt_thnsparse, 
                          THnSparse * h_matched_truth_jet_pt_thnsparse, THnSparse * h_matched_det_jet_pt_thnsparse, 
-                         std::string type_pt_name, std::string gen_name) {
+                         std::string type_pt_name, std::string gen_name, std::string pr_or_nonpr) {
 
     
     TCanvas * can_pt = new TCanvas();
@@ -367,7 +367,7 @@ void plot_pt_comparisons(MCHistCollection& MCHists, THnSparse * h_truth_jet_pt_t
     leg_pt_ratio->Draw();
 
     // Save
-    can_pt->SaveAs(Form("%s/%s/%s_distribution%s.pdf", output_dir.c_str(), gen_name.c_str(), type_pt_name.c_str(), output_add_name.c_str()));
+    can_pt->SaveAs(Form("%s/%s/%s_distribution%s_%s.pdf", output_dir.c_str(), gen_name.c_str(), type_pt_name.c_str(), output_add_name.c_str(), pr_or_nonpr.c_str()));
 
     // delete h_pt_matched_det_all;
     // delete h_pt_det_all;
@@ -382,7 +382,7 @@ void plot_pt_comparisons(MCHistCollection& MCHists, THnSparse * h_truth_jet_pt_t
 // returns a vector of histograms of bin by bin factors, 
 // where every two indices is one pt bin
 // and they are in the order all jets, matched jets
-std::vector<TH1D *> get_and_plot_bbb(TFile *file, std::string gen_name, MCHistCollection& MCHists) {
+std::vector<TH1D *> get_and_plot_bbb(TFile *file, std::string gen_name, MCHistCollection& MCHists, std::string pr_or_nonpr) {
 
     // initialize return vector
     std::vector<TH1D *> vec_bbb_factors;
@@ -418,8 +418,8 @@ std::vector<TH1D *> get_and_plot_bbb(TFile *file, std::string gen_name, MCHistCo
     fill_MC_Hists_jet_quantities(MCHists, h_truth_jet_pt_thnsparse, h_det_jet_pt_thnsparse, h_matched_truth_jet_pt_thnsparse, h_matched_det_jet_pt_thnsparse, markerstyle);
 
     // // Plot pt comparisons
-    // plot_pt_comparisons(h_truth_jet_pt_thnsparse, h_det_jet_pt_thnsparse, h_matched_truth_jet_pt_thnsparse, h_matched_det_jet_pt_thnsparse, "jet_pt", gen_name);
-    // plot_pt_comparisons(h_truth_jet_pt_thnsparse, h_det_jet_pt_thnsparse, h_matched_truth_jet_pt_thnsparse, h_matched_det_jet_pt_thnsparse, "D0_pt", gen_name);
+    // plot_pt_comparisons(h_truth_jet_pt_thnsparse, h_det_jet_pt_thnsparse, h_matched_truth_jet_pt_thnsparse, h_matched_det_jet_pt_thnsparse, "jet_pt", gen_name, pr_or_nonpr);
+    // plot_pt_comparisons(h_truth_jet_pt_thnsparse, h_det_jet_pt_thnsparse, h_matched_truth_jet_pt_thnsparse, h_matched_det_jet_pt_thnsparse, "D0_pt", gen_name, pr_or_nonpr);
     
 
     // // Make canvas for text box
@@ -468,8 +468,8 @@ std::vector<TH1D *> get_and_plot_bbb(TFile *file, std::string gen_name, MCHistCo
         applyCuts(h_matched_det_ENC_RL2_clone, pt_min, pt_max, d0_pt_cut, true);
 
         // // Plot pt comparisons -- DELETE LATER
-        // plot_pt_comparisons(h_truth_ENC_RL2_clone, h_det_ENC_RL2_clone, h_matched_truth_ENC_RL2_clone, h_matched_det_ENC_RL2_clone, Form("jet_pt_pairs_pt%d-%d",pt_min,pt_max), gen_name);
-        // plot_pt_comparisons(h_truth_ENC_RL2_clone, h_det_ENC_RL2_clone, h_matched_truth_ENC_RL2_clone, h_matched_det_ENC_RL2_clone, Form("D0_pt_pairs_pt%d-%d",pt_min,pt_max), gen_name);
+        // plot_pt_comparisons(h_truth_ENC_RL2_clone, h_det_ENC_RL2_clone, h_matched_truth_ENC_RL2_clone, h_matched_det_ENC_RL2_clone, Form("jet_pt_pairs_pt%d-%d",pt_min,pt_max), gen_name, pr_or_nonpr);
+        // plot_pt_comparisons(h_truth_ENC_RL2_clone, h_det_ENC_RL2_clone, h_matched_truth_ENC_RL2_clone, h_matched_det_ENC_RL2_clone, Form("D0_pt_pairs_pt%d-%d",pt_min,pt_max), gen_name, pr_or_nonpr);
 
         // Project
         TH1D * h_truth_jet_pt = h_truth_jet_pt_clone->Projection(0);
@@ -526,6 +526,14 @@ std::vector<TH1D *> get_and_plot_bbb(TFile *file, std::string gen_name, MCHistCo
         FormatHist(leg_ratios, h_ratio_unmatched, "All bbb", kBlue, kFullCircle, 1.0, "R_{L}", "det/truth");
         FormatHist(leg_ratios, h_ratio_matched, "Matched bbb", kRed, kFullCircle, 1.0, "R_{L}", "det/truth");
 
+        // prevent root from auto-deleting histograms
+        // h_truth_EEC->SetDirectory(nullptr); 
+        // h_det_EEC->SetDirectory(nullptr); 
+        // h_matched_truth_EEC->SetDirectory(nullptr); 
+        // h_matched_det_EEC->SetDirectory(nullptr); 
+        // h_ratio_unmatched->SetDirectory(nullptr); 
+        // h_ratio_matched->SetDirectory(nullptr);
+
         // Add to collection
         MCHists.addHist(MCHists.h_EEC_gen_all, (TH1D*) h_truth_EEC->Clone(h_truth_EEC->GetName()));
         MCHists.addHist(MCHists.h_EEC_det_all, (TH1D*) h_det_EEC->Clone(h_det_EEC->GetName()));
@@ -562,8 +570,8 @@ std::vector<TH1D *> get_and_plot_bbb(TFile *file, std::string gen_name, MCHistCo
         drawHoriLine(1e-4, 1, 1, kBlack, 3)->Draw();
 
         // Save
-        can_eecs->SaveAs(Form("%s/%s/eecs_pt%d_%d%s.pdf", output_dir.c_str(), gen_name.c_str(), pt_min, pt_max, output_add_name.c_str()));
-        can_ratios->SaveAs(Form("%s/%s/binbybin_ratios_pt%d_%d%s.pdf", output_dir.c_str(), gen_name.c_str(), pt_min, pt_max, output_add_name.c_str()));
+        can_eecs->SaveAs(Form("%s/%s/eecs_pt%d_%d%s_%s.pdf", output_dir.c_str(), gen_name.c_str(), pt_min, pt_max, output_add_name.c_str(), pr_or_nonpr.c_str()));
+        can_ratios->SaveAs(Form("%s/%s/binbybin_ratios_pt%d_%d%s_%s.pdf", output_dir.c_str(), gen_name.c_str(), pt_min, pt_max, output_add_name.c_str(), pr_or_nonpr.c_str()));
 
         // Delete hists
         delete h_truth_jet_pt_clone;
@@ -600,7 +608,7 @@ std::vector<TH1D *> get_and_plot_bbb(TFile *file, std::string gen_name, MCHistCo
     return vec_bbb_factors;
 }
 
-void plot_different_generators_together(std::vector<TH1D *> vec_bbb_herwig, std::vector<TH1D *> vec_bbb_pythia, MCHistCollection herwigHists, MCHistCollection pythiaHists) {
+void plot_different_generators_together(std::vector<TH1D *> vec_bbb_herwig, std::vector<TH1D *> vec_bbb_pythia, MCHistCollection herwigHists, MCHistCollection pythiaHists, std::string pr_or_nonpr) {
     
     for ( int i = 0; i < n_bins; i ++ ) {
 
@@ -643,7 +651,7 @@ void plot_different_generators_together(std::vector<TH1D *> vec_bbb_herwig, std:
         text_imp->Draw();
         leg_all_ratios->Draw();
 
-        can_all_ratios->SaveAs(Form("%s/pythiaherwig_binbybin_ratios_pt%d_%d%s.pdf", output_dir.c_str(), pt_min, pt_max, output_add_name.c_str()));
+        can_all_ratios->SaveAs(Form("%s/pythiaherwig_binbybin_ratios_pt%d_%d%s_%s.pdf", output_dir.c_str(), pt_min, pt_max, output_add_name.c_str(), pr_or_nonpr.c_str()));
 
     }
 
@@ -660,35 +668,100 @@ void plot_different_generators_together(std::vector<TH1D *> vec_bbb_herwig, std:
     std::vector<TH1D *> jet_pt_hists_vec = { herwigHists.h_jet_pt_gen_all, herwigHists.h_jet_pt_det_all, herwigHists.h_jet_pt_gen_matched, herwigHists.h_jet_pt_det_matched, 
                                               pythiaHists.h_jet_pt_gen_all, pythiaHists.h_jet_pt_det_all, pythiaHists.h_jet_pt_gen_matched, pythiaHists.h_jet_pt_det_matched };
     std::string jet_pt_xtitle = "p_{T, jet}";
-    std::string jet_pt_output_filepath = Form("%s/pythiaherwig_jet_pt%s.pdf", output_dir.c_str(), output_add_name.c_str());
+    std::string jet_pt_output_filepath = Form("%s/pythiaherwig_jet_pt%s_%s.pdf", output_dir.c_str(), output_add_name.c_str(), pr_or_nonpr.c_str());
     plot_two_panels(jet_pt_hists_vec, ratio_num_index_vec, ratio_den_index_vec, jet_pt_xtitle, ratio_ylabel, top_panel_leg_labels_vec, bottom_panel_leg_labels_vec, ratio_markercolor_vec, ratio_markerstyle_vec, jet_pt_output_filepath, 5);
 
     // D0 pt
     std::vector<TH1D *> D0_pt_hists_vec = { herwigHists.h_D0_pt_gen_all, herwigHists.h_D0_pt_det_all, herwigHists.h_D0_pt_gen_matched, herwigHists.h_D0_pt_det_matched, 
                                               pythiaHists.h_D0_pt_gen_all, pythiaHists.h_D0_pt_det_all, pythiaHists.h_D0_pt_gen_matched, pythiaHists.h_D0_pt_det_matched };
     std::string D0_pt_xtitle = "p_{T, D^{0}}";
-    std::string D0_pt_output_filepath = Form("%s/pythiaherwig_D0_pt%s.pdf", output_dir.c_str(), output_add_name.c_str());
+    std::string D0_pt_output_filepath = Form("%s/pythiaherwig_D0_pt%s_%s.pdf", output_dir.c_str(), output_add_name.c_str(), pr_or_nonpr.c_str());
     plot_two_panels(D0_pt_hists_vec, ratio_num_index_vec, ratio_den_index_vec, D0_pt_xtitle, ratio_ylabel, top_panel_leg_labels_vec, bottom_panel_leg_labels_vec, ratio_markercolor_vec, ratio_markerstyle_vec, D0_pt_output_filepath, 5);
 
     // D0 z
     std::vector<TH1D *> D0_z_hists_vec = { herwigHists.h_D0_z_gen_all, herwigHists.h_D0_z_det_all, herwigHists.h_D0_z_gen_matched, herwigHists.h_D0_z_det_matched, 
                                               pythiaHists.h_D0_z_gen_all, pythiaHists.h_D0_z_det_all, pythiaHists.h_D0_z_gen_matched, pythiaHists.h_D0_z_det_matched };
     std::string D0_z_xtitle = "z_{D^{0}}";
-    std::string D0_z_output_filepath = Form("%s/pythiaherwig_D0_z%s.pdf", output_dir.c_str(), output_add_name.c_str());
+    std::string D0_z_output_filepath = Form("%s/pythiaherwig_D0_z%s_%s.pdf", output_dir.c_str(), output_add_name.c_str(), pr_or_nonpr.c_str());
     plot_two_panels(D0_z_hists_vec, ratio_num_index_vec, ratio_den_index_vec, D0_z_xtitle, ratio_ylabel, top_panel_leg_labels_vec, bottom_panel_leg_labels_vec, ratio_markercolor_vec, ratio_markerstyle_vec, D0_z_output_filepath);
     
     
 }
 
-void analyze_files(TFile * herwig_fastsim_file, TFile * pythia_fastsim_file, MCHistCollection& herwigHists, MCHistCollection& pythiaHists) {
+void analyze_files(TFile * herwig_fastsim_file, TFile * pythia_fastsim_file, MCHistCollection& herwigHists, MCHistCollection& pythiaHists, std::string pr_or_nonpr) {
     // get and plot herwig bbb corrections
-    std::vector<TH1D *> vec_bbb_herwig = get_and_plot_bbb(herwig_fastsim_file, "herwig", herwigHists);
+    std::vector<TH1D *> vec_bbb_herwig = get_and_plot_bbb(herwig_fastsim_file, "herwig", herwigHists, pr_or_nonpr);
 
     // get and plot pythia bbb corrections
-    std::vector<TH1D *> vec_bbb_pythia = get_and_plot_bbb(pythia_fastsim_file, "pythia", pythiaHists);
+    std::vector<TH1D *> vec_bbb_pythia = get_and_plot_bbb(pythia_fastsim_file, "pythia", pythiaHists, pr_or_nonpr);
 
     // plot together
-    plot_different_generators_together(vec_bbb_herwig, vec_bbb_pythia, herwigHists, pythiaHists);
+    plot_different_generators_together(vec_bbb_herwig, vec_bbb_pythia, herwigHists, pythiaHists, pr_or_nonpr);
+
+    cout << "size check! " << herwigHists.h_bbb_ratio_all.size() << " vs " << pythiaHists.h_bbb_ratio_all.size() << endl;
+}
+
+
+void format_hist_for_allcombinedplot(TH1D * hist, TLegend * leg, int markercolor, int markerstyle, std::string label) {
+    hist->SetMarkerColor(markercolor);
+    hist->SetLineColor(markercolor);
+    hist->SetMarkerStyle(markerstyle);
+    // hist->SetMarkerSize(1.25);
+
+    leg->AddEntry(hist, label.c_str(), "lp");
+
+}
+
+void plot_prompt_and_nonprompt(MCHistCollection herwigHists, MCHistCollection pythiaHists, MCHistCollection herwigNPHists, MCHistCollection pythiaNPHists) {
+    for ( int i = 0; i < n_bins; i ++ ) {
+        cout << "in pt bin " << i << ": " << pt_bins[i] <<"-" << pt_bins[i+1] << endl;
+
+        int pt_min = pt_bins[i];
+        int pt_max = pt_bins[i+1];
+
+        TCanvas * can = new TCanvas();
+        can->cd();
+        gPad->SetLogx();
+        TLegend * leg_ev = new TLegend(0.15, 0.6, 0.4, 0.85);
+        TLegend * leg = new TLegend(0.6, 0.55, 0.8, 0.85);
+        leg_ev->SetBorderSize(0);
+        leg->SetBorderSize(0);
+
+        cout << "herwigHists.h_bbb_ratio_all.size: " << herwigHists.h_bbb_ratio_all.size() << endl;
+
+        leg_ev->AddEntry((TObject*)0, "pp, #sqrt{s} = 13 TeV", "");
+        leg_ev->AddEntry((TObject*)0, "D^{0}-tagged ch. jets", "");
+        leg_ev->AddEntry((TObject*)0, "anti-k_{T}, R = 0.4", "");
+        leg_ev->AddEntry((TObject*)0, Form("%d #leq p_{T}^{ch. jet} < %d GeV/c, |#eta_{jet}| #leq 0.5", pt_min, pt_max), "");
+        leg_ev->AddEntry((TObject*)0, Form("%d #leq p_{T}^{D^{0}} < %d GeV/c, |y_{D^{0}}| #leq 0.8", d0_pt_cuts[i], pt_max), "");
+
+        leg->AddEntry((TObject*)0, "Herwig", "");
+        format_hist_for_allcombinedplot(herwigHists.h_bbb_ratio_all[i], leg, kRed-4, 20, "Prompt");
+        format_hist_for_allcombinedplot(herwigHists.h_bbb_ratio_matched[i], leg, kRed-4, 21, "Prompt matched");
+        format_hist_for_allcombinedplot(herwigNPHists.h_bbb_ratio_all[i], leg, kOrange-3, 20, "Non-prompt");
+        format_hist_for_allcombinedplot(herwigNPHists.h_bbb_ratio_matched[i], leg, kOrange-3, 21, "Non-prompt matched");
+        leg->AddEntry((TObject*)0, "PYTHIA 8", ""); // empty line
+        format_hist_for_allcombinedplot(pythiaHists.h_bbb_ratio_all[i], leg, kAzure-2, 20, "Prompt");
+        format_hist_for_allcombinedplot(pythiaHists.h_bbb_ratio_matched[i], leg, kAzure-2, 21, "Prompt matched");
+        format_hist_for_allcombinedplot(pythiaNPHists.h_bbb_ratio_all[i], leg, kCyan-3, 20, "Non-prompt");
+        format_hist_for_allcombinedplot(pythiaNPHists.h_bbb_ratio_matched[i], leg, kCyan-3, 21, "Non-prompt matched");
+
+        herwigHists.h_bbb_ratio_all[i]->SetMaximum(2.5);
+        
+        herwigHists.h_bbb_ratio_all[i]->Draw();
+        herwigHists.h_bbb_ratio_matched[i]->Draw("SAME");
+        herwigNPHists.h_bbb_ratio_all[i]->Draw("SAME");
+        herwigNPHists.h_bbb_ratio_matched[i]->Draw("SAME");
+        pythiaHists.h_bbb_ratio_all[i]->Draw("SAME");
+        pythiaHists.h_bbb_ratio_matched[i]->Draw("SAME");
+        pythiaNPHists.h_bbb_ratio_all[i]->Draw("SAME");
+        pythiaNPHists.h_bbb_ratio_matched[i]->Draw("SAME");
+        leg_ev->Draw();
+        leg->Draw();
+        drawHoriLine(1e-4, 1, 1, kBlack, 3)->Draw();
+
+        can->SaveAs(Form("%s/ALL_pythiaherwig_promptnonprompt_binbybin_ratios_pt%d_%d%s.pdf", output_dir.c_str(), pt_min, pt_max, output_add_name.c_str()));
+    }
 }
 
 
@@ -714,8 +787,23 @@ void analyze_HF_fastsim_for_bbb() {
     MCHistCollection pythiaHists("pythia");
     MCHistCollection herwigHists("herwig");
 
-    // get and plot herwig bbb corrections
-    analyze_files(herwig_fastsim_file, pythia_fastsim_file, herwigHists, pythiaHists);
+    // get and plot herwig + pythia bbb corrections -- prompt
+    analyze_files(herwig_fastsim_file, pythia_fastsim_file, herwigHists, pythiaHists, "prompt");
+
+    // get and plot herwig + pythia bbb corrections -- nonprompt
+    TFile * herwig_fastsim_nonprompt_file;
+    TFile * pythia_fastsim_nonprompt_file;
+    MCHistCollection pythiaNPHists("pythia_nonprompt");
+    MCHistCollection herwigNPHists("herwig_nonprompt");
+    if (include_dstar == true) {
+        herwig_fastsim_nonprompt_file = new TFile("/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/storage/herwig/517789/515788/AnalysisResultsFinal.root", "READ"); // perlmutter link
+        pythia_fastsim_nonprompt_file = new TFile("/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/pythiagen/scaling/46372190/46293548/AnalysisResultsFinal.root", "READ"); // perlmutter link
+        output_add_name = "_withDstar";
+    }
+    analyze_files(herwig_fastsim_nonprompt_file, pythia_fastsim_nonprompt_file, herwigNPHists, pythiaNPHists, "nonprompt");
+
+    cout << "done individuals. now plotting prompt vs non-prompt together..." << endl;
+
+    plot_prompt_and_nonprompt(herwigHists, pythiaHists, herwigNPHists, pythiaNPHists);
 
 }
-    
