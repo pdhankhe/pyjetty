@@ -7,7 +7,7 @@
 #SBATCH --array=1-1000
 #SBATCH --output=/rstorage/alice/AnalysisResults/blianggi/dEEC/slurm-%A_%a.out
 
-FILE_PATHS='/rstorage/generators/herwig_alice/tree_fastsim/1122902/files.txt'
+FILE_PATHS='/rstorage/generators/herwig_alice/tree_fastsim/1120002/files.txt'
 NFILES=$(wc -l < $FILE_PATHS)
 echo "N files to process: ${NFILES}"
 
