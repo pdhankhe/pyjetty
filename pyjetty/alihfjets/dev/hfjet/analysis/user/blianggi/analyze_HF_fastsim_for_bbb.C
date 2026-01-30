@@ -508,12 +508,17 @@ std::vector<TH1D *> get_and_plot_bbb(TFile *file, std::string gen_name, MCHistCo
         // pt_text->AddText(Form("  # of pairs in truth matched: %.3f", h_matched_truth_EEC->Integral()));
         // pt_text->AddText(Form("  # of pairs in det   matched: %.3f", h_matched_det_EEC->Integral()));
 
+        // make hist name different
+        std::string hist_name_add = "pt" + std::to_string(pt_min) + "-" + std::to_string(pt_max) + "_" + gen_name + "_" + pr_or_nonpr;
+
         // Take ratios
-        TH1D * h_ratio_unmatched = (TH1D *) h_det_EEC->Clone("h_ratio_unmatched_clone");
+        TH1D * h_ratio_unmatched = (TH1D *) h_det_EEC->Clone(Form("h_ratio_%s_unmatched", hist_name_add.c_str())); //"h_ratio_unmatched_clone");
+        h_ratio_unmatched->SetTitle(Form("h_ratio_%s_unmatched", hist_name_add.c_str()));
         h_ratio_unmatched->SetDirectory(nullptr); 
         h_ratio_unmatched->Divide(h_truth_EEC);
 
-        TH1D * h_ratio_matched = (TH1D *) h_matched_det_EEC->Clone("h_ratio_matched_clone");
+        TH1D * h_ratio_matched = (TH1D *) h_matched_det_EEC->Clone(Form("h_ratio_%s_matched", hist_name_add.c_str())); //"h_ratio_matched_clone");
+        h_ratio_matched->SetTitle(Form("h_ratio_%s_matched", hist_name_add.c_str()));
         h_ratio_matched->SetDirectory(nullptr); 
         h_ratio_matched->Divide(h_matched_truth_EEC);
 
@@ -712,7 +717,7 @@ void format_hist_for_allcombinedplot(TH1D * hist, TLegend * leg, int markercolor
 
 }
 
-void plot_prompt_and_nonprompt(MCHistCollection herwigHists, MCHistCollection pythiaHists, MCHistCollection herwigNPHists, MCHistCollection pythiaNPHists) {
+void plot_prompt_and_nonprompt(TFile * output_file, MCHistCollection herwigHists, MCHistCollection pythiaHists, MCHistCollection herwigNPHists, MCHistCollection pythiaNPHists) {
     for ( int i = 0; i < n_bins; i ++ ) {
         cout << "in pt bin " << i << ": " << pt_bins[i] <<"-" << pt_bins[i+1] << endl;
 
@@ -761,6 +766,18 @@ void plot_prompt_and_nonprompt(MCHistCollection herwigHists, MCHistCollection py
         drawHoriLine(1e-4, 1, 1, kBlack, 3)->Draw();
 
         can->SaveAs(Form("%s/ALL_pythiaherwig_promptnonprompt_binbybin_ratios_pt%d_%d%s.pdf", output_dir.c_str(), pt_min, pt_max, output_add_name.c_str()));
+    
+        // Write to output file
+        output_file->cd();
+        herwigHists.h_bbb_ratio_all[i]->Write();
+        herwigHists.h_bbb_ratio_matched[i]->Write();
+        herwigNPHists.h_bbb_ratio_all[i]->Write();
+        herwigNPHists.h_bbb_ratio_matched[i]->Write();
+        pythiaHists.h_bbb_ratio_all[i]->Write();
+        pythiaHists.h_bbb_ratio_matched[i]->Write();
+        pythiaNPHists.h_bbb_ratio_all[i]->Write();
+        pythiaNPHists.h_bbb_ratio_matched[i]->Write();
+        
     }
 }
 
@@ -783,6 +800,7 @@ void analyze_HF_fastsim_for_bbb() {
         pythia_fastsim_file = new TFile("/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/pythiagen/scaling/45190202/45154942/AnalysisResultsFinal.root", "READ"); // perlmutter link
         output_add_name = "_withDstar";
     }
+    TFile * output_file = new TFile("/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/HF_EEC/rootfiles/binbybinfactors.root", "RECREATE");
 
     MCHistCollection pythiaHists("pythia");
     MCHistCollection herwigHists("herwig");
@@ -804,6 +822,6 @@ void analyze_HF_fastsim_for_bbb() {
 
     cout << "done individuals. now plotting prompt vs non-prompt together..." << endl;
 
-    plot_prompt_and_nonprompt(herwigHists, pythiaHists, herwigNPHists, pythiaNPHists);
+    plot_prompt_and_nonprompt(output_file, herwigHists, pythiaHists, herwigNPHists, pythiaNPHists);
 
 }

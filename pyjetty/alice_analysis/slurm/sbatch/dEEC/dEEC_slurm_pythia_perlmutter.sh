@@ -12,6 +12,7 @@
 #SBATCH --mem=16GB
 
 FILE_PATHS='/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/generators/pythia_alice/tree_fastsim/1143757/files.txt' #5 TeV
+# FILE_PATHS='/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/pythiagen/tree_fastsim/47946306/47835863/files.txt' #5 TeV, CTEQ 5L PDF
 # FILE_PATHS='/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/pythiagen/tree_gen/26652369/files.txt' #13 TeV
 NFILES=$(wc -l < $FILE_PATHS)
 echo "N files to process: ${NFILES}"

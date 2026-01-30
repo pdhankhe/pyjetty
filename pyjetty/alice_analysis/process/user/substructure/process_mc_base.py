@@ -81,7 +81,7 @@ class ProcessMCBase(process_base.ProcessBase):
       if self.mcprod:
         with open("{}/rstorage/alice/data/LHC18b8_charge/scaleFactors.yaml".format(file_basepath), 'r') as stream:
           pt_hat_yaml = yaml.safe_load(stream)
-      else:
+      else: #pythia fastsim
         print("FILE!", "{}/rstorage/generators/pythia_alice/tree_fastsim/scaleFactors.yaml".format(file_basepath))
         with open("{}/rstorage/generators/pythia_alice/tree_fastsim/scaleFactors.yaml".format(file_basepath), 'r') as stream:
           pt_hat_yaml = yaml.safe_load(stream)
@@ -855,6 +855,15 @@ class ProcessMCBase(process_base.ProcessBase):
       
       name = 'hZ_Det_R{}'.format(jetR)
       h = ROOT.TH2F(name, name, 300, 0, 300, 100, 0., 1.)
+      setattr(self, name, h)
+
+      # new histograms for debugging
+      name = 'hEtaRap_Truth_R{}'.format(jetR)
+      h = ROOT.TH2F(name, name, 100, -1.5, 1.5, 100, -1.5, 1.5)
+      setattr(self, name, h)
+
+      name = 'hEtaRap_Det_R{}'.format(jetR)
+      h = ROOT.TH2F(name, name, 100, -1.5, 1.5, 100, -1.5, 1.5)
       setattr(self, name, h)
 
   #---------------------------------------------------------------
@@ -1666,10 +1675,12 @@ class ProcessMCBase(process_base.ProcessBase):
     for constituent in jet.constituents():
       z = constituent.pt() / jet.pt()
       getattr(self, 'hZ_Truth_R{}'.format(jetR)).Fill(jet.pt(), z)
-          
+    
     # Fill 2D histogram of truth (pt, obs)
     hname = 'h_{{}}_JetPt_Truth_R{}_{{}}'.format(jetR)
     self.fill_unmatched_jet_histograms(jet, jetR, hname)
+
+    getattr(self, 'hEtaRap_Truth_R{}'.format(jetR)).Fill(jet.eta(), jet.rap())
 
   #---------------------------------------------------------------
   # Fill det jet histograms
@@ -1683,6 +1694,8 @@ class ProcessMCBase(process_base.ProcessBase):
       for constituent in jet.constituents():
         z = constituent.pt() / jet_pt
         getattr(self, 'hZ_Det_R{}'.format(jetR)).Fill(jet_pt, z)
+      
+      getattr(self, 'hEtaRap_Det_R{}'.format(jetR)).Fill(jet.eta(), jet.rap())
       
     # for const in jet.constituents():
     #   if const.perp()>0.15:

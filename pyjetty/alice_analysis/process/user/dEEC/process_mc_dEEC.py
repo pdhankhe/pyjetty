@@ -744,7 +744,7 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
 
   def get_pair_eff_weights(self, corr_builder, ipoint, constituents):
     # NB: currently applying the pair eff weight to both 2 point correlator and higher point correlators. Need to check if the same pair efficiency effect still work well for higher point correlators
-    weights_pair = []
+    weights_pair = [] # only use for the det-level PAIR quantities!
     for index in range(corr_builder.correlator(ipoint).rs().size()):
       part1 = int(corr_builder.correlator(ipoint).indices1()[index])
       part2 = int(corr_builder.correlator(ipoint).indices2()[index])
@@ -1056,8 +1056,8 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
 
         # Det level
         if self.ENC_fastsim and (not 'Truth' in hname):
-          getattr(self, hname.format("1D"+observable,obs_label)).Fill(jet_pt) #, weights_pair[index])
-          getattr(self, hname.format('Nconst', obs_label)).Fill(jet_pt, nconst_jet) #, weights_pair[index]) 
+          getattr(self, hname.format("1D"+observable,obs_label)).Fill(jet_pt) 
+          getattr(self, hname.format('Nconst', obs_label)).Fill(jet_pt, nconst_jet) 
           
           # TODO: don't do this until you've figured out how...
           # getattr(self, 'tn_JETINFOjet_pt_R{}_{}'.format(jetR, obs_label)).Fill(self.event_number, self.jet_number, self.ijet, jet_pt*weights_pair[index], len(constituents), nconst_jet, leadq_subleadq, leading_q, subleading_q, num_baryons_tot, num_baryons_aftercut, num_mesons_tot, num_mesons_aftercut)

@@ -235,9 +235,10 @@ class ProcessIO(common_base.CommonBase):
     if n_duplicates > 0:
       sys.exit('ERROR: There appear to be {} duplicate particles in the merged dataframe'.format(n_duplicates))
     # now check in D0 tree:
-    n_duplicates = sum(self.D0_df.duplicated(self.D0_columns))
-    if n_duplicates > 0:
-      sys.exit('ERROR: There appear to be {} duplicate particles in the merged dataframe'.format(n_duplicates))
+    if self.use_D0_info:
+      n_duplicates = sum(self.D0_df.duplicated(self.D0_columns))
+      if n_duplicates > 0:
+        sys.exit('ERROR: There appear to be {} duplicate particles in the merged D0 dataframe'.format(n_duplicates))
     
     print("only looking events in a given range")
     if stop > start:
@@ -260,7 +261,9 @@ class ProcessIO(common_base.CommonBase):
   #---------------------------------------------------------------
   def save_dataframe(self, filename, df, df_true=False, histograms=[], is_jetscape=False, is_ENC=False, using_D0=False, df_D0=None):
 
-    print("FINAL NUM IN DF: ", len(df), "AND IN DF DO: ", len(df_D0))
+    print("FINAL NUM IN DF: ", len(df))
+    if using_D0:
+      print("AND IN DF DO: ", len(df_D0))
 
     # Create output directory if it does not already exist
     if not os.path.exists(self.output_dir):

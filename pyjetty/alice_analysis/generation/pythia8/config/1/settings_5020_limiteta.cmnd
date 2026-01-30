@@ -1,0 +1,13 @@
+Next:numberCount = 0
+Next:numberShowEvent = 0
+Next:numberShowInfo = 0
+Next:numberShowProcess = 0
+Stat:showProcessLevel = on
+
+Beams:eCM = 5020.
+HardQCD:all = on
+PhaseSpace:pTHatMin = 5.
+PhaseSpace:pTHatMax = 7.
+
+# PhaseSpace:etaMin = -0.9
+# PhaseSpace:etaMax = 0.9

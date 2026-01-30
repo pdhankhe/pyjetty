@@ -25,6 +25,7 @@ public:
     TFile * input_pythia_file;
     TFile * input_herwig_file;
     TFile * input_anchmc_file;
+    TFile * input_pythia_cteq_file;
 
     std::vector<TH1D*> obs_vec;
 
@@ -43,8 +44,9 @@ public:
 
         input_data_file = new TFile(Form("/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/data_fifthattempt_ptrlbins/DataHists_%s.root", name.c_str()), "READ");
         input_pythia_file = new TFile(Form("/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/pythia5TeV_histograms_crosscheck/PYTHIAHists_%s.root", name.c_str()), "READ");
-        input_herwig_file = new TFile(Form("/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/herwig_firstattempt/HERWIGHists_%s.root", name.c_str()), "READ");
+        input_herwig_file = new TFile(Form("/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/herwig_secondattempt/HERWIGHists_%s.root", name.c_str()), "READ");
         input_anchmc_file = new TFile(Form("/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/anchMC_firstattempt/ANCHMCHists_%s.root", name.c_str()), "READ");
+        input_pythia_cteq_file = new TFile(Form("/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/pythia_cteq_firstattempt/PYTHIACTEQHists_%s.root", name.c_str()), "READ");
     }
 
     void addHist(TH1D* hist) {
@@ -225,33 +227,40 @@ void plot_1D_obs(Observable obs, int pt_min, int pt_max, //int ptrl_bin,
             label_3 = "det-level HERWIG 7";
             label_4 = "det-level anchored MC LHC23a3";
         } else if ( option == 2 ) { // pythia (gen) vs pythia (det)
-            histname_1 = Form(obs.histname_base.c_str(), weight_str.c_str(), jetR.c_str(), threshold.c_str(), pt_min, pt_max, pTRL_min, pTRL_max, norm_string.c_str(), "_truth");// TODO: FIX WHAT IS BEING ACCESSED HERE, include jet pt and ptrl bin?
-            histname_2 = Form(obs.histname_base.c_str(), weight_str.c_str(), jetR.c_str(), threshold.c_str(), pt_min, pt_max, pTRL_min, pTRL_max, norm_string.c_str(), "_det");// TODO: FIX WHAT IS BEING ACCESSED HERE, include jet pt and ptrl bin?
+            histname_1 = Form(obs.histname_base.c_str(), weight_str.c_str(), jetR.c_str(), threshold.c_str(), pt_min, pt_max, pTRL_min, pTRL_max, norm_string.c_str(), "_truth");
+            histname_2 = Form(obs.histname_base.c_str(), weight_str.c_str(), jetR.c_str(), threshold.c_str(), pt_min, pt_max, pTRL_min, pTRL_max, norm_string.c_str(), "_det");
             infile_1 = obs.input_pythia_file;
             infile_2 = obs.input_pythia_file;
             label_1 = "truth-level PYTHIA 8";
             label_2 = "det-level PYTHIA 8";
         } else if ( option == 3 ) { // herwig (gen) vs herwig (det)
-            histname_1 = Form(obs.histname_base.c_str(), weight_str.c_str(), jetR.c_str(), threshold.c_str(), pt_min, pt_max, pTRL_min, pTRL_max, norm_string.c_str(), "_truth");// TODO: FIX WHAT IS BEING ACCESSED HERE, include jet pt and ptrl bin?
-            histname_2 = Form(obs.histname_base.c_str(), weight_str.c_str(), jetR.c_str(), threshold.c_str(), pt_min, pt_max, pTRL_min, pTRL_max, norm_string.c_str(), "_det");// TODO: FIX WHAT IS BEING ACCESSED HERE, include jet pt and ptrl bin?
+            histname_1 = Form(obs.histname_base.c_str(), weight_str.c_str(), jetR.c_str(), threshold.c_str(), pt_min, pt_max, pTRL_min, pTRL_max, norm_string.c_str(), "_truth");
+            histname_2 = Form(obs.histname_base.c_str(), weight_str.c_str(), jetR.c_str(), threshold.c_str(), pt_min, pt_max, pTRL_min, pTRL_max, norm_string.c_str(), "_det");
             infile_1 = obs.input_herwig_file;
             infile_2 = obs.input_herwig_file;
             label_1 = "truth-level HERWIG 7";
             label_2 = "det-level HERWIG 7";
         } else if ( option == 4 ) { // pythia (det) vs anch mc (det)
-            histname_1 = Form(obs.histname_base.c_str(), weight_str.c_str(), jetR.c_str(), threshold.c_str(), pt_min, pt_max, pTRL_min, pTRL_max, norm_string.c_str(), "_det");// TODO: FIX WHAT IS BEING ACCESSED HERE, include jet pt and ptrl bin?
-            histname_2 = Form(obs.histname_base.c_str(), weight_str.c_str(), jetR.c_str(), threshold.c_str(), pt_min, pt_max, pTRL_min, pTRL_max, norm_string.c_str(), "_det");// TODO: FIX WHAT IS BEING ACCESSED HERE, include jet pt and ptrl bin?
+            histname_1 = Form(obs.histname_base.c_str(), weight_str.c_str(), jetR.c_str(), threshold.c_str(), pt_min, pt_max, pTRL_min, pTRL_max, norm_string.c_str(), "_det");
+            histname_2 = Form(obs.histname_base.c_str(), weight_str.c_str(), jetR.c_str(), threshold.c_str(), pt_min, pt_max, pTRL_min, pTRL_max, norm_string.c_str(), "_det");
             infile_1 = obs.input_pythia_file;
             infile_2 = obs.input_anchmc_file;
             label_1 = "det-level PYTHIA 8";
             label_2 = "det-level anchored MC LHC23a3";
         } else if ( option == 5 ) { // pythia (gen) vs anch mc (gen)
-            histname_1 = Form(obs.histname_base.c_str(), weight_str.c_str(), jetR.c_str(), threshold.c_str(), pt_min, pt_max, pTRL_min, pTRL_max, norm_string.c_str(), "_truth");// TODO: FIX WHAT IS BEING ACCESSED HERE, include jet pt and ptrl bin?
-            histname_2 = Form(obs.histname_base.c_str(), weight_str.c_str(), jetR.c_str(), threshold.c_str(), pt_min, pt_max, pTRL_min, pTRL_max, norm_string.c_str(), "_truth");// TODO: FIX WHAT IS BEING ACCESSED HERE, include jet pt and ptrl bin?
+            histname_1 = Form(obs.histname_base.c_str(), weight_str.c_str(), jetR.c_str(), threshold.c_str(), pt_min, pt_max, pTRL_min, pTRL_max, norm_string.c_str(), "_truth");
+            histname_2 = Form(obs.histname_base.c_str(), weight_str.c_str(), jetR.c_str(), threshold.c_str(), pt_min, pt_max, pTRL_min, pTRL_max, norm_string.c_str(), "_truth");
             infile_1 = obs.input_pythia_file;
             infile_2 = obs.input_anchmc_file;
             label_1 = "gen-level PYTHIA 8";
             label_2 = "gen-level anchored MC LHC23a3";
+        } else if ( option == 6 ) { // pythia fastsim (gen) vs pythia fastsim cteq 5l (gen)
+            histname_1 = Form(obs.histname_base.c_str(), weight_str.c_str(), jetR.c_str(), threshold.c_str(), pt_min, pt_max, pTRL_min, pTRL_max, norm_string.c_str(), "_truth");
+            histname_2 = Form(obs.histname_base.c_str(), weight_str.c_str(), jetR.c_str(), threshold.c_str(), pt_min, pt_max, pTRL_min, pTRL_max, norm_string.c_str(), "_truth");
+            infile_1 = obs.input_pythia_file;
+            infile_2 = obs.input_pythia_cteq_file;
+            label_1 = "gen-level PYTHIA 8 fastsim (PDF: NNPDF2.3 QCD+QED LO)";
+            label_2 = "gen-level PYTHIA 8 fastsim (PDF: CTEQ 5L)";
         }
 
         TH1D * obs_hist_1 = get_1D_histogram(infile_1, histname_1);
@@ -370,6 +379,10 @@ void plot_pt_bins(std::string weight_str, std::string jetR, std::string threshol
         // option 5 = plot pythia (gen) vs anchMC (gen)
         plot_1D_obs(obs_deltap, pt_min, pt_max, weight_str, jetR, threshold, norm_string, 5);
         plot_1D_obs(obs_deltajt, pt_min, pt_max, weight_str, jetR, threshold, norm_string, 5);
+
+        // option 6 = plot pythia (gen) vs anchMC (gen)
+        plot_1D_obs(obs_deltap, pt_min, pt_max, weight_str, jetR, threshold, norm_string, 6);
+        plot_1D_obs(obs_deltajt, pt_min, pt_max, weight_str, jetR, threshold, norm_string, 6);
     }
 }
 
