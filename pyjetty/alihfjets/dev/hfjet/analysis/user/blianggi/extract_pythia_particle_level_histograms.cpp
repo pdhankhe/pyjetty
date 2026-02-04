@@ -98,7 +98,7 @@ void fillParticleHistsFromChain( TChain *chain, TH1D *hPt, TH1D *hEta, TH1D *hPh
 
     // ---- Branch variables (MATCH TREE TYPES EXACTLY) ----
     double pt, eta, phi;
-    int pid;
+    Long64_t pid;
 
     // ---- Branch setup ----
     chain->SetBranchStatus("*", 0);
@@ -132,10 +132,9 @@ void fillgenD0HistsFromChain( TChain *chain, TH1D *hPt, TH1D *hEta, TH1D *hPhi, 
         return;
     }
 
-    // ---- Branch variables (MATCH TREE TYPES EXACTLY) ----
-    int evid;
-    double pt, eta, phi, rap;
-    int mpid;
+    // ---- Branch variables (MATCH TREE TYPES EXACTLY) - these are all D0 branches ----
+    Long64_t evid;
+    double pt, eta, phi, rap, mpid;
 
     // ---- Branch setup ----
     chain->SetBranchStatus("*", 0);
@@ -196,9 +195,9 @@ void filldetD0HistsFromChain( TChain *particlechain, TChain *D0chain, TH1D *hPt,
     }
 
     // ---- Branch variables (MATCH TREE TYPES EXACTLY) ----
-    int evid, D0_evid;
-    double pt, D0_pt, D0_eta, D0_phi, D0_rap;
-    int pid, mpid, D0_mpid;
+    Long64_t evid, D0_evid;
+    double pt, D0_pt, D0_eta, D0_phi, D0_rap, D0_mpid; // D0 MPID was saved as double for some reason
+    Long64_t pid, mpid;
 
     // ---- Branch setup ----
     particlechain->SetBranchStatus("*", 0);
@@ -400,24 +399,42 @@ void compareParticleBranches_TChain(std::ofstream &outfile, TFile * fout_root, G
 
 void extract_pythia_particle_level_histograms() {
 
+    // ------- CHOOSE PYTHIA OR HERWIG -------
+    std::string generator_choice = "herwig"; // "pythia" or "herwig"
+
     // -------- INPUT DIRECTORIES --------
     // post eff smearing -- generator + detector level
     std::string pythia_prompt_filepaths = "/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/pythiagen/tree_fastsim/45178629/45154942/files.txt"; 
     std::string pythia_nonprompt_filepaths = "/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/pythiagen/tree_fastsim/46306341/46293548/files.txt"; 
+    std::string herwig_prompt_filepaths = "/rstorage/generators/herwig_alice/tree_fastsim/492678/299990/files.txt"; 
+    std::string herwig_nonprompt_filepaths = "/rstorage/generators/herwig_alice/tree_fastsim/516788/515788/files.txt"; 
 
     // -------- DEFINE GENERATOR --------
     Generator gen_pythia_prompt("pythia_prompt", pythia_prompt_filepaths, "tree_Particle_gen", "tree_D0_gen", "gen", "Pythia prompt, gen");
     Generator gen_pythia_nonprompt("pythia_nonprompt", pythia_nonprompt_filepaths, "tree_Particle_gen", "tree_D0_gen", "gen", "Pythia non-prompt, gen");
+    Generator gen_herwig_prompt("herwig_prompt", herwig_prompt_filepaths, "tree_Particle_gen", "tree_D0_gen", "gen", "Herwig prompt, gen");
+    Generator gen_herwig_nonprompt("herwig_nonprompt", herwig_nonprompt_filepaths, "tree_Particle_gen", "tree_D0_gen", "gen", "Herwig non-prompt, gen");
+
     // Generator det_pythia_prompt("pythia_prompt", pythia_prompt_filepaths, "tree_Particle", "tree_D0", "det", "Pythia prompt, det");
     // Generator det_pythia_nonprompt("pythia_nonprompt", pythia_nonprompt_filepaths, "tree_Particle", "tree_D0", "det", "Pythia non-prompt,  det");
     
     // -------- OPEN OUTPUT FILEs --------
-    std::ofstream outfile("/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/HF_EEC/plots/HF_particle_comparisons/number_of_entries.txt");
-    TFile * fout_root = new TFile("/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/HF_EEC/rootfiles/HF_particle_comparisons/HF_particle_comparisons.root", "RECREATE");
+    std::string basepath;
+    if ( generator_choice == "pythia" ) basepath = "/global/cfs/cdirs/alice/blianggi";
+    else if ( generator_choice == "herwig" ) basepath = "/software/users/blianggi";
+
+    std::ofstream outfile(Form("%s/mypyjetty/storage/HF_EEC/plots/HF_particle_comparisons/number_of_entries.txt",basepath.c_str()));
+    TFile * fout_root = new TFile(Form("%s/mypyjetty/storage/HF_EEC/rootfiles/HF_particle_comparisons/HF_particle_comparisons.root", basepath.c_str()), "RECREATE");
 
     // -------- COMPARE GENERATORS --------
-    compareParticleBranches_TChain(outfile, fout_root, gen_pythia_prompt, gen_pythia_nonprompt);
-    // compareParticleBranches_TChain(outfile, fout_root, det_anchmc, det_pythiafastsim);
+    if (generator_choice == "pythia") {
+        compareParticleBranches_TChain(outfile, fout_root, gen_pythia_prompt, gen_pythia_nonprompt);
+        // compareParticleBranches_TChain(outfile, fout_root, det_anchmc, det_pythiafastsim);
+    }
+    else if (generator_choice == "herwig") {
+        compareParticleBranches_TChain(outfile, fout_root, gen_herwig_prompt, gen_herwig_nonprompt);
+    }
+    
 
     // CLOSE OUTPUT FILE
     outfile.close();
