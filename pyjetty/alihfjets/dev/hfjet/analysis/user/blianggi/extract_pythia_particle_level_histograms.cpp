@@ -12,6 +12,8 @@
 
 // NOTE: DETECTOR LEVEL IS MORE COMPLICATED -- CAN IMPLEMENT THAT LATER
 
+// RUN LIKE SO: root -l extract_pythia_particle_level_histograms.cpp("h") for herwig or ("p") for pythia
+
 // std::string base_filepath_header = "/global/cfs/projectdirs/alice/alicepro/hiccup";
 
 
@@ -397,10 +399,22 @@ void compareParticleBranches_TChain(std::ofstream &outfile, TFile * fout_root, G
 
 
 
-void extract_pythia_particle_level_histograms() {
+void extract_pythia_particle_level_histograms(const char *opts = "") {
 
     // ------- CHOOSE PYTHIA OR HERWIG -------
-    std::string generator_choice = "herwig"; // "pythia" or "herwig"
+    Tstring options(opts);
+    std::string generator_choice;
+    if (options.Contains("h")) {
+        generator_choice = "herwig"; // "herwig"
+    } else if (options.Contains("p")) {
+        generator_choice = "pythia"; // "pythia"
+    } else {
+        std::cerr << "Invalid option! Use 'h' for herwig or 'p' for pythia as per instructions at top of this file." << std::endl;
+        return;
+    }
+
+    
+    std::string generator_choice = "herwig"; 
 
     // -------- INPUT DIRECTORIES --------
     // post eff smearing -- generator + detector level
