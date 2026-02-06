@@ -305,7 +305,7 @@ void compareParticleBranches_TChain(std::ofstream &outfile, TFile * fout_root, G
     if ( gen1.gen_or_det == "gen" ) fillgenD0HistsFromChain(chain1_D0, hD0_Pt_1, hD0_Eta_1, hD0_Phi_1, hD0_Rap_1, hD0_MPID_1, hnumD0s_1);
     // else if ( gen1.gen_or_det == "det" ) fillDetD0HistsFromChain();
     cout << "filling second file D0 hists " << endl;
-    if ( gen2.gen_or_det == "gen" ) fillgenD0HistsFromChain(chain2_D0, hD0_Pt_1, hD0_Eta_1, hD0_Phi_1, hD0_Rap_1, hD0_MPID_1, hnumD0s_2);
+    if ( gen2.gen_or_det == "gen" ) fillgenD0HistsFromChain(chain2_D0, hD0_Pt_2, hD0_Eta_2, hD0_Phi_2, hD0_Rap_2, hD0_MPID_2, hnumD0s_2);
     // else if ( gen2.gen_or_det == "det" ) fillDetD0HistsFromChain();
 
     // -------- STYLE --------
@@ -353,7 +353,7 @@ void compareParticleBranches_TChain(std::ofstream &outfile, TFile * fout_root, G
 
         h_ratio->SetTitle(Form("Ratio %s", name.c_str()));
         h_ratio->GetXaxis()->SetTitle(h1->GetXaxis()->GetTitle());
-        h_ratio->GetYaxis()->SetTitle("PYTHIA / ANCH MC");
+        h_ratio->GetYaxis()->SetTitle("NON-PROMPT / PROMPT");
 
         // Save to root file
         fout_root->cd();
@@ -374,7 +374,7 @@ void compareParticleBranches_TChain(std::ofstream &outfile, TFile * fout_root, G
 
         h_ratio->SetTitle(Form("Ratio %s", name.c_str()));
         h_ratio->GetXaxis()->SetTitle(h1->GetXaxis()->GetTitle());
-        h_ratio->GetYaxis()->SetTitle("PYTHIA / ANCH MC");
+        h_ratio->GetYaxis()->SetTitle("NON-PROMPT / PROMPT");
 
         // Save to root file
         fout_root->cd();
