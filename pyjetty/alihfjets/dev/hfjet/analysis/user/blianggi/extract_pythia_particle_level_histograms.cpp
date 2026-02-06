@@ -412,7 +412,7 @@ void extract_pythia_particle_level_histograms(const char *opts = "") {
         std::cerr << "Invalid option! Use 'h' for herwig or 'p' for pythia as per instructions at top of this file." << std::endl;
         return;
     }
-    
+
     // -------- INPUT DIRECTORIES --------
     // post eff smearing -- generator + detector level
     std::string pythia_prompt_filepaths = "/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/pythiagen/tree_fastsim/45178629/45154942/files.txt"; 
@@ -434,8 +434,8 @@ void extract_pythia_particle_level_histograms(const char *opts = "") {
     if ( generator_choice == "pythia" ) basepath = "/global/cfs/cdirs/alice/blianggi";
     else if ( generator_choice == "herwig" ) basepath = "/software/users/blianggi";
 
-    std::ofstream outfile(Form("%s/mypyjetty/storage/HF_EEC/plots/HF_particle_comparisons/number_of_entries.txt",basepath.c_str()));
-    TFile * fout_root = new TFile(Form("%s/mypyjetty/storage/HF_EEC/rootfiles/HF_particle_comparisons/HF_particle_comparisons.root", basepath.c_str()), "RECREATE");
+    std::ofstream outfile(Form("%s/mypyjetty/storage/HF_EEC/plots/HF_particle_comparisons/number_of_entries_%s.txt",basepath.c_str(), generator_choice.c_str()));
+    TFile * fout_root = new TFile(Form("%s/mypyjetty/storage/HF_EEC/rootfiles/HF_particle_comparisons/HF_particle_comparisons_%s.root", basepath.c_str(), generator_choice.c_str()), "RECREATE");
 
     // -------- COMPARE GENERATORS --------
     if (generator_choice == "pythia") {
