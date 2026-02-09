@@ -3,6 +3,7 @@
 // there are four configurations: pythia_prompt, pythia_nonprompt, herwig_prompt, herwig_nonprompt
 // are there differences in herwig and pythia, even at particle level?
 // branches: ParticlePt, ParticleEta, ParticlePhi, ParticlePID
+// this takes the already made histograms and plots them
 
 std::string base_filepath_header = "/global/cfs/projectdirs/alice/alicepro/hiccup";
 
@@ -26,16 +27,22 @@ public:
 
     void style_hists() {
         hist_pythia_prompt->SetMarkerColorAlpha(kBlue, 1.0);
+        hist_pythia_prompt->SetLineColorAlpha(kBlue, 1.0);
         hist_pythia_prompt->SetMarkerStyle(kFullCircle);
 
-        hist_pythia_nonprompt->SetMarkerColorAlpha(kBlue, 1.0);
+        hist_pythia_nonprompt->SetMarkerColorAlpha(kBlue-7, 1.0);
+        hist_pythia_nonprompt->SetLineColorAlpha(kBlue-7, 1.0);
         hist_pythia_nonprompt->SetMarkerStyle(kOpenCircle);
+        hist_pythia_nonprompt->SetLineStyle(10);
 
         hist_herwig_prompt->SetMarkerColorAlpha(kRed, 1.0);
+        hist_herwig_prompt->SetLineColorAlpha(kRed, 1.0);
         hist_herwig_prompt->SetMarkerStyle(kFullCircle);
 
-        hist_herwig_nonprompt->SetMarkerColorAlpha(kRed, 1.0);
+        hist_herwig_nonprompt->SetMarkerColorAlpha(kRed-7, 1.0);
+        hist_herwig_nonprompt->SetLineColorAlpha(kRed-7, 1.0);
         hist_herwig_nonprompt->SetMarkerStyle(kOpenCircle);
+        hist_herwig_nonprompt->SetLineStyle(10);
 
         // hist_pythia_prompt->GetXaxis()->SetTitle("");
     }
@@ -102,11 +109,21 @@ public:
         h_ratio_prompt->GetXaxis()->SetTitleSize(0.12);
         h_ratio_prompt->GetXaxis()->SetLabelSize(0.10);
 
+        h_ratio_prompt->SetStats(0);
+        h_ratio_nonprompt->SetStats(0);
+
         // h_ratio->SetMinimum(0.5);
         // h_ratio->SetMaximum(1.5);
 
         h_ratio_prompt->Draw("hist");
-        h_ratio_nonprompt->Draw("hist");
+        h_ratio_nonprompt->Draw("hist same");
+
+        TLegend *leg_ratio = new TLegend(0.8, 0.42, 0.9, 0.5);
+        leg_ratio->SetBorderSize(0);
+        leg_ratio->SetFillStyle(0);
+        leg_ratio->AddEntry(h_ratio_prompt, "prompt", "l");
+        leg_ratio->AddEntry(h_ratio_nonprompt, "non-prompt", "l");
+        leg_ratio->Draw();
 
         c->SaveAs(Form("/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/HF_EEC/plots/HF_particle_comparisons/%s_comparison.pdf", name.c_str()));
     }
@@ -155,15 +172,15 @@ void analyze(TFile * fin_pythia, TFile * fin_herwig) {
     // obs = Pt, Eta, Phi, PID
     // obs = D0_Pt, D0_Eta, D0_Phi, D0_Rap, D0_MPID, numD0s
     Observable obs_pt("Pt", "double", true);
-    Observable obs_eta("Eta", "double", false);
+    Observable obs_eta("Eta", "double", true);
     Observable obs_phi("Phi", "double", false);
-    Observable obs_pid("PID", "int", false);
+    Observable obs_pid("PID", "int", true);
 
     Observable obs_D0_pt("D0_Pt", "double", true);
-    Observable obs_D0_eta("D0_Eta", "double", false);
+    Observable obs_D0_eta("D0_Eta", "double", true);
     Observable obs_D0_phi("D0_Phi", "double", false);
-    Observable obs_D0_rap("D0_Rap", "double", false);
-    Observable obs_D0_mpid("D0_MPID", "int", false);
+    Observable obs_D0_rap("D0_Rap", "double", true);
+    Observable obs_D0_mpid("D0_MPID", "int", true);
     Observable obs_numD0s("numD0s", "int", false);
     Observable obs_list[10] = { obs_pt, obs_eta, obs_phi, obs_pid, obs_D0_pt, obs_D0_eta, obs_D0_phi, obs_D0_rap, obs_D0_mpid, obs_numD0s };
 

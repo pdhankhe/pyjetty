@@ -286,8 +286,8 @@ void compareParticleBranches_TChain(std::ofstream &outfile, TFile * fout_root, G
     TH1D *hD0_Phi_1 = new TH1D(Form("hD0_Phi_%s_%s", gen1.gen_type.c_str(), gen1.gen_or_det.c_str()), Form("D0 #phi %s;#phi;Entries", gen1.gen_or_det.c_str()), 64, -3.3, 6.5); //-TMath::Pi(), 2*TMath::Pi());
     TH1D *hD0_Phi_2 = new TH1D(Form("hD0_Phi_%s_%s", gen2.gen_type.c_str(), gen2.gen_or_det.c_str()), Form("D0 #phi %s;#phi;Entries", gen2.gen_or_det.c_str()), 64, -3.3, 6.5); //-TMath::Pi(), 2*TMath::Pi());
 
-    TH1D *hD0_Rap_1 = new TH1D(Form("hD0_Rap_%s_%s", gen1.gen_type.c_str(), gen1.gen_or_det.c_str()), Form("D0 PID %s;PID;Entries", gen1.gen_or_det.c_str()), 100, -5, 5); //-TMath::Pi(), 2*TMath::Pi());
-    TH1D *hD0_Rap_2 = new TH1D(Form("hD0_Rap_%s_%s", gen2.gen_type.c_str(), gen2.gen_or_det.c_str()), Form("D0 PID %s;PID;Entries", gen2.gen_or_det.c_str()), 100, -5, 5); //-TMath::Pi(), 2*TMath::Pi());
+    TH1D *hD0_Rap_1 = new TH1D(Form("hD0_Rap_%s_%s", gen1.gen_type.c_str(), gen1.gen_or_det.c_str()), Form("D0 y %s;y;Entries", gen1.gen_or_det.c_str()), 100, -5, 5); //-TMath::Pi(), 2*TMath::Pi());
+    TH1D *hD0_Rap_2 = new TH1D(Form("hD0_Rap_%s_%s", gen2.gen_type.c_str(), gen2.gen_or_det.c_str()), Form("D0 y %s;y;Entries", gen2.gen_or_det.c_str()), 100, -5, 5); //-TMath::Pi(), 2*TMath::Pi());
 
     TH1I *hD0_MPID_1 = new TH1I(Form("hD0_MPID_%s_%s", gen1.gen_type.c_str(), gen1.gen_or_det.c_str()), Form("D0 Mother PID %s;MPID;Entries", gen1.gen_or_det.c_str()), 5000, -2500, 2500); //-TMath::Pi(), 2*TMath::Pi());
     TH1I *hD0_MPID_2 = new TH1I(Form("hD0_MPID_%s_%s", gen2.gen_type.c_str(), gen2.gen_or_det.c_str()), Form("D0 Mother PID %s;MPID;Entries", gen2.gen_or_det.c_str()), 5000, -2500, 2500); //-TMath::Pi(), 2*TMath::Pi());
