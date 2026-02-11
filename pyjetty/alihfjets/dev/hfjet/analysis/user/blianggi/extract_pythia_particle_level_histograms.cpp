@@ -670,13 +670,13 @@ void extract_pythia_particle_level_histograms(const char *opts = "") {
     TFile * fout_root = new TFile(Form("%s/mypyjetty/storage/HF_EEC/rootfiles/HF_particle_comparisons/HF_particle_comparisons_%s.root", basepath.c_str(), generator_choice.c_str()), "RECREATE");
 
     // -------- COMPARE GENERATORS --------
-    // if (generator_choice == "pythia") {
-    //     compareParticleBranches_TChain(outfile, fout_root, gen_pythia_prompt, gen_pythia_nonprompt);
-    //     // compareParticleBranches_TChain(outfile, fout_root, det_anchmc, det_pythiafastsim);
-    // }
-    // else if (generator_choice == "herwig") {
-    //     compareParticleBranches_TChain(outfile, fout_root, gen_herwig_prompt, gen_herwig_nonprompt);
-    // }
+    if (generator_choice == "pythia") {
+        compareParticleBranches_TChain(outfile, fout_root, gen_pythia_prompt, gen_pythia_nonprompt);
+        // compareParticleBranches_TChain(outfile, fout_root, det_anchmc, det_pythiafastsim);
+    }
+    else if (generator_choice == "herwig") {
+        compareParticleBranches_TChain(outfile, fout_root, gen_herwig_prompt, gen_herwig_nonprompt);
+    }
 
     // -------- GET CROSS SECTIONS PER FILE --------
     if (generator_choice == "pythia") compareParticleBranches_WithCS_TChain(outfile, fout_root, gen_pythia_prompt, gen_pythia_nonprompt);
