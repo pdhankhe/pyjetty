@@ -28,7 +28,9 @@ public:
     std::string gen_or_det;
     std::string label;
 
-    Generator(std::string gen_type_val, std::string pathtofiles_val, std::string particle_treename_val, std::string D0_treename_val, std::string gen_or_det_val, std::string label_val) {
+    std::string sf_filepath; //scale factor file
+
+    Generator(std::string gen_type_val, std::string pathtofiles_val, std::string particle_treename_val, std::string D0_treename_val, std::string gen_or_det_val, std::string label_val, std::string sf_filepath_val) {
         gen_type = gen_type_val;
         pathtofiles = pathtofiles_val;
 
@@ -37,6 +39,22 @@ public:
 
         gen_or_det = gen_or_det_val;
         label = label_val;
+
+        sf_filepath = sf_filepath_val;
+    }
+
+    // this is assuming only 10 bins (for HF)
+    void scale_hists(std::vector<TH1D *>& vec_hists) {
+
+        std::ifstream sf_file(sf_filepath);
+        double scale;
+        for ( int i = 0; i < 10; i++ ) {
+            char colon; // to skip the ":"
+            if (!(sf_file >> scale)) break; // in case of unexpected EOF
+            sf_file >> colon;               // skip the colon
+            cout << i << ": scaling by! " << scale << endl;
+            vec_hists[i]->Scale(scale);
+        }
     }
     
 };
@@ -88,10 +106,75 @@ TChain *makeChain(Generator gen_mc, std::string whichtree, int filecounter_cutof
     return chain;
 }
 
-void fillParticleHistsFromChain( TChain *chain, TH1D *hPt, TH1D *hEta, TH1D *hPhi, TH1I *hPID ) {
-    // chain->Draw("ParticlePt >> hPt");
-    // chain->Draw("ParticleEta >> hEta");
-    // chain->Draw("ParticlePhi >> hPhi");
+// Returns the bin number from the path. 
+// Assuming it is always 3rd slash from the end (i.e. <run_number>/5/40/AnalysisResults.root)
+int extractBin(std::string path) {
+    size_t p1 = path.rfind('/');
+    size_t p2 = path.rfind('/', p1 - 1);
+    size_t p3 = path.rfind('/', p2 - 1);
+    int bin_num = std::stoi(path.substr(p3 + 1, p2 - p3 - 1));
+    // cout << "file! " << path << endl;
+    // cout << "bin num! " << bin_num << endl;
+    return bin_num;
+}
+
+std::vector<TChain *> makeChain_WithCS(Generator gen_mc, std::string whichtree, int filecounter_cutoff=-1) {
+
+    cout << "IN MAKE CHAIN WITH CD!!!" << endl;
+
+    // make TChains
+    const int NCHAINS = 10;
+    std::vector<TChain *> chains;
+    chains.reserve(NCHAINS);
+    for (int i = 0; i < NCHAINS; ++i) {
+        if (whichtree == "particle") chains.push_back( new TChain(gen_mc.particle_treename.c_str()) );
+        else if (whichtree == "D0") chains.push_back( new TChain(gen_mc.D0_treename.c_str()) );
+    }
+
+
+    std::string ntuple_filename;
+    int filecounter = 0;
+
+    // Restart file reading
+    std::ifstream filelist(gen_mc.pathtofiles.c_str());
+    filelist.clear();                 // clear EOF + error flags
+    filelist.seekg(0, std::ios::beg); // go back to start of file
+    
+    // Loop through each line in filelist
+    while (std::getline(filelist, ntuple_filename)) {
+
+        if (filecounter == filecounter_cutoff) break;
+
+        int bin_num = extractBin(ntuple_filename);
+        std::string fulltreename = Form("%s", (ntuple_filename).c_str());
+        chains[bin_num-1]->Add(fulltreename.c_str());
+
+        if (filecounter%100 == 0) {
+            cout << "num tree entries " << chains[0]->GetEntries();
+            for (int i=1; i<10; i++) cout << " " << chains[i]->GetEntries();
+            cout << endl;
+        }
+        filecounter++;
+    }
+
+    // Close the filelist.txt file
+    filelist.close();
+
+    return chains;
+}
+
+TH1D * addHists(std::vector<TH1D*> histVector, std::string histname) {
+
+    TH1D* hcomb = (TH1D*)histVector[0]->Clone(histname.c_str());
+    for (int i = 1; i < 10; i++) {
+        // The Add function performs: hSum = hSum + histVector[i]
+        hcomb->Add(histVector[i]);
+    }
+
+    return hcomb;
+}
+
+void fillParticleHistsFromChain( TChain *chain, TH1D *hPt, TH1D *hEta, TH1D *hPhi, TH1I *hPID, bool fillOnlyPt = false ) {
     
     if (!chain || chain->GetEntries() == 0) {
         std::cerr << "fillParticleHistsFromChain: empty or null chain!" << std::endl;
@@ -106,14 +189,18 @@ void fillParticleHistsFromChain( TChain *chain, TH1D *hPt, TH1D *hEta, TH1D *hPh
     chain->SetBranchStatus("*", 0);
 
     chain->SetBranchStatus("ParticlePt",  1);
-    chain->SetBranchStatus("ParticleEta", 1);
-    chain->SetBranchStatus("ParticlePhi", 1);
-    chain->SetBranchStatus("ParticlePID", 1);
+    if (!fillOnlyPt) {
+        chain->SetBranchStatus("ParticleEta", 1);
+        chain->SetBranchStatus("ParticlePhi", 1);
+        chain->SetBranchStatus("ParticlePID", 1);
+    }
 
     chain->SetBranchAddress("ParticlePt",  &pt);
-    chain->SetBranchAddress("ParticleEta", &eta);
-    chain->SetBranchAddress("ParticlePhi", &phi);
-    chain->SetBranchAddress("ParticlePID", &pid);
+    if (!fillOnlyPt) {
+        chain->SetBranchAddress("ParticleEta", &eta);
+        chain->SetBranchAddress("ParticlePhi", &phi);
+        chain->SetBranchAddress("ParticlePID", &pid);
+    }
 
     // ---- Loop ----
     const Long64_t nEntries = chain->GetEntries();
@@ -121,13 +208,15 @@ void fillParticleHistsFromChain( TChain *chain, TH1D *hPt, TH1D *hEta, TH1D *hPh
         chain->GetEntry(i);
 
         hPt->Fill(pt);
-        hEta->Fill(eta);
-        hPhi->Fill(phi);
-        hPID->Fill(pid);
+        if (!fillOnlyPt) {
+            hEta->Fill(eta);
+            hPhi->Fill(phi);
+            hPID->Fill(pid);
+        }
     }
 }
 
-void fillgenD0HistsFromChain( TChain *chain, TH1D *hPt, TH1D *hEta, TH1D *hPhi, TH1D *hRapidity, TH1I *hMotherPID, TH1I *hNumD0s ) {
+void fillgenD0HistsFromChain( TChain *chain, TH1D *hPt, TH1D *hEta, TH1D *hPhi, TH1D *hRapidity, TH1I *hMotherPID, TH1I *hNumD0s, bool fillOnlyPt = false ) {
     
     if (!chain || chain->GetEntries() == 0) {
         std::cerr << "fillD0HistsFromChain: empty or null chain!" << std::endl;
@@ -141,19 +230,24 @@ void fillgenD0HistsFromChain( TChain *chain, TH1D *hPt, TH1D *hEta, TH1D *hPhi, 
     // ---- Branch setup ----
     chain->SetBranchStatus("*", 0);
 
-    chain->SetBranchStatus("ev_id",  1);
     chain->SetBranchStatus("ParticlePt",  1);
-    chain->SetBranchStatus("ParticleEta", 1);
-    chain->SetBranchStatus("ParticlePhi", 1);
     chain->SetBranchStatus("ParticleRapidity", 1);
-    chain->SetBranchStatus("MotherPID", 1);
+    if (!fillOnlyPt) {
+        chain->SetBranchStatus("ev_id",  1);
+        chain->SetBranchStatus("ParticleEta", 1);
+        chain->SetBranchStatus("ParticlePhi", 1);
+        chain->SetBranchStatus("MotherPID", 1);
+    }
 
-    chain->SetBranchAddress("ev_id",  &evid);
+    
     chain->SetBranchAddress("ParticlePt",  &pt);
-    chain->SetBranchAddress("ParticleEta", &eta);
-    chain->SetBranchAddress("ParticlePhi", &phi);
     chain->SetBranchAddress("ParticleRapidity", &rap);
-    chain->SetBranchAddress("MotherPID", &mpid);
+    if (!fillOnlyPt) {
+        chain->SetBranchAddress("ev_id",  &evid);
+        chain->SetBranchAddress("ParticleEta", &eta);
+        chain->SetBranchAddress("ParticlePhi", &phi);
+        chain->SetBranchAddress("MotherPID", &mpid);
+    }
 
     // ---- Loop ----
     const Long64_t nEntries = chain->GetEntries();
@@ -162,31 +256,35 @@ void fillgenD0HistsFromChain( TChain *chain, TH1D *hPt, TH1D *hEta, TH1D *hPhi, 
         chain->GetEntry(i);
 
         hPt->Fill(pt);
-        hEta->Fill(eta);
-        hPhi->Fill(phi);
         hRapidity->Fill(rap);
-        hMotherPID->Fill(mpid);
+        if (!fillOnlyPt) {
+            hEta->Fill(eta);
+            hPhi->Fill(phi);
+            hMotherPID->Fill(mpid);
 
-        ev_id_list.push_back(evid);
+            ev_id_list.push_back(evid);
+        }
     }
 
     // find how many D0s exist per event
-    int current = ev_id_list[0]; 
-    int count = 0; 
+    if (!fillOnlyPt) {
+        int current = ev_id_list[0]; 
+        int count = 0; 
 
-    for (int x : ev_id_list) {
-        if (x == current) {
-            count++;
-        } else {
-            hNumD0s->Fill(count);
-            for (int missing = current + 1; missing < x; ++missing) {
-                hNumD0s->Fill(0);
+        for (int x : ev_id_list) {
+            if (x == current) {
+                count++;
+            } else {
+                hNumD0s->Fill(count);
+                for (int missing = current + 1; missing < x; ++missing) {
+                    hNumD0s->Fill(0);
+                }
+                current = x;
+                count = 1;
             }
-            current = x;
-            count = 1;
         }
+        hNumD0s->Fill(count); // Fill in the last event
     }
-    hNumD0s->Fill(count); // Fill in the last event
 }
 
 void filldetD0HistsFromChain( TChain *particlechain, TChain *D0chain, TH1D *hPt, TH1D *hEta, TH1D *hPhi, TH1D *hRapidity, TH1I *hMotherPID ) {
@@ -277,8 +375,8 @@ void compareParticleBranches_TChain(std::ofstream &outfile, TFile * fout_root, G
     TH1I *hPID_2 = new TH1I(Form("hPID_%s_%s", gen2.gen_type.c_str(), gen2.gen_or_det.c_str()), Form("Particle PID %s;PID;Entries", gen2.gen_or_det.c_str()), 5000, -2500, 2500); //-TMath::Pi(), 2*TMath::Pi());
 
     // D0 hists
-    TH1D *hD0_Pt_1  = new TH1D(Form("hD0_Pt_%s_%s", gen1.gen_type.c_str(), gen1.gen_or_det.c_str()),  Form("D0 p_{T} %s;p_{T};Entries", gen1.gen_or_det.c_str()), 200, 0, 200);
-    TH1D *hD0_Pt_2  = new TH1D(Form("hD0_Pt_%s_%s", gen2.gen_type.c_str(), gen2.gen_or_det.c_str()),  Form("D0 p_{T} %s;p_{T};Entries", gen2.gen_or_det.c_str()), 200, 0, 200);
+    TH1D *hD0_Pt_1  = new TH1D(Form("hD0_Pt_%s_%s", gen1.gen_type.c_str(), gen1.gen_or_det.c_str()),  Form("D0 p_{T} %s;p_{T};Entries", gen1.gen_or_det.c_str()), 100, 0, 100);
+    TH1D *hD0_Pt_2  = new TH1D(Form("hD0_Pt_%s_%s", gen2.gen_type.c_str(), gen2.gen_or_det.c_str()),  Form("D0 p_{T} %s;p_{T};Entries", gen2.gen_or_det.c_str()), 100, 0, 100);
 
     TH1D *hD0_Eta_1 = new TH1D(Form("hD0_Eta_%s_%s", gen1.gen_type.c_str(), gen1.gen_or_det.c_str()), Form("D0 #eta %s;#eta;Entries", gen1.gen_or_det.c_str()), 100, -5, 5);
     TH1D *hD0_Eta_2 = new TH1D(Form("hD0_Eta_%s_%s", gen2.gen_type.c_str(), gen2.gen_or_det.c_str()), Form("D0 #eta %s;#eta;Entries", gen2.gen_or_det.c_str()), 100, -5, 5);
@@ -299,11 +397,14 @@ void compareParticleBranches_TChain(std::ofstream &outfile, TFile * fout_root, G
     // -------- FILL --------
     cout << "filling first file particle hists " << endl;
     fillParticleHistsFromChain(chain1_particle, hPt_1, hEta_1, hPhi_1, hPID_1);
+
     cout << "filling second file particle hists " << endl;
     fillParticleHistsFromChain(chain2_particle, hPt_2, hEta_2, hPhi_2, hPID_2);
+
     cout << "filling first file D0 hists " << endl;
     if ( gen1.gen_or_det == "gen" ) fillgenD0HistsFromChain(chain1_D0, hD0_Pt_1, hD0_Eta_1, hD0_Phi_1, hD0_Rap_1, hD0_MPID_1, hnumD0s_1);
     // else if ( gen1.gen_or_det == "det" ) fillDetD0HistsFromChain();
+
     cout << "filling second file D0 hists " << endl;
     if ( gen2.gen_or_det == "gen" ) fillgenD0HistsFromChain(chain2_D0, hD0_Pt_2, hD0_Eta_2, hD0_Phi_2, hD0_Rap_2, hD0_MPID_2, hnumD0s_2);
     // else if ( gen2.gen_or_det == "det" ) fillDetD0HistsFromChain();
@@ -341,12 +442,7 @@ void compareParticleBranches_TChain(std::ofstream &outfile, TFile * fout_root, G
     hnumD0s_2->SetLineColor(kBlue);
 
     // -------- DRAW --------
-    auto savePair = [](TFile * fout_root, Generator gen1, Generator gen2, TH1D *h1, TH1D *h2, std::string name) {
-        
-        
-        // leg->AddEntry(h1, gen1.label.c_str(), "l"); //"ANCH MC LHC23a3", "l");
-        // leg->AddEntry(h2, gen2.label.c_str(), "l"); //"PYTHIA FASTSIM 1143757", "l");
-
+    auto savePair = [](TFile * fout_root, Generator gen1, Generator gen2, TH1 *h1, TH1 *h2, std::string name) {
         
         TH1D *h_ratio = (TH1D *)h2->Clone(Form("h_ratio_%s", name.c_str()));
         h_ratio->Divide(h1);
@@ -361,39 +457,170 @@ void compareParticleBranches_TChain(std::ofstream &outfile, TFile * fout_root, G
         h2->Write();
         h_ratio->Write();
     };
-
-    auto savePairI = [](TFile * fout_root, Generator gen1, Generator gen2, TH1I *h1, TH1I *h2, std::string name) {
+    
+    // auto savePair = [](TFile * fout_root, Generator gen1, Generator gen2, TH1D *h1, TH1D *h2, std::string name) {
         
+    //     TH1D *h_ratio = (TH1D *)h2->Clone(Form("h_ratio_%s", name.c_str()));
+    //     h_ratio->Divide(h1);
+
+    //     h_ratio->SetTitle(Form("Ratio %s", name.c_str()));
+    //     h_ratio->GetXaxis()->SetTitle(h1->GetXaxis()->GetTitle());
+    //     h_ratio->GetYaxis()->SetTitle("NON-PROMPT / PROMPT");
+
+    //     // Save to root file
+    //     fout_root->cd();
+    //     h1->Write();
+    //     h2->Write();
+    //     h_ratio->Write();
+    // };
+
+    // auto savePairI = [](TFile * fout_root, Generator gen1, Generator gen2, TH1I *h1, TH1I *h2, std::string name) {
         
-        // leg->AddEntry(h1, gen1.label.c_str(), "l"); //"ANCH MC LHC23a3", "l");
-        // leg->AddEntry(h2, gen2.label.c_str(), "l"); //"PYTHIA FASTSIM 1143757", "l");
+    //     TH1D *h_ratio = (TH1D *)h2->Clone(Form("h_ratio_%s", name.c_str()));
+    //     h_ratio->Divide(h1);
 
-        
-        TH1D *h_ratio = (TH1D *)h2->Clone(Form("h_ratio_%s", name.c_str()));
-        h_ratio->Divide(h1);
+    //     h_ratio->SetTitle(Form("Ratio %s", name.c_str()));
+    //     h_ratio->GetXaxis()->SetTitle(h1->GetXaxis()->GetTitle());
+    //     h_ratio->GetYaxis()->SetTitle("NON-PROMPT / PROMPT");
 
-        h_ratio->SetTitle(Form("Ratio %s", name.c_str()));
-        h_ratio->GetXaxis()->SetTitle(h1->GetXaxis()->GetTitle());
-        h_ratio->GetYaxis()->SetTitle("NON-PROMPT / PROMPT");
-
-        // Save to root file
-        fout_root->cd();
-        h1->Write();
-        h2->Write();
-        h_ratio->Write();
-    };
+    //     // Save to root file
+    //     fout_root->cd();
+    //     h1->Write();
+    //     h2->Write();
+    //     h_ratio->Write();
+    // };
 
     savePair(fout_root, gen1, gen2, hPt_1,  hPt_2, "Pt" + gen1.gen_or_det);
     savePair(fout_root, gen1, gen2, hEta_1, hEta_2, "Eta" + gen1.gen_or_det);
     savePair(fout_root, gen1, gen2, hPhi_1, hPhi_2, "Phi" + gen1.gen_or_det);
-    savePairI(fout_root, gen1, gen2, hPID_1, hPID_2, "PID" + gen1.gen_or_det);
+    savePair(fout_root, gen1, gen2, hPID_1, hPID_2, "PID" + gen1.gen_or_det); //savePairI
 
     savePair(fout_root, gen1, gen2, hD0_Pt_1,  hD0_Pt_2, "D0_Pt" + gen1.gen_or_det);
     savePair(fout_root, gen1, gen2, hD0_Eta_1, hD0_Eta_2, "D0_Eta" + gen1.gen_or_det);
     savePair(fout_root, gen1, gen2, hD0_Phi_1, hD0_Phi_2, "D0_Phi" + gen1.gen_or_det);
     savePair(fout_root, gen1, gen2, hD0_Rap_1, hD0_Rap_2, "D0_Rap" + gen1.gen_or_det);
-    savePairI(fout_root, gen1, gen2, hD0_MPID_1, hD0_MPID_2, "D0_MPID" + gen1.gen_or_det);
-    savePairI(fout_root, gen1, gen2, hnumD0s_1, hnumD0s_2, "numD0s" + gen1.gen_or_det);
+    savePair(fout_root, gen1, gen2, hD0_MPID_1, hD0_MPID_2, "D0_MPID" + gen1.gen_or_det); //savePairI
+    savePair(fout_root, gen1, gen2, hnumD0s_1, hnumD0s_2, "numD0s" + gen1.gen_or_det); //savePairI
+}
+
+
+void compareParticleBranches_WithCS_TChain(std::ofstream &outfile, TFile * fout_root, Generator gen1, Generator gen2) {
+
+    // -------- CHAINS --------
+    std::vector<TChain *> chains1_particle = makeChain_WithCS(gen1, "particle"); //pythia prompt
+    std::vector<TChain *> chains2_particle = makeChain_WithCS(gen2, "particle"); //pythia nonprompt
+    std::vector<TChain *> chains1_D0 = makeChain_WithCS(gen1, "D0"); //pythia prompt
+    std::vector<TChain *> chains2_D0 = makeChain_WithCS(gen2, "D0"); //pythia nonprompt
+
+    // -------- save number of entries to a file --------
+    outfile << "Number of entries in particle " << gen1.label << ": " << chains1_particle[0]->GetEntries();
+    for (int i=1; i<10; i++) outfile << " " << chains1_particle[i]->GetEntries();
+    outfile << endl;
+
+    outfile << "Number of entries in particle " << gen2.label << ": " << chains2_particle[0]->GetEntries();
+    for (int i=1; i<10; i++) outfile << " " << chains2_particle[i]->GetEntries();
+    outfile << endl;
+
+    outfile << "Number of entries in D0 " << gen1.label << ": " << chains1_D0[0]->GetEntries();
+    for (int i=1; i<10; i++) outfile << " " << chains1_D0[i]->GetEntries();
+    outfile << endl;
+
+    outfile << "Number of entries in D0 " << gen2.label << ": " << chains2_D0[0]->GetEntries();
+    for (int i=1; i<10; i++) outfile << " " << chains2_D0[i]->GetEntries();
+    outfile << endl;
+
+    // -------- HISTOGRAMS --------
+    std::vector<TH1D *> vec_hPt_1;
+    std::vector<TH1D *> vec_hPt_2;
+    for ( int i = 0; i < 10; i++ ) {
+        TH1D *hPt_temp_1 = new TH1D(Form("hPt_%s_%s_bin%d", gen1.gen_type.c_str(), gen1.gen_or_det.c_str(), i),  Form("Particle p_{T} %s;p_{T};#frac{d#sigma}{dp_{T}}", gen1.gen_or_det.c_str()), 200, 0, 200);
+        TH1D *hPt_temp_2 = new TH1D(Form("hPt_%s_%s_bin%d", gen2.gen_type.c_str(), gen2.gen_or_det.c_str(), i),  Form("Particle p_{T} %s;p_{T};#frac{d#sigma}{dp_{T}}", gen2.gen_or_det.c_str()), 200, 0, 200);
+        vec_hPt_1.push_back(hPt_temp_1);
+        vec_hPt_2.push_back(hPt_temp_2);
+    }
+    
+    // D0 hists
+    std::vector<TH1D *> vec_hD0_Pt_1;
+    std::vector<TH1D *> vec_hD0_Pt_2;
+    for ( int i = 0; i < 10; i++ ) {
+        TH1D *hD0_Pt_temp_1 = new TH1D(Form("hD0_Pt_%s_%s_bin%d", gen1.gen_type.c_str(), gen1.gen_or_det.c_str(), i),  Form("D0 p_{T} %s;p_{T};#frac{d#sigma}{dp_{T}}", gen1.gen_or_det.c_str()), 100, 0, 100);
+        TH1D *hD0_Pt_temp_2 = new TH1D(Form("hD0_Pt_%s_%s_bin%d", gen2.gen_type.c_str(), gen2.gen_or_det.c_str(), i),  Form("D0 p_{T} %s;p_{T};#frac{d#sigma}{dp_{T}}", gen2.gen_or_det.c_str()), 100, 0, 100);
+        vec_hD0_Pt_1.push_back(hD0_Pt_temp_1);
+        vec_hD0_Pt_2.push_back(hD0_Pt_temp_2);
+    }
+
+    std::vector<TH1D *> vec_hD0_Rap_1;
+    std::vector<TH1D *> vec_hD0_Rap_2;
+    for ( int i = 0; i < 10; i++ ) {
+        TH1D *hD0_Rap_temp_1 = new TH1D(Form("hD0_Rap_%s_%s_bin%d", gen1.gen_type.c_str(), gen1.gen_or_det.c_str(), i),  Form("D0 y %s;y;#frac{d#sigma}{dy}", gen1.gen_or_det.c_str()), 100, -5, 5);
+        TH1D *hD0_Rap_temp_2 = new TH1D(Form("hD0_Rap_%s_%s_bin%d", gen2.gen_type.c_str(), gen2.gen_or_det.c_str(), i),  Form("D0 y %s;y;#frac{d#sigma}{dy}", gen2.gen_or_det.c_str()), 100, -5, 5);
+        vec_hD0_Rap_1.push_back(hD0_Rap_temp_1);
+        vec_hD0_Rap_2.push_back(hD0_Rap_temp_2);
+    }
+
+    // -------- FILL --------
+    cout << "filling first and second file particle hists " << endl;
+    TH1D * hdummy_d;
+    TH1I * hdummy_i;
+    for ( int i = 0; i < 10; i++ ) {
+        fillParticleHistsFromChain(chains1_particle[i], vec_hPt_1[i], hdummy_d, hdummy_d, hdummy_i, true);
+        fillParticleHistsFromChain(chains2_particle[i], vec_hPt_2[i], hdummy_d, hdummy_d, hdummy_i, true);
+    }
+
+    cout << "filling first and second file D0 hists " << endl;
+    for ( int i = 0; i < 10; i++ ) {
+        if ( gen1.gen_or_det == "gen" ) {
+            fillgenD0HistsFromChain(chains1_D0[i], vec_hD0_Pt_1[i], hdummy_d, hdummy_d, vec_hD0_Rap_1[i], hdummy_i, hdummy_i, true);
+            fillgenD0HistsFromChain(chains2_D0[i], vec_hD0_Pt_2[i], hdummy_d, hdummy_d, vec_hD0_Rap_2[i], hdummy_i, hdummy_i, true);
+        }
+    }
+
+    // -------- SCALE --------
+    gen1.scale_hists(vec_hPt_1);
+    gen2.scale_hists(vec_hPt_1);
+    gen1.scale_hists(vec_hD0_Pt_1);
+    gen2.scale_hists(vec_hD0_Pt_2);
+    gen1.scale_hists(vec_hD0_Rap_1);
+    gen2.scale_hists(vec_hD0_Rap_2);
+
+    // -------- ADD HISTOGRAMS --------
+    TH1D * hPt_comb_1 = addHists(vec_hPt_1, Form("hPt_%s_%s_crosssection", gen1.gen_type.c_str(), gen1.gen_or_det.c_str()) );
+    TH1D * hPt_comb_2 = addHists(vec_hPt_2, Form("hPt_%s_%s_crosssection", gen2.gen_type.c_str(), gen2.gen_or_det.c_str()) );
+    TH1D * hD0_Pt_comb_1 = addHists(vec_hD0_Pt_1, Form("hD0_Pt_%s_%s_crosssection", gen1.gen_type.c_str(), gen1.gen_or_det.c_str()) );
+    TH1D * hD0_Pt_comb_2 = addHists(vec_hD0_Pt_2, Form("hD0_Pt_%s_%s_crosssection", gen2.gen_type.c_str(), gen2.gen_or_det.c_str()) );
+    TH1D * hD0_Rap_comb_1 = addHists(vec_hD0_Rap_1, Form("hD0_Rap_%s_%s_crosssection", gen1.gen_type.c_str(), gen1.gen_or_det.c_str()) );
+    TH1D * hD0_Rap_comb_2 = addHists(vec_hD0_Rap_2, Form("hD0_Rap_%s_%s_crosssection", gen2.gen_type.c_str(), gen2.gen_or_det.c_str()) );
+
+
+    // -------- STYLE --------
+    hPt_comb_1->SetLineColor(kRed);
+    hPt_comb_2->SetLineColor(kBlue);
+    hD0_Pt_comb_1->SetLineColor(kRed);
+    hD0_Pt_comb_2->SetLineColor(kBlue);
+    hD0_Rap_comb_1->SetLineColor(kRed);
+    hD0_Rap_comb_2->SetLineColor(kBlue);
+
+    // -------- DRAW --------
+    auto savePair = [](TFile * fout_root, Generator gen1, Generator gen2, TH1 *h1, TH1 *h2, std::string name) {
+        
+        TH1D *h_ratio = (TH1D *)h2->Clone(Form("h_ratio_%s", name.c_str()));
+        h_ratio->Divide(h1);
+
+        h_ratio->SetTitle(Form("Ratio %s", name.c_str()));
+        h_ratio->GetXaxis()->SetTitle(h1->GetXaxis()->GetTitle());
+        h_ratio->GetYaxis()->SetTitle("NON-PROMPT / PROMPT");
+
+        // Save to root file
+        fout_root->cd();
+        h1->Write();
+        h2->Write();
+        h_ratio->Write();
+    };
+
+    savePair(fout_root, gen1, gen2, hPt_comb_1,  hPt_comb_2, "Pt" + gen1.gen_or_det);
+    savePair(fout_root, gen1, gen2, hD0_Pt_comb_1,  hD0_Pt_comb_2, "D0_Pt" + gen1.gen_or_det);
+    savePair(fout_root, gen1, gen2, hD0_Rap_comb_1,  hD0_Rap_comb_2, "D0_Rap" + gen1.gen_or_det);
+
 }
 
 
@@ -420,11 +647,16 @@ void extract_pythia_particle_level_histograms(const char *opts = "") {
     std::string herwig_prompt_filepaths = "/rstorage/generators/herwig_alice/tree_fastsim/492678/299990/files.txt"; 
     std::string herwig_nonprompt_filepaths = "/rstorage/generators/herwig_alice/tree_fastsim/516788/515788/files.txt"; 
 
+    std::string pythia_prompt_scalefactor_filepaths = "/global/cfs/cdirs/alice/blianggi/mypyjetty/analysis/scalefactors/PYTHIA_fastsim_HF_scaleFactors.yaml"; 
+    std::string pythia_nonprompt_scalefactor_filepaths = "/global/cfs/cdirs/alice/blianggi/mypyjetty/analysis/scalefactors/PYTHIA_fastsim_nonprompt_D0_scaleFactors.yaml"; 
+    std::string herwig_prompt_scalefactor_filepaths = "/software/users/blianggi/mypyjetty/analysis/scalefactors/herwig_HF_299990_scaleFactors.yaml"; 
+    std::string herwig_nonprompt_scalefactor_filepaths = "/software/users/blianggi/mypyjetty/analysis/scalefactors/herwig_bbbar_515788_scaleFactors.yaml"; 
+
     // -------- DEFINE GENERATOR --------
-    Generator gen_pythia_prompt("pythia_prompt", pythia_prompt_filepaths, "tree_Particle_gen", "tree_D0_gen", "gen", "Pythia prompt, gen");
-    Generator gen_pythia_nonprompt("pythia_nonprompt", pythia_nonprompt_filepaths, "tree_Particle_gen", "tree_D0_gen", "gen", "Pythia non-prompt, gen");
-    Generator gen_herwig_prompt("herwig_prompt", herwig_prompt_filepaths, "tree_Particle_gen", "tree_D0_gen", "gen", "Herwig prompt, gen");
-    Generator gen_herwig_nonprompt("herwig_nonprompt", herwig_nonprompt_filepaths, "tree_Particle_gen", "tree_D0_gen", "gen", "Herwig non-prompt, gen");
+    Generator gen_pythia_prompt("pythia_prompt", pythia_prompt_filepaths, "tree_Particle_gen", "tree_D0_gen", "gen", "Pythia prompt, gen", pythia_prompt_scalefactor_filepaths);
+    Generator gen_pythia_nonprompt("pythia_nonprompt", pythia_nonprompt_filepaths, "tree_Particle_gen", "tree_D0_gen", "gen", "Pythia non-prompt, gen", pythia_nonprompt_scalefactor_filepaths);
+    Generator gen_herwig_prompt("herwig_prompt", herwig_prompt_filepaths, "tree_Particle_gen", "tree_D0_gen", "gen", "Herwig prompt, gen", herwig_prompt_scalefactor_filepaths);
+    Generator gen_herwig_nonprompt("herwig_nonprompt", herwig_nonprompt_filepaths, "tree_Particle_gen", "tree_D0_gen", "gen", "Herwig non-prompt, gen", herwig_nonprompt_scalefactor_filepaths);
 
     // Generator det_pythia_prompt("pythia_prompt", pythia_prompt_filepaths, "tree_Particle", "tree_D0", "det", "Pythia prompt, det");
     // Generator det_pythia_nonprompt("pythia_nonprompt", pythia_nonprompt_filepaths, "tree_Particle", "tree_D0", "det", "Pythia non-prompt,  det");
@@ -438,14 +670,17 @@ void extract_pythia_particle_level_histograms(const char *opts = "") {
     TFile * fout_root = new TFile(Form("%s/mypyjetty/storage/HF_EEC/rootfiles/HF_particle_comparisons/HF_particle_comparisons_%s.root", basepath.c_str(), generator_choice.c_str()), "RECREATE");
 
     // -------- COMPARE GENERATORS --------
-    if (generator_choice == "pythia") {
-        compareParticleBranches_TChain(outfile, fout_root, gen_pythia_prompt, gen_pythia_nonprompt);
-        // compareParticleBranches_TChain(outfile, fout_root, det_anchmc, det_pythiafastsim);
-    }
-    else if (generator_choice == "herwig") {
-        compareParticleBranches_TChain(outfile, fout_root, gen_herwig_prompt, gen_herwig_nonprompt);
-    }
-    
+    // if (generator_choice == "pythia") {
+    //     compareParticleBranches_TChain(outfile, fout_root, gen_pythia_prompt, gen_pythia_nonprompt);
+    //     // compareParticleBranches_TChain(outfile, fout_root, det_anchmc, det_pythiafastsim);
+    // }
+    // else if (generator_choice == "herwig") {
+    //     compareParticleBranches_TChain(outfile, fout_root, gen_herwig_prompt, gen_herwig_nonprompt);
+    // }
+
+    // -------- GET CROSS SECTIONS PER FILE --------
+    if (generator_choice == "pythia") compareParticleBranches_WithCS_TChain(outfile, fout_root, gen_pythia_prompt, gen_pythia_nonprompt);
+    else if (generator_choice == "herwig") compareParticleBranches_WithCS_TChain(outfile, fout_root, gen_herwig_prompt, gen_herwig_nonprompt);
 
     // CLOSE OUTPUT FILE
     outfile.close();

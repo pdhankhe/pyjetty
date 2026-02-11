@@ -5,6 +5,7 @@
 // branches: ParticlePt, ParticleEta, ParticlePhi, ParticlePID
 // this takes the already made histograms and plots them
 
+
 std::string base_filepath_header = "/global/cfs/projectdirs/alice/alicepro/hiccup";
 
 
@@ -13,16 +14,54 @@ public:
     std::string name;
     std::string numtype;
     bool logy;
+    std::string xtitle;
+
+    std::string ytitle_entries;
+    std::string ytitle_crosssection;
+
+    double max_xval = -1;
+    double min_yval = -1;
+    double max_yval_ratio = -1;
 
     TH1 * hist_pythia_prompt;
     TH1 * hist_pythia_nonprompt;
     TH1 * hist_herwig_prompt;
     TH1 * hist_herwig_nonprompt;
 
-    Observable(std::string name_val, std::string numtype_val, bool logy_val) {
+    Observable(std::string name_val, std::string numtype_val, bool logy_val, std::string xtitle_val) {
         name = name_val;
         numtype = numtype_val;
         logy = logy_val;
+        xtitle = xtitle_val;
+
+        ytitle_entries = "#frac{dN}{d" + xtitle + "}";
+        ytitle_crosssection = "#frac{d#sigma}{d" + xtitle + "}";
+
+        assign_specific_bounds();
+    }
+
+    void assign_specific_bounds() {
+        if (name == "Pt") {
+            max_xval = 100;
+            max_yval_ratio = 2.25;
+        } else if (name == "D0_Pt") {
+            max_xval = 60;
+            max_yval_ratio = 50;
+        } else if (name == "Phi") {
+            max_yval_ratio = 3.5;
+        } else if (name == "D0_Phi") {
+            max_yval_ratio = 30;
+        } else if (name == "Eta") {
+            max_yval_ratio = 4;
+        } else if (name == "D0_Eta" || name == "D0_Rap") {
+            min_yval = 2e3;
+            max_yval_ratio = 25; //idk why this height is showing as double
+        } else if (name == "PID" || name == "D0_MPID") {
+            max_yval_ratio = 50; 
+        } else if (name == "numD0s") {
+            min_yval = 1e2;
+            max_yval_ratio = 40;
+        } 
     }
 
     void style_hists() {
@@ -33,7 +72,7 @@ public:
         hist_pythia_nonprompt->SetMarkerColorAlpha(kBlue-7, 1.0);
         hist_pythia_nonprompt->SetLineColorAlpha(kBlue-7, 1.0);
         hist_pythia_nonprompt->SetMarkerStyle(kOpenCircle);
-        hist_pythia_nonprompt->SetLineStyle(10);
+        hist_pythia_nonprompt->SetLineStyle(9);
 
         hist_herwig_prompt->SetMarkerColorAlpha(kRed, 1.0);
         hist_herwig_prompt->SetLineColorAlpha(kRed, 1.0);
@@ -42,9 +81,12 @@ public:
         hist_herwig_nonprompt->SetMarkerColorAlpha(kRed-7, 1.0);
         hist_herwig_nonprompt->SetLineColorAlpha(kRed-7, 1.0);
         hist_herwig_nonprompt->SetMarkerStyle(kOpenCircle);
-        hist_herwig_nonprompt->SetLineStyle(10);
+        hist_herwig_nonprompt->SetLineStyle(9);
 
-        // hist_pythia_prompt->GetXaxis()->SetTitle("");
+        hist_pythia_prompt->GetYaxis()->SetTitle(ytitle_entries.c_str());
+        hist_pythia_nonprompt->GetYaxis()->SetTitle(ytitle_entries.c_str());
+        hist_herwig_prompt->GetYaxis()->SetTitle(ytitle_entries.c_str());
+        hist_herwig_nonprompt->GetYaxis()->SetTitle(ytitle_entries.c_str());
     }
 
     // -------- DRAW --------
@@ -73,6 +115,7 @@ public:
         // determine max
         double max_height = std::max( {hist_pythia_prompt->GetMaximum(), hist_pythia_nonprompt->GetMaximum(), hist_herwig_prompt->GetMaximum(), hist_herwig_nonprompt->GetMaximum()} );
         hist_pythia_prompt->SetMaximum(max_height*1.2);
+        if (min_yval > 0) hist_pythia_prompt->SetMinimum(min_yval);
 
         hist_pythia_prompt->Draw("hist");
         hist_pythia_nonprompt->Draw("hist same");
@@ -112,8 +155,7 @@ public:
         h_ratio_prompt->SetStats(0);
         h_ratio_nonprompt->SetStats(0);
 
-        // h_ratio->SetMinimum(0.5);
-        // h_ratio->SetMaximum(1.5);
+        if (max_yval_ratio > 0 ) h_ratio_prompt->SetMaximum(max_yval_ratio);
 
         h_ratio_prompt->Draw("hist");
         h_ratio_nonprompt->Draw("hist same");
@@ -146,13 +188,7 @@ TH1 * read_histogram( TFile * fin, Observable obs, std::string gen_choice, std::
         return nullptr;
     }
 
-    // if (gen_choice == "pythia") {
-    //     hist->SetMarkerColor(kBlue);
-    //     hist->SetLineColor(kBlue);
-    // } else {
-    //     hist->SetMarkerColor(kRed);
-    //     hist->SetLineColor(kRed);
-    // }
+    if ( obs.max_xval > 0 ) hist->GetXaxis()->SetRangeUser(0, obs.max_xval); // i guess this is only applicable for pt right now
 
     return hist;
 }
@@ -163,7 +199,7 @@ TH1 * read_histogram( TFile * fin, Observable obs, std::string gen_choice, std::
 
 
 
-    // drawPair(fout_root, gen1, gen2, hPt_1,  hPt_2, "Pt" + gen1.gen_or_det);
+    // drawPair(fout_root, gen1, gen2, hPt_1,  hPt_2, "Pt"  max_yval_ratio = 2.25;+ gen1.gen_or_det);
     // drawPair(fout_root, gen1, gen2, hEta_1, hEta_2, "Eta" + gen1.gen_or_det);
     // drawPair(fout_root, gen1, gen2, hPhi_1, hPhi_2, "Phi" + gen1.gen_or_det);
 
@@ -171,17 +207,17 @@ TH1 * read_histogram( TFile * fin, Observable obs, std::string gen_choice, std::
 void analyze(TFile * fin_pythia, TFile * fin_herwig) {
     // obs = Pt, Eta, Phi, PID
     // obs = D0_Pt, D0_Eta, D0_Phi, D0_Rap, D0_MPID, numD0s
-    Observable obs_pt("Pt", "double", true);
-    Observable obs_eta("Eta", "double", true);
-    Observable obs_phi("Phi", "double", false);
-    Observable obs_pid("PID", "int", true);
+    Observable obs_pt("Pt", "double", true, "p_{T}");
+    Observable obs_eta("Eta", "double", true, "#eta");
+    Observable obs_phi("Phi", "double", true, "#phi");
+    Observable obs_pid("PID", "int", true, "PID");
 
-    Observable obs_D0_pt("D0_Pt", "double", true);
-    Observable obs_D0_eta("D0_Eta", "double", true);
-    Observable obs_D0_phi("D0_Phi", "double", false);
-    Observable obs_D0_rap("D0_Rap", "double", true);
-    Observable obs_D0_mpid("D0_MPID", "int", true);
-    Observable obs_numD0s("numD0s", "int", false);
+    Observable obs_D0_pt("D0_Pt", "double", true, "p_{T}");
+    Observable obs_D0_eta("D0_Eta", "double", true, "#eta");
+    Observable obs_D0_phi("D0_Phi", "double", false, "#phi");
+    Observable obs_D0_rap("D0_Rap", "double", true, "y");
+    Observable obs_D0_mpid("D0_MPID", "int", true, "Mother PID");
+    Observable obs_numD0s("numD0s", "int", true, "# D0s per event");
     Observable obs_list[10] = { obs_pt, obs_eta, obs_phi, obs_pid, obs_D0_pt, obs_D0_eta, obs_D0_phi, obs_D0_rap, obs_D0_mpid, obs_numD0s };
 
     for ( Observable obs : obs_list ) {
