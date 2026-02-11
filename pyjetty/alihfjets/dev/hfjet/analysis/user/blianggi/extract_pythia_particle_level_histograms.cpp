@@ -47,14 +47,19 @@ public:
     void scale_hists(std::vector<TH1D *>& vec_hists) {
 
         std::ifstream sf_file(sf_filepath);
+        int id;
+        char colon;
         double scale;
         for ( int i = 0; i < 10; i++ ) {
-            char colon; // to skip the ":"
-            if (!(sf_file >> scale)) break; // in case of unexpected EOF
-            sf_file >> colon;               // skip the colon
+
+            // The stream reads: [Integer] -> [Char] -> [Double]
+            sf_file >> id >> colon >> scale;
+            if (sf_file.fail()) break;
+            
             cout << i << ": scaling by! " << scale << endl;
             vec_hists[i]->Scale(scale);
         }
+
     }
     
 };
