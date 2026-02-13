@@ -57,7 +57,7 @@ public:
             if (sf_file.fail()) break;
             
             cout << i << ": scaling by! " << scale << endl;
-            vec_hists[i]->Scale(scale);
+            vec_hists[i]->Scale(scale, "width");
         }
 
     }
@@ -632,6 +632,8 @@ void compareParticleBranches_WithCS_TChain(std::ofstream &outfile, TFile * fout_
 
 
 void extract_pythia_particle_level_histograms(const char *opts = "") {
+
+    TH1::SetDefaultSumw2(kTRUE);
 
     // ------- CHOOSE PYTHIA OR HERWIG -------
     TString options(opts);
