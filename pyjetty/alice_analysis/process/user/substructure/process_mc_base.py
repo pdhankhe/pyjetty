@@ -314,15 +314,15 @@ class ProcessMCBase(process_base.ProcessBase):
     #if D0, replace all kaon/pion pairs with the D0 here! //TODO: save d0 rapidity!
     # start by getting the D0s
     if self.use_D0_info:
-      # get the det level D0s
-      print("Starting to load data for detector level D0s")
-      io_D0_det = process_io.ProcessIO(input_file=self.input_file, tree_dir=tree_dir,
-                                    track_tree_name='tree_D0', use_ev_id_ext=False, use_D0_info=True, using_dstar=self.dstar,
-                                    is_jetscape=self.jetscape, event_plane_range=self.event_plane_range, is_ENC=self.ENC_fastsim, is_det_level=True) #for D0 herwig case, mcprod is set to false
-      df_D0particles_det = io_D0_det.load_data(m=self.m, reject_tracks_fraction=self.reject_tracks_fraction) # for D0 herwig case, reject_tracks_fraction is set to 0
-      self.nEvents_det = len(df_D0particles_det.index)
-      self.nTracks_det = len(io_D0_det.track_df.index)
-      print('--- {} seconds ---'.format(time.time() - self.start_time))
+      # # get the det level D0s
+      # print("Starting to load data for detector level D0s")
+      # io_D0_det = process_io.ProcessIO(input_file=self.input_file, tree_dir=tree_dir,
+      #                               track_tree_name='tree_D0', use_ev_id_ext=False, use_D0_info=True, using_dstar=self.dstar,
+      #                               is_jetscape=self.jetscape, event_plane_range=self.event_plane_range, is_ENC=self.ENC_fastsim, is_det_level=True) #for D0 herwig case, mcprod is set to false
+      # df_D0particles_det = io_D0_det.load_data(m=self.m, reject_tracks_fraction=self.reject_tracks_fraction) # for D0 herwig case, reject_tracks_fraction is set to 0
+      # self.nEvents_det = len(df_D0particles_det.index)
+      # self.nTracks_det = len(io_D0_det.track_df.index)
+      # print('--- {} seconds ---'.format(time.time() - self.start_time))
 
       # get the truth level D0s
       print("Starting to load data for truth level D0s")
@@ -709,22 +709,22 @@ class ProcessMCBase(process_base.ProcessBase):
       if self.use_D0_info:
 
 
-        self.df_fjparticles = pandas.concat([df_fjparticles_truth, df_fjparticles_det, df_D0particles_truth, df_D0particles_det], axis=1)
+        self.df_fjparticles = pandas.concat([df_fjparticles_truth, df_fjparticles_det, df_D0particles_truth], axis=1) #, df_D0particles_det], axis=1)
         self.df_fjparticles.columns = ['fj_particles_truth', 'ParticlePID_truth', 'ParticleRapidity_truth', 'MotherPID_truth', 
                                        'fj_particles_det', 'ev_id_det', 'ParticleMCIndex_det', 'ParticlePID_det', 'ParticleRapidity_det', 'MotherPID_det', 
-                                       'fj_D0_truth', 'ev_id_D0_truth', 'D0Rapidity_truth', 'D0PID_truth', 'D0MotherPID_truth',
-                                       'fj_D0_det', 'ev_id_D0_det', 'D0Rapidity_det', 'D0MCIndex_det', 'D0PID_det', 'D0MotherPID_det'] #, "ev_id_corr"]
+                                       'fj_D0_truth', 'ev_id_D0_truth', 'D0Rapidity_truth', 'D0PID_truth', 'D0MotherPID_truth']
+                                      #  'fj_D0_det', 'ev_id_D0_det', 'D0Rapidity_det', 'D0MCIndex_det', 'D0PID_det', 'D0MotherPID_det'] #, "ev_id_corr"]
         
         # Combine repeat columns and drop unnecessary
-        self.df_fjparticles["D0PID"] = self.df_fjparticles["D0PID_truth"].combine_first(self.df_fjparticles["D0PID_det"]) # combine these columns into one
-        self.df_fjparticles["D0MotherPID"] = self.df_fjparticles["D0MotherPID_truth"].combine_first(self.df_fjparticles["D0MotherPID_det"]) # combine these columns into one
-        self.df_fjparticles = self.df_fjparticles.drop(columns=["ev_id_det", "ev_id_D0_det", "ev_id_D0_truth", "D0PID_truth", "D0PID_det", "D0MotherPID_truth", "D0MotherPID_det"]) # drop these columns
+        # self.df_fjparticles["D0PID"] = self.df_fjparticles["D0PID_truth"].combine_first(self.df_fjparticles["D0PID_det"]) # combine these columns into one
+        # self.df_fjparticles["D0MotherPID"] = self.df_fjparticles["D0MotherPID_truth"].combine_first(self.df_fjparticles["D0MotherPID_det"]) # combine these columns into one
+        # self.df_fjparticles = self.df_fjparticles.drop(columns=["ev_id_det", "ev_id_D0_det", "ev_id_D0_truth", "D0PID_truth", "D0PID_det", "D0MotherPID_truth", "D0MotherPID_det"]) # drop these columns
+        self.df_fjparticles = self.df_fjparticles.drop(columns=["ev_id_det", "ev_id_D0_truth"]) # drop these columns
         
         # By the end, the updated columns will be:
         # self.df_fjparticles.columns = ['fj_particles_truth', 'ParticlePID_truth', 'ParticleRapidity_truth', 'MotherPID_truth', 
         #                                'fj_particles_det', 'ParticleMCIndex_det', 'ParticlePID_det', 'ParticleRapidity_det', 'MotherPID_det', 
-        #                                'fj_D0_truth', 'D0Rapidity_truth', 
-        #                                'fj_D0_det', 'D0Rapidity_det', 'D0MCIndex_det', 'D0PID', 'D0MotherPID']
+        #                                'fj_D0_truth', 'D0Rapidity_truth', 'D0PID_truth', 'D0MotherPID_truth'] 
 
       else:
         self.df_fjparticles = pandas.concat([df_fjparticles_det, df_fjparticles_truth], axis=1)

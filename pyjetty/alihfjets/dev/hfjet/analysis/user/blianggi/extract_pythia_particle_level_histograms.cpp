@@ -29,8 +29,9 @@ public:
     std::string label;
 
     std::string sf_filepath; //scale factor file
+    std::string sf_individuals_filepath; // scale factor list for every individual file
 
-    Generator(std::string gen_type_val, std::string pathtofiles_val, std::string particle_treename_val, std::string D0_treename_val, std::string gen_or_det_val, std::string label_val, std::string sf_filepath_val) {
+    Generator(std::string gen_type_val, std::string pathtofiles_val, std::string particle_treename_val, std::string D0_treename_val, std::string gen_or_det_val, std::string label_val, std::string sf_filepath_val, std::string sf_individuals_filepath_val) {
         gen_type = gen_type_val;
         pathtofiles = pathtofiles_val;
 
@@ -41,6 +42,7 @@ public:
         label = label_val;
 
         sf_filepath = sf_filepath_val;
+        sf_individuals_filepath = sf_individuals_filepath_val;
     }
 
     // this is assuming only 10 bins (for HF)
@@ -125,7 +127,7 @@ int extractBin(std::string path) {
 
 std::vector<TChain *> makeChain_WithCS(Generator gen_mc, std::string whichtree, int filecounter_cutoff=-1) {
 
-    cout << "IN MAKE CHAIN WITH CD!!!" << endl;
+    cout << "IN MAKE CHAIN WITH CS!!!" << endl;
 
     // make TChains
     const int NCHAINS = 10;
@@ -345,6 +347,52 @@ void filldetD0HistsFromChain( TChain *particlechain, TChain *D0chain, TH1D *hPt,
     //     // hRapidity->Fill(rap);
     //     // hMotherPID->Fill(mpid);
     // }
+}
+
+void fillHistsPerFile(Generator gen_mc, std::string whichtree, TH1D * hPt, TH1D * hRapidity, bool fillOnlyPt = false) {
+
+    std::ifstream fileList(gen_mc.pathtofiles.c_str());
+    std::ifstream scaleList(gen_mc.sf_individuals_filepath.c_str());
+    
+    std::string fileName;
+    double weight;
+
+    while (fileList >> fileName && scaleList >> weight) {
+        TFile* f = TFile::Open(fileName.c_str());
+        if (!f || f->IsZombie()) continue;
+
+        // Get the tree - change "events" to your actual tree name
+        TTree* tree;
+        if (whichtree == "particle") tree = (TTree*)f->Get(gen_mc.particle_treename.c_str());
+        else if (whichtree == "D0") tree = (TTree*)f->Get(gen_mc.D0_treename.c_str());
+        if (!tree) {
+            std::cout << "Tree not found in " << fileName << std::endl;
+            f->Close();
+            continue;
+        }
+
+        // Setup the branch address
+        // Using double or float depending on how you saved your tree
+        tree->ResetBranchAddresses();
+        
+        double pt; 
+        double rap;
+        tree->SetBranchAddress("ParticlePt", &pt);
+        if (!fillOnlyPt) tree->SetBranchAddress("ParticleRapidity", &rap);
+
+        // 4. Loop over entries in this specific pT-hat bin
+        Long64_t nEntries = tree->GetEntries();
+        for (Long64_t i = 0; i < nEntries; i++) {
+            tree->GetEntry(i);
+            
+            // Fill with the weight: (sigma / nAccepted)
+            hPt->Fill(pt, weight);
+            if (!fillOnlyPt) hRapidity->Fill(rap, weight);
+        }
+
+        // std::cout << "Finished " << fileName << " (" << nEntries << " entries) scaled by " << weight << std::endl;
+        f->Close();
+    }
 }
 
 void compareParticleBranches_TChain(std::ofstream &outfile, TFile * fout_root, Generator gen1, Generator gen2) {
@@ -630,6 +678,67 @@ void compareParticleBranches_WithCS_TChain(std::ofstream &outfile, TFile * fout_
 
 
 
+void compareParticleBranches_WithCS_TChain_Method2(TFile * fout_root, Generator gen1, Generator gen2) {
+
+    // -------- HISTOGRAMS --------
+    TH1D *hPt_temp_1_method2 = new TH1D(Form("hPt_%s_%s_crosssection_method2", gen1.gen_type.c_str(), gen1.gen_or_det.c_str()),  Form("Particle p_{T} %s;p_{T};#frac{d#sigma}{dp_{T}}", gen1.gen_or_det.c_str()), 200, 0, 200);
+    TH1D *hPt_temp_2_method2 = new TH1D(Form("hPt_%s_%s_crosssection_method2", gen2.gen_type.c_str(), gen2.gen_or_det.c_str()),  Form("Particle p_{T} %s;p_{T};#frac{d#sigma}{dp_{T}}", gen2.gen_or_det.c_str()), 200, 0, 200);
+    
+    // D0 hists
+    TH1D *hD0_Pt_temp_1_method2 = new TH1D(Form("hD0_Pt_%s_%s_crosssection_method2", gen1.gen_type.c_str(), gen1.gen_or_det.c_str()),  Form("D0 p_{T} %s;p_{T};#frac{d#sigma}{dp_{T}}", gen1.gen_or_det.c_str()), 100, 0, 100);
+    TH1D *hD0_Pt_temp_2_method2 = new TH1D(Form("hD0_Pt_%s_%s_crosssection_method2", gen2.gen_type.c_str(), gen2.gen_or_det.c_str()),  Form("D0 p_{T} %s;p_{T};#frac{d#sigma}{dp_{T}}", gen2.gen_or_det.c_str()), 100, 0, 100);
+    
+    TH1D *hD0_Rap_temp_1_method2 = new TH1D(Form("hD0_Rap_%s_%s_crosssection_method2", gen1.gen_type.c_str(), gen1.gen_or_det.c_str()),  Form("D0 y %s;y;#frac{d#sigma}{dy}", gen1.gen_or_det.c_str()), 100, -5, 5);
+    TH1D *hD0_Rap_temp_2_method2 = new TH1D(Form("hD0_Rap_%s_%s_crosssection_method2", gen2.gen_type.c_str(), gen2.gen_or_det.c_str()),  Form("D0 y %s;y;#frac{d#sigma}{dy}", gen2.gen_or_det.c_str()), 100, -5, 5);
+    
+
+    // -------- FILL HISTOGRAMS --------
+    TH1D * hdummy;
+    fillHistsPerFile(gen1, "particle", hPt_temp_1_method2, hdummy, true);
+    fillHistsPerFile(gen2, "particle", hPt_temp_2_method2, hdummy, true);
+    fillHistsPerFile(gen1, "D0", hD0_Pt_temp_1_method2, hD0_Rap_temp_1_method2, true);
+    fillHistsPerFile(gen2, "D0", hD0_Pt_temp_2_method2, hD0_Rap_temp_2_method2, true);
+
+    // -------- NORMALIZE HISTOGRAMS --------
+    hPt_temp_1_method2->Scale(1.0, "width");
+    hPt_temp_2_method2->Scale(1.0, "width");
+    hD0_Pt_temp_1_method2->Scale(1.0, "width");
+    hD0_Pt_temp_2_method2->Scale(1.0, "width");
+    hD0_Rap_temp_1_method2->Scale(1.0, "width");
+    hD0_Rap_temp_2_method2->Scale(1.0, "width");
+
+
+    // -------- STYLE --------
+    hPt_temp_1_method2->SetLineColor(kRed);
+    hPt_temp_2_method2->SetLineColor(kBlue);
+    hD0_Pt_temp_1_method2->SetLineColor(kRed);
+    hD0_Pt_temp_2_method2->SetLineColor(kBlue);
+    hD0_Rap_temp_1_method2->SetLineColor(kRed);
+    hD0_Rap_temp_2_method2->SetLineColor(kBlue);
+
+    // -------- SAVE --------
+    auto savePair = [](TFile * fout_root, Generator gen1, Generator gen2, TH1 *h1, TH1 *h2, std::string name) {
+        
+        TH1D *h_ratio = (TH1D *)h2->Clone(Form("h_ratio_%s", name.c_str()));
+        h_ratio->Divide(h1);
+
+        h_ratio->SetTitle(Form("Ratio %s", name.c_str()));
+        h_ratio->GetXaxis()->SetTitle(h1->GetXaxis()->GetTitle());
+        h_ratio->GetYaxis()->SetTitle("NON-PROMPT / PROMPT");
+
+        // Save to root file
+        fout_root->cd();
+        h1->Write();
+        h2->Write();
+        h_ratio->Write();
+    };
+
+    savePair(fout_root, gen1, gen2, hPt_temp_1_method2,  hPt_temp_2_method2, "Pt" + gen1.gen_or_det);
+    savePair(fout_root, gen1, gen2, hD0_Pt_temp_1_method2,  hD0_Pt_temp_2_method2, "D0_Pt" + gen1.gen_or_det);
+    savePair(fout_root, gen1, gen2, hD0_Rap_temp_1_method2,  hD0_Rap_temp_2_method2, "D0_Rap" + gen1.gen_or_det);
+
+}
+
 
 void extract_pythia_particle_level_histograms(const char *opts = "") {
 
@@ -659,11 +768,16 @@ void extract_pythia_particle_level_histograms(const char *opts = "") {
     std::string herwig_prompt_scalefactor_filepaths = "/software/users/blianggi/mypyjetty/analysis/scalefactors/herwig_HF_299990_scaleFactors.yaml"; 
     std::string herwig_nonprompt_scalefactor_filepaths = "/software/users/blianggi/mypyjetty/analysis/scalefactors/herwig_bbbar_515788_scaleFactors.yaml"; 
 
+    std::string pythia_prompt_sf_ind_filepaths = "/global/cfs/cdirs/alice/blianggi/mypyjetty/analysis/scalefactors/PYTHIA_fastsim_HF_45154942_individualScaleFactors.txt";
+    std::string pythia_nonprompt_sf_ind_filepaths = "/global/cfs/cdirs/alice/blianggi/mypyjetty/analysis/scalefactors/PYTHIA_fastsim_nonprompt_D0_46293548_individualScaleFactors.txt";
+    std::string herwig_prompt_sf_ind_filepaths = "/software/users/blianggi/mypyjetty/analysis/scalefactors/herwig_HF_299990_individualScaleFactors.txt";
+    std::string herwig_nonprompt_sf_ind_filepaths = "/software/users/blianggi/mypyjetty/analysis/scalefactors/herwig_bbbar_515788_individualScaleFactors.txt";
+    
     // -------- DEFINE GENERATOR --------
-    Generator gen_pythia_prompt("pythia_prompt", pythia_prompt_filepaths, "tree_Particle_gen", "tree_D0_gen", "gen", "Pythia prompt, gen", pythia_prompt_scalefactor_filepaths);
-    Generator gen_pythia_nonprompt("pythia_nonprompt", pythia_nonprompt_filepaths, "tree_Particle_gen", "tree_D0_gen", "gen", "Pythia non-prompt, gen", pythia_nonprompt_scalefactor_filepaths);
-    Generator gen_herwig_prompt("herwig_prompt", herwig_prompt_filepaths, "tree_Particle_gen", "tree_D0_gen", "gen", "Herwig prompt, gen", herwig_prompt_scalefactor_filepaths);
-    Generator gen_herwig_nonprompt("herwig_nonprompt", herwig_nonprompt_filepaths, "tree_Particle_gen", "tree_D0_gen", "gen", "Herwig non-prompt, gen", herwig_nonprompt_scalefactor_filepaths);
+    Generator gen_pythia_prompt("pythia_prompt", pythia_prompt_filepaths, "tree_Particle_gen", "tree_D0_gen", "gen", "Pythia prompt, gen", pythia_prompt_scalefactor_filepaths, pythia_prompt_sf_ind_filepaths);
+    Generator gen_pythia_nonprompt("pythia_nonprompt", pythia_nonprompt_filepaths, "tree_Particle_gen", "tree_D0_gen", "gen", "Pythia non-prompt, gen", pythia_nonprompt_scalefactor_filepaths, pythia_nonprompt_sf_ind_filepaths);
+    Generator gen_herwig_prompt("herwig_prompt", herwig_prompt_filepaths, "tree_Particle_gen", "tree_D0_gen", "gen", "Herwig prompt, gen", herwig_prompt_scalefactor_filepaths, herwig_prompt_sf_ind_filepaths);
+    Generator gen_herwig_nonprompt("herwig_nonprompt", herwig_nonprompt_filepaths, "tree_Particle_gen", "tree_D0_gen", "gen", "Herwig non-prompt, gen", herwig_nonprompt_scalefactor_filepaths, herwig_nonprompt_sf_ind_filepaths);
 
     // Generator det_pythia_prompt("pythia_prompt", pythia_prompt_filepaths, "tree_Particle", "tree_D0", "det", "Pythia prompt, det");
     // Generator det_pythia_nonprompt("pythia_nonprompt", pythia_nonprompt_filepaths, "tree_Particle", "tree_D0", "det", "Pythia non-prompt,  det");
@@ -686,8 +800,13 @@ void extract_pythia_particle_level_histograms(const char *opts = "") {
     }
 
     // -------- GET CROSS SECTIONS PER FILE --------
-    if (generator_choice == "pythia") compareParticleBranches_WithCS_TChain(outfile, fout_root, gen_pythia_prompt, gen_pythia_nonprompt);
-    else if (generator_choice == "herwig") compareParticleBranches_WithCS_TChain(outfile, fout_root, gen_herwig_prompt, gen_herwig_nonprompt);
+    if (generator_choice == "pythia") {
+        compareParticleBranches_WithCS_TChain(outfile, fout_root, gen_pythia_prompt, gen_pythia_nonprompt);
+        compareParticleBranches_WithCS_TChain_Method2(fout_root, gen_pythia_prompt, gen_pythia_nonprompt);
+    } else if (generator_choice == "herwig") {
+        compareParticleBranches_WithCS_TChain(outfile, fout_root, gen_herwig_prompt, gen_herwig_nonprompt);
+        compareParticleBranches_WithCS_TChain_Method2(fout_root, gen_herwig_prompt, gen_herwig_nonprompt);
+    }
 
     // CLOSE OUTPUT FILE
     outfile.close();

@@ -88,14 +88,15 @@ class ProcessIO(common_base.CommonBase):
           self.track_columns += ['ParticleMCIndex'] #this accomadates inclusive case
         else:
           self.track_columns += ['ParticlePID'] #this accomadates inclusive case
-    else:
-      print("hello 4")
-      self.track_columns += ['ParticleCharge']
+    # else:
+    #   print("hello 4")
+    #   self.track_columns += ['ParticleCharge']
 
     # could get rid of this later. Also this is not currently compatible with D0 mcprod. (is compatible with D0 fastsim)
     if is_mcprod:
       print("hello 5")
-      self.track_columns += ['ParticleMCid']
+      self.track_columns += ['ParticleCharge', 'ParticleMCid']
+      # self.track_columns += ['ParticleMCid']
 
     # For D0 case, both the track columns and D0 columns are a little different 
     print("USE D0 INFO IS SET TO", self.use_D0_info)
@@ -205,7 +206,7 @@ class ProcessIO(common_base.CommonBase):
       event_df = self.event_df_orig.query(event_criteria)
       event_df.reset_index(drop=True)
 
-    # Load D0 tree into datadrame
+    # Load D0 tree into dataframe
     if ("tree_D0" in self.track_tree_name):
       track_tree = None
       track_df_orig = None
@@ -269,7 +270,7 @@ class ProcessIO(common_base.CommonBase):
     #print(self.track_df)
     #d = self.track_df.duplicated(self.track_columns, keep=False)
     #print(self.track_df[d])
-    if (self.track_tree_name == "tree_D0_gen"):
+    if ("tree_D0" in self.track_tree_name): #self.track_tree_name == "tree_D0_gen"):
       n_duplicates = sum(self.track_df.duplicated(self.D0_columns))
     else:
       n_duplicates = sum(self.track_df.duplicated(self.track_columns))
@@ -438,7 +439,8 @@ class ProcessIO(common_base.CommonBase):
       if self.is_ENC:
         df_fjparticles_orig = track_df_grouped.apply(
         self.get_fjparticles, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
-        if self.is_det_level: #inclusive case
+
+        if self.is_det_level: #inclusive case, det level
           df_fjparticles_aux = track_df_grouped.apply(
           self.get_particles_mc_index, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
 
@@ -456,7 +458,7 @@ class ProcessIO(common_base.CommonBase):
             df_fjparticles = pandas.DataFrame({"fj_particle": df_fjparticles_orig, "ParticleMCIndex": df_fjparticles_aux})
           print('debug3',df_fjparticles)
           print('debug3 aux: mcid',df_fjparticles_aux)
-        else: #inclusive case
+        else: #inclusive case, truth level
           df_fjparticles_pid = track_df_grouped.apply(
           self.get_particles_pid, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
           print('debug3',df_fjparticles)
@@ -581,8 +583,6 @@ class ProcessIO(common_base.CommonBase):
     # Apply a pt cut
     df_tracks_accepted = df_tracks[df_tracks.ParticlePt > min_pt]
 
-    m_array = np.full((df_tracks_accepted['ParticlePt'].values.size), m)
-
     return df_tracks_accepted['ParticleMCIndex'].values
 
   #---------------------------------------------------------------
@@ -597,8 +597,6 @@ class ProcessIO(common_base.CommonBase):
         
     # Apply a pt cut
     df_tracks_accepted = df_tracks[df_tracks.ParticlePt > min_pt]
-
-    m_array = np.full((df_tracks_accepted['ParticlePt'].values.size), m)
 
     return df_tracks_accepted['ParticlePID'].values
 
@@ -615,8 +613,6 @@ class ProcessIO(common_base.CommonBase):
         
     # Apply a pt cut
     df_tracks_accepted = df_tracks[df_tracks.ParticlePt > min_pt]
-
-    m_array = np.full((df_tracks_accepted['ParticlePt'].values.size), m)
 
     #if not D0s, make dummy array of fake rapidities bc that value not saved
     if notD0:
@@ -637,8 +633,6 @@ class ProcessIO(common_base.CommonBase):
     # Apply a pt cut
     df_tracks_accepted = df_tracks[df_tracks.ParticlePt > min_pt]
 
-    m_array = np.full((df_tracks_accepted['ParticlePt'].values.size), m)
-
     return df_tracks_accepted['ev_id'].values
 
   def get_particles_mother_id(self, df_tracks, m, offset_indices=False, random_mass=False, min_pt=0.):
@@ -650,8 +644,6 @@ class ProcessIO(common_base.CommonBase):
         
     # Apply a pt cut
     df_tracks_accepted = df_tracks[df_tracks.ParticlePt > min_pt]
-
-    m_array = np.full((df_tracks_accepted['ParticlePt'].values.size), m)
 
     return df_tracks_accepted['MotherPID'].values
   
@@ -665,8 +657,6 @@ class ProcessIO(common_base.CommonBase):
     # Apply a pt cut
     df_tracks_accepted = df_tracks[df_tracks.ParticlePt > min_pt]
 
-    m_array = np.full((df_tracks_accepted['ParticlePt'].values.size), m)
-
     return df_tracks_accepted['ParticleCharge'].values
 
   def get_particles_mcid(self, df_tracks, m, offset_indices=False, random_mass=False, min_pt=0.):
@@ -678,7 +668,5 @@ class ProcessIO(common_base.CommonBase):
         
     # Apply a pt cut
     df_tracks_accepted = df_tracks[df_tracks.ParticlePt > min_pt]
-
-    m_array = np.full((df_tracks_accepted['ParticlePt'].values.size), m)
 
     return df_tracks_accepted['ParticleMCid'].values

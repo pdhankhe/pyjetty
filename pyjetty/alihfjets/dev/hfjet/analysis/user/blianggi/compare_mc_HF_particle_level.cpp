@@ -5,6 +5,10 @@
 // branches: ParticlePt, ParticleEta, ParticlePhi, ParticlePID
 // this takes the already made histograms and plots them
 
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <sstream>
 
 std::string base_filepath_header = "/global/cfs/projectdirs/alice/alicepro/hiccup";
 
@@ -15,9 +19,9 @@ public:
     std::string numtype;
     bool logy;
     std::string xtitle;
+    bool cs; // true if the cross section is included in the y axis
 
-    std::string ytitle_entries;
-    std::string ytitle_crosssection;
+    std::string ytitle;
 
     double max_xval = -1;
     double min_yval = -1;
@@ -28,14 +32,12 @@ public:
     TH1 * hist_herwig_prompt;
     TH1 * hist_herwig_nonprompt;
 
-    Observable(std::string name_val, std::string numtype_val, bool logy_val, std::string xtitle_val) {
+    Observable(std::string name_val, std::string numtype_val, bool logy_val, std::string xtitle_val, bool cs_val) {
         name = name_val;
         numtype = numtype_val;
         logy = logy_val;
         xtitle = xtitle_val;
-
-        ytitle_entries = "#frac{dN}{d" + xtitle + "}";
-        ytitle_crosssection = "#frac{d#sigma}{d" + xtitle + "}";
+        cs = cs_val;
 
         assign_specific_bounds();
     }
@@ -83,10 +85,13 @@ public:
         hist_herwig_nonprompt->SetMarkerStyle(kOpenCircle);
         hist_herwig_nonprompt->SetLineStyle(9);
 
-        hist_pythia_prompt->GetYaxis()->SetTitle(ytitle_entries.c_str());
-        hist_pythia_nonprompt->GetYaxis()->SetTitle(ytitle_entries.c_str());
-        hist_herwig_prompt->GetYaxis()->SetTitle(ytitle_entries.c_str());
-        hist_herwig_nonprompt->GetYaxis()->SetTitle(ytitle_entries.c_str());
+        if ( cs ) ytitle = "#frac{d#sigma}{d" + xtitle + "}";  
+        else ytitle = "#frac{dN}{d" + xtitle + "}";
+              
+        hist_pythia_prompt->GetYaxis()->SetTitle(ytitle.c_str());
+        hist_pythia_nonprompt->GetYaxis()->SetTitle(ytitle.c_str());
+        hist_herwig_prompt->GetYaxis()->SetTitle(ytitle.c_str());
+        hist_herwig_nonprompt->GetYaxis()->SetTitle(ytitle.c_str());
     }
 
     // -------- DRAW --------
@@ -160,14 +165,16 @@ public:
         h_ratio_prompt->Draw("hist");
         h_ratio_nonprompt->Draw("hist same");
 
-        TLegend *leg_ratio = new TLegend(0.8, 0.42, 0.9, 0.5);
+        TLegend *leg_ratio = new TLegend(0.78, 0.65, 0.93, 0.8);
         leg_ratio->SetBorderSize(0);
         leg_ratio->SetFillStyle(0);
         leg_ratio->AddEntry(h_ratio_prompt, "prompt", "l");
         leg_ratio->AddEntry(h_ratio_nonprompt, "non-prompt", "l");
         leg_ratio->Draw();
 
-        c->SaveAs(Form("/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/HF_EEC/plots/HF_particle_comparisons/%s_comparison.pdf", name.c_str()));
+        std::string file_plot_output = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/HF_EEC/plots/HF_particle_comparisons/" + name + "_comparison.pdf";
+        if ( cs ) file_plot_output = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/HF_EEC/plots/HF_particle_comparisons/" + name + "_crosssection_comparison.pdf";
+        c->SaveAs(file_plot_output.c_str());
     }
     
 };
@@ -179,6 +186,7 @@ TH1 * read_histogram( TFile * fin, Observable obs, std::string gen_choice, std::
     // static_assert(std::is_base_of<TH1, TH>::value, "TH must inherit from TH1");
 
     std::string histname = Form( "h%s_%s_%s_%s", obs.name.c_str(), gen_choice.c_str(), p_or_np.c_str(), gen_or_det.c_str() );
+    if (obs.cs) histname = Form( "h%s_%s_%s_%s_crosssection", obs.name.c_str(), gen_choice.c_str(), p_or_np.c_str(), gen_or_det.c_str() );
 
     TH1 * hist = dynamic_cast<TH1 *>(fin->Get(histname.c_str()));
     // TH1 * hist = (TH1 *) fin->Get(histname.c_str());
@@ -196,43 +204,33 @@ TH1 * read_histogram( TFile * fin, Observable obs, std::string gen_choice, std::
 
 
 
-
-
-
-    // drawPair(fout_root, gen1, gen2, hPt_1,  hPt_2, "Pt"  max_yval_ratio = 2.25;+ gen1.gen_or_det);
-    // drawPair(fout_root, gen1, gen2, hEta_1, hEta_2, "Eta" + gen1.gen_or_det);
-    // drawPair(fout_root, gen1, gen2, hPhi_1, hPhi_2, "Phi" + gen1.gen_or_det);
-
-
 void analyze(TFile * fin_pythia, TFile * fin_herwig) {
     // obs = Pt, Eta, Phi, PID
     // obs = D0_Pt, D0_Eta, D0_Phi, D0_Rap, D0_MPID, numD0s
-    Observable obs_pt("Pt", "double", true, "p_{T}");
-    Observable obs_eta("Eta", "double", true, "#eta");
-    Observable obs_phi("Phi", "double", true, "#phi");
-    Observable obs_pid("PID", "int", true, "PID");
+    Observable obs_pt("Pt", "double", true, "p_{T}", false);
+    Observable obs_eta("Eta", "double", true, "#eta", false);
+    Observable obs_phi("Phi", "double", true, "#phi", false);
+    Observable obs_pid("PID", "int", true, "PID", false);
 
-    Observable obs_D0_pt("D0_Pt", "double", true, "p_{T}");
-    Observable obs_D0_eta("D0_Eta", "double", true, "#eta");
-    Observable obs_D0_phi("D0_Phi", "double", false, "#phi");
-    Observable obs_D0_rap("D0_Rap", "double", true, "y");
-    Observable obs_D0_mpid("D0_MPID", "int", true, "Mother PID");
-    Observable obs_numD0s("numD0s", "int", true, "# D0s per event");
-    Observable obs_list[10] = { obs_pt, obs_eta, obs_phi, obs_pid, obs_D0_pt, obs_D0_eta, obs_D0_phi, obs_D0_rap, obs_D0_mpid, obs_numD0s };
+    Observable obs_D0_pt("D0_Pt", "double", true, "p_{T}", false);
+    Observable obs_D0_eta("D0_Eta", "double", true, "#eta", false);
+    Observable obs_D0_phi("D0_Phi", "double", false, "#phi", false);
+    Observable obs_D0_rap("D0_Rap", "double", true, "y", false);
+    Observable obs_D0_mpid("D0_MPID", "int", true, "Mother PID", false);
+    Observable obs_numD0s("numD0s", "int", true, "# D0s per event", false);
+
+    Observable obs_pt_cs("Pt", "double", true, "p_{T}", true);
+    Observable obs_D0_pt_cs("D0_Pt", "double", true, "p_{T}", true);
+    Observable obs_D0_rap_cs("D0_Rap", "double", true, "y", true);
+    Observable obs_list[13] = { obs_pt, obs_eta, obs_phi, obs_pid, obs_D0_pt, obs_D0_eta, obs_D0_phi, obs_D0_rap, obs_D0_mpid, obs_numD0s, obs_pt_cs, obs_D0_pt_cs, obs_D0_rap_cs };
 
     for ( Observable obs : obs_list ) {
         cout << "Running observable " << obs.name << endl;
-        // if ( obs.numtype == "int" ) {
+
         obs.hist_pythia_prompt = read_histogram(fin_pythia, obs, "pythia", "prompt", "gen");
         obs.hist_pythia_nonprompt = read_histogram(fin_pythia, obs, "pythia", "nonprompt", "gen");
         obs.hist_herwig_prompt = read_histogram(fin_herwig, obs, "herwig", "prompt", "gen");
         obs.hist_herwig_nonprompt = read_histogram(fin_herwig, obs, "herwig", "nonprompt", "gen");
-        // } else {
-        //     obs.hist_pythia_prompt = read_histogram(fin_pythia, obs, "pythia", "prompt", "gen");
-        //     obs.hist_pythia_nonprompt = read_histogram(fin_pythia, obs, "pythia", "nonprompt", "gen");
-        //     obs.hist_herwig_prompt = read_histogram(fin_herwig, obs, "herwig", "prompt", "gen");
-        //     obs.hist_herwig_nonprompt = read_histogram(fin_herwig, obs, "herwig", "nonprompt", "gen");
-        // }
 
         cout << "styling hists now" << endl;
         obs.style_hists();
@@ -242,30 +240,118 @@ void analyze(TFile * fin_pythia, TFile * fin_herwig) {
 }
 
 
+class GenEntries {
+public:
+    std::string gen_name;
+    std::string txtfile;
+
+    long long num_particles_prompt;
+    long long num_particles_nonprompt;
+    long long num_D0s_prompt;
+    long long num_D0s_nonprompt;
+
+    long long num_particles_prompt_arr[10];
+    long long num_particles_nonprompt_arr[10];
+    long long num_D0s_prompt_arr[10];
+    long long num_D0s_nonprompt_arr[10];
+
+
+    GenEntries(std::string gen_name_val, std::string txtfile_val) {
+        gen_name = gen_name_val;
+        txtfile = txtfile_val;
+    }
+    
+};
+
+// Helper function to get the stream of numbers after the ":"
+std::stringstream getNumbersStream(std::ifstream& file) {
+    std::string line;
+    if (std::getline(file, line)) {
+        size_t colonPos = line.find(':');
+        if (colonPos != std::string::npos) {
+            // Return a stream starting after the colon
+            return std::stringstream(line.substr(colonPos + 1));
+        }
+    }
+    return std::stringstream(""); // Return empty stream if failed
+}
+
+void read_num_entries_txtfile(GenEntries& genentries) {
+    std::ifstream infile(genentries.txtfile);
+
+    // first 4 files
+    getNumbersStream(infile) >> genentries.num_particles_prompt;
+    getNumbersStream(infile) >> genentries.num_particles_nonprompt;
+    getNumbersStream(infile) >> genentries.num_D0s_prompt;
+    getNumbersStream(infile) >> genentries.num_D0s_nonprompt;
+
+    // next 4 lines
+    std::stringstream ss = getNumbersStream(infile);
+    for ( int i = 0; i < 10; i++ ) ss >> genentries.num_particles_prompt_arr[i];
+    ss = getNumbersStream(infile);
+    for ( int i = 0; i < 10; i++ ) ss >> genentries.num_particles_nonprompt_arr[i];
+    ss = getNumbersStream(infile);
+    for ( int i = 0; i < 10; i++ ) ss >> genentries.num_D0s_prompt_arr[i];
+    ss = getNumbersStream(infile);
+    for ( int i = 0; i < 10; i++ ) ss >> genentries.num_D0s_nonprompt_arr[i];
+
+    infile.close();
+
+}
+
+void check_numbers(GenEntries genentries) {
+    long long sum_of_ptbins = 0;
+    for ( int i = 0; i < 10; i++ ) sum_of_ptbins += genentries.num_particles_prompt_arr[i];
+    if ( sum_of_ptbins == genentries.num_particles_prompt ) cout << genentries.gen_name <<  " prompt particles confirmed at " << sum_of_ptbins << endl;
+
+    sum_of_ptbins = 0;
+    for ( int i = 0; i < 10; i++ ) sum_of_ptbins += genentries.num_particles_nonprompt_arr[i];
+    if ( sum_of_ptbins == genentries.num_particles_nonprompt ) cout << genentries.gen_name <<  " nonprompt particles confirmed at " << sum_of_ptbins << endl;
+
+    sum_of_ptbins = 0;
+    for ( int i = 0; i < 10; i++ ) sum_of_ptbins += genentries.num_D0s_prompt_arr[i];
+    if ( sum_of_ptbins == genentries.num_D0s_prompt ) cout << genentries.gen_name <<  " prompt D0s confirmed at " << sum_of_ptbins << endl;
+
+    sum_of_ptbins = 0;
+    for ( int i = 0; i < 10; i++ ) sum_of_ptbins += genentries.num_D0s_nonprompt_arr[i];
+    if ( sum_of_ptbins == genentries.num_D0s_nonprompt ) cout << genentries.gen_name <<  " nonprompt D0s confirmed at " << sum_of_ptbins << endl;
+
+}
+
+void check_num_entries() {
+    std::string pythia_numentries_txt = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/HF_EEC/plots/HF_particle_comparisons/number_of_entries_pythia.txt";
+    std::string herwig_numentries_txt = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/HF_EEC/plots/HF_particle_comparisons/number_of_entries_herwig.txt";
+
+    GenEntries genentries_pythia("pythia", pythia_numentries_txt);
+    GenEntries genentries_herwig("herwig", herwig_numentries_txt);
+
+    read_num_entries_txtfile(genentries_pythia);
+    read_num_entries_txtfile(genentries_herwig);
+    
+    check_numbers(genentries_pythia);
+    check_numbers(genentries_herwig);
+
+}
+
+
 void compare_mc_HF_particle_level() {
 
     // -------- INPUT HISTOGRAMS -------- -- no det level at this point in time
     TString pythia_hists = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/HF_EEC/rootfiles/HF_particle_comparisons/HF_particle_comparisons_pythia.root"; 
     TString herwig_hists = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/HF_EEC/rootfiles/HF_particle_comparisons/HF_particle_comparisons_herwig.root";
 
-    // -------- DEFINE GENERATOR --------
-    // Generator gen_anchmc("anchmc", "", anchmc_filepaths, "PWGHF_TreeCreator/tree_Particle_gen", "gen", "GEN ANCHORED MC LHC23a3");
-    // Generator gen_pythiafastsim("pythiafastsim", base_filepath_header, pythiafastsim_filepaths, "tree_Particle_gen", "gen", "GEN PYTHIA FASTSIM 1143757");
-    // Generator det_anchmc("anchmc", "", anchmc_filepaths, "PWGHF_TreeCreator/tree_Particle", "det", "DET ANCHORED MC LHC23a3");
-    // Generator det_pythiafastsim("pythiafastsim", base_filepath_header, pythiafastsim_filepaths, "tree_Particle", "det", "DET PYTHIA FASTSIM 1143757");
-
     // -------- OPEN FILES --------
     TFile * file_pythia_hists = new TFile(pythia_hists, "READ");
     TFile * file_herwig_hists = new TFile(herwig_hists, "READ");
 
-    // -------- COMPARE GENERATORS --------
-    // compareParticleBranches_TChain(outfile, fout_root, gen_anchmc, gen_pythiafastsim);
-    // compareParticleBranches_TChain(outfile, fout_root, det_anchmc, det_pythiafastsim);
-
+    // -------- PLOT --------
     analyze(file_pythia_hists, file_herwig_hists);
 
     file_pythia_hists->Close();
     file_herwig_hists->Close();
+
+    // -------- DOUBLE CHECK # OF ENTRIES --------
+    check_num_entries();
 }
 
 
