@@ -176,10 +176,8 @@ TH1D * addHists(std::vector<TH1D*> histVector, std::string histname) {
 
     TH1D* hcomb = (TH1D*)histVector[0]->Clone(histname.c_str());
     for (int i = 1; i < 10; i++) {
-        // The Add function performs: hSum = hSum + histVector[i]
         hcomb->Add(histVector[i]);
     }
-
     return hcomb;
 }
 
@@ -296,6 +294,7 @@ void fillgenD0HistsFromChain( TChain *chain, TH1D *hPt, TH1D *hEta, TH1D *hPhi, 
     }
 }
 
+/*
 void filldetD0HistsFromChain( TChain *particlechain, TChain *D0chain, TH1D *hPt, TH1D *hEta, TH1D *hPhi, TH1D *hRapidity, TH1I *hMotherPID ) {
     
     if (!D0chain || D0chain->GetEntries() == 0) {
@@ -350,6 +349,7 @@ void filldetD0HistsFromChain( TChain *particlechain, TChain *D0chain, TH1D *hPt,
     //     // hMotherPID->Fill(mpid);
     // }
 }
+*/
 
 void fillHistsPerFile(Generator gen_mc, std::string whichtree, TH1D * hPt, TH1D * hRapidity, bool fillOnlyPt = false) {
 
@@ -512,38 +512,6 @@ void compareParticleBranches_TChain(std::ofstream &outfile, TFile * fout_root, G
         h2->Write();
         h_ratio->Write();
     };
-    
-    // auto savePair = [](TFile * fout_root, Generator gen1, Generator gen2, TH1D *h1, TH1D *h2, std::string name) {
-        
-    //     TH1D *h_ratio = (TH1D *)h2->Clone(Form("h_ratio_%s", name.c_str()));
-    //     h_ratio->Divide(h1);
-
-    //     h_ratio->SetTitle(Form("Ratio %s", name.c_str()));
-    //     h_ratio->GetXaxis()->SetTitle(h1->GetXaxis()->GetTitle());
-    //     h_ratio->GetYaxis()->SetTitle("NON-PROMPT / PROMPT");
-
-    //     // Save to root file
-    //     fout_root->cd();
-    //     h1->Write();
-    //     h2->Write();
-    //     h_ratio->Write();
-    // };
-
-    // auto savePairI = [](TFile * fout_root, Generator gen1, Generator gen2, TH1I *h1, TH1I *h2, std::string name) {
-        
-    //     TH1D *h_ratio = (TH1D *)h2->Clone(Form("h_ratio_%s", name.c_str()));
-    //     h_ratio->Divide(h1);
-
-    //     h_ratio->SetTitle(Form("Ratio %s", name.c_str()));
-    //     h_ratio->GetXaxis()->SetTitle(h1->GetXaxis()->GetTitle());
-    //     h_ratio->GetYaxis()->SetTitle("NON-PROMPT / PROMPT");
-
-    //     // Save to root file
-    //     fout_root->cd();
-    //     h1->Write();
-    //     h2->Write();
-    //     h_ratio->Write();
-    // };
 
     savePair(fout_root, gen1, gen2, hPt_1,  hPt_2, "Pt" + gen1.gen_or_det);
     savePair(fout_root, gen1, gen2, hEta_1, hEta_2, "Eta" + gen1.gen_or_det);
@@ -632,7 +600,7 @@ void compareParticleBranches_WithCS_TChain(std::ofstream &outfile, TFile * fout_
 
     // -------- SCALE --------
     gen1.scale_hists(vec_hPt_1);
-    gen2.scale_hists(vec_hPt_1);
+    gen2.scale_hists(vec_hPt_2);
     gen1.scale_hists(vec_hD0_Pt_1);
     gen2.scale_hists(vec_hD0_Pt_2);
     gen1.scale_hists(vec_hD0_Rap_1);
@@ -658,7 +626,7 @@ void compareParticleBranches_WithCS_TChain(std::ofstream &outfile, TFile * fout_
     // -------- DRAW --------
     auto savePair = [](TFile * fout_root, Generator gen1, Generator gen2, TH1 *h1, TH1 *h2, std::string name) {
         
-        TH1D *h_ratio = (TH1D *)h2->Clone(Form("h_ratio_%s", name.c_str()));
+        TH1D *h_ratio = (TH1D *)h2->Clone(Form("h_ratio_%s_crosssection", name.c_str()));
         h_ratio->Divide(h1);
 
         h_ratio->SetTitle(Form("Ratio %s", name.c_str()));
@@ -698,8 +666,8 @@ void compareParticleBranches_WithCS_TChain_Method2(TFile * fout_root, Generator 
     TH1D * hdummy;
     fillHistsPerFile(gen1, "particle", hPt_temp_1_method2, hdummy, true);
     fillHistsPerFile(gen2, "particle", hPt_temp_2_method2, hdummy, true);
-    fillHistsPerFile(gen1, "D0", hD0_Pt_temp_1_method2, hD0_Rap_temp_1_method2, true);
-    fillHistsPerFile(gen2, "D0", hD0_Pt_temp_2_method2, hD0_Rap_temp_2_method2, true);
+    fillHistsPerFile(gen1, "D0", hD0_Pt_temp_1_method2, hD0_Rap_temp_1_method2, false);
+    fillHistsPerFile(gen2, "D0", hD0_Pt_temp_2_method2, hD0_Rap_temp_2_method2, false);
 
     // -------- NORMALIZE HISTOGRAMS --------
     hPt_temp_1_method2->Scale(1.0, "width");
@@ -721,7 +689,7 @@ void compareParticleBranches_WithCS_TChain_Method2(TFile * fout_root, Generator 
     // -------- SAVE --------
     auto savePair = [](TFile * fout_root, Generator gen1, Generator gen2, TH1 *h1, TH1 *h2, std::string name) {
         
-        TH1D *h_ratio = (TH1D *)h2->Clone(Form("h_ratio_%s", name.c_str()));
+        TH1D *h_ratio = (TH1D *)h2->Clone(Form("h_ratio_%s_crosssection_method2", name.c_str()));
         h_ratio->Divide(h1);
 
         h_ratio->SetTitle(Form("Ratio %s", name.c_str()));

@@ -9,6 +9,7 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <typeinfo>
 
 std::string base_filepath_header = "/global/cfs/projectdirs/alice/alicepro/hiccup";
 
@@ -20,6 +21,7 @@ public:
     bool logy;
     std::string xtitle;
     bool cs; // true if the cross section is included in the y axis
+    bool cs_method2;
 
     std::string ytitle;
 
@@ -32,12 +34,13 @@ public:
     TH1 * hist_herwig_prompt;
     TH1 * hist_herwig_nonprompt;
 
-    Observable(std::string name_val, std::string numtype_val, bool logy_val, std::string xtitle_val, bool cs_val) {
+    Observable(std::string name_val, std::string numtype_val, bool logy_val, std::string xtitle_val, bool cs_val, bool cs_method2_val=false) {
         name = name_val;
         numtype = numtype_val;
         logy = logy_val;
         xtitle = xtitle_val;
         cs = cs_val;
+        cs_method2 = cs_method2_val;
 
         assign_specific_bounds();
     }
@@ -85,7 +88,7 @@ public:
         hist_herwig_nonprompt->SetMarkerStyle(kOpenCircle);
         hist_herwig_nonprompt->SetLineStyle(9);
 
-        if ( cs ) ytitle = "#frac{d#sigma}{d" + xtitle + "}";  
+        if ( cs or cs_method2 ) ytitle = "#frac{d#sigma}{d" + xtitle + "}";  
         else ytitle = "#frac{dN}{d" + xtitle + "}";
               
         hist_pythia_prompt->GetYaxis()->SetTitle(ytitle.c_str());
@@ -174,6 +177,7 @@ public:
 
         std::string file_plot_output = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/HF_EEC/plots/HF_particle_comparisons/" + name + "_comparison.pdf";
         if ( cs ) file_plot_output = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/HF_EEC/plots/HF_particle_comparisons/" + name + "_crosssection_comparison.pdf";
+        if ( cs_method2 ) file_plot_output = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/HF_EEC/plots/HF_particle_comparisons/" + name + "_crosssection_method2_comparison.pdf";
         c->SaveAs(file_plot_output.c_str());
     }
     
@@ -187,6 +191,7 @@ TH1 * read_histogram( TFile * fin, Observable obs, std::string gen_choice, std::
 
     std::string histname = Form( "h%s_%s_%s_%s", obs.name.c_str(), gen_choice.c_str(), p_or_np.c_str(), gen_or_det.c_str() );
     if (obs.cs) histname = Form( "h%s_%s_%s_%s_crosssection", obs.name.c_str(), gen_choice.c_str(), p_or_np.c_str(), gen_or_det.c_str() );
+    if (obs.cs_method2) histname = Form( "h%s_%s_%s_%s_crosssection_method2", obs.name.c_str(), gen_choice.c_str(), p_or_np.c_str(), gen_or_det.c_str() );
 
     TH1 * hist = dynamic_cast<TH1 *>(fin->Get(histname.c_str()));
     // TH1 * hist = (TH1 *) fin->Get(histname.c_str());
@@ -201,7 +206,55 @@ TH1 * read_histogram( TFile * fin, Observable obs, std::string gen_choice, std::
     return hist;
 }
 
+void draw_multiple_testing(std::vector<Observable> obs_vec) {
 
+    std::string c_name = Form("c%s_multiple", obs_vec[0].name.c_str());
+    TCanvas *c = new TCanvas(c_name.c_str(), c_name.c_str(), 800, 600);
+    gPad->SetLogy();
+
+    // determine max
+    cout << "size of obs vec " << obs_vec.size() << endl;
+    cout << "Testinggg " << typeid(obs_vec[0]).name() << endl;
+    cout << "Testinggg " << obs_vec[0].hist_pythia_prompt->GetNbinsX() << endl;
+    cout << "Testinggg " << typeid(obs_vec[2].hist_pythia_prompt).name() << endl;
+
+    double max_height = 0;
+    for ( int i = 0; i < obs_vec.size(); i++ ) {
+        cout << "in starting loop " << i << endl;
+        double temp_max = std::max( {obs_vec[i].hist_pythia_prompt->GetMaximum(), obs_vec[i].hist_pythia_nonprompt->GetMaximum(), obs_vec[i].hist_herwig_prompt->GetMaximum(), obs_vec[i].hist_herwig_nonprompt->GetMaximum()} );
+        max_height = std::max(max_height, temp_max);
+    }
+    obs_vec[0].hist_pythia_prompt->SetMaximum(max_height*1.2);
+    obs_vec[0].hist_pythia_prompt->SetMinimum(0.);
+    // obs_vec[1].hist_pythia_prompt->SetMaximum(max_height*1.2);
+    // obs_vec[1].hist_pythia_prompt->SetMinimum(0.);
+
+    TLegend *leg = new TLegend(0.15, 0.75, 0.4, 0.88);
+    leg->SetBorderSize(0);
+    leg->SetFillStyle(0);
+    Double_t colors[12] = {kBlue, kBlue-7, kRed, kRed-7, kOrange, kOrange-4, kGreen, kGreen-7, kMagenta, kMagenta-9, kCyan, kCyan-9};
+    
+    for ( int i = 0; i < obs_vec.size(); i++ ) {
+        if ( i == 0 ) continue;
+        obs_vec[i].hist_pythia_prompt->SetLineColorAlpha(colors[4*i], 0.5);
+        obs_vec[i].hist_pythia_nonprompt->SetLineColorAlpha(colors[4*i+1], 0.5);
+        obs_vec[i].hist_herwig_prompt->SetLineColorAlpha(colors[4*i+2], 0.5);
+        obs_vec[i].hist_herwig_nonprompt->SetLineColorAlpha(colors[4*i+3], 0.5);
+        
+        obs_vec[i].hist_pythia_prompt->Draw("hist same");
+        obs_vec[i].hist_pythia_nonprompt->Draw("hist same");
+        obs_vec[i].hist_herwig_prompt->Draw("hist same");
+        obs_vec[i].hist_herwig_nonprompt->Draw("hist same");
+
+        leg->AddEntry(obs_vec[i].hist_pythia_prompt, "Pythia prompt", "l");
+        leg->AddEntry(obs_vec[i].hist_pythia_nonprompt, "Pythia non-prompt", "l");
+        leg->AddEntry(obs_vec[i].hist_herwig_prompt, "Herwig prompt", "l");
+        leg->AddEntry(obs_vec[i].hist_herwig_nonprompt, "Herwig non-prompt", "l");
+    }
+    leg->Draw();
+    std::string file_plot_output = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/HF_EEC/plots/HF_particle_comparisons/TESTING_" + obs_vec[0].name + "_multiple.pdf";
+    c->SaveAs(file_plot_output.c_str());
+}
 
 
 void analyze(TFile * fin_pythia, TFile * fin_herwig) {
@@ -222,24 +275,37 @@ void analyze(TFile * fin_pythia, TFile * fin_herwig) {
     Observable obs_pt_cs("Pt", "double", true, "p_{T}", true);
     Observable obs_D0_pt_cs("D0_Pt", "double", true, "p_{T}", true);
     Observable obs_D0_rap_cs("D0_Rap", "double", true, "y", true);
-    Observable obs_list[13] = { obs_pt, obs_eta, obs_phi, obs_pid, obs_D0_pt, obs_D0_eta, obs_D0_phi, obs_D0_rap, obs_D0_mpid, obs_numD0s, obs_pt_cs, obs_D0_pt_cs, obs_D0_rap_cs };
 
-    for ( Observable obs : obs_list ) {
-        cout << "Running observable " << obs.name << endl;
+    Observable obs_pt_cs_method2("Pt", "double", true, "p_{T}", false, true);
+    Observable obs_D0_pt_cs_method2("D0_Pt", "double", true, "p_{T}", false, true);
+    Observable obs_D0_rap_cs_method2("D0_Rap", "double", true, "y", false, true);
 
-        obs.hist_pythia_prompt = read_histogram(fin_pythia, obs, "pythia", "prompt", "gen");
-        obs.hist_pythia_nonprompt = read_histogram(fin_pythia, obs, "pythia", "nonprompt", "gen");
-        obs.hist_herwig_prompt = read_histogram(fin_herwig, obs, "herwig", "prompt", "gen");
-        obs.hist_herwig_nonprompt = read_histogram(fin_herwig, obs, "herwig", "nonprompt", "gen");
+    Observable* obs_list[16] = { &obs_pt, &obs_eta, &obs_phi, &obs_pid, &obs_D0_pt, &obs_D0_eta, &obs_D0_phi, &obs_D0_rap, &obs_D0_mpid, &obs_numD0s, &obs_pt_cs, &obs_D0_pt_cs, &obs_D0_rap_cs, &obs_pt_cs_method2, &obs_D0_pt_cs_method2, &obs_D0_rap_cs_method2 };
+
+    for ( Observable* obs : obs_list ) {
+        cout << "Running observable " << obs->name << endl;
+
+        obs->hist_pythia_prompt = read_histogram(fin_pythia, *obs, "pythia", "prompt", "gen");
+        obs->hist_pythia_nonprompt = read_histogram(fin_pythia, *obs, "pythia", "nonprompt", "gen");
+        obs->hist_herwig_prompt = read_histogram(fin_herwig, *obs, "herwig", "prompt", "gen");
+        obs->hist_herwig_nonprompt = read_histogram(fin_herwig, *obs, "herwig", "nonprompt", "gen");
 
         cout << "styling hists now" << endl;
-        obs.style_hists();
+        obs->style_hists();
         cout << "drawing hists now" << endl;
-        obs.drawPairForObs();
+        obs->drawPairForObs();
     }
+
+    std::vector<Observable> obs_pt_vec = { obs_pt, obs_pt_cs, obs_pt_cs_method2 }; // could use pointers + addresses here, but I don't want to update anything in Observable
+    cout << "Testing " << typeid(obs_pt_vec[0]).name() << endl;
+    cout << "Testing " << obs_pt_vec[0].hist_pythia_prompt->GetNbinsX() << endl;
+    cout << "Testing " << typeid(obs_pt_vec[2].hist_pythia_prompt).name() << endl;
+    draw_multiple_testing(obs_pt_vec);
+    std::vector<Observable> obs_D0_pt_vec = { obs_D0_pt, obs_D0_pt_cs, obs_D0_pt_cs_method2 };
+    draw_multiple_testing(obs_D0_pt_vec);
 }
 
-
+// ============ CHECKING NUM OF ENTRIES ============
 class GenEntries {
 public:
     std::string gen_name;
@@ -333,6 +399,7 @@ void check_num_entries() {
 
 }
 
+// ================================================
 
 void compare_mc_HF_particle_level() {
 
