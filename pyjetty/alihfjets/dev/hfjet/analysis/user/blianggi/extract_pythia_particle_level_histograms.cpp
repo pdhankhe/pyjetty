@@ -16,6 +16,8 @@
 
 // std::string base_filepath_header = "/global/cfs/projectdirs/alice/alicepro/hiccup";
 
+#include <iostream>
+#include <ctime>
 
 class Generator {
 public:
@@ -811,6 +813,11 @@ void extract_pythia_particle_level_histograms(const char *opts = "") {
     // CLOSE OUTPUT FILE
     outfile.close();
     fout_root->Close();
+
+    // PRINT OUT CLOSING TIME
+    std::time_t t = std::time(0);   // Get current time_t
+    std::cout << std::ctime(&t);    // Convert to string and print
+    
 }
 
 
