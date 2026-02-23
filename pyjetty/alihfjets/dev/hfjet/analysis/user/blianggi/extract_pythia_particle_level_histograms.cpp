@@ -772,10 +772,10 @@ void extract_pythia_particle_level_histograms(const char *opts = "") {
     // -------- GET CROSS SECTIONS PER FILE --------
     if (generator_choice == "pythia") {
         compareParticleBranches_WithCS_TChain(outfile, fout_root, gen_pythia_prompt, gen_pythia_nonprompt);
-        compareParticleBranches_WithCS_TChain_Method2(fout_root, gen_pythia_prompt, gen_pythia_nonprompt);
+        // compareParticleBranches_WithCS_TChain_Method2(fout_root, gen_pythia_prompt, gen_pythia_nonprompt); // this was done as a check - method 2 is longer but more robust
     } else if (generator_choice == "herwig") {
         compareParticleBranches_WithCS_TChain(outfile, fout_root, gen_herwig_prompt, gen_herwig_nonprompt);
-        compareParticleBranches_WithCS_TChain_Method2(fout_root, gen_herwig_prompt, gen_herwig_nonprompt);
+        // compareParticleBranches_WithCS_TChain_Method2(fout_root, gen_herwig_prompt, gen_herwig_nonprompt); // this was done as a check - method 2 is longer but more robust
     }
 
     // CLOSE OUTPUT FILE

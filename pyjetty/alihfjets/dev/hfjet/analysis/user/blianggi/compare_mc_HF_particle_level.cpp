@@ -49,9 +49,11 @@ public:
         if (name == "Pt") {
             max_xval = 100;
             max_yval_ratio = 2.25;
+            if (cs) max_yval_ratio = .00001; //1e-5;
         } else if (name == "D0_Pt") {
             max_xval = 60;
             max_yval_ratio = 50;
+            if (cs) max_yval_ratio = .00012;
         } else if (name == "Phi") {
             max_yval_ratio = 3.5;
         } else if (name == "D0_Phi") {
@@ -98,7 +100,7 @@ public:
     }
 
     // -------- DRAW --------
-    void drawPairForObs() {
+    void drawPairForObs(bool normalized=false) {
     
         std::string c_name = Form("c%s", name.c_str());
         TCanvas *c = new TCanvas(c_name.c_str(), c_name.c_str(), 800, 600);
@@ -120,6 +122,15 @@ public:
         pad1->cd();
         if ( logy ) gPad->SetLogy();
 
+        if (normalized) {
+            hist_pythia_prompt->Scale(1.0 / hist_pythia_prompt->Integral());
+            hist_pythia_nonprompt->Scale(1.0 / hist_pythia_nonprompt->Integral());
+            hist_herwig_prompt->Scale(1.0 / hist_herwig_prompt->Integral());
+            hist_herwig_nonprompt->Scale(1.0 / hist_herwig_nonprompt->Integral());
+
+            hist_pythia_prompt->GetYaxis()->SetTitle(("#frac{1}{#sigma} " + ytitle).c_str());
+        }
+
         // determine max
         double max_height = std::max( {hist_pythia_prompt->GetMaximum(), hist_pythia_nonprompt->GetMaximum(), hist_herwig_prompt->GetMaximum(), hist_herwig_nonprompt->GetMaximum()} );
         hist_pythia_prompt->SetMaximum(max_height*1.2);
@@ -130,7 +141,7 @@ public:
         hist_herwig_prompt->Draw("hist same");
         hist_herwig_nonprompt->Draw("hist same");
 
-        TLegend *leg = new TLegend(0.15, 0.75, 0.4, 0.88);
+        TLegend *leg = new TLegend(0.55, 0.75, 0.8, 0.88); //0.15, 0.75, 0.4, 0.88);
         leg->SetBorderSize(0);
         leg->SetFillStyle(0);
         leg->AddEntry(hist_pythia_prompt, "Pythia prompt", "l");
@@ -164,9 +175,18 @@ public:
         h_ratio_nonprompt->SetStats(0);
 
         if (max_yval_ratio > 0 ) h_ratio_prompt->SetMaximum(max_yval_ratio);
+        if (normalized && name == "Pt") h_ratio_prompt->SetMaximum(1.2);
+        if (normalized && name == "D0_Pt") h_ratio_prompt->SetMaximum(2.0);
 
         h_ratio_prompt->Draw("hist");
         h_ratio_nonprompt->Draw("hist same");
+        if (cs) {
+            cout << "printing bins" << endl;
+            for ( int a = 0; a < h_ratio_prompt->GetNbinsX(); a++ ) {
+                cout << h_ratio_prompt->GetBinContent(a) << " ";
+            }
+            cout << endl;
+        }
 
         TLegend *leg_ratio = new TLegend(0.78, 0.65, 0.93, 0.8);
         leg_ratio->SetBorderSize(0);
@@ -176,7 +196,10 @@ public:
         leg_ratio->Draw();
 
         std::string file_plot_output = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/HF_EEC/plots/HF_particle_comparisons/" + name + "_comparison.pdf";
-        if ( cs ) file_plot_output = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/HF_EEC/plots/HF_particle_comparisons/" + name + "_crosssection_comparison.pdf";
+        if ( cs ) {
+            file_plot_output = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/HF_EEC/plots/HF_particle_comparisons/" + name + "_crosssection_comparison.pdf";
+            if ( normalized ) file_plot_output = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/HF_EEC/plots/HF_particle_comparisons/" + name + "_crosssection_normalized_comparison.pdf";
+        }
         if ( cs_method2 ) file_plot_output = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/HF_EEC/plots/HF_particle_comparisons/" + name + "_crosssection_method2_comparison.pdf";
         c->SaveAs(file_plot_output.c_str());
     }
@@ -213,14 +236,8 @@ void draw_multiple_testing(std::vector<Observable> obs_vec) {
     gPad->SetLogy();
 
     // determine max
-    cout << "size of obs vec " << obs_vec.size() << endl;
-    cout << "Testinggg " << typeid(obs_vec[0]).name() << endl;
-    cout << "Testinggg " << obs_vec[0].hist_pythia_prompt->GetNbinsX() << endl;
-    cout << "Testinggg " << typeid(obs_vec[2].hist_pythia_prompt).name() << endl;
-
     double max_height = 0;
     for ( int i = 0; i < obs_vec.size(); i++ ) {
-        cout << "in starting loop " << i << endl;
         double temp_max = std::max( {obs_vec[i].hist_pythia_prompt->GetMaximum(), obs_vec[i].hist_pythia_nonprompt->GetMaximum(), obs_vec[i].hist_herwig_prompt->GetMaximum(), obs_vec[i].hist_herwig_nonprompt->GetMaximum()} );
         max_height = std::max(max_height, temp_max);
     }
@@ -294,15 +311,15 @@ void analyze(TFile * fin_pythia, TFile * fin_herwig) {
         obs->style_hists();
         cout << "drawing hists now" << endl;
         obs->drawPairForObs();
+        if (obs->cs) obs->drawPairForObs(true); // normalize by 1/sigma
     }
 
+    /* // this is debugging method!
     std::vector<Observable> obs_pt_vec = { obs_pt, obs_pt_cs, obs_pt_cs_method2 }; // could use pointers + addresses here, but I don't want to update anything in Observable
-    cout << "Testing " << typeid(obs_pt_vec[0]).name() << endl;
-    cout << "Testing " << obs_pt_vec[0].hist_pythia_prompt->GetNbinsX() << endl;
-    cout << "Testing " << typeid(obs_pt_vec[2].hist_pythia_prompt).name() << endl;
     draw_multiple_testing(obs_pt_vec);
     std::vector<Observable> obs_D0_pt_vec = { obs_D0_pt, obs_D0_pt_cs, obs_D0_pt_cs_method2 };
     draw_multiple_testing(obs_D0_pt_vec);
+    */
 }
 
 // ============ CHECKING NUM OF ENTRIES ============
