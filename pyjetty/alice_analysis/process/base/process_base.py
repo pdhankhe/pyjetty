@@ -324,10 +324,12 @@ class ProcessBase(common_base.CommonBase):
               truth_const_pids = [c.python_info().particle_pid for c in truth_const]
               det_const_pids = [c.python_info().particle_pid for c in det_const]
 
-              d0_in_truth = 421 in truth_const_pids or -412 in truth_const_pids
-              d0_in_det = 421 in det_const_pids or -412 in det_const_pids
+              d0_in_truth = 421 in truth_const_pids
+              d0_in_det = 421 in det_const_pids
+              d0bar_in_truth = -412 in truth_const_pids
+              d0bar_in_det = -412 in det_const_pids
 
-              if d0_in_truth and d0_in_det:
+              if ( d0_in_truth and d0_in_det ) or ( d0bar_in_truth and d0bar_in_det ):
                 jet_info_det.match = jet_truth
                 jet_det.set_python_info(jet_info_det)
                 if hname:

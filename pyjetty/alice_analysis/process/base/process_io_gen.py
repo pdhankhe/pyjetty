@@ -259,11 +259,11 @@ class ProcessIO(common_base.CommonBase):
   # with the same formatting and saves to class's output_file.
   # histograms is list of tuples: [ ("title", np.histogram), ... ]
   #---------------------------------------------------------------
-  def save_dataframe(self, filename, df, df_true=False, histograms=[], is_jetscape=False, is_ENC=False, using_D0=False, df_D0=None):
+  def save_dataframe(self, filename, df, df_true=False, histograms=[], is_jetscape=False, is_ENC=False, using_D0=False): #, df_D0=None):
 
     print("FINAL NUM IN DF: ", len(df))
     if using_D0:
-      print("AND IN DF DO: ", len(df_D0))
+      print("AND IN DF DO: ", len(self.D0_df))
 
     # Create output directory if it does not already exist
     if not os.path.exists(self.output_dir):
@@ -291,8 +291,8 @@ class ProcessIO(common_base.CommonBase):
         branchdict["MotherPID"] = int
         branchdict_D0_true = {"run_number": int, "ev_id": int, "ParticlePt": float, "ParticleEta": float, "ParticlePhi": float, 
                       "ParticleRapidity": float, "ParticlePID": float, "MotherPID": float}
-        branchdict_D0 = {"run_number": int, "ev_id": int, "ParticlePt": float, "ParticleEta": float, "ParticlePhi": float, 
-                      "ParticleRapidity": float, "ParticleMCIndex": int, "ParticlePID": float, "MotherPID": float}
+        # branchdict_D0 = {"run_number": int, "ev_id": int, "ParticlePt": float, "ParticleEta": float, "ParticlePhi": float, 
+        #               "ParticleRapidity": float, "ParticleMCIndex": int, "ParticlePID": float, "MotherPID": float}
 
       if df_true:
         # Create tree with truth particle info (track_df)
@@ -365,19 +365,19 @@ class ProcessIO(common_base.CommonBase):
                            "ParticleMCIndex": df["ParticleMCIndex"],
                            "ParticlePID": df["ParticlePID"],
                            "MotherPID": df["MotherPID"] } )
-        # and now the D0 detector-level tree (df)
-        D0_title = 'tree_D0'
-        print("Length of detector-level D0 tree: %i" % len(df_D0))
-        f.mktree(name=D0_title, branch_types=branchdict_D0, title=D0_title)
-        f[D0_title].extend( { "run_number": df_D0["run_number"],
-                              "ev_id": df_D0["ev_id"],
-                              "ParticlePt": df_D0["ParticlePt"],
-                              "ParticleEta": df_D0["ParticleEta"],
-                              "ParticlePhi": df_D0["ParticlePhi"],
-                              "ParticleRapidity": df_D0["ParticleRapidity"],
-                              "ParticleMCIndex": df_D0["ParticleMCIndex"],
-                              "ParticlePID": df_D0["ParticlePID"],
-                              "MotherPID": df_D0["MotherPID"] } )
+        # # and now the D0 detector-level tree (df)
+        # D0_title = 'tree_D0'
+        # print("Length of detector-level D0 tree: %i" % len(df_D0))
+        # f.mktree(name=D0_title, branch_types=branchdict_D0, title=D0_title)
+        # f[D0_title].extend( { "run_number": df_D0["run_number"],
+        #                       "ev_id": df_D0["ev_id"],
+        #                       "ParticlePt": df_D0["ParticlePt"],
+        #                       "ParticleEta": df_D0["ParticleEta"],
+        #                       "ParticlePhi": df_D0["ParticlePhi"],
+        #                       "ParticleRapidity": df_D0["ParticleRapidity"],
+        #                       "ParticleMCIndex": df_D0["ParticleMCIndex"],
+        #                       "ParticlePID": df_D0["ParticlePID"],
+        #                       "MotherPID": df_D0["MotherPID"] } )
 
       else:
         if is_jetscape:

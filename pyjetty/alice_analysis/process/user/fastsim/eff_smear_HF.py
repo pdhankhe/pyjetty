@@ -84,37 +84,37 @@ class eff_smear_HF:
             self.df_fjparticles = self.add_mc_index(self.df_fjparticles)
             print('--- {} seconds ---'.format(time.time() - start_time))
 
-            if self.use_D0_info:
-                self.df_D0particles = self.add_mc_index(self.df_D0particles)
+            # if self.use_D0_info:
+            #     self.df_D0particles = self.add_mc_index(self.df_D0particles)
 
         # ------------------------------------------------------------------------
 
-        print("INITIAL NUM IN DF: ", len(self.df_fjparticles), "AND IN DF DO: ", len(self.df_D0particles))
+        # print("INITIAL NUM IN DF: ", len(self.df_fjparticles), "AND IN DF DO: ", len(self.df_D0particles))
 
         # Build truth-level histogram of track pT multiplicity
         print("Building truth-level track and D0 pT histogram...")
         self.hist_list.append( ("truth_pt", self.build_pt_hist(self.df_fjparticles)) )
-        self.hist_list.append( ("D0_truth_pt", self.build_pt_hist(self.df_D0particles)) )
+        # self.hist_list.append( ("D0_truth_pt", self.build_pt_hist(self.df_D0particles)) )
         print('--- {} seconds ---'.format(time.time() - start_time))
 
         print("Building truth-level track and D0 pid histogram...")
         self.hist_list.append( ("truth_pid", self.build_pid_hist(self.df_fjparticles)) )
-        self.hist_list.append( ("D0_truth_pid", self.build_pid_hist(self.df_D0particles)) ) # should all be +-421
+        # self.hist_list.append( ("D0_truth_pid", self.build_pid_hist(self.df_D0particles)) ) # should all be +-421
         print('--- {} seconds ---'.format(time.time() - start_time))
 
         # Apply eta cut at the end of the TPC
         self.df_fjparticles = self.apply_eta_cut(self.df_fjparticles, self.nTracks_truth)
-        self.df_D0particles = self.apply_eta_cut(self.df_D0particles, self.nD0_truth)
+        # self.df_D0particles = self.apply_eta_cut(self.df_D0particles, self.nD0_truth)
         print('--- {} seconds ---'.format(time.time() - start_time))
 
-        print("POST ETA CUT // NUM IN DF: ", len(self.df_fjparticles), "AND IN DF DO: ", len(self.df_D0particles))
+        # print("POST ETA CUT // NUM IN DF: ", len(self.df_fjparticles), "AND IN DF DO: ", len(self.df_D0particles))
 
         # Apply efficiency cut
         self.df_fjparticles = self.apply_eff_cut(self.df_fjparticles, self.nTracks_truth)
-        self.df_D0particles = self.apply_eff_cut(self.df_D0particles, self.nD0_truth)
+        # self.df_D0particles = self.apply_eff_cut(self.df_D0particles, self.nD0_truth)
         print('--- {} seconds ---'.format(time.time() - start_time))
 
-        print("POST EFF CUT // NUM IN DF: ", len(self.df_fjparticles), "AND IN DF DO: ", len(self.df_D0particles))
+        # print("POST EFF CUT // NUM IN DF: ", len(self.df_fjparticles), "AND IN DF DO: ", len(self.df_D0particles))
 
         # comment this part and try to appy pair efficiency later in the analysis code
         # # uncomment this for now to check the pair efficiency
@@ -129,19 +129,19 @@ class eff_smear_HF:
         # Build truth-level histogram of track pT multiplicity after efficiency cuts
         print("Building truth-level track pT histogram after efficiency cuts...")
         self.hist_list.append( ("truth_pt_eff_cuts", self.build_pt_hist(self.df_fjparticles)) )
-        self.hist_list.append( ("D0_truth_pt_eff_cuts", self.build_pt_hist(self.df_D0particles)) )
+        # self.hist_list.append( ("D0_truth_pt_eff_cuts", self.build_pt_hist(self.df_D0particles)) )
         print('--- {} seconds ---'.format(time.time() - start_time))
 
         # Apply pT smearing
         self.df_fjparticles = self.apply_pt_smear(self.df_fjparticles)
-        self.df_D0particles = self.apply_pt_smear(self.df_D0particles, D0_tree_in_use = True)
+        # self.df_D0particles = self.apply_pt_smear(self.df_D0particles, D0_tree_in_use = True)
         print('--- {} seconds ---'.format(time.time() - start_time))
-        print("POST PT SMEARING // NUM IN DF: ", len(self.df_fjparticles), "AND IN DF DO: ", len(self.df_D0particles))
+        # print("POST PT SMEARING // NUM IN DF: ", len(self.df_fjparticles), "AND IN DF DO: ", len(self.df_D0particles))
 
         # Build truth-level histogram of track pT multiplicity
         print("Building detector-level track pT histogram...")
         self.hist_list.append( ("fastsim_pt", self.build_pt_hist(self.df_fjparticles)) )
-        self.hist_list.append( ("D0_fastsim_pt", self.build_pt_hist(self.df_D0particles)) )
+        # self.hist_list.append( ("D0_fastsim_pt", self.build_pt_hist(self.df_D0particles)) )
         print('--- {} seconds ---'.format(time.time() - start_time))
 
         # ------------------------------------------------------------------------
@@ -150,7 +150,7 @@ class eff_smear_HF:
         print(self.df_fjparticles)
         print("Writing fast simulation to ROOT TTree...")
         self.io.save_dataframe("AnalysisResultsFastSim.root", self.df_fjparticles,
-                               df_true=True, histograms=self.hist_list, is_jetscape=self.is_jetscape, is_ENC=self.is_ENC, using_D0 = True, df_D0 = self.df_D0particles)
+                               df_true=True, histograms=self.hist_list, is_jetscape=self.is_jetscape, is_ENC=self.is_ENC, using_D0 = True) #, df_D0 = self.df_D0particles)
         print('--- {} seconds ---'.format(time.time() - start_time))
 
 
@@ -167,7 +167,7 @@ class eff_smear_HF:
                                         use_ev_id_ext=False,
                                         use_D0_info=True,
                                         is_jetscape=self.is_jetscape, is_ENC=self.is_ENC)
-        self.df_fjparticles, self.df_D0particles = self.io.load_dataframe(self.numberOfSkipEvents,self.numberOfSkipEvents+self.numberOfEvents)
+        self.df_fjparticles, self.df_D0particles = self.io.load_dataframe(self.numberOfSkipEvents,self.numberOfSkipEvents+self.numberOfEvents) # do not really need the D0 part anymore but leaving it anyways
         self.nTracks_truth = len(self.df_fjparticles)
         self.nD0_truth = len(self.df_D0particles)
         print("DataFrame loaded from data.")

@@ -817,6 +817,7 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
   # 0 if baryon+meson (proton + pion)
   # -1 if meson+meson (pion + pion)
   # 2 if any other particles
+  # FYI This won't work for anchored mc - no particle pid saved
   def is_pair_baryonmeson(self, corr_builder, ipoint, constituents, index):
     part1 = int(corr_builder.correlator(ipoint).indices1()[index])
     part2 = int(corr_builder.correlator(ipoint).indices2()[index])
@@ -832,7 +833,7 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
     else:
       return 2
     
-    
+   # FYI This won't work for anchored mc - no particle pid saved
   def charge_bm1bm2(self, corr_builder, ipoint, constituents, index):
     part1 = int(corr_builder.correlator(ipoint).indices1()[index])
     part2 = int(corr_builder.correlator(ipoint).indices2()[index])
@@ -950,7 +951,7 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
     num_mesons_aftercut = 0
 
     for c in constituents:
-      pid = c.python_info().particle_pid
+      pid = c.python_info().particle_pid # FYI This won't work for anchored mc - no particle pid saved
       if abs(pid) == 2212: #proton
         num_baryons_tot+=1
       elif abs(pid) == 211: #pion

@@ -297,6 +297,8 @@ class ProcessIO(common_base.CommonBase):
 
       branchdict = {"run_number": int, "ev_id": int, "ParticlePt": float,
                       "ParticleEta": float, "ParticlePhi": float}
+      branchdict_true = {"run_number": int, "ev_id": int, "ParticlePt": float,
+                      "ParticleEta": float, "ParticlePhi": float}
       if is_jetscape:
         branchdict_true["status"] = int
         branchdict["status"] = int
@@ -494,7 +496,7 @@ class ProcessIO(common_base.CommonBase):
       #   self.get_fjparticles, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt), "ParticleMCIndex": track_df_grouped["ParticleMCIndex"]})
       
     
-    else:
+    else: #if not group_by_evid
       print("Transform the track dataframe into a dataframe of fastjet particles per track...")
 
       # Transform into a DataFrame of fastjet particles
@@ -554,7 +556,7 @@ class ProcessIO(common_base.CommonBase):
       df_tracks_accepted['ParticlePhi'].values, m_array, user_index_offset)
 
     # add for dEEC:
-    if not self.is_ENC:
+    if self.is_mcprod: #not self.is_ENC:
       for i, charge in enumerate(df_tracks_accepted['ParticleCharge'].values):
         jetinfo = jet_info.JetInfo()
         jetinfo.charge = charge

@@ -334,6 +334,10 @@ class ProcessMCBase(process_base.ProcessBase):
       self.nTracks_truth = len(io_D0_truth.track_df.index)
       print('--- {} seconds ---'.format(time.time() - self.start_time))
 
+      # make an empty dictionary to store truth tracks that get reconstructed as D0s
+      if self.use_D0_info:
+        # D0daughter_columns = ['ev_id', 'fj_particle', 'ParticleMCIndex', 'ParticlePID', 'ParticleRapidity', 'MotherPID']
+        self.dict_replaced_D0_daughter_truth_tracks = {} 
 
       print("COLS!", df_D0particles_truth.columns)
 
@@ -363,15 +367,15 @@ class ProcessMCBase(process_base.ProcessBase):
       d0_rap_truth = df_D0particles_truth['ParticleRapidity'].values
 
       #d0_ev_id_truth is in the form: [array([6]) array([25]) array([37]) ... array([3920,3920]) ... array([19942]) array([19959]) where each index gives you an array(a,b) for one event number.
-      # which means we want it in the form [6 25 etc] -- needs to be flattened
+      # which means we want it in the form [6 25 ... 3920 3920 ... 19942 etc] -- needs to be flattened
       d0_ev_id_truth_flat = [item for sublist in d0_ev_id_truth for item in sublist]
       d0_4vec_truth_flat = [item for sublist in d0_4vec_truth for item in sublist]
       d0_pid_truth_flat = [item for sublist in d0_pid_truth for item in sublist]
       d0_mid_truth_flat = [item for sublist in d0_mid_truth for item in sublist]
       d0_rap_truth_flat = [item for sublist in d0_rap_truth for item in sublist]
 
-      d0_ev_id_det = df_D0particles_det['ev_id'].values #todo: flatten this here too???
-      d0_mcindices_det = df_D0particles_det['ParticleMCIndex'].values
+      # d0_ev_id_det = df_D0particles_det['ev_id'].values #todo: flatten this here too???
+      # d0_mcindices_det = df_D0particles_det['ParticleMCIndex'].values
 
       # Start event loop here! -- detector level edits
       for ind_ev, (iev_arr, event_mpids) in enumerate(zip(track_ev_id_det, mother_pids_det)):
@@ -422,8 +426,8 @@ class ProcessMCBase(process_base.ProcessBase):
 
           [print("index of D0 in D0 tree:", ind, "// and corresponding evid", evid) for ind, evid in enumerate(d0_ev_id_truth_flat) if evid == ievent_adj]
 
-          list_of_D0_indices_in_event_det = [ind for ind, evid in enumerate(d0_ev_id_det) if evid[0] == ievent_adj]
-          list_of_D0s_mcindices_det = [d0_mcindices_det[ind] for ind in list_of_D0_indices_in_event_det]
+          # list_of_D0_indices_in_event_det = [ind for ind, evid in enumerate(d0_ev_id_det) if evid[0] == ievent_adj]
+          # list_of_D0s_mcindices_det = [d0_mcindices_det[ind] for ind in list_of_D0_indices_in_event_det]
           # print("rev_list_of_D0_indices_in_event_truth", rev_list_of_D0_indices_in_event_truth)
 
           if ievent_adj < 1000:
@@ -457,13 +461,13 @@ class ProcessMCBase(process_base.ProcessBase):
                       for col in df_fjparticles_det.loc[(run_num, ievent_adj)].index: #lists the columns 
                         if col == 'fj_particle':
                           # remove kaon and pion
-                          df_fjparticles_det.loc[(run_num, ievent_adj)][col] = pythiafjext.removeByIndex(df_fjparticles_det.loc[(run_num, ievent_adj)][col], rev_possible_daughter_indices[0]) 
-                          df_fjparticles_det.loc[(run_num, ievent_adj)][col] = pythiafjext.removeByIndex(df_fjparticles_det.loc[(run_num, ievent_adj)][col], rev_possible_daughter_indices[j]) 
+                          df_fjparticles_det.loc[(run_num, ievent_adj),col] = pythiafjext.removeByIndex(df_fjparticles_det.loc[(run_num, ievent_adj),col], rev_possible_daughter_indices[0]) 
+                          df_fjparticles_det.loc[(run_num, ievent_adj),col] = pythiafjext.removeByIndex(df_fjparticles_det.loc[(run_num, ievent_adj),col], rev_possible_daughter_indices[j]) 
                         else:
                           # print("col", col, df_fjparticles_det.loc[(run_num, ievent_adj),col])
-                          df_fjparticles_det.loc[(run_num, ievent_adj)][col] = np.delete(df_fjparticles_det.loc[(run_num, ievent_adj)][col], rev_possible_daughter_indices[0])
+                          df_fjparticles_det.loc[(run_num, ievent_adj),col] = np.delete(df_fjparticles_det.loc[(run_num, ievent_adj),col], rev_possible_daughter_indices[0])
                           # print("col", col, df_fjparticles_det.loc[(run_num, ievent_adj),col])
-                          df_fjparticles_det.loc[(run_num, ievent_adj)][col] = np.delete(df_fjparticles_det.loc[(run_num, ievent_adj)][col], rev_possible_daughter_indices[j])
+                          df_fjparticles_det.loc[(run_num, ievent_adj),col] = np.delete(df_fjparticles_det.loc[(run_num, ievent_adj),col], rev_possible_daughter_indices[j])
                       if ievent_adj < 1000:
                         print("keep for debug, length after kpi removal", len(df_fjparticles_det['fj_particle'].values[ind_ev_adj])) #, 
                             # len(df_fjparticles_det['ParticlePID'].values[ind_ev_adj]), len(df_fjparticles_det['MotherPID'].values[ind_ev_adj]))
@@ -471,22 +475,26 @@ class ProcessMCBase(process_base.ProcessBase):
                       # and add the D0
 
                       col = 'fj_particle'
-                      df_fjparticles_det.loc[(run_num, ievent_adj)][col] = pythiafjext.addByIndex(df_fjparticles_det.loc[(run_num, ievent_adj)][col], 
+                      # print("TESING BEFORE!", df_fjparticles_det.loc[(run_num, ievent_adj),col][rev_possible_daughter_indices[j]].python_info().particle_pid, df_fjparticles_det.loc[(run_num, ievent_adj),col][rev_possible_daughter_indices[j]].python_info().charge)
+                      df_fjparticles_det.loc[(run_num, ievent_adj),col] = pythiafjext.addByIndex(df_fjparticles_det.loc[(run_num, ievent_adj),col], 
                                                                              rev_possible_daughter_indices[j], possible_daughter_4vec_det[0]+possible_daughter_4vec_det[j])
+                      # print("TESING AFTER!", df_fjparticles_det.loc[(run_num, ievent_adj),col][rev_possible_daughter_indices[j]].python_info().particle_pid, df_fjparticles_det.loc[(run_num, ievent_adj),col][rev_possible_daughter_indices[j]].python_info().charge)
+
                       col = 'ParticlePID'
                       df_fjparticles_det.loc[(run_num, ievent_adj),col] = np.insert(df_fjparticles_det.loc[(run_num, ievent_adj),col],
                                                                             rev_possible_daughter_indices[j], list_of_D0s_pid_truth[k])
-                      # print("innnn into this array:", df_fjparticles_det.loc[(run_num, ievent_adj)][col])
+                      # print("innnn into this array:", df_fjparticles_det.loc[(run_num, ievent_adj),col])
                       
                       col = 'MotherPID'
                       # print("inserting", list_of_D0s_mid_truth[k], "into", col)
-                      # print("into this array:", df_fjparticles_det.loc[(run_num, ievent_adj)][col])
-                      df_fjparticles_det.loc[(run_num, ievent_adj)][col] = np.insert(df_fjparticles_det.loc[(run_num, ievent_adj)][col], 
+                      # print("into this array:", df_fjparticles_det.loc[(run_num, ievent_adj),col])
+                      df_fjparticles_det.loc[(run_num, ievent_adj),col] = np.insert(df_fjparticles_det.loc[(run_num, ievent_adj),col], 
                                                                              rev_possible_daughter_indices[j], list_of_D0s_mid_truth[k]) #-1) 
-                      # print("into this array:", df_fjparticles_det.loc[(run_num, ievent_adj)][col])
+                      # print("into this array:", df_fjparticles_det.loc[(run_num, ievent_adj),col])
                     
                       col = 'ParticleRapidity'
-                      df_fjparticles_det.loc[(run_num, ievent_adj)][col] = np.insert(df_fjparticles_det.loc[(run_num, ievent_adj)][col], rev_possible_daughter_indices[j], list_of_D0s_rap_truth[k])
+                      df_fjparticles_det.loc[(run_num, ievent_adj),col] = np.insert(df_fjparticles_det.loc[(run_num, ievent_adj),col], rev_possible_daughter_indices[j], list_of_D0s_rap_truth[k])
+                      # print("inserting", type(d0_rap_truth[d0_event_counter][i_d0]), d0_rap_truth[d0_event_counter][i_d0], "of", d0_rap_truth[d0_event_counter], "into", col)
                       # print("just added d0 particles here what is happening?")
                       
                       # these are placeholder values right now. replace these indices properly in next loop
@@ -496,9 +504,10 @@ class ProcessMCBase(process_base.ProcessBase):
                         # print("if passed if", list_of_D0s_mcindices_det[0], len(list_of_D0s_4vec_truth), k, len(list_of_D0s_4vec_truth) - 1 - k)
                       D0_mcid = int(len(list_of_D0s_4vec_truth) - 1 - k) #rev_list_of_D0_indices_in_event_truth[k]
                       print("D0 mcid is ", D0_mcid)
-
-                        # print("inserting", type(d0_rap_truth[d0_event_counter][i_d0]), d0_rap_truth[d0_event_counter][i_d0], "of", d0_rap_truth[d0_event_counter], "into", col)
-                      df_fjparticles_det.loc[(run_num, ievent_adj)][col] = np.insert(df_fjparticles_det.loc[(run_num, ievent_adj)][col], rev_possible_daughter_indices[j], D0_mcid)
+                      df_fjparticles_det.loc[(run_num, ievent_adj),col] = np.insert(df_fjparticles_det.loc[(run_num, ievent_adj),col], rev_possible_daughter_indices[j], D0_mcid)
+                      
+                      col = 'ev_id'
+                      df_fjparticles_det.loc[(run_num, ievent_adj),col] = np.insert(df_fjparticles_det.loc[(run_num, ievent_adj),col], rev_possible_daughter_indices[j], ievent_adj)
                       
                       '''
                       if ( len(list_of_D0s_mcindices_det) > 0 ) and ( int(len(list_of_D0s_4vec_truth) - 1 - k) in list_of_D0s_mcindices_det[0] ):
@@ -605,15 +614,33 @@ class ProcessMCBase(process_base.ProcessBase):
         
           for i_dau,dau_ind in enumerate(rev_dau_inds):
             
+            # save to daughter tracks df first - the "MCIndex" will map back to the index of the D0
+            # next_idx = len(self.df_replaced_D0_daughter_truth_tracks) 
+            fjpart_array = df_fjparticles_truth.loc[(run_num, ievent_adj), 'fj_particle']
+            pid_array = df_fjparticles_truth.loc[(run_num, ievent_adj), 'ParticlePID']
+            rap_array = df_fjparticles_truth.loc[(run_num, ievent_adj), 'ParticleRapidity']
+            mpid_array = df_fjparticles_truth.loc[(run_num, ievent_adj), 'MotherPID']
+
+            index_of_first_daughter = dau_ind if i_dau%2 == 1 else dau_ind-1 # the first daughter of the D0 is always the even index in the reversed list of dau indices
+            index_of_first_daughter = index_of_first_daughter - np.floor( (len(rev_dau_inds) - i_dau - 1) / 2 ) # now account for list of dau indices getting shorter as we loop through and remove pairs of daughters
+            
+            dict_key = (ievent_adj, index_of_first_daughter) 
+            self.dict_replaced_D0_daughter_truth_tracks[dict_key] = {
+                'fj_particle': fjpart_array[dau_ind],
+                'ParticlePID': pid_array[dau_ind],
+                'ParticleRapidity': rap_array[dau_ind],
+                'MotherPID': mpid_array[dau_ind]
+            }
+            
             # DELETING the rows that have the kaon and pion
             for col in df_fjparticles_truth.loc[(run_num, ievent_adj)].index: #lists the columns
               
               if col == 'fj_particle':
                 # print("dau ind", dau_ind, type(dau_ind))
                 # print("Check: what is being removed", i_dau, ":", df_fjparticles_truth.loc[(run_num, ievent_adj)]['ParticlePID'][dau_ind], df_fjparticles_truth.loc[(run_num, ievent_adj)]['fj_particle'][dau_ind].pt(), df_fjparticles_truth.loc[(run_num, ievent_adj)]['fj_particle'][dau_ind].eta())
-                df_fjparticles_truth.loc[(run_num, ievent_adj)][col] = pythiafjext.removeByIndex(df_fjparticles_truth.loc[(run_num, ievent_adj)][col], dau_ind) 
+                df_fjparticles_truth.loc[(run_num, ievent_adj), col] = pythiafjext.removeByIndex(df_fjparticles_truth.loc[(run_num, ievent_adj),col], dau_ind) 
               else:
-                df_fjparticles_truth.loc[(run_num, ievent_adj)][col] = np.delete(df_fjparticles_truth.loc[(run_num, ievent_adj)][col], dau_ind)
+                df_fjparticles_truth.loc[(run_num, ievent_adj), col] = np.delete(df_fjparticles_truth.loc[(run_num, ievent_adj),col], dau_ind)
 
             if iev < 1000:
               print("keep for debug, length after kpi removal", len(df_fjparticles_truth['fj_particle'].values[iev]), 
@@ -629,25 +656,25 @@ class ProcessMCBase(process_base.ProcessBase):
 
               col = 'fj_particle'
               # print("inserting", d0_4vec_truth[d0_event_counter][D0_index], "of", len(d0_4vec_truth[d0_event_counter]), " items into", col)
-              df_fjparticles_truth.loc[(run_num, ievent_adj)][col] = pythiafjext.addByIndex(df_fjparticles_truth.loc[(run_num, ievent_adj)][col], 
-                                                                                          rev_dau_inds[i_dau], d0_4vec_truth[d0_event_counter][D0_index])
+              df_fjparticles_truth.loc[(run_num, ievent_adj),col] = pythiafjext.addByIndex(df_fjparticles_truth.loc[(run_num, ievent_adj),col], 
+                                                                                          dau_ind, d0_4vec_truth[d0_event_counter][D0_index]) 
                       
               col = 'ParticlePID'
               # print("inserting", d0_pid_truth[d0_event_counter][D0_index], "of", d0_pid_truth[d0_event_counter], "into", col)
-              df_fjparticles_truth.loc[(run_num, ievent_adj)][col] = np.insert(df_fjparticles_truth.loc[(run_num, ievent_adj)][col],
-                                                                            rev_dau_inds[i_dau], d0_pid_truth[d0_event_counter][D0_index])
+              df_fjparticles_truth.loc[(run_num, ievent_adj),col] = np.insert(df_fjparticles_truth.loc[(run_num, ievent_adj),col],
+                                                                            dau_ind, d0_pid_truth[d0_event_counter][D0_index])
               col = 'MotherPID'
               # print("inserting MID", d0_mid_truth[d0_event_counter][D0_index], "into", col)
-              df_fjparticles_truth.loc[(run_num, ievent_adj)][col] = np.insert(df_fjparticles_truth.loc[(run_num, ievent_adj)][col], 
-                                                                              rev_dau_inds[i_dau], d0_mid_truth[d0_event_counter][D0_index]) #-1)
+              df_fjparticles_truth.loc[(run_num, ievent_adj),col] = np.insert(df_fjparticles_truth.loc[(run_num, ievent_adj),col], 
+                                                                              dau_ind, d0_mid_truth[d0_event_counter][D0_index]) #-1)
 
               col = 'ParticleRapidity'
               # print("inserting", d0_rap_truth[d0_event_counter][D0_index], "of", d0_rap_truth[d0_event_counter], "into", col)
-              df_fjparticles_truth.loc[(run_num, ievent_adj)][col] = np.insert(df_fjparticles_truth.loc[(run_num, ievent_adj)][col], rev_dau_inds[i_dau], d0_rap_truth[d0_event_counter][D0_index])
+              df_fjparticles_truth.loc[(run_num, ievent_adj),col] = np.insert(df_fjparticles_truth.loc[(run_num, ievent_adj),col], dau_ind, d0_rap_truth[d0_event_counter][D0_index])
 
 
-              # D0_part_that_was_added = df_fjparticles_truth.loc[(run_num, ievent_adj)]['fj_particle'][rev_dau_inds[i_dau]]
-              # print("Check: D0 being added to spot:", rev_dau_inds[i_dau], " pt:", D0_part_that_was_added.pt(), "eta:", D0_part_that_was_added.eta(), "pid:", d0_pid_truth[d0_event_counter][D0_index], "mid:", d0_mid_truth[d0_event_counter][D0_index], "rap:", d0_rap_truth[d0_event_counter][D0_index])
+              # D0_part_that_was_added = df_fjparticles_truth.loc[(run_num, ievent_adj)]['fj_particle'][dau_ind]
+              # print("Check: D0 being added to spot:", dau_ind, " pt:", D0_part_that_was_added.pt(), "eta:", D0_part_that_was_added.eta(), "pid:", d0_pid_truth[d0_event_counter][D0_index], "mid:", d0_mid_truth[d0_event_counter][D0_index], "rap:", d0_rap_truth[d0_event_counter][D0_index])
 
 
               # Adjusting the ParticleMCIndex of the det-level tree since the gen-level df is changing here with replacement of kpi->D0
@@ -658,18 +685,18 @@ class ProcessMCBase(process_base.ProcessBase):
                 # print(df_fjparticles_det.loc[(run_num, ievent_adj)]['ParticleMCIndex'].ndim)
                 if df_fjparticles_det.loc[(run_num, ievent_adj)]['ParticleMCIndex'].ndim == 0: # this is a 0-d array but it looks like its saved as a "scalar" and it's the D0!
                   # print("this is a scalar!!!!")
-                  df_fjparticles_det.loc[(run_num, ievent_adj)]['ParticleMCIndex'] = np.array([rev_dau_inds[i_dau]])
+                  df_fjparticles_det.loc[(run_num, ievent_adj)]['ParticleMCIndex'] = np.array([dau_ind])
                   # print(df_fjparticles_det.loc[(run_num, ievent_adj)]['ParticleMCIndex'].ndim)
                   # print(df_fjparticles_det.loc[(run_num, ievent_adj)]['ParticleMCIndex'])
                 else:
                   for i_item,mcid in enumerate(df_fjparticles_det.loc[(run_num, ievent_adj)]['ParticleMCIndex']): #loop over items in array of ParticleMCIndex
                     if abs(df_fjparticles_det.loc[(run_num, ievent_adj)]['ParticlePID'][i_item]) == 421 and D0_index == mcid:
-                      df_fjparticles_det.loc[(run_num, ievent_adj)]['ParticleMCIndex'][i_item] = rev_dau_inds[i_dau]
+                      df_fjparticles_det.loc[(run_num, ievent_adj)]['ParticleMCIndex'][i_item] = dau_ind
                       # print("D0 found at", i_item)
-                    if mcid > rev_dau_inds[i_dau]:
+                    if mcid > dau_ind:
                       df_fjparticles_det.loc[(run_num, ievent_adj)]['ParticleMCIndex'][i_item] = mcid - 1
 
-                  # if abs(mcid) > rev_dau_inds[i_dau]: #rev_possible_daughter_indices[0]:
+                  # if abs(mcid) > dau_ind: #rev_possible_daughter_indices[0]:
                   #   if mcid < 0: #this is a negative D0 mc index to point to not being there at det-level... need to add 1 instead of subtract
                   #     df_fjparticles_det.loc[(run_num, ievent_adj)]['ParticleMCIndex'][i_item] = mcid + 1
                   #   else:
@@ -683,6 +710,7 @@ class ProcessMCBase(process_base.ProcessBase):
                     len(df_fjparticles_truth['ParticlePID'].values[iev]), len(df_fjparticles_truth['MotherPID'].values[iev]))
               
           d0_event_counter+=1
+          # print("self.dict_replaced_D0_daughter_truth_tracks?,", self.dict_replaced_D0_daughter_truth_tracks)
               
           
         
@@ -895,14 +923,14 @@ class ProcessMCBase(process_base.ProcessBase):
         result = [self.analyze_event(fj_particles_det=fj_particles_det, fj_particles_truth=fj_particles_truth, 
                                    particles_mcid_det=particles_mcid_det, particles_pid_truth=particles_pid_truth, 
                                    particles_pid_det=particles_pid_det, particles_mid_truth=particles_mid_truth, 
-                                   particles_rap_truth=particles_rap_truth, D0s_truth=D0s_truth) 
+                                   particles_rap_truth=particles_rap_truth) 
                                    for fj_particles_det, fj_particles_truth, particles_mcid_det, 
                                    particles_pid_truth, particles_pid_det, particles_mid_truth, 
-                                   particles_rap_truth, D0s_truth 
+                                   particles_rap_truth 
                                    in zip(self.df_fjparticles['fj_particles_det'], self.df_fjparticles['fj_particles_truth'], 
                                           self.df_fjparticles['ParticleMCIndex_det'], self.df_fjparticles['ParticlePID_truth'], 
                                           self.df_fjparticles['ParticlePID_det'], self.df_fjparticles['MotherPID_truth'], 
-                                          self.df_fjparticles['ParticleRapidity_truth'], self.df_fjparticles['fj_D0_truth'])]
+                                          self.df_fjparticles['ParticleRapidity_truth'])] #, self.df_fjparticles['fj_D0_truth'])]
       else:
         #don't use no det for now...
         result = [self.analyze_event(fj_particles_det=fj_particles_det, fj_particles_truth=fj_particles_truth, particles_mcid_det=particles_mcid_det, particles_pid_truth=particles_pid_truth) for fj_particles_det, fj_particles_truth, particles_mcid_det, particles_pid_truth in zip(self.df_fjparticles['fj_particles_det'], self.df_fjparticles['fj_particles_truth'], self.df_fjparticles['ParticleMCIndex'], self.df_fjparticles['ParticlePID'])]
@@ -1112,7 +1140,7 @@ class ProcessMCBase(process_base.ProcessBase):
         
       
   def analyze_event(self, fj_particles_det, fj_particles_truth, fj_particles_det_holes=None, fj_particles_truth_holes=None, particles_mcid_det=None, particles_mcid_truth=None,
-                    particles_charge_det=None, particles_charge_truth=None, particles_pid_truth=None, particles_pid_det=None, particles_mid_truth=None, particles_rap_truth=None, D0s_truth=None):
+                    particles_charge_det=None, particles_charge_truth=None, particles_pid_truth=None, particles_pid_det=None, particles_mid_truth=None, particles_rap_truth=None):
   
     # add condition to skip events that have no detector level particles in them?? -- maybe get rid of
     if self.event_number % 1000 == 0:
@@ -1128,25 +1156,54 @@ class ProcessMCBase(process_base.ProcessBase):
 
     if self.ENC_fastsim:
       # make charge array from pid info, needed for pair efficiency determination
-        particles_charge_truth = np.array([])
-        for pid in particles_pid_truth:
-            # charged hadrons
-            if abs(pid)==211 or abs(pid)==321 or abs(pid)==2212 or abs(pid)==3222:
-                if pid>0:
-                    particles_charge_truth = np.append(particles_charge_truth, 1)
-                else:
-                    particles_charge_truth = np.append(particles_charge_truth, -1)
-            # electrons and muons
-            elif abs(pid)==11 or abs(pid)==13 or abs(pid)==3112 or abs(pid)==3312 or abs(pid)==3334:
-                if pid>0:
-                    particles_charge_truth = np.append(particles_charge_truth, -1)
-                else:
-                    particles_charge_truth = np.append(particles_charge_truth, 1)
-            # long lived weak decay particles (<2% of the total number of charged particles)
-            # for now mark as charge 0 and later NOT applying pair efficiency for 0-charged or 0-0 pairs
-            # NB: this can be avoided by decaying these paritcles within the generation step
-            else:
-                particles_charge_truth = np.append(particles_charge_truth, 0)
+      particles_charge_truth = np.array([])
+      count_charged = 0
+      count_neutral = 0
+      count_neutrals_photon_neutrino_neutron_K0L = 0
+      count_d0 = 0
+      # print("truth level charge checks")
+      for pid in particles_pid_truth:
+        # charged hadrons
+        if abs(pid)==211 or abs(pid)==321 or abs(pid)==2212 or abs(pid)==3222:
+          if pid>0:
+            particles_charge_truth = np.append(particles_charge_truth, 1)
+          else:
+            particles_charge_truth = np.append(particles_charge_truth, -1)
+          count_charged+=1
+        # electrons and muons
+        elif abs(pid)==11 or abs(pid)==13 or abs(pid)==3112 or abs(pid)==3312 or abs(pid)==3334:
+          if pid>0:
+            particles_charge_truth = np.append(particles_charge_truth, -1)
+          else:
+            particles_charge_truth = np.append(particles_charge_truth, 1)
+          count_charged+=1
+        # long lived weak decay particles (<2% of the total number of charged particles)
+        # for now mark as charge 0 and later NOT applying pair efficiency for 0-charged or 0-0 pairs
+        # NB: this can be avoided by decaying these paritcles within the generation step
+        # neutral particles: 22 (photon), 130 (K0L), 2112 (neutron), 12/14/16 (neutrinos)
+        # other neutrals: 3122 (Lambda), 3212 (Sigma0), 3112 (Xi-), 3312 (Xi0), 3334 (Omega-), 310 (K0S), 111 (pi0)
+        else:
+          particles_charge_truth = np.append(particles_charge_truth, 0)
+          count_neutral+=1
+          if abs(pid)==421:
+            count_d0+=1
+          # if abs(pid)==22 or abs(pid)==12 or abs(pid)==14 or abs(pid)==16 or abs(pid)==130 or abs(pid)==2112:
+          #   count_neutrals_photon_neutrino_neutron_K0L+=1
+          # if not (abs(pid)==421 or abs(pid)==22 or abs(pid)==12 or abs(pid)==14 or abs(pid)==16 or abs(pid)==130 or abs(pid)==2112):
+          #   print("ALERT! This is a neutral that is not a D0, photon, or neutrino, neutron, or K0L! Check what it is! PID:", pid)
+          
+
+      # if self.event_number < 100:
+      # print("================================")
+      # print("EVENT", self.event_number)
+      # print("all charges truth level start:")
+      # # print(particles_charge_truth)
+      # print("there are ", count_charged, "charged particles")
+      # print("there are ", count_neutral, "neutral particles")
+      # print("there are ", count_neutrals_photon_neutrino_neutron_K0L, "photons or neutrinos")
+      # print("there are ", count_d0, "d0 particles")
+      # if count_neutral != count_d0:
+      #   print("There are", count_neutral - count_d0 - count_neutrals_photon_neutrino_neutron_K0L, "neutrals that are not D0's, photons, or neutrinos!") # checked this - there aren't (for my herwig generation)
       
     # Check that the entries exist appropriately
     # (need to check how this can happen -- but it is only a tiny fraction of events)
@@ -1160,7 +1217,12 @@ class ProcessMCBase(process_base.ProcessBase):
 
       # add associated truth info and charge info in fj_particles_det using the JetInfo object
       if self.ENC_fastsim:
-
+        # print("det level charge checks")
+        count_charged = 0
+        count_neutral = 0
+        count_neutrals_photon_neutrino_neutron_K0L = 0
+        count_d0 = 0
+        
         if isinstance(particles_mcid_det, float) and np.isnan(particles_mcid_det):
           print("Nan value - no detector level particles in this event.")
         else:
@@ -1178,22 +1240,50 @@ class ProcessMCBase(process_base.ProcessBase):
               corresponding_truth_pid = particles_pid_det
             else:
               corresponding_truth_pid = particles_pid_truth[int(particles_mcid_det)]
-            print("corresponding truth pid", corresponding_truth_pid)
+            # print("corresponding truth pid", corresponding_truth_pid)
 
-            # Get the charge of the particle - there shouldn't be any neutrals (except D0 case)
-            det_charge = int(corresponding_truth_pid / abs(corresponding_truth_pid))
-            if abs(corresponding_truth_pid) == 421:
-              det_charge = 0
-            
+            # # Get the charge of the particle - there shouldn't be any neutrals (except D0 case)
+            # det_charge = int(corresponding_truth_pid / abs(corresponding_truth_pid))
+            # if abs(corresponding_truth_pid) == 421:
+            #   det_charge = 0
+            # charged hadrons
+            det_charge = 0
+            if abs(corresponding_truth_pid)==211 or abs(corresponding_truth_pid)==321 or abs(corresponding_truth_pid)==2212 or abs(corresponding_truth_pid)==3222:
+              det_charge = 1 if corresponding_truth_pid > 0 else -1
+              count_charged+=1
+            # electrons and muons
+            elif abs(corresponding_truth_pid)==11 or abs(corresponding_truth_pid)==13 or abs(corresponding_truth_pid)==3112 or abs(corresponding_truth_pid)==3312 or abs(corresponding_truth_pid)==3334:
+              det_charge = -1 if corresponding_truth_pid > 0 else 1
+              count_charged+=1
+            else:
+              count_neutral+=1
+              if abs(corresponding_truth_pid)==421:
+                count_d0+=1
+              if abs(corresponding_truth_pid)==22 or abs(corresponding_truth_pid)==12 or abs(corresponding_truth_pid)==14 or abs(corresponding_truth_pid)==16 or abs(corresponding_truth_pid)==130 or abs(corresponding_truth_pid)==2112:
+                count_neutrals_photon_neutrino_neutron_K0L+=1
+              # if not (abs(corresponding_truth_pid)==421 or abs(corresponding_truth_pid)==22 or abs(corresponding_truth_pid)==12 or abs(corresponding_truth_pid)==14 or abs(corresponding_truth_pid)==16  or abs(corresponding_truth_pid)==130 or abs(corresponding_truth_pid)==2112):
+                # print("ALERT! This is a neutral that is not a D0, photon, or neutrino, K0L or neutron ! Check what it is! PID:", corresponding_truth_pid)
+
             # Get the fj particle of the corresponding truth particle
-            corresponding_truth_fj_particle = fj_particles_truth[int(abs(particles_mcid_det))]
+            if (corresponding_truth_pid == particles_pid_truth[int(mcid)]):
+              corresponding_truth_fj_particle = fj_particles_truth[int(abs(mcid))]
+            else: # this is a case where i.e. the det-level D0 was not reconstructed, so corresponding_truth_pid gives a D0 daughter, and particles_pid_truth[int(mcid)] gives the D0
+              # corresponding_truth_fj_particle = None
+              # mask = (self.df_replaced_D0_daughter_truth_tracks['ev_id'] == self.event_number-1) & (self.df_replaced_D0_daughter_truth_tracks['ParticleMCIndex'] == int(mcid))
+              # corresponding_truth_fj_particle = self.df_replaced_D0_daughter_truth_tracks.loc[mask, 'fj_particle'].values[0] 
+              corresponding_truth_fj_particle = self.dict_replaced_D0_daughter_truth_tracks[(self.event_number-1, int(mcid))]['fj_particle']
+              # print(corresponding_truth_pid, particles_pid_truth[int(mcid)])
+              # print("dict_replaced_D0_daughter_truth_tracks", self.event_number - 1, int(mcid), ":::   ", self.dict_replaced_D0_daughter_truth_tracks[(self.event_number-1, int(mcid))])
+              # print("corresponding truth fj particle from replaced D0 daughter tracks dataframe:", corresponding_truth_fj_particle)
+
             if abs(corresponding_truth_pid) == 421: # it's a D0 so the mcid will take it back to the D0 tree!
               print("D0 fj particle here!")
 
             ecorr_user_info.particle_mcid = int(particles_mcid_det)
             ecorr_user_info.particle_truth = corresponding_truth_fj_particle
             ecorr_user_info.particle_pid = corresponding_truth_pid
-            ecorr_user_info.charge = det_charge 
+            ecorr_user_info.charge = det_charge #int( particles_charge_truth[int(particles_mcid_det)] )
+            print("  only 1 particle in event, with pid", ecorr_user_info.particle_pid, "and charge", ecorr_user_info.charge)
 
             if (self.use_D0_info):
               ecorr_user_info.particle_rap = particles_rap_truth[int(abs(particles_mcid_det))]
@@ -1210,32 +1300,74 @@ class ProcessMCBase(process_base.ProcessBase):
 
               # Get the PID of the corresponding truth particle
               if self.use_D0_info: # we have the particle pid saved here!!
-                corresponding_truth_pid = particles_pid_det[int(index)]
+                corresponding_truth_pid = particles_pid_det[int(index)] #also need this so that this doesn't map back to D0's that didn't get reconstructed from daughters (leave det-level daughter as is)
               else:
                 corresponding_truth_pid = particles_pid_truth[int(mcid)]
 
-              # Get the charge of the particle - there shouldn't be any neutrals (except D0 case)
-              det_charge = int(corresponding_truth_pid / abs(corresponding_truth_pid))
-              if abs(corresponding_truth_pid) == 421:
-                det_charge = 0
+              # # Get the charge of the particle - there shouldn't be any neutrals (except D0 case)
+              # det_charge = int(corresponding_truth_pid / abs(corresponding_truth_pid))
+              # if abs(corresponding_truth_pid) == 421:
+              #   det_charge = 0
+              # charged hadrons
+              det_charge = 0
+              if abs(corresponding_truth_pid)==211 or abs(corresponding_truth_pid)==321 or abs(corresponding_truth_pid)==2212 or abs(corresponding_truth_pid)==3222:
+                det_charge = 1 if corresponding_truth_pid > 0 else -1
+                count_charged+=1
+              # electrons and muons
+              elif abs(corresponding_truth_pid)==11 or abs(corresponding_truth_pid)==13 or abs(corresponding_truth_pid)==3112 or abs(corresponding_truth_pid)==3312 or abs(corresponding_truth_pid)==3334:
+                det_charge = -1 if corresponding_truth_pid > 0 else 1
+                count_charged+=1
+              else:
+                count_neutral+=1
+                if abs(corresponding_truth_pid)==421:
+                  count_d0+=1
+                if abs(corresponding_truth_pid)==22 or abs(corresponding_truth_pid)==12 or abs(corresponding_truth_pid)==14 or abs(corresponding_truth_pid)==16 or abs(corresponding_truth_pid)==130 or abs(corresponding_truth_pid)==2112:
+                  count_neutrals_photon_neutrino_neutron_K0L+=1
+                # if not (abs(corresponding_truth_pid)==421 or abs(corresponding_truth_pid)==22 or abs(corresponding_truth_pid)==12 or abs(corresponding_truth_pid)==14 or abs(corresponding_truth_pid)==16 or abs(corresponding_truth_pid)==130 or abs(corresponding_truth_pid)==2112):
+                #   print("ALERT! This is a neutral that is not a D0, photon, or neutrino, K0L or neutron! Check what it is! PID:", corresponding_truth_pid)
+              
               
               # Get the fj particle of the corresponding truth particle
-              corresponding_truth_fj_particle = fj_particles_truth[int(abs(mcid))]
+              if (corresponding_truth_pid == particles_pid_truth[int(mcid)]):
+                corresponding_truth_fj_particle = fj_particles_truth[int(abs(mcid))]
+              else: # this is a case where i.e. the det-level D0 was not reconstructed, so corresponding_truth_pid gives a D0 daughter, and particles_pid_truth[int(mcid)] gives the D0
+                # corresponding_truth_fj_particle = None
+                corresponding_truth_fj_particle = self.dict_replaced_D0_daughter_truth_tracks[(self.event_number-1, int(mcid))]['fj_particle']
+                # print(corresponding_truth_pid, particles_pid_truth[int(mcid)])
+                # print("dict_replaced_D0_daughter_truth_tracks", self.event_number - 1, int(mcid), ":::   ", self.dict_replaced_D0_daughter_truth_tracks[(self.event_number-1, int(mcid))])
+                # print("corresponding truth fj particle from replaced D0 daughter tracks dataframe:", corresponding_truth_fj_particle)
+                
+
               if abs(corresponding_truth_pid) == 421: # it's a D0 so the mcid will take it back to the D0 tree!
                 print("D0 fj particle here!")
 
               ecorr_user_info.particle_mcid = int(mcid)
               ecorr_user_info.particle_truth = corresponding_truth_fj_particle
               ecorr_user_info.particle_pid = corresponding_truth_pid
-              ecorr_user_info.charge = det_charge #int(particles_charge_det[index])
+              ecorr_user_info.charge = det_charge #int( particles_charge_truth[int(mcid)] ) 
 
               if (self.use_D0_info):
-                ecorr_user_info.particle_rap = particles_rap_truth[int(abs(mcid))]
-                ecorr_user_info.particle_mid = particles_mid_truth[int(abs(mcid))]
+                if (abs(ecorr_user_info.particle_pid) == 421): #only set this if the particle is a D0
+                  ecorr_user_info.particle_rap = particles_rap_truth[int(abs(mcid))]
+                  ecorr_user_info.particle_mid = particles_mid_truth[int(abs(mcid))]
               
               fj_particles_det[index].set_python_info(ecorr_user_info)
               # fj_particles_det[index].set_user_index(int(mcid))
 
+
+
+        # if self.event_number < 100:
+        # print("all charges det level start:")
+        # if not (isinstance(particles_mcid_det, float) and np.isnan(particles_mcid_det)):
+        #   print(", ".join(f"({p.python_info().particle_mcid}: {p.python_info().particle_pid}, {p.python_info().charge})" for p in fj_particles_det))
+        # print("there are ", count_charged, "charged particles")
+        # print("there are ", count_neutral, "neutral particles")
+        # print("there are ", count_neutrals_photon_neutrino_neutron_K0L, "photons or neutrinos")
+        # print("there are ", count_d0, "d0 particles")
+        # if count_neutral != count_d0:
+        #   print("There are", count_neutral - count_d0 - count_neutrals_photon_neutrino_neutron_K0L, "neutrals that are not D0's, photons, or neutrinos!") # checked this - there aren't (for my herwig generation)
+        # if not (isinstance(particles_mcid_det, float) and np.isnan(particles_mcid_det)):
+        #   print(", ".join(str(part.python_info().particle_pid) for part in fj_particles_det))
 
         # now add appropriate information for truth particles
         for index, pid in enumerate(particles_pid_truth): #for index in range( len(fj_particles_truth) ):
@@ -1245,19 +1377,20 @@ class ProcessMCBase(process_base.ProcessBase):
             # note: goes into here!!
             ecorr_user_info = jet_info.JetInfo()
 
-          # Get the charge of the particle - there shouldn't be any neutrals (except D0 case)
-          truth_charge = int(pid / abs(pid))
-          if abs(pid) == 421:
-            truth_charge = 0
+          # # Get the charge of the particle - there shouldn't be any neutrals (except D0 case)
+          # truth_charge = int(pid / abs(pid))
+          # if abs(pid) == 421:
+          #   truth_charge = 0
 
           ecorr_user_info.particle_mcid = index  #int(mcid)
-          ecorr_user_info.particle_truth = fj_particles_truth[index]
+          # ecorr_user_info.particle_truth = fj_particles_truth[index] #unnecessary!
           ecorr_user_info.particle_pid = pid
-          ecorr_user_info.charge = truth_charge #particles_charge_truth[index] #int(particles_charge_truth[index])
+          ecorr_user_info.charge = int(particles_charge_truth[index]) #truth_charge #particles_charge_truth[index] #int(particles_charge_truth[index])
 
           if (self.use_D0_info):
-            ecorr_user_info.particle_rap = particles_rap_truth[index]
-            ecorr_user_info.particle_mid = particles_mid_truth[index]
+            if (abs(ecorr_user_info.particle_pid) == 421): #only set this if the particle is a D0
+              ecorr_user_info.particle_rap = particles_rap_truth[index]
+              ecorr_user_info.particle_mid = particles_mid_truth[index]
           # else:
           #   ecorr_user_info.particle_rap = -99
           #   ecorr_user_info.particle_mid = -99
@@ -1267,6 +1400,9 @@ class ProcessMCBase(process_base.ProcessBase):
 
           # fj_particles_truth[index].set_user_index(int(index))
 
+        # print("all charges truth level start:")
+        # print(", ".join(f"({p.python_info().particle_mcid}: {p.python_info().particle_pid}, {p.python_info().charge})" for p in fj_particles_truth))
+        
 
       if self.mcprod:
         # save det level information first
@@ -1282,6 +1418,7 @@ class ProcessMCBase(process_base.ProcessBase):
               ecorr_user_info = jet_info.JetInfo()
             ecorr_user_info.particle_mcid = int(mcid)
             ecorr_user_info.charge = int(particles_charge_det[index])
+            ecorr_user_info.particle_truth = fj_particles_truth[int(mcid)]
             fj_particles_det[index].set_python_info(ecorr_user_info)
             # fj_particles_det[index].set_user_index(int(mcid))
             # self.crazycounter += 1
@@ -1393,14 +1530,29 @@ class ProcessMCBase(process_base.ProcessBase):
           # FIX ME: should treat long lived charged particle differently (check how the existing fast herwig and pythia handles it)
           fj_particles_det_ch = fj.vectorPJ()
           if not (isinstance(fj_particles_det, float) and np.isnan(fj_particles_det)) and not self.use_D0_info: # check that det-level particles exist, and that we are not using D0 case! (bc D0 needs to be added to jet)
+            # if self.event_number < 100:
+            # print("all charges fj_particles_det:")
+            # print(", ".join(str(part.python_info().charge) for part in fj_particles_det))
             for part in fj_particles_det:
               if part.python_info().charge!=0: # only use charged particles
                 fj_particles_det_ch.append(part)
+            # print("CHECK!! [inclusive] len(fj_particles_det_ch)", len(fj_particles_det_ch))
             cs_det = fj.ClusterSequence(fj_particles_det_ch, jet_def)
           else: # D0 case!
             if isinstance(fj_particles_det, float) and np.isnan(fj_particles_det): #make no detector level particles event into an empty PJ array
-              fj_particles_det = fj.vectorPJ() 
-            cs_det = fj.ClusterSequence(fj_particles_det, jet_def)
+              fj_particles_det_ch = fj.vectorPJ() 
+            else: # if there are det-level particles, filter out the neutrals that are not D0
+              # if self.event_number < 100:
+              # print("all charges fj_particles_det:")
+              # print(", ".join(str(part.python_info().charge) for part in fj_particles_det))
+              for part in fj_particles_det:
+                if part.python_info().charge!=0 or abs(part.python_info().particle_pid)==421: # only use charged particles + D0s
+                  fj_particles_det_ch.append(part)
+            # print("CHECK!! [D0] len(fj_particles_det_ch)", len(fj_particles_det_ch))
+            # print(", ".join(str(part.python_info().charge) for part in fj_particles_det_ch))
+            # # if fj_particles_det_ch.ndim == 0:
+            # print(", ".join(str(part.python_info().particle_pid) for part in fj_particles_det_ch))
+            cs_det = fj.ClusterSequence(fj_particles_det_ch, jet_def)
         else:
           if isinstance(fj_particles_det, float) and np.isnan(fj_particles_det): #make no detector level particles event into an empty PJ array
             fj_particles_det = fj.vectorPJ() 
@@ -1428,12 +1580,23 @@ class ProcessMCBase(process_base.ProcessBase):
           # FIX ME: should treat long lived charged particle differently (check how the existing fast herwig and pythia handles it)
           fj_particles_truth_ch = fj.vectorPJ()
           if not self.use_D0_info:
+            # if self.event_number < 100:
+            # print("all charges fj_particles_truth:")
+            # print(", ".join(str(part.python_info().charge) for part in fj_particles_truth))
             for part in fj_particles_truth:
               if part.python_info().charge!=0: # only use charged particles
                 fj_particles_truth_ch.append(part)
+            # print("CHECK!! [inclusive] len(fj_particles_truth_ch)", len(fj_particles_truth_ch))
             cs_truth = fj.ClusterSequence(fj_particles_truth_ch, jet_def)
           else: # D0 case!
-            cs_truth = fj.ClusterSequence(fj_particles_truth, jet_def)
+            # if self.event_number < 100:
+            # print("all charges fj_particles_truth:")
+            # print(", ".join(str(part.python_info().charge) for part in fj_particles_truth))
+            for part in fj_particles_truth:
+              if part.python_info().charge!=0 or abs(part.python_info().particle_pid)==421: # only use charged particles + D0s
+                fj_particles_truth_ch.append(part)
+            # print("CHECK!! [D0] len(fj_particles_truth_ch)", len(fj_particles_truth_ch))
+            cs_truth = fj.ClusterSequence(fj_particles_truth_ch, jet_def)
         else:
           cs_truth = fj.ClusterSequence(fj_particles_truth, jet_def)
 
