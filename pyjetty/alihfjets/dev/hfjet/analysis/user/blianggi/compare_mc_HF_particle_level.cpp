@@ -22,6 +22,7 @@ public:
     std::string xtitle;
     bool cs; // true if the cross section is included in the y axis
     bool cs_method2;
+    bool onlycharged;
 
     std::string ytitle;
 
@@ -34,13 +35,14 @@ public:
     TH1 * hist_herwig_prompt;
     TH1 * hist_herwig_nonprompt;
 
-    Observable(std::string name_val, std::string numtype_val, bool logy_val, std::string xtitle_val, bool cs_val, bool cs_method2_val=false) {
+    Observable(std::string name_val, std::string numtype_val, bool logy_val, std::string xtitle_val, bool cs_val, bool cs_method2_val=false, bool onlycharged_val=false) {
         name = name_val;
         numtype = numtype_val;
         logy = logy_val;
         xtitle = xtitle_val;
         cs = cs_val;
         cs_method2 = cs_method2_val;
+        onlycharged = onlycharged_val;
 
         assign_specific_bounds();
     }
@@ -90,7 +92,7 @@ public:
         hist_herwig_nonprompt->SetMarkerStyle(kOpenCircle);
         hist_herwig_nonprompt->SetLineStyle(9);
 
-        if ( cs or cs_method2 ) ytitle = "#frac{d#sigma}{d" + xtitle + "}";  
+        if ( cs or cs_method2 or onlycharged ) ytitle = "#frac{d#sigma}{d" + xtitle + "}";  
         else ytitle = "#frac{dN}{d" + xtitle + "}";
               
         hist_pythia_prompt->GetYaxis()->SetTitle(ytitle.c_str());
@@ -123,6 +125,12 @@ public:
         if ( logy ) gPad->SetLogy();
 
         if (normalized) {
+            cout << "sigmas! " << endl;
+            cout << "hist pythia prompt " << hist_pythia_prompt->Integral() << endl;
+            cout << "hist pythia nonprompt " << hist_pythia_nonprompt->Integral() << endl;
+            cout << "hist herwig prompt " << hist_herwig_prompt->Integral() << endl;
+            cout << "hist herwig nonprompt " << hist_herwig_nonprompt->Integral() << endl;
+            
             hist_pythia_prompt->Scale(1.0 / hist_pythia_prompt->Integral());
             hist_pythia_nonprompt->Scale(1.0 / hist_pythia_nonprompt->Integral());
             hist_herwig_prompt->Scale(1.0 / hist_herwig_prompt->Integral());
@@ -201,6 +209,7 @@ public:
             if ( normalized ) file_plot_output = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/HF_EEC/plots/HF_particle_comparisons/" + name + "_crosssection_normalized_comparison.pdf";
         }
         if ( cs_method2 ) file_plot_output = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/HF_EEC/plots/HF_particle_comparisons/" + name + "_crosssection_method2_comparison.pdf";
+        if ( onlycharged ) file_plot_output = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/HF_EEC/plots/HF_particle_comparisons/" + name + "_onlycharged_crosssection_comparison.pdf";
         c->SaveAs(file_plot_output.c_str());
     }
     
@@ -215,6 +224,7 @@ TH1 * read_histogram( TFile * fin, Observable obs, std::string gen_choice, std::
     std::string histname = Form( "h%s_%s_%s_%s", obs.name.c_str(), gen_choice.c_str(), p_or_np.c_str(), gen_or_det.c_str() );
     if (obs.cs) histname = Form( "h%s_%s_%s_%s_crosssection", obs.name.c_str(), gen_choice.c_str(), p_or_np.c_str(), gen_or_det.c_str() );
     if (obs.cs_method2) histname = Form( "h%s_%s_%s_%s_crosssection_method2", obs.name.c_str(), gen_choice.c_str(), p_or_np.c_str(), gen_or_det.c_str() );
+    if (obs.onlycharged && gen_choice == "pythia") Form( "h%s_onlycharged_%s_%s_%s_crosssection", obs.name.c_str(), gen_choice.c_str(), p_or_np.c_str(), gen_or_det.c_str() );
 
     TH1 * hist = dynamic_cast<TH1 *>(fin->Get(histname.c_str()));
     // TH1 * hist = (TH1 *) fin->Get(histname.c_str());
@@ -293,11 +303,13 @@ void analyze(TFile * fin_pythia, TFile * fin_herwig) {
     Observable obs_D0_pt_cs("D0_Pt", "double", true, "p_{T}", true);
     Observable obs_D0_rap_cs("D0_Rap", "double", true, "y", true);
 
-    Observable obs_pt_cs_method2("Pt", "double", true, "p_{T}", false, true);
-    Observable obs_D0_pt_cs_method2("D0_Pt", "double", true, "p_{T}", false, true);
-    Observable obs_D0_rap_cs_method2("D0_Rap", "double", true, "y", false, true);
+    // Observable obs_pt_cs_method2("Pt", "double", true, "p_{T}", false, true);
+    // Observable obs_D0_pt_cs_method2("D0_Pt", "double", true, "p_{T}", false, true);
+    // Observable obs_D0_rap_cs_method2("D0_Rap", "double", true, "y", false, true);
 
-    Observable* obs_list[16] = { &obs_pt, &obs_eta, &obs_phi, &obs_pid, &obs_D0_pt, &obs_D0_eta, &obs_D0_phi, &obs_D0_rap, &obs_D0_mpid, &obs_numD0s, &obs_pt_cs, &obs_D0_pt_cs, &obs_D0_rap_cs, &obs_pt_cs_method2, &obs_D0_pt_cs_method2, &obs_D0_rap_cs_method2 };
+    Observable obs_pt_onlycharged_cs("Pt", "double", true, "p_{T}", false, false, true);
+
+    Observable* obs_list[14] = { &obs_pt, &obs_eta, &obs_phi, &obs_pid, &obs_D0_pt, &obs_D0_eta, &obs_D0_phi, &obs_D0_rap, &obs_D0_mpid, &obs_numD0s, &obs_pt_cs, &obs_D0_pt_cs, &obs_D0_rap_cs, &obs_pt_onlycharged_cs };
 
     for ( Observable* obs : obs_list ) {
         cout << "Running observable " << obs->name << endl;

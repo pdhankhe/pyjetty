@@ -181,7 +181,7 @@ TH1D * addHists(std::vector<TH1D*> histVector, std::string histname) {
     return hcomb;
 }
 
-void fillParticleHistsFromChain( TChain *chain, TH1D *hPt, TH1D *hEta, TH1D *hPhi, TH1I *hPID, bool fillOnlyPt = false ) {
+void fillParticleHistsFromChain( TChain *chain, TH1D *hPt, TH1D *hEta, TH1D *hPhi, TH1I *hPID, bool fillOnlyPt = false, bool include_neutrals = true ) {
     
     if (!chain || chain->GetEntries() == 0) {
         std::cerr << "fillParticleHistsFromChain: empty or null chain!" << std::endl;
@@ -213,6 +213,10 @@ void fillParticleHistsFromChain( TChain *chain, TH1D *hPt, TH1D *hEta, TH1D *hPh
     const Long64_t nEntries = chain->GetEntries();
     for (Long64_t i = 0; i < nEntries; ++i) {
         chain->GetEntry(i);
+
+        if (!include_neutrals) {
+            if (abs(pid)==22 or abs(pid)==12 or abs(pid)==14 or abs(pid)==16 or abs(pid)==130 or abs(pid)==2112) continue;
+        }
 
         hPt->Fill(pt);
         if (!fillOnlyPt) {
@@ -555,11 +559,18 @@ void compareParticleBranches_WithCS_TChain(std::ofstream &outfile, TFile * fout_
     // -------- HISTOGRAMS --------
     std::vector<TH1D *> vec_hPt_1;
     std::vector<TH1D *> vec_hPt_2;
+    std::vector<TH1D *> vec_hPt_onlycharged_1;
+    std::vector<TH1D *> vec_hPt_onlycharged_2;
     for ( int i = 0; i < 10; i++ ) {
         TH1D *hPt_temp_1 = new TH1D(Form("hPt_%s_%s_bin%d", gen1.gen_type.c_str(), gen1.gen_or_det.c_str(), i),  Form("Particle p_{T} %s;p_{T};#frac{d#sigma}{dp_{T}}", gen1.gen_or_det.c_str()), 200, 0, 200);
         TH1D *hPt_temp_2 = new TH1D(Form("hPt_%s_%s_bin%d", gen2.gen_type.c_str(), gen2.gen_or_det.c_str(), i),  Form("Particle p_{T} %s;p_{T};#frac{d#sigma}{dp_{T}}", gen2.gen_or_det.c_str()), 200, 0, 200);
         vec_hPt_1.push_back(hPt_temp_1);
         vec_hPt_2.push_back(hPt_temp_2);
+
+        TH1D *hPt_onlychargedtemp_1 = new TH1D(Form("hPt_onlycharged%s_%s_bin%d", gen1.gen_type.c_str(), gen1.gen_or_det.c_str(), i),  Form("Particle p_{T} %s;p_{T};#frac{d#sigma}{dp_{T}}", gen1.gen_or_det.c_str()), 200, 0, 200);
+        TH1D *hPt_onlychargedtemp_2 = new TH1D(Form("hPt_onlycharged%s_%s_bin%d", gen2.gen_type.c_str(), gen2.gen_or_det.c_str(), i),  Form("Particle p_{T} %s;p_{T};#frac{d#sigma}{dp_{T}}", gen2.gen_or_det.c_str()), 200, 0, 200);
+        vec_hPt_onlycharged_1.push_back(hPt_onlychargedtemp_1);
+        vec_hPt_onlycharged_2.push_back(hPt_onlychargedtemp_2);
     }
     
     // D0 hists
@@ -588,6 +599,10 @@ void compareParticleBranches_WithCS_TChain(std::ofstream &outfile, TFile * fout_
     for ( int i = 0; i < 10; i++ ) {
         fillParticleHistsFromChain(chains1_particle[i], vec_hPt_1[i], hdummy_d, hdummy_d, hdummy_i, true);
         fillParticleHistsFromChain(chains2_particle[i], vec_hPt_2[i], hdummy_d, hdummy_d, hdummy_i, true);
+
+        // charged particles only
+        fillParticleHistsFromChain(chains1_particle[i], vec_hPt_onlycharged_1[i], hdummy_d, hdummy_d, hdummy_i, true, false);
+        fillParticleHistsFromChain(chains2_particle[i], vec_hPt_onlycharged_2[i], hdummy_d, hdummy_d, hdummy_i, true, false);
     }
 
     cout << "filling first and second file D0 hists " << endl;
@@ -606,6 +621,9 @@ void compareParticleBranches_WithCS_TChain(std::ofstream &outfile, TFile * fout_
     gen1.scale_hists(vec_hD0_Rap_1);
     gen2.scale_hists(vec_hD0_Rap_2);
 
+    gen1.scale_hists(vec_hPt_onlycharged_1);
+    gen2.scale_hists(vec_hPt_onlycharged_2);
+
     // -------- ADD HISTOGRAMS --------
     TH1D * hPt_comb_1 = addHists(vec_hPt_1, Form("hPt_%s_%s_crosssection", gen1.gen_type.c_str(), gen1.gen_or_det.c_str()) );
     TH1D * hPt_comb_2 = addHists(vec_hPt_2, Form("hPt_%s_%s_crosssection", gen2.gen_type.c_str(), gen2.gen_or_det.c_str()) );
@@ -614,6 +632,8 @@ void compareParticleBranches_WithCS_TChain(std::ofstream &outfile, TFile * fout_
     TH1D * hD0_Rap_comb_1 = addHists(vec_hD0_Rap_1, Form("hD0_Rap_%s_%s_crosssection", gen1.gen_type.c_str(), gen1.gen_or_det.c_str()) );
     TH1D * hD0_Rap_comb_2 = addHists(vec_hD0_Rap_2, Form("hD0_Rap_%s_%s_crosssection", gen2.gen_type.c_str(), gen2.gen_or_det.c_str()) );
 
+    TH1D * hPt_onlycharged_comb_1 = addHists(vec_hPt_onlycharged_1, Form("hPt_onlycharged_%s_%s_crosssection", gen1.gen_type.c_str(), gen1.gen_or_det.c_str()) );
+    TH1D * hPt_onlycharged_comb_2 = addHists(vec_hPt_onlycharged_2, Form("hPt_onlycharged_%s_%s_crosssection", gen2.gen_type.c_str(), gen2.gen_or_det.c_str()) );
 
     // -------- STYLE --------
     hPt_comb_1->SetLineColor(kRed);
@@ -622,6 +642,9 @@ void compareParticleBranches_WithCS_TChain(std::ofstream &outfile, TFile * fout_
     hD0_Pt_comb_2->SetLineColor(kBlue);
     hD0_Rap_comb_1->SetLineColor(kRed);
     hD0_Rap_comb_2->SetLineColor(kBlue);
+
+    hPt_onlycharged_comb_1->SetLineColor(kRed);
+    hPt_onlycharged_comb_2->SetLineColor(kBlue);
 
     // -------- DRAW --------
     auto savePair = [](TFile * fout_root, Generator gen1, Generator gen2, TH1 *h1, TH1 *h2, std::string name) {
@@ -644,6 +667,7 @@ void compareParticleBranches_WithCS_TChain(std::ofstream &outfile, TFile * fout_
     savePair(fout_root, gen1, gen2, hD0_Pt_comb_1,  hD0_Pt_comb_2, "D0_Pt" + gen1.gen_or_det);
     savePair(fout_root, gen1, gen2, hD0_Rap_comb_1,  hD0_Rap_comb_2, "D0_Rap" + gen1.gen_or_det);
 
+    savePair(fout_root, gen1, gen2, hPt_onlycharged_comb_1,  hPt_onlycharged_comb_2, "Pt_onlycharged" + gen1.gen_or_det);
 }
 
 
