@@ -1,6 +1,7 @@
 // This script is to read in the (already made) data and generator histograms
 // and plot them together!
 // with ratios!
+// Run "crosscheck_analyze_MC_histograms.cpp" for each generator before running this file.
 
 
 Double_t colors[16] = {kMagenta, kBlue, kOrange+1, kViolet+1, kGreen+2, kRed, kYellow+1, kCyan+1}; //kGray, 
@@ -213,7 +214,7 @@ void plot_1D_obs(Observable obs, int pt_min, int pt_max, //int ptrl_bin,
         std::string label_3;
         std::string label_4;
 
-        if ( option == 1 ) { // data (raw) vs pythia (det) vs herwig (det)
+        if ( option == 1 ) { // data (raw) vs pythia (det) vs herwig (det) vs anch mc (det)
             histname_1 = Form(obs.histname_base.c_str(), weight_str.c_str(), jetR.c_str(), threshold.c_str(), pt_min, pt_max, pTRL_min, pTRL_max, norm_string.c_str(), "");// TODO: FIX WHAT IS BEING ACCESSED HERE, include jet pt and ptrl bin?
             histname_2 = Form(obs.histname_base.c_str(), weight_str.c_str(), jetR.c_str(), threshold.c_str(), pt_min, pt_max, pTRL_min, pTRL_max, norm_string.c_str(), "_det");// TODO: FIX WHAT IS BEING ACCESSED HERE, include jet pt and ptrl bin?
             histname_3 = Form(obs.histname_base.c_str(), weight_str.c_str(), jetR.c_str(), threshold.c_str(), pt_min, pt_max, pTRL_min, pTRL_max, norm_string.c_str(), "_det");// TODO: FIX WHAT IS BEING ACCESSED HERE, include jet pt and ptrl bin?
@@ -261,6 +262,16 @@ void plot_1D_obs(Observable obs, int pt_min, int pt_max, //int ptrl_bin,
             infile_2 = obs.input_pythia_cteq_file;
             label_1 = "gen-level PYTHIA 8 fastsim (PDF: NNPDF2.3 QCD+QED LO)";
             label_2 = "gen-level PYTHIA 8 fastsim (PDF: CTEQ 5L)";
+        } else if ( option == 7 ) { // data (raw) vs pythia (det) vs herwig (det)
+            histname_1 = Form(obs.histname_base.c_str(), weight_str.c_str(), jetR.c_str(), threshold.c_str(), pt_min, pt_max, pTRL_min, pTRL_max, norm_string.c_str(), "");// TODO: FIX WHAT IS BEING ACCESSED HERE, include jet pt and ptrl bin?
+            histname_2 = Form(obs.histname_base.c_str(), weight_str.c_str(), jetR.c_str(), threshold.c_str(), pt_min, pt_max, pTRL_min, pTRL_max, norm_string.c_str(), "_det");// TODO: FIX WHAT IS BEING ACCESSED HERE, include jet pt and ptrl bin?
+            histname_3 = Form(obs.histname_base.c_str(), weight_str.c_str(), jetR.c_str(), threshold.c_str(), pt_min, pt_max, pTRL_min, pTRL_max, norm_string.c_str(), "_det");// TODO: FIX WHAT IS BEING ACCESSED HERE, include jet pt and ptrl bin?
+            infile_1 = obs.input_data_file;
+            infile_2 = obs.input_pythia_file;
+            infile_3 = obs.input_herwig_file;
+            label_1 = "Raw data";
+            label_2 = "det-level PYTHIA 8";
+            label_3 = "det-level HERWIG 7";
         }
 
         TH1D * obs_hist_1 = get_1D_histogram(infile_1, histname_1);
@@ -270,7 +281,7 @@ void plot_1D_obs(Observable obs, int pt_min, int pt_max, //int ptrl_bin,
         if ( option == 1 ) {
             obs_hist_3 = get_1D_histogram(infile_3, histname_3);
             obs_hist_4 = get_1D_histogram(infile_4, histname_4);
-        }
+        } else if ( option == 7 ) obs_hist_3 = get_1D_histogram(infile_3, histname_3);
 
         // Calculate ratios
         TH1D * hist_obs_ratio = (TH1D *) obs_hist_2->Clone(Form("hratio_%s_pt%d-%d_ptrlbin%d", obs.name.c_str(), pt_min, pt_max, j));
@@ -283,6 +294,9 @@ void plot_1D_obs(Observable obs, int pt_min, int pt_max, //int ptrl_bin,
             hist_obs_ratio_31->Divide(obs_hist_1);
             hist_obs_ratio_41 = (TH1D *) obs_hist_4->Clone(Form("hratio41_%s_pt%d-%d_ptrlbin%d", obs.name.c_str(), pt_min, pt_max, j)); //41 means hist 4 / hist 1
             hist_obs_ratio_41->Divide(obs_hist_1);
+        } else if ( option == 7 ) {
+            hist_obs_ratio_31 = (TH1D *) obs_hist_3->Clone(Form("hratio31_%s_pt%d-%d_ptrlbin%d", obs.name.c_str(), pt_min, pt_max, j)); //31 means hist 3 / hist 1
+            hist_obs_ratio_31->Divide(obs_hist_1);
         }
 
         // Make canvas and legend
@@ -300,18 +314,18 @@ void plot_1D_obs(Observable obs, int pt_min, int pt_max, //int ptrl_bin,
         if ( option == 1 ) {
             Format1DHist(obs, obs_hist_3, leg_obs_all, label_3, true, colors[j], 2, 0.6);
             Format1DHist(obs, obs_hist_4, leg_obs_all, label_4, true, colors[j], 3, 0.6);
-        }
+        } else if ( option == 7 ) Format1DHist(obs, obs_hist_3, leg_obs_all, label_3, true, colors[j], 2, 0.6);
         Format1DHist(obs, hist_obs_ratio, leg_ratio_all, Form("PYTHIA / data p_{T}R_{L} = %.1f - %.1f", ptRL_bins[j], ptRL_bins[j+1]), true, colors[j], 1);
         if ( option == 1 ) {
             Format1DHist(obs, hist_obs_ratio_31, leg_ratio_all, Form("HERWIG / data p_{T}R_{L} = %.1f - %.1f", ptRL_bins[j], ptRL_bins[j+1]), true, colors[j], 2);
             Format1DHist(obs, hist_obs_ratio_41, leg_ratio_all, Form("LHC23a3 / data p_{T}R_{L} = %.1f - %.1f", ptRL_bins[j], ptRL_bins[j+1]), true, colors[j], 3);
-        }
+        } else if ( option == 7 ) Format1DHist(obs, hist_obs_ratio_31, leg_ratio_all, Form("HERWIG / data p_{T}R_{L} = %.1f - %.1f", ptRL_bins[j], ptRL_bins[j+1]), true, colors[j], 2);
         leg_obs->AddEntry(obs_hist_1, Form("%s p_{T}R_{L} = %.1f - %.1f", label_1.c_str(), ptRL_bins[j], ptRL_bins[j+1]), "pl");
         leg_obs->AddEntry(obs_hist_2, Form("%s p_{T}R_{L} = %.1f - %.1f", label_2.c_str(), ptRL_bins[j], ptRL_bins[j+1]), "pl");
         if ( option == 1 ) {
             leg_obs->AddEntry(obs_hist_3, Form("%s p_{T}R_{L} = %.1f - %.1f", label_3.c_str(), ptRL_bins[j], ptRL_bins[j+1]), "pl");
             leg_obs->AddEntry(obs_hist_4, Form("%s p_{T}R_{L} = %.1f - %.1f", label_4.c_str(), ptRL_bins[j], ptRL_bins[j+1]), "pl");
-        }
+        } else if ( option == 7 ) leg_obs->AddEntry(obs_hist_3, Form("%s p_{T}R_{L} = %.1f - %.1f", label_3.c_str(), ptRL_bins[j], ptRL_bins[j+1]), "pl");
         leg_ratio->AddEntry(hist_obs_ratio, "ratio", "pl");
                 
 
@@ -320,7 +334,7 @@ void plot_1D_obs(Observable obs, int pt_min, int pt_max, //int ptrl_bin,
         if ( option == 1 ) {
             obs_hist_3->Draw("HIST SAME");
             obs_hist_4->Draw("HIST SAME");
-        }
+        } else if ( option == 7 ) obs_hist_3->Draw("HIST SAME");
         obs_hist_1->Draw("P SAME");
         leg_obs->Draw();
         leg_ev->Draw();
@@ -334,7 +348,7 @@ void plot_1D_obs(Observable obs, int pt_min, int pt_max, //int ptrl_bin,
         if ( option == 1 ) {
             obs_hist_3->Draw("HIST SAME");
             obs_hist_4->Draw("HIST SAME");
-        }
+        } else if ( option == 7 ) obs_hist_3->Draw("HIST SAME");
         obs_hist_1->Draw("P SAME");
         
     }
@@ -380,9 +394,14 @@ void plot_pt_bins(std::string weight_str, std::string jetR, std::string threshol
         plot_1D_obs(obs_deltap, pt_min, pt_max, weight_str, jetR, threshold, norm_string, 5);
         plot_1D_obs(obs_deltajt, pt_min, pt_max, weight_str, jetR, threshold, norm_string, 5);
 
-        // option 6 = plot pythia (gen) vs anchMC (gen)
-        plot_1D_obs(obs_deltap, pt_min, pt_max, weight_str, jetR, threshold, norm_string, 6);
-        plot_1D_obs(obs_deltajt, pt_min, pt_max, weight_str, jetR, threshold, norm_string, 6);
+        // // option 6 = plot pythia (gen) vs anchMC (gen)
+        // plot_1D_obs(obs_deltap, pt_min, pt_max, weight_str, jetR, threshold, norm_string, 6);
+        // plot_1D_obs(obs_deltajt, pt_min, pt_max, weight_str, jetR, threshold, norm_string, 6);
+
+        // option 7 = plot data (raw) vs pythia (det) vs herwig (det)
+        plot_1D_obs(obs_deltap, pt_min, pt_max, weight_str, jetR, threshold, norm_string, 7);
+        plot_1D_obs(obs_deltajt, pt_min, pt_max, weight_str, jetR, threshold, norm_string, 7);
+
     }
 }
 

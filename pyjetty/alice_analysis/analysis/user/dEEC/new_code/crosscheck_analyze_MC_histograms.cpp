@@ -15,11 +15,11 @@ Double_t colors[16] = {kGray, kMagenta, kBlue, kOrange+1, kViolet+1, kGreen+2, k
 Double_t markers[10] = {kFullCircle, kFullSquare, kFullDiamond, kFullTriangleUp, kFullStar, kOpenCircle, kOpenTriangleUp, kOpenDiamond, kOpenSquare, kOpenStar};
 Double_t marker_size = 1.5;
 
-std::string generator = "pythia_cteq"; // "pythia" or "herwig" or "anchMC" or "pythia_cteq"
-// std::string attempt_dir = Form("pythia5TeV_histograms_crosscheck");
+std::string generator = "pythia"; // "pythia" or "herwig" or "anchMC" or "pythia_cteq"
+std::string attempt_dir = Form("pythia5TeV_histograms_crosscheck");
 // std::string attempt_dir = Form("herwig_secondattempt");
 // std::string attempt_dir = Form("anchMC_firstattempt");
-std::string attempt_dir = Form("pythia_cteq_firstattempt");
+// std::string attempt_dir = Form("pythia_cteq_firstattempt");
 std::string outdir = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir; //; // PERLY_FIX: REVERT TO THIS
 std::string outdir_rootfiles = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/" + attempt_dir; //; // PERLY_FIX: REVERT TO THIS
 // std::string outdir = "~/Documents/research/code/dEEC/new_code/storage/plots/" + attempt_dir;
@@ -1037,8 +1037,8 @@ void crosscheck_analyze_MC_histograms() {
     
     // Files
     // const char infile[] = "/rstorage/alice/AnalysisResults/blianggi/dEEC/445125/1132588/scaling/AnalysisResultsFinal.root"; //hiccup
-    TString infile;
-    infile = "/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/46040507/1132588/scaling/AnalysisResultsFinal.root"; //perlmutter, after june 2024 // PERLY_FIX: REVERT TO THIS
+    TString infile; 
+    infile = "/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/49711768/1132588/scaling/AnalysisResultsFinal.root"; //perlmutter, after june 2024 // PERLY_FIX: REVERT TO THIS
     // const char infile[] = "~/Documents/research/code/dEEC/new_code/AnalysisResultsFinal.root"; //local
     // const char infile[] = "/Volumes/NO NAME/AnalysisResultsFinal.root"; //local
     if (generator == "herwig") infile = "/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/storage/herwig/519889-520889/260023/AnalysisResultsFinal_519889_520889.root"; //perlmutter, after dec 2025;

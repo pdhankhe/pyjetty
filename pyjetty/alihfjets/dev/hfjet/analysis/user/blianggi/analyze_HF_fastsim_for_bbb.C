@@ -797,7 +797,7 @@ void analyze_HF_fastsim_for_bbb() {
         return;
     } else {
         herwig_fastsim_file = new TFile("/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/storage/herwig/500841/299990/AnalysisResultsFinal.root", "READ"); // perlmutter link
-        pythia_fastsim_file = new TFile("/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/pythiagen/scaling/45190202/45154942/AnalysisResultsFinal.root", "READ"); // perlmutter link
+        pythia_fastsim_file = new TFile("/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/pythiagen/scaling/49995028/45154942/AnalysisResultsFinal.root", "READ"); // perlmutter link
         output_add_name = "_withDstar";
     }
     TFile * output_file = new TFile("/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/HF_EEC/rootfiles/binbybinfactors.root", "RECREATE");
@@ -815,7 +815,7 @@ void analyze_HF_fastsim_for_bbb() {
     MCHistCollection herwigNPHists("herwig_nonprompt");
     if (include_dstar == true) {
         herwig_fastsim_nonprompt_file = new TFile("/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/storage/herwig/517789/515788/AnalysisResultsFinal.root", "READ"); // perlmutter link
-        pythia_fastsim_nonprompt_file = new TFile("/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/pythiagen/scaling/46372190/46293548/AnalysisResultsFinal.root", "READ"); // perlmutter link
+        pythia_fastsim_nonprompt_file = new TFile("/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/pythiagen/scaling/49995056/46293548/AnalysisResultsFinal.root", "READ"); // perlmutter link
         output_add_name = "_withDstar";
     }
     analyze_files(herwig_fastsim_nonprompt_file, pythia_fastsim_nonprompt_file, herwigNPHists, pythiaNPHists, "nonprompt");

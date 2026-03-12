@@ -77,16 +77,17 @@ class ProcessMCBase(process_base.ProcessBase):
     if self.compsystem == 'perlmutter':
       file_basepath = '/global/cfs/cdirs/alice/alicepro/hiccup'
 
-    if self.generator == 'pythia':
-      if self.mcprod:
+    # this currently is only set up for inclusive (not HF) -- but either way it is not used yet
+    if self.mcprod:
         with open("{}/rstorage/alice/data/LHC18b8_charge/scaleFactors.yaml".format(file_basepath), 'r') as stream:
           pt_hat_yaml = yaml.safe_load(stream)
-      else: #pythia fastsim
+    elif self.fast_simulation:
+      if self.generator == 'pythia':
         print("FILE!", "{}/rstorage/generators/pythia_alice/tree_fastsim/scaleFactors.yaml".format(file_basepath))
         with open("{}/rstorage/generators/pythia_alice/tree_fastsim/scaleFactors.yaml".format(file_basepath), 'r') as stream:
           pt_hat_yaml = yaml.safe_load(stream)
-    elif self.generator == 'herwig' and self.mcprod == False: #no anchored mc for herwig
-      with open("{}/rstorage/generators/herwig_alice/tree_fastsim/scaleFactors.yaml".format(file_basepath), 'r') as stream:
+      elif self.generator == 'herwig':
+        with open("{}/rstorage/generators/herwig_alice/tree_fastsim/scaleFactors_260023_updated.yaml".format(file_basepath), 'r') as stream:
         pt_hat_yaml = yaml.safe_load(stream)
 
     print("DEBUGGING", self.compsystem, "AND", self.generator, "AND", self.mcprod)
@@ -1418,7 +1419,12 @@ class ProcessMCBase(process_base.ProcessBase):
               ecorr_user_info = jet_info.JetInfo()
             ecorr_user_info.particle_mcid = int(mcid)
             ecorr_user_info.charge = int(particles_charge_det[index])
-            ecorr_user_info.particle_truth = fj_particles_truth[int(mcid)]
+
+            # print("index, mcid = ", index, mcid)
+            # print(" out of len:", len(fj_particles_truth), "(check len:", len(particles_charge_truth), ")", "amd", particles_mcid_truth)
+            # ind_in_truth_array = np.where(particles_mcid_truth == mcid)[0][0]
+            # ecorr_user_info.particle_truth = fj_particles_truth[int(ind_in_truth_array)] # This should work except there are some funny indices saved in detector level (negative, out of bounds, etc). so for now, not filling this in.
+
             fj_particles_det[index].set_python_info(ecorr_user_info)
             # fj_particles_det[index].set_user_index(int(mcid))
             # self.crazycounter += 1

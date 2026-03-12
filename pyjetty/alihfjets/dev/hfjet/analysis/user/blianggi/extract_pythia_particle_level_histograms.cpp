@@ -13,6 +13,7 @@
 // NOTE: DETECTOR LEVEL IS MORE COMPLICATED -- CAN IMPLEMENT THAT LATER
 
 // RUN LIKE SO: root -l 'extract_pythia_particle_level_histograms.cpp("h")' for herwig or ("p") for pythia
+// ALERT! I KNOW THIS IS REALLY ANNOYING but if "x" selected with "p", then need to change branch types in fillParticleHistsFromChain(), fillgenD0HistsFromChain() to be all floats!
 
 // std::string base_filepath_header = "/global/cfs/projectdirs/alice/alicepro/hiccup";
 
@@ -188,9 +189,11 @@ void fillParticleHistsFromChain( TChain *chain, TH1D *hPt, TH1D *hEta, TH1D *hPh
         return;
     }
 
+    chain->ResetBranchAddresses();
     // ---- Branch variables (MATCH TREE TYPES EXACTLY) ----
     double pt, eta, phi;
     Long64_t pid;
+    // float pt, eta, phi, pid;
 
     // ---- Branch setup ----
     chain->SetBranchStatus("*", 0);
@@ -215,7 +218,11 @@ void fillParticleHistsFromChain( TChain *chain, TH1D *hPt, TH1D *hEta, TH1D *hPh
         chain->GetEntry(i);
 
         if (!include_neutrals) {
-            if (abs(pid)==22 or abs(pid)==12 or abs(pid)==14 or abs(pid)==16 or abs(pid)==130 or abs(pid)==2112) continue;
+            // if (i < 50 ) cout << "checking pid " << pid << " pt: " << pt << "eta" << eta << "phi" << phi << endl;
+            if (abs(pid)==22 or abs(pid)==12 or abs(pid)==14 or abs(pid)==16 or abs(pid)==130 or abs(pid)==2112) {
+                // cout << pid << " neutral here!" << endl;
+                continue;
+            }
         }
 
         hPt->Fill(pt);
@@ -234,9 +241,12 @@ void fillgenD0HistsFromChain( TChain *chain, TH1D *hPt, TH1D *hEta, TH1D *hPhi, 
         return;
     }
 
+    chain->ResetBranchAddresses();
+
     // ---- Branch variables (MATCH TREE TYPES EXACTLY) - these are all D0 branches ----
     Long64_t evid;
     double pt, eta, phi, rap, mpid;
+    // float evid, pt, eta, phi, rap, mpid;
 
     // ---- Branch setup ----
     chain->SetBranchStatus("*", 0);
@@ -305,6 +315,7 @@ void filldetD0HistsFromChain( TChain *particlechain, TChain *D0chain, TH1D *hPt,
         std::cerr << "filldetD0HistsFromChain: empty or null D0chain!" << std::endl;
         return;
     }
+    chain->ResetBranchAddresses();
 
     // ---- Branch variables (MATCH TREE TYPES EXACTLY) ----
     Long64_t evid, D0_evid;
@@ -455,10 +466,10 @@ void compareParticleBranches_TChain(std::ofstream &outfile, TFile * fout_root, G
 
     // -------- FILL --------
     cout << "filling first file particle hists " << endl;
-    fillParticleHistsFromChain(chain1_particle, hPt_1, hEta_1, hPhi_1, hPID_1);
+    fillParticleHistsFromChain(chain1_particle, hPt_1, hEta_1, hPhi_1, hPID_1, false, false);
 
     cout << "filling second file particle hists " << endl;
-    fillParticleHistsFromChain(chain2_particle, hPt_2, hEta_2, hPhi_2, hPID_2);
+    fillParticleHistsFromChain(chain2_particle, hPt_2, hEta_2, hPhi_2, hPID_2, false, false);
 
     cout << "filling first file D0 hists " << endl;
     if ( gen1.gen_or_det == "gen" ) fillgenD0HistsFromChain(chain1_D0, hD0_Pt_1, hD0_Eta_1, hD0_Phi_1, hD0_Rap_1, hD0_MPID_1, hnumD0s_1);
@@ -559,18 +570,18 @@ void compareParticleBranches_WithCS_TChain(std::ofstream &outfile, TFile * fout_
     // -------- HISTOGRAMS --------
     std::vector<TH1D *> vec_hPt_1;
     std::vector<TH1D *> vec_hPt_2;
-    std::vector<TH1D *> vec_hPt_onlycharged_1;
-    std::vector<TH1D *> vec_hPt_onlycharged_2;
+    // std::vector<TH1D *> vec_hPt_onlycharged_1;
+    // std::vector<TH1D *> vec_hPt_onlycharged_2;
     for ( int i = 0; i < 10; i++ ) {
         TH1D *hPt_temp_1 = new TH1D(Form("hPt_%s_%s_bin%d", gen1.gen_type.c_str(), gen1.gen_or_det.c_str(), i),  Form("Particle p_{T} %s;p_{T};#frac{d#sigma}{dp_{T}}", gen1.gen_or_det.c_str()), 200, 0, 200);
         TH1D *hPt_temp_2 = new TH1D(Form("hPt_%s_%s_bin%d", gen2.gen_type.c_str(), gen2.gen_or_det.c_str(), i),  Form("Particle p_{T} %s;p_{T};#frac{d#sigma}{dp_{T}}", gen2.gen_or_det.c_str()), 200, 0, 200);
         vec_hPt_1.push_back(hPt_temp_1);
         vec_hPt_2.push_back(hPt_temp_2);
 
-        TH1D *hPt_onlychargedtemp_1 = new TH1D(Form("hPt_onlycharged%s_%s_bin%d", gen1.gen_type.c_str(), gen1.gen_or_det.c_str(), i),  Form("Particle p_{T} %s;p_{T};#frac{d#sigma}{dp_{T}}", gen1.gen_or_det.c_str()), 200, 0, 200);
-        TH1D *hPt_onlychargedtemp_2 = new TH1D(Form("hPt_onlycharged%s_%s_bin%d", gen2.gen_type.c_str(), gen2.gen_or_det.c_str(), i),  Form("Particle p_{T} %s;p_{T};#frac{d#sigma}{dp_{T}}", gen2.gen_or_det.c_str()), 200, 0, 200);
-        vec_hPt_onlycharged_1.push_back(hPt_onlychargedtemp_1);
-        vec_hPt_onlycharged_2.push_back(hPt_onlychargedtemp_2);
+        // TH1D *hPt_onlychargedtemp_1 = new TH1D(Form("hPt_onlycharged%s_%s_bin%d", gen1.gen_type.c_str(), gen1.gen_or_det.c_str(), i),  Form("Particle p_{T} %s;p_{T};#frac{d#sigma}{dp_{T}}", gen1.gen_or_det.c_str()), 200, 0, 200);
+        // TH1D *hPt_onlychargedtemp_2 = new TH1D(Form("hPt_onlycharged%s_%s_bin%d", gen2.gen_type.c_str(), gen2.gen_or_det.c_str(), i),  Form("Particle p_{T} %s;p_{T};#frac{d#sigma}{dp_{T}}", gen2.gen_or_det.c_str()), 200, 0, 200);
+        // vec_hPt_onlycharged_1.push_back(hPt_onlychargedtemp_1);
+        // vec_hPt_onlycharged_2.push_back(hPt_onlychargedtemp_2);
     }
     
     // D0 hists
@@ -597,12 +608,12 @@ void compareParticleBranches_WithCS_TChain(std::ofstream &outfile, TFile * fout_
     TH1D * hdummy_d;
     TH1I * hdummy_i;
     for ( int i = 0; i < 10; i++ ) {
-        fillParticleHistsFromChain(chains1_particle[i], vec_hPt_1[i], hdummy_d, hdummy_d, hdummy_i, true);
-        fillParticleHistsFromChain(chains2_particle[i], vec_hPt_2[i], hdummy_d, hdummy_d, hdummy_i, true);
+        fillParticleHistsFromChain(chains1_particle[i], vec_hPt_1[i], hdummy_d, hdummy_d, hdummy_i, true, false); // looking at only charged!
+        fillParticleHistsFromChain(chains2_particle[i], vec_hPt_2[i], hdummy_d, hdummy_d, hdummy_i, true, false); // looking at only charged!
 
-        // charged particles only
-        fillParticleHistsFromChain(chains1_particle[i], vec_hPt_onlycharged_1[i], hdummy_d, hdummy_d, hdummy_i, true, false);
-        fillParticleHistsFromChain(chains2_particle[i], vec_hPt_onlycharged_2[i], hdummy_d, hdummy_d, hdummy_i, true, false);
+        // // charged particles only
+        // fillParticleHistsFromChain(chains1_particle[i], vec_hPt_onlycharged_1[i], hdummy_d, hdummy_d, hdummy_i, true, false);
+        // fillParticleHistsFromChain(chains2_particle[i], vec_hPt_onlycharged_2[i], hdummy_d, hdummy_d, hdummy_i, true, false);
     }
 
     cout << "filling first and second file D0 hists " << endl;
@@ -621,8 +632,8 @@ void compareParticleBranches_WithCS_TChain(std::ofstream &outfile, TFile * fout_
     gen1.scale_hists(vec_hD0_Rap_1);
     gen2.scale_hists(vec_hD0_Rap_2);
 
-    gen1.scale_hists(vec_hPt_onlycharged_1);
-    gen2.scale_hists(vec_hPt_onlycharged_2);
+    // gen1.scale_hists(vec_hPt_onlycharged_1);
+    // gen2.scale_hists(vec_hPt_onlycharged_2);
 
     // -------- ADD HISTOGRAMS --------
     TH1D * hPt_comb_1 = addHists(vec_hPt_1, Form("hPt_%s_%s_crosssection", gen1.gen_type.c_str(), gen1.gen_or_det.c_str()) );
@@ -632,8 +643,8 @@ void compareParticleBranches_WithCS_TChain(std::ofstream &outfile, TFile * fout_
     TH1D * hD0_Rap_comb_1 = addHists(vec_hD0_Rap_1, Form("hD0_Rap_%s_%s_crosssection", gen1.gen_type.c_str(), gen1.gen_or_det.c_str()) );
     TH1D * hD0_Rap_comb_2 = addHists(vec_hD0_Rap_2, Form("hD0_Rap_%s_%s_crosssection", gen2.gen_type.c_str(), gen2.gen_or_det.c_str()) );
 
-    TH1D * hPt_onlycharged_comb_1 = addHists(vec_hPt_onlycharged_1, Form("hPt_onlycharged_%s_%s_crosssection", gen1.gen_type.c_str(), gen1.gen_or_det.c_str()) );
-    TH1D * hPt_onlycharged_comb_2 = addHists(vec_hPt_onlycharged_2, Form("hPt_onlycharged_%s_%s_crosssection", gen2.gen_type.c_str(), gen2.gen_or_det.c_str()) );
+    // TH1D * hPt_onlycharged_comb_1 = addHists(vec_hPt_onlycharged_1, Form("hPt_onlycharged_%s_%s_crosssection", gen1.gen_type.c_str(), gen1.gen_or_det.c_str()) );
+    // TH1D * hPt_onlycharged_comb_2 = addHists(vec_hPt_onlycharged_2, Form("hPt_onlycharged_%s_%s_crosssection", gen2.gen_type.c_str(), gen2.gen_or_det.c_str()) );
 
     // -------- STYLE --------
     hPt_comb_1->SetLineColor(kRed);
@@ -643,8 +654,8 @@ void compareParticleBranches_WithCS_TChain(std::ofstream &outfile, TFile * fout_
     hD0_Rap_comb_1->SetLineColor(kRed);
     hD0_Rap_comb_2->SetLineColor(kBlue);
 
-    hPt_onlycharged_comb_1->SetLineColor(kRed);
-    hPt_onlycharged_comb_2->SetLineColor(kBlue);
+    // hPt_onlycharged_comb_1->SetLineColor(kRed);
+    // hPt_onlycharged_comb_2->SetLineColor(kBlue);
 
     // -------- DRAW --------
     auto savePair = [](TFile * fout_root, Generator gen1, Generator gen2, TH1 *h1, TH1 *h2, std::string name) {
@@ -667,7 +678,7 @@ void compareParticleBranches_WithCS_TChain(std::ofstream &outfile, TFile * fout_
     savePair(fout_root, gen1, gen2, hD0_Pt_comb_1,  hD0_Pt_comb_2, "D0_Pt" + gen1.gen_or_det);
     savePair(fout_root, gen1, gen2, hD0_Rap_comb_1,  hD0_Rap_comb_2, "D0_Rap" + gen1.gen_or_det);
 
-    savePair(fout_root, gen1, gen2, hPt_onlycharged_comb_1,  hPt_onlycharged_comb_2, "Pt_onlycharged" + gen1.gen_or_det);
+    // savePair(fout_root, gen1, gen2, hPt_onlycharged_comb_1,  hPt_onlycharged_comb_2, "Pt_onlycharged" + gen1.gen_or_det);
 }
 
 
@@ -750,17 +761,35 @@ void extract_pythia_particle_level_histograms(const char *opts = "") {
         return;
     }
 
+    bool option_notforcedD0toKPi;
+    std::string str_notforcedD0toKPi;
+    if (options.Contains("x")) {
+        option_notforcedD0toKPi = true;
+        str_notforcedD0toKPi = "_notforcedD0toKPi"; 
+    } else {
+        option_notforcedD0toKPi = false; 
+        str_notforcedD0toKPi = ""; 
+    }
+
+    std::string basepath;
+    if ( generator_choice == "pythia" ) basepath = "/global/cfs/cdirs/alice/blianggi";
+    else if ( generator_choice == "herwig" ) basepath = "/software/users/blianggi";
+
     // -------- INPUT DIRECTORIES --------
     // post eff smearing -- generator + detector level
     std::string pythia_prompt_filepaths = "/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/pythiagen/tree_fastsim/45178629/45154942/files.txt"; 
     std::string pythia_nonprompt_filepaths = "/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/pythiagen/tree_fastsim/46306341/46293548/files.txt"; 
     std::string herwig_prompt_filepaths = "/rstorage/generators/herwig_alice/tree_fastsim/492678/299990/files.txt"; 
     std::string herwig_nonprompt_filepaths = "/rstorage/generators/herwig_alice/tree_fastsim/516788/515788/files.txt"; 
+    std::string pythia_prompt_notforcedD0toKPi_filepaths = "/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/pythiagen/tree_gen/49538712/49538712/files.txt"; 
+    std::string pythia_nonprompt_notforcedD0toKPi_filepaths = "/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/pythiagen/tree_gen/49538735/49538735/files.txt"; 
 
-    std::string pythia_prompt_scalefactor_filepaths = "/global/cfs/cdirs/alice/blianggi/mypyjetty/analysis/scalefactors/PYTHIA_fastsim_HF_scaleFactors.yaml"; 
-    std::string pythia_nonprompt_scalefactor_filepaths = "/global/cfs/cdirs/alice/blianggi/mypyjetty/analysis/scalefactors/PYTHIA_fastsim_nonprompt_D0_scaleFactors.yaml"; 
-    std::string herwig_prompt_scalefactor_filepaths = "/software/users/blianggi/mypyjetty/analysis/scalefactors/herwig_HF_299990_scaleFactors.yaml"; 
-    std::string herwig_nonprompt_scalefactor_filepaths = "/software/users/blianggi/mypyjetty/analysis/scalefactors/herwig_bbbar_515788_scaleFactors.yaml"; 
+    std::string pythia_prompt_scalefactor_filepaths = basepath + "/mypyjetty/analysis/scalefactors/PYTHIA_fastsim_HF_scaleFactors.yaml"; // only on perlmutter
+    std::string pythia_nonprompt_scalefactor_filepaths = basepath + "/mypyjetty/analysis/scalefactors/PYTHIA_fastsim_nonprompt_D0_scaleFactors.yaml"; // only on perlmutter
+    std::string herwig_prompt_scalefactor_filepaths = basepath + "/mypyjetty/analysis/scalefactors/herwig_HF_299990_scaleFactors.yaml"; // only on hiccup
+    std::string herwig_nonprompt_scalefactor_filepaths = basepath + "/mypyjetty/analysis/scalefactors/herwig_bbbar_515788_scaleFactors.yaml"; // only on hiccup
+    std::string pythia_prompt_notforcedD0toKPi_scalefactor_filepaths = basepath + "/mypyjetty/analysis/scalefactors/PYTHIA_fastsim_HF_notforcedD0toKPi_49538712_scaleFactors.yaml";
+    std::string pythia_nonprompt_notforcedD0toKPi_scalefactor_filepaths = basepath + "/mypyjetty/analysis/scalefactors/PYTHIA_fastsim_nonprompt_notforcedD0toKPi_49538735_scaleFactors.yaml";
 
     std::string pythia_prompt_sf_ind_filepaths = "/global/cfs/cdirs/alice/blianggi/mypyjetty/analysis/scalefactors/PYTHIA_fastsim_HF_45154942_individualScaleFactors.txt";
     std::string pythia_nonprompt_sf_ind_filepaths = "/global/cfs/cdirs/alice/blianggi/mypyjetty/analysis/scalefactors/PYTHIA_fastsim_nonprompt_D0_46293548_individualScaleFactors.txt";
@@ -773,20 +802,20 @@ void extract_pythia_particle_level_histograms(const char *opts = "") {
     Generator gen_herwig_prompt("herwig_prompt", herwig_prompt_filepaths, "tree_Particle_gen", "tree_D0_gen", "gen", "Herwig prompt, gen", herwig_prompt_scalefactor_filepaths, herwig_prompt_sf_ind_filepaths);
     Generator gen_herwig_nonprompt("herwig_nonprompt", herwig_nonprompt_filepaths, "tree_Particle_gen", "tree_D0_gen", "gen", "Herwig non-prompt, gen", herwig_nonprompt_scalefactor_filepaths, herwig_nonprompt_sf_ind_filepaths);
 
+    Generator gen_pythia_prompt_notforcedD0toKPi("pythia_prompt", pythia_prompt_notforcedD0toKPi_filepaths, "PWGHF_TreeCreator/tree_Particle_gen", "PWGHF_TreeCreator/tree_D0_gen", "gen", "Pythia prompt no forced D0->KPi, gen", pythia_prompt_notforcedD0toKPi_scalefactor_filepaths, "");
+    Generator gen_pythia_nonprompt_notforcedD0toKPi("pythia_nonprompt", pythia_nonprompt_notforcedD0toKPi_filepaths, "PWGHF_TreeCreator/tree_Particle_gen", "PWGHF_TreeCreator/tree_D0_gen", "gen", "Pythia non-prompt not forced D0->KPi, gen", pythia_nonprompt_notforcedD0toKPi_scalefactor_filepaths, "");
+    
     // Generator det_pythia_prompt("pythia_prompt", pythia_prompt_filepaths, "tree_Particle", "tree_D0", "det", "Pythia prompt, det");
     // Generator det_pythia_nonprompt("pythia_nonprompt", pythia_nonprompt_filepaths, "tree_Particle", "tree_D0", "det", "Pythia non-prompt,  det");
     
     // -------- OPEN OUTPUT FILEs --------
-    std::string basepath;
-    if ( generator_choice == "pythia" ) basepath = "/global/cfs/cdirs/alice/blianggi";
-    else if ( generator_choice == "herwig" ) basepath = "/software/users/blianggi";
-
-    std::ofstream outfile(Form("%s/mypyjetty/storage/HF_EEC/plots/HF_particle_comparisons/number_of_entries_%s.txt",basepath.c_str(), generator_choice.c_str()));
-    TFile * fout_root = new TFile(Form("%s/mypyjetty/storage/HF_EEC/rootfiles/HF_particle_comparisons/HF_particle_comparisons_%s.root", basepath.c_str(), generator_choice.c_str()), "RECREATE");
+    std::ofstream outfile(Form("%s/mypyjetty/storage/HF_EEC/plots/HF_particle_comparisons/number_of_entries_%s%s.txt",basepath.c_str(), generator_choice.c_str(), str_notforcedD0toKPi.c_str()));
+    TFile * fout_root = new TFile(Form("%s/mypyjetty/storage/HF_EEC/rootfiles/HF_particle_comparisons/HF_particle_comparisons_%s%s.root", basepath.c_str(), generator_choice.c_str(), str_notforcedD0toKPi.c_str()), "RECREATE");
 
     // -------- COMPARE GENERATORS --------
     if (generator_choice == "pythia") {
-        compareParticleBranches_TChain(outfile, fout_root, gen_pythia_prompt, gen_pythia_nonprompt);
+        if (option_notforcedD0toKPi) compareParticleBranches_TChain(outfile, fout_root, gen_pythia_prompt_notforcedD0toKPi, gen_pythia_nonprompt_notforcedD0toKPi);
+        else compareParticleBranches_TChain(outfile, fout_root, gen_pythia_prompt, gen_pythia_nonprompt);
         // compareParticleBranches_TChain(outfile, fout_root, det_anchmc, det_pythiafastsim);
     }
     else if (generator_choice == "herwig") {
@@ -795,7 +824,8 @@ void extract_pythia_particle_level_histograms(const char *opts = "") {
 
     // -------- GET CROSS SECTIONS PER FILE --------
     if (generator_choice == "pythia") {
-        compareParticleBranches_WithCS_TChain(outfile, fout_root, gen_pythia_prompt, gen_pythia_nonprompt);
+        if (option_notforcedD0toKPi) compareParticleBranches_WithCS_TChain(outfile, fout_root, gen_pythia_prompt_notforcedD0toKPi, gen_pythia_nonprompt_notforcedD0toKPi);
+        else compareParticleBranches_WithCS_TChain(outfile, fout_root, gen_pythia_prompt, gen_pythia_nonprompt);
         // compareParticleBranches_WithCS_TChain_Method2(fout_root, gen_pythia_prompt, gen_pythia_nonprompt); // this was done as a check - method 2 is longer but more robust
     } else if (generator_choice == "herwig") {
         compareParticleBranches_WithCS_TChain(outfile, fout_root, gen_herwig_prompt, gen_herwig_nonprompt);

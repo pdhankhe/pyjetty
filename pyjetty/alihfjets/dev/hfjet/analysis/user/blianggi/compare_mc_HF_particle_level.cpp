@@ -13,6 +13,14 @@
 
 std::string base_filepath_header = "/global/cfs/projectdirs/alice/alicepro/hiccup";
 
+TLine * drawHoriLine(double x1, double x2, double y1, int color, int linestyle=2){
+    auto fhoriline = new TLine(x1, y1, x2, y1);
+	fhoriline->SetLineWidth(1);
+    fhoriline->SetLineColor(color);
+    fhoriline->SetLineStyle(linestyle);
+    return fhoriline;
+}
+
 
 class Observable {
 public:
@@ -26,6 +34,7 @@ public:
 
     std::string ytitle;
 
+    double min_xval = 0;
     double max_xval = -1;
     double min_yval = -1;
     double max_yval_ratio = -1;
@@ -34,6 +43,9 @@ public:
     TH1 * hist_pythia_nonprompt;
     TH1 * hist_herwig_prompt;
     TH1 * hist_herwig_nonprompt;
+
+    TH1 * hist_pythia_notforcedD0toKPi_prompt;
+    TH1 * hist_pythia_notforcedD0toKPi_nonprompt;
 
     Observable(std::string name_val, std::string numtype_val, bool logy_val, std::string xtitle_val, bool cs_val, bool cs_method2_val=false, bool onlycharged_val=false) {
         name = name_val;
@@ -51,11 +63,11 @@ public:
         if (name == "Pt") {
             max_xval = 100;
             max_yval_ratio = 2.25;
-            if (cs) max_yval_ratio = .00001; //1e-5;
+            if (cs) max_yval_ratio = 10; //1e-5;
         } else if (name == "D0_Pt") {
             max_xval = 60;
             max_yval_ratio = 50;
-            if (cs) max_yval_ratio = .00012;
+            if (cs) max_yval_ratio = 150;
         } else if (name == "Phi") {
             max_yval_ratio = 3.5;
         } else if (name == "D0_Phi") {
@@ -65,7 +77,11 @@ public:
         } else if (name == "D0_Eta" || name == "D0_Rap") {
             min_yval = 2e3;
             max_yval_ratio = 25; //idk why this height is showing as double
-        } else if (name == "PID" || name == "D0_MPID") {
+        } else if (name == "PID") {
+            max_yval_ratio = 50; 
+        } else if (name == "D0_MPID") {
+            min_xval = -600;
+            max_xval = 600;
             max_yval_ratio = 50; 
         } else if (name == "numD0s") {
             min_yval = 1e2;
@@ -92,6 +108,15 @@ public:
         hist_herwig_nonprompt->SetMarkerStyle(kOpenCircle);
         hist_herwig_nonprompt->SetLineStyle(9);
 
+        hist_pythia_notforcedD0toKPi_prompt->SetMarkerColorAlpha(kOrange-3, 1.0);
+        hist_pythia_notforcedD0toKPi_prompt->SetLineColorAlpha(kOrange-3, 1.0);
+        hist_pythia_notforcedD0toKPi_prompt->SetMarkerStyle(kFullCircle);
+
+        hist_pythia_notforcedD0toKPi_nonprompt->SetMarkerColorAlpha(kGreen-3, 1.0);
+        hist_pythia_notforcedD0toKPi_nonprompt->SetLineColorAlpha(kGreen-3, 1.0);
+        hist_pythia_notforcedD0toKPi_nonprompt->SetMarkerStyle(kOpenCircle);
+        hist_pythia_notforcedD0toKPi_nonprompt->SetLineStyle(9);
+
         if ( cs or cs_method2 or onlycharged ) ytitle = "#frac{d#sigma}{d" + xtitle + "}";  
         else ytitle = "#frac{dN}{d" + xtitle + "}";
               
@@ -102,7 +127,7 @@ public:
     }
 
     // -------- DRAW --------
-    void drawPairForObs(bool normalized=false) {
+    void drawPairForObs(bool normalized=false, bool add_third_curve=false) {
     
         std::string c_name = Form("c%s", name.c_str());
         TCanvas *c = new TCanvas(c_name.c_str(), c_name.c_str(), 800, 600);
@@ -148,6 +173,10 @@ public:
         hist_pythia_nonprompt->Draw("hist same");
         hist_herwig_prompt->Draw("hist same");
         hist_herwig_nonprompt->Draw("hist same");
+        if (add_third_curve) {
+            hist_pythia_notforcedD0toKPi_prompt->Draw("hist same");
+            hist_pythia_notforcedD0toKPi_nonprompt->Draw("hist same"); 
+        }
 
         TLegend *leg = new TLegend(0.55, 0.75, 0.8, 0.88); //0.15, 0.75, 0.4, 0.88);
         leg->SetBorderSize(0);
@@ -156,6 +185,10 @@ public:
         leg->AddEntry(hist_pythia_nonprompt, "Pythia non-prompt", "l");
         leg->AddEntry(hist_herwig_prompt, "Herwig prompt", "l");
         leg->AddEntry(hist_herwig_nonprompt, "Herwig non-prompt", "l");
+        if (add_third_curve) {
+            leg->AddEntry(hist_pythia_notforcedD0toKPi_prompt, "Pythia prompt no D0->Kpi forcing", "l");
+            leg->AddEntry(hist_pythia_notforcedD0toKPi_nonprompt, "Pythia non-prompt no D0->Kpi forcing", "l");
+        }
         leg->Draw();
 
         // ======================
@@ -163,10 +196,21 @@ public:
         // ======================
         pad2->cd();
 
+        if ( cs ) gPad->SetLogy();
+
         TH1D *h_ratio_prompt = (TH1D *)hist_pythia_prompt->Clone(Form("h_ratio_%s_prompt", name.c_str()));
         h_ratio_prompt->Divide(hist_herwig_prompt);
         TH1D *h_ratio_nonprompt = (TH1D *)hist_pythia_nonprompt->Clone(Form("h_ratio_%s_nonprompt", name.c_str()));
         h_ratio_nonprompt->Divide(hist_herwig_nonprompt);
+
+        TH1D *h_ratio_notforcedD0toKPi_prompt;
+        TH1D *h_ratio_notforcedD0toKPi_nonprompt;
+        if (add_third_curve) {
+            h_ratio_notforcedD0toKPi_prompt = (TH1D *)hist_pythia_notforcedD0toKPi_prompt->Clone(Form("h_ratio_%s_notforcedD0toKPi_prompt", name.c_str()));
+            h_ratio_notforcedD0toKPi_prompt->Divide(hist_herwig_prompt);
+            h_ratio_notforcedD0toKPi_nonprompt = (TH1D *)hist_pythia_notforcedD0toKPi_nonprompt->Clone(Form("h_ratio_%s_notforcedD0toKPi_nonprompt", name.c_str()));
+            h_ratio_notforcedD0toKPi_nonprompt->Divide(hist_herwig_nonprompt);
+        }
 
         // h_ratio->SetTitle(Form("Ratio %s", name.c_str()));
         h_ratio_prompt->GetYaxis()->SetTitle("PYTHIA / HERWIG");
@@ -181,26 +225,33 @@ public:
 
         h_ratio_prompt->SetStats(0);
         h_ratio_nonprompt->SetStats(0);
+        if (add_third_curve) {
+            h_ratio_notforcedD0toKPi_prompt->SetStats(0);
+            h_ratio_notforcedD0toKPi_nonprompt->SetStats(0);
+        }
 
         if (max_yval_ratio > 0 ) h_ratio_prompt->SetMaximum(max_yval_ratio);
+        if (name == "D0_Pt") h_ratio_prompt->SetMinimum(1e-1);
         if (normalized && name == "Pt") h_ratio_prompt->SetMaximum(1.2);
         if (normalized && name == "D0_Pt") h_ratio_prompt->SetMaximum(2.0);
 
         h_ratio_prompt->Draw("hist");
         h_ratio_nonprompt->Draw("hist same");
-        if (cs) {
-            cout << "printing bins" << endl;
-            for ( int a = 0; a < h_ratio_prompt->GetNbinsX(); a++ ) {
-                cout << h_ratio_prompt->GetBinContent(a) << " ";
-            }
-            cout << endl;
+        if (add_third_curve) {
+            h_ratio_notforcedD0toKPi_prompt->Draw("hist same");
+            h_ratio_notforcedD0toKPi_nonprompt->Draw("hist same");
         }
+        if (min_xval != 0 || max_xval != -1) drawHoriLine(min_xval, max_xval, 1, kGray+2)->Draw("same");
 
-        TLegend *leg_ratio = new TLegend(0.78, 0.65, 0.93, 0.8);
+        TLegend *leg_ratio = new TLegend(0.78, 0.65, 0.93, 0.9);
         leg_ratio->SetBorderSize(0);
         leg_ratio->SetFillStyle(0);
         leg_ratio->AddEntry(h_ratio_prompt, "prompt", "l");
         leg_ratio->AddEntry(h_ratio_nonprompt, "non-prompt", "l");
+        if (add_third_curve) {
+            leg_ratio->AddEntry(h_ratio_notforcedD0toKPi_prompt, "prompt no forced D0->Kpi", "l");
+            leg_ratio->AddEntry(h_ratio_notforcedD0toKPi_nonprompt, "non-prompt no forced D0->Kpi", "l");
+        }
         leg_ratio->Draw();
 
         std::string file_plot_output = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/HF_EEC/plots/HF_particle_comparisons/" + name + "_comparison.pdf";
@@ -284,7 +335,10 @@ void draw_multiple_testing(std::vector<Observable> obs_vec) {
 }
 
 
-void analyze(TFile * fin_pythia, TFile * fin_herwig) {
+void analyze(TFile * fin_pythia, TFile * fin_herwig, TFile * fin_pythia_notforcedD0toKPi = nullptr) {
+
+    bool add_third_curve = (fin_pythia_notforcedD0toKPi != nullptr);
+
     // obs = Pt, Eta, Phi, PID
     // obs = D0_Pt, D0_Eta, D0_Phi, D0_Rap, D0_MPID, numD0s
     Observable obs_pt("Pt", "double", true, "p_{T}", false);
@@ -307,9 +361,9 @@ void analyze(TFile * fin_pythia, TFile * fin_herwig) {
     // Observable obs_D0_pt_cs_method2("D0_Pt", "double", true, "p_{T}", false, true);
     // Observable obs_D0_rap_cs_method2("D0_Rap", "double", true, "y", false, true);
 
-    Observable obs_pt_onlycharged_cs("Pt", "double", true, "p_{T}", false, false, true);
+    // Observable obs_pt_onlycharged_cs("Pt", "double", true, "p_{T}", false, false, true);
 
-    Observable* obs_list[14] = { &obs_pt, &obs_eta, &obs_phi, &obs_pid, &obs_D0_pt, &obs_D0_eta, &obs_D0_phi, &obs_D0_rap, &obs_D0_mpid, &obs_numD0s, &obs_pt_cs, &obs_D0_pt_cs, &obs_D0_rap_cs, &obs_pt_onlycharged_cs };
+    Observable* obs_list[13] = { &obs_pt, &obs_eta, &obs_phi, &obs_pid, &obs_D0_pt, &obs_D0_eta, &obs_D0_phi, &obs_D0_rap, &obs_D0_mpid, &obs_numD0s, &obs_pt_cs, &obs_D0_pt_cs, &obs_D0_rap_cs }; //, &obs_pt_onlycharged_cs };
 
     for ( Observable* obs : obs_list ) {
         cout << "Running observable " << obs->name << endl;
@@ -319,10 +373,16 @@ void analyze(TFile * fin_pythia, TFile * fin_herwig) {
         obs->hist_herwig_prompt = read_histogram(fin_herwig, *obs, "herwig", "prompt", "gen");
         obs->hist_herwig_nonprompt = read_histogram(fin_herwig, *obs, "herwig", "nonprompt", "gen");
 
+        if (add_third_curve) {
+            obs->hist_pythia_notforcedD0toKPi_prompt = read_histogram(fin_pythia_notforcedD0toKPi, *obs, "pythia", "prompt", "gen");
+            obs->hist_pythia_notforcedD0toKPi_nonprompt = read_histogram(fin_pythia_notforcedD0toKPi, *obs, "pythia", "nonprompt", "gen");
+        }
+
         cout << "styling hists now" << endl;
         obs->style_hists();
         cout << "drawing hists now" << endl;
-        obs->drawPairForObs();
+        if (add_third_curve) obs->drawPairForObs(false, true);
+        else obs->drawPairForObs();
         if (obs->cs) obs->drawPairForObs(true); // normalize by 1/sigma
     }
 
@@ -435,16 +495,20 @@ void compare_mc_HF_particle_level() {
     // -------- INPUT HISTOGRAMS -------- -- no det level at this point in time
     TString pythia_hists = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/HF_EEC/rootfiles/HF_particle_comparisons/HF_particle_comparisons_pythia.root"; 
     TString herwig_hists = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/HF_EEC/rootfiles/HF_particle_comparisons/HF_particle_comparisons_herwig.root";
+    TString pythia_notforcedD0toKPi_hists = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/HF_EEC/rootfiles/HF_particle_comparisons/HF_particle_comparisons_pythia_notforcedD0toKPi.root"; 
 
     // -------- OPEN FILES --------
     TFile * file_pythia_hists = new TFile(pythia_hists, "READ");
     TFile * file_herwig_hists = new TFile(herwig_hists, "READ");
+    TFile * file_pythia_notforcedD0toKPi_hists = new TFile(pythia_notforcedD0toKPi_hists, "READ");
 
     // -------- PLOT --------
-    analyze(file_pythia_hists, file_herwig_hists);
+    // analyze(file_pythia_hists, file_herwig_hists);
+    analyze(file_pythia_hists, file_herwig_hists, file_pythia_notforcedD0toKPi_hists);
 
     file_pythia_hists->Close();
     file_herwig_hists->Close();
+    file_pythia_notforcedD0toKPi_hists->Close();
 
     // -------- DOUBLE CHECK # OF ENTRIES --------
     check_num_entries();

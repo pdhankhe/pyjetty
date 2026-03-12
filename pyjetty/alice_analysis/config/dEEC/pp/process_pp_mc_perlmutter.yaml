@@ -23,7 +23,7 @@ ENC_fastsim: False # only set to True when fast_simulation is set to True
 mc_prod: True
 ENC_pair_cut: False
 study_D0: False
-pair_eff_file: '/global/cfs/cdirs/alice/blianggi/mypyjetty/ENC/PairEff.root'
+pair_eff_file: '/global/cfs/cdirs/alice/blianggi/mypyjetty/ENC/PairEff.root' #not used, doesn't matter
 comp_system: 'perlmutter'
 generator: 'pythia'
 

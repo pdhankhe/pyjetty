@@ -5,11 +5,11 @@
 #SBATCH --account=alice
 #SBATCH --qos=shared
 #SBATCH --constraint=cpu
-#SBATCH --time=6:00:00
+#SBATCH --time=2:00:00
 #SBATCH --array=1-1000
 #SBATCH --exclude=nid004104,nid004160,nid004149
 #SBATCH --output=/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/slurm-%A_%a.out
-#SBATCH --mem=16GB
+#SBATCH --mem=20GB
 
 FILE_PATHS='/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/generators/pythia_alice/tree_fastsim/1143757/files.txt' #5 TeV
 # FILE_PATHS='/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/pythiagen/tree_fastsim/47946306/47835863/files.txt' #5 TeV, CTEQ 5L PDF
