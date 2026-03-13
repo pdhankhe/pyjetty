@@ -390,8 +390,8 @@ class ProcessMCBase(process_base.ProcessBase):
         # ind_ev_adj is the indexer for det level events -- gives the actual event ID! and skips any events that don't have det level particles
         # ievent_adj is the event counter for truth level events! (just counts in order)
         if D0_PIDs[0] in event_mpids or D0_PIDs[1] in event_mpids: #found a particle with a D0 mother
-          print()
-          print("iev", iev, "ievent_adj", ievent_adj, "ind_ev_adj", ind_ev_adj) 
+          # print()
+          # print("iev", iev, "ievent_adj", ievent_adj, "ind_ev_adj", ind_ev_adj) 
           # print("EVEBT MPID", event_mpids)
           # now look for the other daughter of the D0
           remaining_dau_count = sum(1 for mpid in event_mpids if abs(mpid) == 421) #the number of particles that have a D0 mother in the det-level track list
@@ -425,15 +425,15 @@ class ProcessMCBase(process_base.ProcessBase):
           list_of_D0s_mid_truth = [d0_mid_truth_flat[ind] for ind in rev_list_of_D0_indices_in_event_truth]
           list_of_D0s_rap_truth = [d0_rap_truth_flat[ind] for ind in rev_list_of_D0_indices_in_event_truth]
 
-          [print("index of D0 in D0 tree:", ind, "// and corresponding evid", evid) for ind, evid in enumerate(d0_ev_id_truth_flat) if evid == ievent_adj]
+          # [print("index of D0 in D0 tree:", ind, "// and corresponding evid", evid) for ind, evid in enumerate(d0_ev_id_truth_flat) if evid == ievent_adj]
 
           # list_of_D0_indices_in_event_det = [ind for ind, evid in enumerate(d0_ev_id_det) if evid[0] == ievent_adj]
           # list_of_D0s_mcindices_det = [d0_mcindices_det[ind] for ind in list_of_D0_indices_in_event_det]
           # print("rev_list_of_D0_indices_in_event_truth", rev_list_of_D0_indices_in_event_truth)
 
-          if ievent_adj < 1000:
-            print("keep for debug, length before adjustments", len(df_fjparticles_det['fj_particle'].values[ind_ev_adj])) #, 
-                # len(df_fjparticles_det['ParticlePID'].values[ind_ev_adj]), len(df_fjparticles_det['MotherPID'].values[ind_ev_adj]))
+          # if ievent_adj < 1000:
+          #   print("keep for debug, length before adjustments", len(df_fjparticles_det['fj_particle'].values[ind_ev_adj])) #, 
+          #       # len(df_fjparticles_det['ParticlePID'].values[ind_ev_adj]), len(df_fjparticles_det['MotherPID'].values[ind_ev_adj]))
           
 
           # Loop through daughter particles - start matching and replacing with D0s!
@@ -453,9 +453,9 @@ class ProcessMCBase(process_base.ProcessBase):
                   # do one more check here -- check if truth level k+pi == D0 in 4-mom
                   # make sure to get the mcid from detector level to access the correct truth level particle
                   for k,D0_4vec in enumerate(list_of_D0s_4vec_truth):
-                    print("DAU 1: ", possible_daughter_4vec_truth[0], possible_daughter_4vec_truth[0].pt(), possible_daughter_4vec_truth[0].eta(), possible_daughter_4vec_truth[0].phi())
-                    print("DAU 2: ", possible_daughter_4vec_truth[int(j)], possible_daughter_4vec_truth[int(j)].pt(), possible_daughter_4vec_truth[int(j)].eta(), possible_daughter_4vec_truth[int(j)].phi())
-                    print("D0: ", D0_4vec, D0_4vec.pt(), D0_4vec.eta(), D0_4vec.phi())
+                    # print("DAU 1: ", possible_daughter_4vec_truth[0], possible_daughter_4vec_truth[0].pt(), possible_daughter_4vec_truth[0].eta(), possible_daughter_4vec_truth[0].phi())
+                    # print("DAU 2: ", possible_daughter_4vec_truth[int(j)], possible_daughter_4vec_truth[int(j)].pt(), possible_daughter_4vec_truth[int(j)].eta(), possible_daughter_4vec_truth[int(j)].phi())
+                    # print("D0: ", D0_4vec, D0_4vec.pt(), D0_4vec.eta(), D0_4vec.phi())
                     if ( self.four_mom_equal(possible_daughter_4vec_truth[0] + possible_daughter_4vec_truth[int(j)], D0_4vec) ):
 
                       # then do replacement
@@ -469,9 +469,9 @@ class ProcessMCBase(process_base.ProcessBase):
                           df_fjparticles_det.loc[(run_num, ievent_adj),col] = np.delete(df_fjparticles_det.loc[(run_num, ievent_adj),col], rev_possible_daughter_indices[0])
                           # print("col", col, df_fjparticles_det.loc[(run_num, ievent_adj),col])
                           df_fjparticles_det.loc[(run_num, ievent_adj),col] = np.delete(df_fjparticles_det.loc[(run_num, ievent_adj),col], rev_possible_daughter_indices[j])
-                      if ievent_adj < 1000:
-                        print("keep for debug, length after kpi removal", len(df_fjparticles_det['fj_particle'].values[ind_ev_adj])) #, 
-                            # len(df_fjparticles_det['ParticlePID'].values[ind_ev_adj]), len(df_fjparticles_det['MotherPID'].values[ind_ev_adj]))
+                      # if ievent_adj < 1000:
+                      #   print("keep for debug, length after kpi removal", len(df_fjparticles_det['fj_particle'].values[ind_ev_adj])) #, 
+                      #       # len(df_fjparticles_det['ParticlePID'].values[ind_ev_adj]), len(df_fjparticles_det['MotherPID'].values[ind_ev_adj]))
 
                       # and add the D0
 
@@ -519,10 +519,10 @@ class ProcessMCBase(process_base.ProcessBase):
                         D0_mcid = -1 * int(len(list_of_D0s_4vec_truth) - 1 - k)
                       '''
                       
-                      if ievent_adj < 1000:
-                        # print("keep for debug, length at end", len(df_fjparticles_det['fj_particle'].values[ind_ev_adj]), 
-                        #     len(df_fjparticles_det['ParticlePID'].values[ind_ev_adj]), len(df_fjparticles_det['MotherPID'].values[ind_ev_adj]))
-                        print("keep for debug, length at end", len(df_fjparticles_det['fj_particle'].values[ind_ev_adj]))
+                      # if ievent_adj < 1000:
+                      #   # print("keep for debug, length at end", len(df_fjparticles_det['fj_particle'].values[ind_ev_adj]), 
+                      #   #     len(df_fjparticles_det['ParticlePID'].values[ind_ev_adj]), len(df_fjparticles_det['MotherPID'].values[ind_ev_adj]))
+                      #   print("keep for debug, length at end", len(df_fjparticles_det['fj_particle'].values[ind_ev_adj]))
 
 
                       # clear the track arrays
@@ -593,12 +593,12 @@ class ProcessMCBase(process_base.ProcessBase):
         dau_inds = []
         if D0_PIDs[0] in event_mpids or D0_PIDs[1] in event_mpids:
 
-          print()
-          print("iev", iev, "ievent_adj", ievent_adj)
+          # print()
+          # print("iev", iev, "ievent_adj", ievent_adj)
 
-          if iev < 1000:
-            print("keep for debug, length to start", len(df_fjparticles_truth['fj_particle'].values[iev]), 
-                len(df_fjparticles_truth['ParticlePID'].values[iev]), len(df_fjparticles_truth['MotherPID'].values[iev]))
+          # if iev < 1000:
+          #   print("keep for debug, length to start", len(df_fjparticles_truth['fj_particle'].values[iev]), 
+          #       len(df_fjparticles_truth['ParticlePID'].values[iev]), len(df_fjparticles_truth['MotherPID'].values[iev]))
 
           dau_inds = [i for i, mpid in enumerate(event_mpids) if abs(mpid) == 421] # List comprehension
           rev_dau_inds = list(reversed(dau_inds))
@@ -643,9 +643,9 @@ class ProcessMCBase(process_base.ProcessBase):
               else:
                 df_fjparticles_truth.loc[(run_num, ievent_adj), col] = np.delete(df_fjparticles_truth.loc[(run_num, ievent_adj),col], dau_ind)
 
-            if iev < 1000:
-              print("keep for debug, length after kpi removal", len(df_fjparticles_truth['fj_particle'].values[iev]), 
-                  len(df_fjparticles_truth['ParticlePID'].values[iev]), len(df_fjparticles_truth['MotherPID'].values[iev]))
+            # if iev < 1000:
+            #   print("keep for debug, length after kpi removal", len(df_fjparticles_truth['fj_particle'].values[iev]), 
+            #       len(df_fjparticles_truth['ParticlePID'].values[iev]), len(df_fjparticles_truth['MotherPID'].values[iev]))
 
             # and ADDING row for the D0
             if i_dau%2 == 1:
@@ -653,7 +653,7 @@ class ProcessMCBase(process_base.ProcessBase):
               D0_index = int((len(dau_inds)-1-i_dau)/2) #int(i_dau/2) #rev_list_of_D0_indices_in_event_truth[int(i_dau/2)]
               # print(" i_dau:", i_dau, "int(i_dau/2):", int(i_dau/2), "rev_list_of_D0_indices_in_event_truth:", rev_list_of_D0_indices_in_event_truth)
               # print(" rev_dau_inds:", rev_dau_inds)
-              print(" D0_index:", D0_index, "d0_event_counter:", d0_event_counter)
+              # print(" D0_index:", D0_index, "d0_event_counter:", d0_event_counter)
 
               col = 'fj_particle'
               # print("inserting", d0_4vec_truth[d0_event_counter][D0_index], "of", len(d0_4vec_truth[d0_event_counter]), " items into", col)
@@ -684,18 +684,18 @@ class ProcessMCBase(process_base.ProcessBase):
                 # print("lenth det, before mc index adjustment:", len(df_fjparticles_det.loc[(run_num, ievent_adj)]['ParticleMCIndex']),df_fjparticles_det.loc[(run_num, ievent_adj)]['ParticleMCIndex'])
                 # print(type(df_fjparticles_det.loc[(run_num, ievent_adj)]['ParticleMCIndex']))
                 # print(df_fjparticles_det.loc[(run_num, ievent_adj)]['ParticleMCIndex'].ndim)
-                if df_fjparticles_det.loc[(run_num, ievent_adj)]['ParticleMCIndex'].ndim == 0: # this is a 0-d array but it looks like its saved as a "scalar" and it's the D0!
+                if df_fjparticles_det.loc[(run_num, ievent_adj),'ParticleMCIndex'].ndim == 0: # this is a 0-d array but it looks like its saved as a "scalar" and it's the D0!
                   # print("this is a scalar!!!!")
-                  df_fjparticles_det.loc[(run_num, ievent_adj)]['ParticleMCIndex'] = np.array([dau_ind])
+                  df_fjparticles_det.loc[(run_num, ievent_adj),'ParticleMCIndex'] = np.array([dau_ind])
                   # print(df_fjparticles_det.loc[(run_num, ievent_adj)]['ParticleMCIndex'].ndim)
                   # print(df_fjparticles_det.loc[(run_num, ievent_adj)]['ParticleMCIndex'])
                 else:
-                  for i_item,mcid in enumerate(df_fjparticles_det.loc[(run_num, ievent_adj)]['ParticleMCIndex']): #loop over items in array of ParticleMCIndex
-                    if abs(df_fjparticles_det.loc[(run_num, ievent_adj)]['ParticlePID'][i_item]) == 421 and D0_index == mcid:
-                      df_fjparticles_det.loc[(run_num, ievent_adj)]['ParticleMCIndex'][i_item] = dau_ind
+                  for i_item,mcid in enumerate(df_fjparticles_det.loc[(run_num, ievent_adj),'ParticleMCIndex']): #loop over items in array of ParticleMCIndex
+                    if abs(df_fjparticles_det.loc[(run_num, ievent_adj),'ParticlePID'][i_item]) == 421 and D0_index == mcid:
+                      df_fjparticles_det.loc[(run_num, ievent_adj),'ParticleMCIndex'][i_item] = dau_ind
                       # print("D0 found at", i_item)
                     if mcid > dau_ind:
-                      df_fjparticles_det.loc[(run_num, ievent_adj)]['ParticleMCIndex'][i_item] = mcid - 1
+                      df_fjparticles_det.loc[(run_num, ievent_adj),'ParticleMCIndex'][i_item] = mcid - 1
 
                   # if abs(mcid) > dau_ind: #rev_possible_daughter_indices[0]:
                   #   if mcid < 0: #this is a negative D0 mc index to point to not being there at det-level... need to add 1 instead of subtract
@@ -706,9 +706,9 @@ class ProcessMCBase(process_base.ProcessBase):
                   #   print("D0 found at", i_item) #here mcid also points to the index in D0 tree amongst each event
                 # print("Check: after mc index adjustment        :", len(df_fjparticles_det.loc[(run_num, ievent_adj)]['ParticleMCIndex']),df_fjparticles_det.loc[(run_num, ievent_adj)]['ParticleMCIndex'])
 
-              if iev < 1000:
-                print("keep for debug, length after D0 removal", len(df_fjparticles_truth['fj_particle'].values[iev]), 
-                    len(df_fjparticles_truth['ParticlePID'].values[iev]), len(df_fjparticles_truth['MotherPID'].values[iev]))
+              # if iev < 1000:
+              #   print("keep for debug, length after D0 removal", len(df_fjparticles_truth['fj_particle'].values[iev]), 
+              #       len(df_fjparticles_truth['ParticlePID'].values[iev]), len(df_fjparticles_truth['MotherPID'].values[iev]))
               
           d0_event_counter+=1
           # print("self.dict_replaced_D0_daughter_truth_tracks?,", self.dict_replaced_D0_daughter_truth_tracks)
@@ -905,7 +905,7 @@ class ProcessMCBase(process_base.ProcessBase):
     #   [self.fill_track_histograms(fj_particles_det) for fj_particles_det in self.df_fjparticles['fj_particles_det']]
     
     fj.ClusterSequence.print_banner()
-    print()
+    # print()
         
     self.event_number = 0
     self.jet_number = -1 # so that jet counting starts at 0
@@ -1228,9 +1228,9 @@ class ProcessMCBase(process_base.ProcessBase):
           print("Nan value - no detector level particles in this event.")
         else:
           if particles_mcid_det.ndim == 0: # this is a 0-d array but it looks like its saved as a "scalar" and it's the D0!
-            print("particles_mcid_det", particles_mcid_det)
+            # print("particles_mcid_det", particles_mcid_det)
             print("this is a scalar -- only one detector-level particle in event!!!!")
-            print("fj_particles_det[0]", fj_particles_det[0])
+            # print("fj_particles_det[0]", fj_particles_det[0])
             if fj_particles_det[0].has_user_info():
               ecorr_user_info = fj_particles_det[0].python_info()
             else:
@@ -1266,19 +1266,19 @@ class ProcessMCBase(process_base.ProcessBase):
                 # print("ALERT! This is a neutral that is not a D0, photon, or neutrino, K0L or neutron ! Check what it is! PID:", corresponding_truth_pid)
 
             # Get the fj particle of the corresponding truth particle
-            if (corresponding_truth_pid == particles_pid_truth[int(mcid)]):
-              corresponding_truth_fj_particle = fj_particles_truth[int(abs(mcid))]
-            else: # this is a case where i.e. the det-level D0 was not reconstructed, so corresponding_truth_pid gives a D0 daughter, and particles_pid_truth[int(mcid)] gives the D0
+            if (corresponding_truth_pid == particles_pid_truth[int(particles_mcid_det)]):
+              corresponding_truth_fj_particle = fj_particles_truth[int(abs(particles_mcid_det))]
+            else: # this is a case where i.e. the det-level D0 was not reconstructed, so corresponding_truth_pid gives a D0 daughter, and particles_pid_truth[int(particles_mcid_det)] gives the D0
               # corresponding_truth_fj_particle = None
-              # mask = (self.df_replaced_D0_daughter_truth_tracks['ev_id'] == self.event_number-1) & (self.df_replaced_D0_daughter_truth_tracks['ParticleMCIndex'] == int(mcid))
+              # mask = (self.df_replaced_D0_daughter_truth_tracks['ev_id'] == self.event_number-1) & (self.df_replaced_D0_daughter_truth_tracks['ParticleMCIndex'] == int(particles_mcid_det))
               # corresponding_truth_fj_particle = self.df_replaced_D0_daughter_truth_tracks.loc[mask, 'fj_particle'].values[0] 
-              corresponding_truth_fj_particle = self.dict_replaced_D0_daughter_truth_tracks[(self.event_number-1, int(mcid))]['fj_particle']
-              # print(corresponding_truth_pid, particles_pid_truth[int(mcid)])
-              # print("dict_replaced_D0_daughter_truth_tracks", self.event_number - 1, int(mcid), ":::   ", self.dict_replaced_D0_daughter_truth_tracks[(self.event_number-1, int(mcid))])
+              corresponding_truth_fj_particle = self.dict_replaced_D0_daughter_truth_tracks[(self.event_number-1, int(particles_mcid_det))]['fj_particle']
+              # print(corresponding_truth_pid, particles_pid_truth[int(particles_mcid_det)])
+              # print("dict_replaced_D0_daughter_truth_tracks", self.event_number - 1, int(particles_mcid_det), ":::   ", self.dict_replaced_D0_daughter_truth_tracks[(self.event_number-1, int(particles_mcid_det))])
               # print("corresponding truth fj particle from replaced D0 daughter tracks dataframe:", corresponding_truth_fj_particle)
 
-            if abs(corresponding_truth_pid) == 421: # it's a D0 so the mcid will take it back to the D0 tree!
-              print("D0 fj particle here!")
+            # if abs(corresponding_truth_pid) == 421: # it's a D0 so the mcid will take it back to the D0 tree!
+            #   print("D0 fj particle here!")
 
             ecorr_user_info.particle_mcid = int(particles_mcid_det)
             ecorr_user_info.particle_truth = corresponding_truth_fj_particle
@@ -1339,8 +1339,8 @@ class ProcessMCBase(process_base.ProcessBase):
                 # print("corresponding truth fj particle from replaced D0 daughter tracks dataframe:", corresponding_truth_fj_particle)
                 
 
-              if abs(corresponding_truth_pid) == 421: # it's a D0 so the mcid will take it back to the D0 tree!
-                print("D0 fj particle here!")
+              # if abs(corresponding_truth_pid) == 421: # it's a D0 so the mcid will take it back to the D0 tree!
+              #   print("D0 fj particle here!")
 
               ecorr_user_info.particle_mcid = int(mcid)
               ecorr_user_info.particle_truth = corresponding_truth_fj_particle
