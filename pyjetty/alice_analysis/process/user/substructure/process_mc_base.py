@@ -88,7 +88,7 @@ class ProcessMCBase(process_base.ProcessBase):
           pt_hat_yaml = yaml.safe_load(stream)
       elif self.generator == 'herwig':
         with open("{}/rstorage/generators/herwig_alice/tree_fastsim/scaleFactors_260023_updated.yaml".format(file_basepath), 'r') as stream:
-        pt_hat_yaml = yaml.safe_load(stream)
+          pt_hat_yaml = yaml.safe_load(stream)
 
     print("DEBUGGING", self.compsystem, "AND", self.generator, "AND", self.mcprod)
 
