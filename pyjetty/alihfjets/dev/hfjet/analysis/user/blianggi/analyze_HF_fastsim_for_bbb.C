@@ -707,8 +707,8 @@ void analyze_files(TFile * herwig_fastsim_file, TFile * pythia_fastsim_file, MCH
 }
 
 
-void format_hist_for_allcombinedplot(TH1D * hist, TLegend * leg, int markercolor, int markerstyle, std::string label) {
-    hist->SetMarkerColor(markercolor);
+void format_hist_for_allcombinedplot(TH1D * hist, TLegend * leg, int markercolor, double markeralpha, int markerstyle, std::string label) {
+    hist->SetMarkerColorAlpha(markercolor, markeralpha);
     hist->SetLineColor(markercolor);
     hist->SetMarkerStyle(markerstyle);
     // hist->SetMarkerSize(1.25);
@@ -731,6 +731,8 @@ void plot_prompt_and_nonprompt(TFile * output_file, MCHistCollection herwigHists
         TLegend * leg = new TLegend(0.6, 0.55, 0.8, 0.85);
         leg_ev->SetBorderSize(0);
         leg->SetBorderSize(0);
+        leg_ev->SetFillStyle(0);
+        leg->SetFillStyle(0);
 
         cout << "herwigHists.h_bbb_ratio_all.size: " << herwigHists.h_bbb_ratio_all.size() << endl;
 
@@ -741,15 +743,15 @@ void plot_prompt_and_nonprompt(TFile * output_file, MCHistCollection herwigHists
         leg_ev->AddEntry((TObject*)0, Form("%d #leq p_{T}^{D^{0}} < %d GeV/c, |y_{D^{0}}| #leq 0.8", d0_pt_cuts[i], pt_max), "");
 
         leg->AddEntry((TObject*)0, "Herwig", "");
-        format_hist_for_allcombinedplot(herwigHists.h_bbb_ratio_all[i], leg, kRed-4, 20, "Prompt");
-        format_hist_for_allcombinedplot(herwigHists.h_bbb_ratio_matched[i], leg, kRed-4, 21, "Prompt matched");
-        format_hist_for_allcombinedplot(herwigNPHists.h_bbb_ratio_all[i], leg, kOrange-3, 20, "Non-prompt");
-        format_hist_for_allcombinedplot(herwigNPHists.h_bbb_ratio_matched[i], leg, kOrange-3, 21, "Non-prompt matched");
+        format_hist_for_allcombinedplot(herwigHists.h_bbb_ratio_all[i], leg, kRed-4, 0.75, 20, "Prompt");
+        format_hist_for_allcombinedplot(herwigHists.h_bbb_ratio_matched[i], leg, kRed-4, 0.75, 21, "Prompt matched");
+        format_hist_for_allcombinedplot(herwigNPHists.h_bbb_ratio_all[i], leg, kOrange-3, 0.75, 20, "Non-prompt");
+        format_hist_for_allcombinedplot(herwigNPHists.h_bbb_ratio_matched[i], leg, kOrange-3, 0.75, 21, "Non-prompt matched");
         leg->AddEntry((TObject*)0, "PYTHIA 8", ""); // empty line
-        format_hist_for_allcombinedplot(pythiaHists.h_bbb_ratio_all[i], leg, kAzure-2, 20, "Prompt");
-        format_hist_for_allcombinedplot(pythiaHists.h_bbb_ratio_matched[i], leg, kAzure-2, 21, "Prompt matched");
-        format_hist_for_allcombinedplot(pythiaNPHists.h_bbb_ratio_all[i], leg, kCyan-3, 20, "Non-prompt");
-        format_hist_for_allcombinedplot(pythiaNPHists.h_bbb_ratio_matched[i], leg, kCyan-3, 21, "Non-prompt matched");
+        format_hist_for_allcombinedplot(pythiaHists.h_bbb_ratio_all[i], leg, kAzure-2, 0.75, 20, "Prompt");
+        format_hist_for_allcombinedplot(pythiaHists.h_bbb_ratio_matched[i], leg, kAzure-2, 0.75, 21, "Prompt matched");
+        format_hist_for_allcombinedplot(pythiaNPHists.h_bbb_ratio_all[i], leg, kCyan-3, 0.75, 20, "Non-prompt");
+        format_hist_for_allcombinedplot(pythiaNPHists.h_bbb_ratio_matched[i], leg, kCyan-3, 0.75, 21, "Non-prompt matched");
 
         herwigHists.h_bbb_ratio_all[i]->SetMaximum(2.5);
         
@@ -777,6 +779,49 @@ void plot_prompt_and_nonprompt(TFile * output_file, MCHistCollection herwigHists
         pythiaHists.h_bbb_ratio_matched[i]->Write();
         pythiaNPHists.h_bbb_ratio_all[i]->Write();
         pythiaNPHists.h_bbb_ratio_matched[i]->Write();
+
+        TCanvas *can_ratio = new TCanvas();
+        can_ratio->cd();
+        gPad->SetLogx();
+        TLegend * leg_new = new TLegend(0.6, 0.7, 0.8, 0.85);
+        leg_new->SetBorderSize(0);
+        leg_new->SetFillStyle(0);
+
+        TH1D * h_phratio_prompt_all = (TH1D *) pythiaHists.h_bbb_ratio_all[i]->Clone("h_phratio_prompt_all");
+        TH1D * h_phratio_prompt_matched = (TH1D *) pythiaHists.h_bbb_ratio_matched[i]->Clone("h_phratio_prompt_matched");
+        TH1D * h_phratio_nonprompt_all = (TH1D *) pythiaNPHists.h_bbb_ratio_all[i]->Clone("h_phratio_nonprompt_all");
+        TH1D * h_phratio_nonprompt_matched = (TH1D *) pythiaNPHists.h_bbb_ratio_matched[i]->Clone("h_phratio_nonprompt_matched");
+
+        h_phratio_prompt_all->GetXaxis()->SetRangeUser(1e-2, 1.0);
+        h_phratio_prompt_matched->GetXaxis()->SetRangeUser(1e-2, 1.0);
+        h_phratio_nonprompt_all->GetXaxis()->SetRangeUser(1e-2, 1.0);
+        h_phratio_nonprompt_matched->GetXaxis()->SetRangeUser(1e-2, 1.0);
+        
+        h_phratio_prompt_all->Divide(herwigHists.h_bbb_ratio_all[i]);
+        h_phratio_prompt_matched->Divide(herwigHists.h_bbb_ratio_matched[i]);
+        h_phratio_nonprompt_all->Divide(herwigNPHists.h_bbb_ratio_all[i]);
+        h_phratio_nonprompt_matched->Divide(herwigNPHists.h_bbb_ratio_matched[i]);
+
+        format_hist_for_allcombinedplot(h_phratio_prompt_all, leg_new, kAzure-2, 0.8, 20, "Prompt");
+        format_hist_for_allcombinedplot(h_phratio_prompt_matched, leg_new, kAzure-2, 1, kOpenSquare, "Prompt matched");
+        format_hist_for_allcombinedplot(h_phratio_nonprompt_all, leg_new, kCyan-3, 0.8, 20, "Non-prompt");
+        format_hist_for_allcombinedplot(h_phratio_nonprompt_matched, leg_new, kCyan-3, 1, kOpenSquare, "Non-prompt matched");
+
+        h_phratio_prompt_all->GetYaxis()->SetTitle("PYTHIA / HERWIG bin-by-bin");
+        h_phratio_prompt_all->SetMinimum(0.8);
+        h_phratio_prompt_all->SetMaximum(1.3);
+
+        h_phratio_prompt_all->Draw();
+        h_phratio_prompt_matched->Draw("SAME");
+        h_phratio_nonprompt_all->Draw("SAME");
+        h_phratio_nonprompt_matched->Draw("SAME");
+        
+        leg_ev->Draw();
+        leg_new->Draw();
+        drawHoriLine(1e-2, 1, 1, kBlack, 3)->Draw();
+
+        can_ratio->SaveAs(Form("%s/ALL_RATIOOFpythiaherwig_promptnonprompt_binbybin_ratios_pt%d_%d%s.pdf", output_dir.c_str(), pt_min, pt_max, output_add_name.c_str()));
+    
         
     }
 }
@@ -796,8 +841,8 @@ void analyze_HF_fastsim_for_bbb() {
         cout << "no pythia fastsim file specified for this option! Exiting..." << endl;
         return;
     } else {
-        herwig_fastsim_file = new TFile("/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/storage/herwig/500841/299990/AnalysisResultsFinal.root", "READ"); // perlmutter link
-        pythia_fastsim_file = new TFile("/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/pythiagen/scaling/49995028/45154942/AnalysisResultsFinal.root", "READ"); // perlmutter link
+        herwig_fastsim_file = new TFile("/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/storage/herwig/599484/299990/AnalysisResultsFinal.root", "READ"); // perlmutter link
+        pythia_fastsim_file = new TFile("/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/pythiagen/scaling/50042318/45154942/AnalysisResultsFinal.root", "READ"); // perlmutter link
         output_add_name = "_withDstar";
     }
     TFile * output_file = new TFile("/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/HF_EEC/rootfiles/binbybinfactors.root", "RECREATE");
@@ -814,8 +859,8 @@ void analyze_HF_fastsim_for_bbb() {
     MCHistCollection pythiaNPHists("pythia_nonprompt");
     MCHistCollection herwigNPHists("herwig_nonprompt");
     if (include_dstar == true) {
-        herwig_fastsim_nonprompt_file = new TFile("/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/storage/herwig/517789/515788/AnalysisResultsFinal.root", "READ"); // perlmutter link
-        pythia_fastsim_nonprompt_file = new TFile("/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/pythiagen/scaling/49995056/46293548/AnalysisResultsFinal.root", "READ"); // perlmutter link
+        herwig_fastsim_nonprompt_file = new TFile("/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/storage/herwig/599587/515788/AnalysisResultsFinal.root", "READ"); // perlmutter link
+        pythia_fastsim_nonprompt_file = new TFile("/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/pythiagen/scaling/50042326/46293548/AnalysisResultsFinal.root", "READ"); // perlmutter link
         output_add_name = "_withDstar";
     }
     analyze_files(herwig_fastsim_nonprompt_file, pythia_fastsim_nonprompt_file, herwigNPHists, pythiaNPHists, "nonprompt");

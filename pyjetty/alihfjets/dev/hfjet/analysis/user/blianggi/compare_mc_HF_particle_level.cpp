@@ -161,6 +161,11 @@ public:
             hist_herwig_prompt->Scale(1.0 / hist_herwig_prompt->Integral());
             hist_herwig_nonprompt->Scale(1.0 / hist_herwig_nonprompt->Integral());
 
+            if (add_third_curve) {
+                hist_pythia_notforcedD0toKPi_prompt->Scale(1.0 / hist_pythia_notforcedD0toKPi_prompt->Integral());
+                hist_pythia_notforcedD0toKPi_nonprompt->Scale(1.0 / hist_pythia_notforcedD0toKPi_nonprompt->Integral()); 
+            }
+
             hist_pythia_prompt->GetYaxis()->SetTitle(("#frac{1}{#sigma} " + ytitle).c_str());
         }
 
@@ -334,6 +339,10 @@ void draw_multiple_testing(std::vector<Observable> obs_vec) {
     c->SaveAs(file_plot_output.c_str());
 }
 
+void comparing_pythia_pt_spectra() {
+
+}
+
 
 void analyze(TFile * fin_pythia, TFile * fin_herwig, TFile * fin_pythia_notforcedD0toKPi = nullptr) {
 
@@ -383,7 +392,10 @@ void analyze(TFile * fin_pythia, TFile * fin_herwig, TFile * fin_pythia_notforce
         cout << "drawing hists now" << endl;
         if (add_third_curve) obs->drawPairForObs(false, true);
         else obs->drawPairForObs();
-        if (obs->cs) obs->drawPairForObs(true); // normalize by 1/sigma
+        if (obs->cs) {
+            if (add_third_curve) obs->drawPairForObs(true, true); // normalize by 1/sigma
+            else obs->drawPairForObs(true); // normalize by 1/sigma
+        }
     }
 
     /* // this is debugging method!
