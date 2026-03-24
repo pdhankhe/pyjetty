@@ -1,5 +1,6 @@
 // ROOT macro to analyze and plot data tuples 
 // This version will only accomodate the FOUR PTRL bins
+// Only run a few observables at a time on hiccup bc of memory issues. On perlmutter more is probably fine.
 // Beatrice Liang-Gilman (beatrice_lg@berkeley.edu)
 
 #include <iostream>
@@ -19,7 +20,7 @@ bool logbins = false;
 std::string attempt_dir; // = Form("data_secondattempt/rebinx%d", rebin);
 std::string outdir; // = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir;
 
-int filecounter_cutoff = 100; //-1; //total: 845 // IDK why I thought it was 7601?
+int filecounter_cutoff = -1; //total: 845 // IDK why I thought it was 7601?
 bool write_to_root_file = true; 
 
 // bool jetpt_bool = false;
@@ -29,7 +30,7 @@ bool deltajt_bool = false;
 bool ew_bool = false;
 bool twoDhists_bool = false;
 bool rc_bool = false; 
-bool deltajt_vs_ptrl_bool = true;
+bool deltajt_vs_ptrl_bool = false; //true;
 
 bool p1_bool = false;
 bool jt1_bool = false;
@@ -39,7 +40,7 @@ bool self_normalized_bool = true;
 bool norm_by_jets_bool = false;
 
 bool unweighted_bool = true;
-bool weighted_bool = false;
+bool weighted_bool = true; //false;
 
 
 class Observable {
@@ -75,6 +76,7 @@ public:
     }
 
     void addHist(TH1D* hist) {
+        cout << "about to push back hist " << hist->GetName() << " to obs_vec" << endl;
         obs_vec.push_back(hist);
     }
 
@@ -211,9 +213,26 @@ std::vector<double> makeLogBins(double minVal, double maxVal, int numBins, bool 
     return bins;
 }
 
+// Get a TH2D from file
+TH1D * getEECFromHist(TFile *file, int pt_min, int pt_max, bool weighting) {
+
+    std::string hist_name = "h_jet_ENC_RL2_JetPt_R0.4_1.0";
+    if (weighting == false) hist_name = "h_jet_EEC_noweight_RL_JetPt_R0.4_1.0";
+
+    TH2D * hist2D = (TH2D*) file->Get(hist_name.c_str());
+    TH2D * hist2D_copy = (TH2D*) hist2D->Clone(Form("%s_copy", hist_name.c_str()));
+
+    hist2D_copy->GetXaxis()->SetRangeUser(pt_min, pt_max);
+    TH1D * hist_EEC = hist2D_copy->ProjectionY(Form("%s_EEC_fromhist", hist_name.c_str()));
+
+    return hist_EEC;
+}
+    
+
+
 /* get a typical 1D histogram from the TChain */
 TH1D * getObs1DHistFromTChain(TChain *chain, Observable obs, int pt_min, int pt_max, 
-                              double ptRL_min, double ptRL_max, double ptavg=0.0, bool weighting=false,
+                              double ptRL_min=0.0, double ptRL_max=0.0, double ptavg=0.0, bool weighting=false,
                               bool logbinning=false, bool debug=false) {
     
     cout << "OBSERVABLE NAME1!!!!" << obs.name << " // " << endl;
@@ -230,13 +249,38 @@ TH1D * getObs1DHistFromTChain(TChain *chain, Observable obs, int pt_min, int pt_
     // }
 
     // filling the histogram
-    if ( obs.name == "jet_pt" || obs.name == "total_num_const" || obs.name == "num_const_aftercut") {
+    if ( obs.name == "jet_pt" || obs.name == "total_num_const" || obs.name == "num_const_aftercut" ) {
         chain->Draw(Form("%s>>%s_hist", obs.name.c_str(), obs.name.c_str()), Form("jet_pt >= %d && jet_pt < %d", pt_min, pt_max), "e");
+    } else if ( obs.name == "RL" ) {
+        if ( logbinning ) {
+            std::vector<double> bins = makeLogBins(obs.min_bound, obs.max_bound, obs.num_bins);
+            hist1D = new TH1D("RL_hist", "RL_hist", obs.num_bins, bins.data());
+        }
+        if (weighting == false) chain->Draw("RL>>RL_hist", Form("jet_pt >= %d && jet_pt < %d", pt_min, pt_max), "e");
+        else {
+            Float_t weight;
+            Float_t jetpt; Float_t rl;
+            chain->ResetBranchAddresses();
+            chain->SetBranchAddress("weights", &weight);
+            chain->SetBranchAddress("jet_pt", &jetpt);
+            chain->SetBranchAddress("RL", &rl);
+
+            int entries = chain->GetEntries();
+            for ( int i = 0; i < entries; i++ ) {
+                chain->GetEntry(i);
+                if (jetpt >= pt_min && jetpt < pt_max) {
+                    hist1D->Fill(rl, weight);
+                }
+            }
+
+            chain->ResetBranchAddresses();
+        }
     } else {
         if (weighting == false) chain->Draw(Form("%s>>%s_hist", obs.name.c_str(), obs.name.c_str()), Form("jet_pt >= %d && jet_pt < %d && %f*RL >= %f && %f*RL < %f", pt_min, pt_max, ptavg, ptRL_min, ptavg, ptRL_max), "e");
         else {
             Float_t obs_name; Float_t weight;
             Float_t jetpt; Float_t rl;
+            chain->ResetBranchAddresses();
             if (obs.name != "weights") chain->SetBranchAddress(Form("%s",obs.name.c_str()), &obs_name); // this won't work if obs.name == weights, bc it will overwrite in next row
             chain->SetBranchAddress("weights", &weight);
             chain->SetBranchAddress("jet_pt", &jetpt);
@@ -319,6 +363,7 @@ TH2D * getObs2DHistFromTChain(TChain *chain, Observable obs_x, Observable obs_y,
         cout << "this is delta jt vs ptrl" << endl;
         Float_t deltajt; Float_t weight; 
         Float_t jetpt; Float_t rl;
+        chain->ResetBranchAddresses();
         chain->SetBranchAddress("deltajt", &deltajt); // this won't work if obs.name == weights, bc it will overwrite in next row
         chain->SetBranchAddress("weights", &weight);
         chain->SetBranchAddress("jet_pt", &jetpt);
@@ -619,7 +664,7 @@ void deleteVecOfHists(std::vector<TH1D*>& histVector) {
 
 /* plot all RL bins in one plot */
 void plotandsave_combined_hists(Observable obs, TLegend *l, std::string ptname, std::string norm_string, 
-                          std::string hist_addname, int pt_max, bool logx, bool logy, bool debug=false) {
+                          std::string hist_addname, bool logx, bool logy, bool debug=false) {
 
     // go into canvas
     TCanvas *can_all = new TCanvas();
@@ -1009,6 +1054,7 @@ void get_deltajt_scatter(TChain * PAIRINFO_tree, vector<double>& ptrl_vals, vect
     
     Float_t jetpt; Float_t rl;
     Float_t delta_jt;
+    PAIRINFO_tree->ResetBranchAddresses();
     PAIRINFO_tree->SetBranchAddress("jet_pt", &jetpt);
     PAIRINFO_tree->SetBranchAddress("RL", &rl); // is really ptrl but labeled wrong
     PAIRINFO_tree->SetBranchAddress("deltajt", &delta_jt);
@@ -1026,6 +1072,54 @@ void get_deltajt_scatter(TChain * PAIRINFO_tree, vector<double>& ptrl_vals, vect
 // ======================================================= //
 //                     SOME FUNCTIONS
 // ======================================================= //
+
+// analyze just the EEC observable - both with the tree and with histogram
+// TODO: fix this because how to read histograms from multiple files and add them together?? maybe hadd them in advance and grab from final one in this function and remove from parameters of function
+void analyze_RL(TChain * PAIRINFO_tree, TH1D * jetpt_inptbin_hist, Observable& obs, int pt_min, int pt_max, 
+                    bool weighting, std::string norm_string, std::string ytitle_norm,
+                    std::string ytitle_weight_str, std::string hist_addname, std::string ptname) {
+
+    cout << " in analyze_RL! with " << obs.name << endl;
+    TFile * merged_file = TFile::Open("/rstorage/alice/AnalysisResults/blianggi/dEEC/468247/AnalysisResultsFinal_NoTrees.root");
+
+    // get histograms
+    TH1D * obs_hist = getObs1DHistFromTChain(PAIRINFO_tree, obs, pt_min, pt_max, 0, 0, 0, weighting, true); // this is taken from RL in TNtuple
+    TH1D * obs_hist_fromhist = getEECFromHist(merged_file, pt_min, pt_max, weighting); // this is taken directly from histogram
+    
+    TH1D * jet_pt_fromhist = (TH1D*) merged_file->Get("h_1Djet_pt_JetPt_R0.4_1.0"); // for normalization check
+    TH1D * jet_pt_fromhist_clone = (TH1D*) jet_pt_fromhist->Clone("jet_pt_fromhist_clone");
+    jet_pt_fromhist_clone->GetXaxis()->SetRangeUser(pt_min, pt_max);
+    
+    // cout << "obs hist " << obs_hist->GetName() << " with # of entries " << obs_hist->GetEntries() << endl;
+    // cout << "obs_hist_fromhist " << obs_hist_fromhist->GetName() << " with # of entries " << obs_hist_fromhist->GetEntries() << endl;
+    // cout << "jet_pt_fromhist_clone " << jet_pt_fromhist_clone->GetName() << " with # of entries " << jet_pt_fromhist_clone->GetEntries() << endl;
+
+    // push to vectors
+    obs.addHist((TH1D*) obs_hist->Clone(obs_hist->GetName()));
+    obs.addHist((TH1D*) obs_hist_fromhist->Clone(obs_hist_fromhist->GetName()));
+
+    // format histograms in vector
+    TLegend* leg_RL = new TLegend(0.15, 0.7, 0.4, 0.85);
+    leg_RL->SetTextSize(0.037);
+    leg_RL->SetBorderSize(0);
+    leg_RL->AddEntry("NULL",Form("%d #leq p_{T, jet} < %d", pt_min, pt_max),"h");
+    Format1DHist(obs, obs.obs_vec[0], jetpt_inptbin_hist, norm_string, kBlue-7, 0.6, markers[0], obs.axis_label, ytitle_norm + obs.cs_label + ytitle_weight_str, *leg_RL, "EEC from TNtuple", hist_addname);
+    Format1DHist(obs, obs.obs_vec[1], jet_pt_fromhist_clone, norm_string, kAzure+5, 0.6, markers[0], obs.axis_label, ytitle_norm + obs.cs_label + ytitle_weight_str, *leg_RL, "EEC from Histogram", hist_addname);
+    
+    // draw, save, and delete histograms
+    plotandsave_combined_hists(obs, leg_RL, ptname, norm_string, hist_addname, true, false);
+
+    TFile * fout = obs.get_output_root_file();
+    fout->cd();
+    obs.obs_vec[0]->Write(); 
+    obs.obs_vec[1]->Write();
+    fout->Close();
+
+    delete obs_hist;
+    delete obs_hist_fromhist;
+    merged_file->Close();
+
+}
 
 // need an address on Observable so that the original is modified, not a copy
 void analyze_1D_obs(TChain * PAIRINFO_tree, TH1D * jetpt_inptbin_hist, TLegend& leg, int j, int k,
@@ -1088,9 +1182,21 @@ void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree, vector<Observa
     std::string ytitle_norm = "";
     if (norm_string == "self_normalized") ytitle_norm = "#frac{1}{N_{pair}} ";
     if (norm_string == "norm_by_jets") ytitle_norm = "#frac{1}{N_{jet}} ";
-    
 
     TCanvas *cdumdum = new TCanvas(); // need a canvas so legend can be made
+
+    // get histograms
+    TH1D * jetpt_inptbin_hist;
+    Observable obs_jetpt("jet_pt", true, 200, 0, 200, "p_{T,jet}", "#frac{dN}{dp_{T,jet}}");
+    if (norm_by_jets_bool) jetpt_inptbin_hist = getObs1DHistFromTChain(JETINFO_tree, obs_jetpt, pt_min, pt_max, 0, 0, pt_avg);
+
+    // Get EEC distribution first
+    std::string hist_addname_RL = weightstr + jetRname + thrname + "_pt" + ptname + "_" + norm_string;
+    if (norm_string != "self_normalized") analyze_RL(PAIRINFO_tree, jetpt_inptbin_hist, obs_1D_list[0], pt_min, pt_max, weighting, norm_string, 
+                ytitle_norm, ytitle_weight_str, hist_addname_RL, ptname);
+    
+
+    
     TLegend* leg = new TLegend(0.5, 0.62, 0.85, 0.85);
     leg->SetTextSize(0.037);
     leg->SetBorderSize(0);
@@ -1113,14 +1219,17 @@ void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree, vector<Observa
         
 
         // get histograms
-        TH1D * jetpt_inptbin_hist;
-        Observable obs_jetpt("jet_pt", true, 200, 0, 200, "p_{T,jet}", "#frac{dN}{dp_{T,jet}}");
-        if (norm_by_jets_bool) jetpt_inptbin_hist = getObs1DHistFromTChain(JETINFO_tree, obs_jetpt, pt_min, pt_max, 0, 0, pt_avg);
+        // TH1D * jetpt_inptbin_hist;
+        // Observable obs_jetpt("jet_pt", true, 200, 0, 200, "p_{T,jet}", "#frac{dN}{dp_{T,jet}}");
+        // if (norm_by_jets_bool) jetpt_inptbin_hist = getObs1DHistFromTChain(JETINFO_tree, obs_jetpt, pt_min, pt_max, 0, 0, pt_avg);
 
         for (Observable& obs : obs_1D_list) { // passing reference to not make a copy!
-            if (obs.obs_bool) analyze_1D_obs(PAIRINFO_tree, jetpt_inptbin_hist, *leg, j, k, obs, 
+            if (obs.obs_bool) {
+            if (obs.name == "RL") continue;
+            else analyze_1D_obs(PAIRINFO_tree, jetpt_inptbin_hist, *leg, j, k, obs, 
                               pt_min, pt_max, ptRL_min, ptRL_max, pt_avg, weighting, logbins, norm_string, 
                               ytitle_norm, ytitle_weight_str, ptRLname_leg, hist_addname, ptname);  
+            }
         }
                     
         
@@ -1148,12 +1257,13 @@ void analyze_ptbin(TChain * JETINFO_tree, TChain * PAIRINFO_tree, vector<Observa
         }*/
     }
     
-    /* do pt bin stuff here */
+    // === do pt bin stuff here ===
     std::string hist_all_addname = weightstr + jetRname + thrname + "_pt" + ptname;
 
 	// combine RL plots to get 1 plot per pt bin
     for (Observable& obs : obs_1D_list) { // passing reference to not make a copy!
-        if (obs.obs_bool) plotandsave_combined_hists(obs, leg, ptname, norm_string, hist_all_addname, pt_max, logbins, true);
+        if (obs.name == "RL") continue;
+        if (obs.obs_bool) plotandsave_combined_hists(obs, leg, ptname, norm_string, hist_all_addname, logbins, true);
     }
     
 }
@@ -1247,15 +1357,15 @@ void analyze_jetlevel_observables(TChain * JETINFO_tree, std::string jetRname, s
     obs_jet_const.recreate_output_root_file();
     obs_jet_const_aftercut.recreate_output_root_file();
 
-    TH1D * jetpt_hist = getObs1DHistFromTChain(JETINFO_tree, obs_jet_pt, 0, 200, 0, 0);
+    TH1D * jetpt_hist = getObs1DHistFromTChain(JETINFO_tree, obs_jet_pt, 0, 200);
     jetpt_hist->GetXaxis()->SetTitle(obs_jet_pt.axis_label.c_str());
     draw_save_del_hists(obs_jet_pt, jetpt_hist, "", "", jetRname + thrname, false, true);
 
-    TH1D * jet_const = getObs1DHistFromTChain(JETINFO_tree, obs_jet_const, 0, 200, 0, 0);
+    TH1D * jet_const = getObs1DHistFromTChain(JETINFO_tree, obs_jet_const, 0, 200);
     jet_const->GetXaxis()->SetTitle(obs_jet_const.axis_label.c_str());
     draw_save_del_hists(obs_jet_const, jet_const, "", "", jetRname + thrname, false, true);
 
-    TH1D * jet_const_aftercut = getObs1DHistFromTChain(JETINFO_tree, obs_jet_const_aftercut, 0, 200, 0, 0);
+    TH1D * jet_const_aftercut = getObs1DHistFromTChain(JETINFO_tree, obs_jet_const_aftercut, 0, 200);
     jet_const_aftercut->GetXaxis()->SetTitle(obs_jet_const_aftercut.axis_label.c_str());
     draw_save_del_hists(obs_jet_const_aftercut, jet_const_aftercut, "", "", jetRname + thrname, false, true);
 
@@ -1332,7 +1442,8 @@ void analyze_data_tuples() {
     std::string base_filepath_perly = Form("/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/31843529");
     std::string base_filepath_hic = Form("/rstorage/alice/AnalysisResults/blianggi/dEEC/468247"); //442528");
     
-
+    Observable obs_RL("RL", true, 50, 1e-4, 1, "R_{L}", "#frac{dN}{dEEC}"); //"#SigmaEEC");
+    
     Observable obs_deltap("deltap", deltap_bool, 42, 0, 84, "#Deltap", "#frac{dN}{d#Deltap}"); // bin sizes of 2 GeV
     Observable obs_deltapt("deltapt", deltapt_bool, 42, 0, 84, "#Deltap_{T}", "#frac{dN}{d#Deltap_{T}}");
     Observable obs_deltajt("deltajt", deltajt_bool, 50, 0, 5, "#Deltaj_{T}", "#frac{dN}{d#Deltaj_{T}}");
@@ -1351,7 +1462,7 @@ void analyze_data_tuples() {
     Observable2D obs_deltajt_vs_ptrl(obs_ptrl, obs_deltajt, deltajt_vs_ptrl_bool);
             
 
-    vector<Observable> obs_1D_list = { obs_deltap, obs_deltapt, obs_deltajt, obs_weights, obs_p1, obs_jt1 };
+    vector<Observable> obs_1D_list = { obs_RL, obs_deltap, obs_deltapt, obs_deltajt, obs_weights, obs_p1, obs_jt1 };
     vector<Observable2D> obs_2D_list = { obs_weights_vs_deltap, obs_weights_vs_deltajt, obs_weights_vs_p1, obs_zj_vs_zi, obs_deltajt_vs_ptrl };
     for (Observable obs : obs_1D_list) {
         if (obs.obs_bool) obs.recreate_output_root_file();
