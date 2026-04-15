@@ -209,6 +209,60 @@ namespace EnergyCorrelators
         }
     }
 
+    CorrelatorBuilder::CorrelatorBuilder(const std::vector<fastjet::PseudoJet> &parts_A, const std::vector<fastjet::PseudoJet> &parts_B,  const double &scale, const int &nmax, const int &power, const double dphi_cut = -9999, const double deta_cut = -9999)
+    : fec()
+    , fncmax(nmax)
+    {
+        // std::cout << "Initializing n point correlator with power " << power << " for " << parts.size() << " paritlces" << std::endl;
+        if (fncmax < 2)
+        {
+            throw std::overflow_error("asking for n-point correlator with n < 2?");
+        }
+        if (fncmax > 5)
+        {
+            throw std::overflow_error("max n for n-point correlator is currently 4");
+        }
+        for (int i = 0; i < fncmax - 2 + 1; i++)
+        {
+            fec.push_back(new CorrelatorsContainer());
+        }
+        for (size_t i = 0; i < parts_A.size(); i++)
+        {
+            for (size_t j = 0; j < parts_B.size(); j++)
+            {
+                double _phi12 = fabs(parts_A[i].delta_phi_to(parts_B[j])); // expecting delta_phi_to() to return values in [-pi, pi]
+                double _eta12 = parts_A[i].eta() - parts_B[j].eta();
+                if (dphi_cut > -1)
+                { // if dphi_cut is on, apply it to pairs
+                    double _pt1 = parts_A[i].pt();
+                    double _pt2 = parts_B[j].pt();
+                    int _q1 = 1; // FIX ME: just dummy (no charge info available yet in data and full sim)
+                    int _q2 = 1;
+                    if ( !ApplyDeltaPhiRejection(dphi_cut, _q1, _q2, _pt1, _pt2, _phi12) ) continue;
+                }
+                if (deta_cut > -1)
+                { // if deta_cut is on, apply it to pairs
+                    if ( !ApplyDeltaEtaRejection(deta_cut, _eta12) ) continue;
+                }
+                // double _d12 = parts_A[i].delta_R(parts_B[j]);
+                double _d12 = std::sqrt(std::pow(parts_A[i].delta_phi_to(parts_B[j]),2) + std::pow(parts_A[i].eta() - parts_B[j].eta(), 2));
+		
+		
+                double _w2 = 0;
+            
+                // for dmeson the weight is calculated as mT = sqrt(m*m+pT*pT)
+                // for i = j the RL=0
+                // currently counting the pairs twice
+                // future check the indices of track which is Dmeson and then assign the weight	
+                _w2 = parts_A[i].perp() * parts_B[j].perp() / std::pow(scale, 2);
+                        
+                _w2 = pow(_w2, power);
+                fec[2 - 2]->addwr(_w2, _d12, i, j); // save weight, distance and indices of the pair
+                
+            }
+        }
+    }
+
     /*
     CorrelatorBuilder::CorrelatorBuilder(const std::vector<fastjet::PseudoJet> &parts, const std::vector<fastjet::PseudoJet> Dmeson,  const double &scale, const int &nmax, const int &power, const double dphi_cut = -9999, const double deta_cut = -9999)
     : fec()

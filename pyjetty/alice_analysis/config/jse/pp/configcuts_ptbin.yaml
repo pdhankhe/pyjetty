@@ -1,0 +1,30 @@
+jetR: [0.4]
+process_observables: ['corr_deltajt']
+observable_list: ['jetinfo', 'corr_deltajt']
+track_mass: 0.13957
+track_random_mass: False
+IsFiducialCut: True
+IsCustomSelectionCuts: True
+IsSpecialLowpTCuts: True
+# sd_zcut: 0.2
+# sd_beta: 0
+Is_treff_sys: False
+
+# For extra verbose output in some functions
+debug_level: 0
+
+
+jet_matching_distance: 0.6        # Match jets with deltaR < jet_matching_distance*jetR
+reject_tracks_fraction: 0
+
+
+###############################################################################
+# Rebinning and unfolding parameters/configurations for EEC observables
+corr_deltajt:
+
+    common_settings:
+        xtitle: '#it{R_{L}}'
+        ytitle: '#Deltaj_{T}' #'#frac{1}{#it{#sigma}_{jet}} #frac{d#it{#sigma}}{d#it{#Deltaj_{T}}}'
+
+
+###############################################################################

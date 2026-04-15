@@ -18,16 +18,16 @@ Double_t marker_size = 1.5;
 
 bool logbins = false;
 std::string attempt_dir; // = Form("data_secondattempt/rebinx%d", rebin);
-std::string outdir; // = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir;
+std::string outdir; // = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir;
 
 int filecounter_cutoff = -1; //total: 845 // IDK why I thought it was 7601?
 bool write_to_root_file = true; 
 
 // bool jetpt_bool = false;
-bool deltap_bool = false;
+bool deltap_bool = true;
 bool deltapt_bool = false;
-bool deltajt_bool = false;
-bool ew_bool = false;
+bool deltajt_bool = true;
+bool ew_bool = true;
 bool twoDhists_bool = false;
 bool rc_bool = false; 
 bool deltajt_vs_ptrl_bool = false; //true;
@@ -70,8 +70,8 @@ public:
         axis_label = axis_label_val;
         cs_label = cs_label_val; //cross section label, in y axis
 
-        filepath_plots = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir + "%s/%s/" + name + "/%s"; // ptname, norm_string, filename
-        if (name.find("jet_") != std::string::npos || name.find("const") != std::string::npos) filepath_plots = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir + "%s"; // filename
+        filepath_plots = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir + "%s/%s/" + name + "/%s"; // ptname, norm_string, filename
+        if (name.find("jet_") != std::string::npos || name.find("const") != std::string::npos) filepath_plots = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir + "%s"; // filename
 
     }
 
@@ -81,13 +81,13 @@ public:
     }
 
     void recreate_output_root_file() {
-        std::string root_outfile = "/software/users/blianggi/mypyjetty/storage/dEEC/rootfiles/" + attempt_dir + "/DataHists_" + name + ".root";
+        std::string root_outfile = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/" + attempt_dir + "/DataHists_" + name + ".root";
         TFile * f_out = new TFile(root_outfile.c_str(), "RECREATE");
         f_out->Close();
     }
 
     TFile * get_output_root_file() {
-        std::string root_outfile = "/software/users/blianggi/mypyjetty/storage/dEEC/rootfiles/" + attempt_dir + "/DataHists_" + name + ".root";
+        std::string root_outfile = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/" + attempt_dir + "/DataHists_" + name + ".root";
         TFile * f_out = new TFile(root_outfile.c_str(), "UPDATE");
         return f_out;
     }
@@ -108,17 +108,17 @@ public:
         : obsx(ox), obsy(oy), obs_bool(obs_bool_val) // required for non-default-constructible members
     {
         name = obsy.name + "_vs_" + obsx.name;
-        filepath_plots = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir + "%s/%s/" + name + "/%s"; // ptname, norm_string, filename
+        filepath_plots = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir + "%s/%s/" + name + "/%s"; // ptname, norm_string, filename
     }
 
     void recreate_output_root_file() {
-        std::string root_outfile = "/software/users/blianggi/mypyjetty/storage/dEEC/rootfiles/" + attempt_dir + "/DataHists_" + name + ".root";
+        std::string root_outfile = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/" + attempt_dir + "/DataHists_" + name + ".root";
         TFile * f_out = new TFile(root_outfile.c_str(), "RECREATE");
         f_out->Close();
     }
 
     TFile* get_output_root_file() {
-        std::string root_outfile = "/software/users/blianggi/mypyjetty/storage/dEEC/rootfiles/" + attempt_dir + "/DataHists_" + name + ".root";
+        std::string root_outfile = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/" + attempt_dir + "/DataHists_" + name + ".root";
         TFile * f_out = new TFile(root_outfile.c_str(), "UPDATE");
         return f_out;
     }
@@ -595,7 +595,7 @@ void draw_save_del_hists(Observable& obs, TObject* obj,
     fout->Close();
 
 
-    // std::string outdir = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/data_firstattempt"; // + ptbin_name + "/";//"plots/test/";
+    // std::string outdir = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/plots/data_firstattempt"; // + ptbin_name + "/";//"plots/test/";
     /*std::string add_dir = "";
     if (obs_name != "jet_pt" && obs_name != "total_num_const" && obs_name != "num_const_aftercut") {
         if (obs_name == "rc") add_dir = "/" + ptname + "/" + norm_string + "/" + obs_name;
@@ -750,7 +750,7 @@ void func() {
 //     cout <<" ptRL_err size " << ptRL_err.size() << endl;
 //     cout <<" pt_err size " << pt_err.size() << endl;
 
-//     // std::string outdir = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/data_firstattempt"; // + ptbin_name + "/";//"plots/test/";
+//     // std::string outdir = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/plots/data_firstattempt"; // + ptbin_name + "/";//"plots/test/";
 //     std::string fname_func_of_RL_out = outdir + "/corrhist_rc_func_of_RL.pdf"; // could add jetR and threshold info later??, maybe not needed tho 
 //     std::string fname_func_of_pT_out = outdir + "/corrhist_rc_func_of_pT.pdf";
 
@@ -912,7 +912,7 @@ void plot_rc(vector<double>& ptcenters_vec, vector<double>& ptRLcenters_vec, vec
     cout <<" ptRL_err size " << ptRL_err.size() << endl;
     cout <<" pt_err size " << pt_err.size() << endl;
 
-    // std::string outdir = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/data_firstattempt"; // + ptbin_name + "/";//"plots/test/";
+    // std::string outdir = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/plots/data_firstattempt"; // + ptbin_name + "/";//"plots/test/";
     std::string fname_func_of_RL_out = outdir + "/corrhist_rc_func_of_RL.pdf"; // could add jetR and threshold info later??, maybe not needed tho 
     std::string fname_func_of_pT_out = outdir + "/corrhist_rc_func_of_pT.pdf";
 
@@ -1426,11 +1426,11 @@ void analyze_data_tuples() {
     bool debug2 = false;
 
     // update dir names
-    attempt_dir = "data_fifthattempt_ptrlbins/";
+    attempt_dir = "data_sixthattempt_ptrlbins/";
     if (logbins == true) {
         attempt_dir += "logbins";
     } 
-    outdir = "/software/users/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir;
+    outdir = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir;
     
     // ntuple/histogram names
     std::string JETINFO_name = "tn_JETINFO_R0.4_1.0";
@@ -1439,7 +1439,7 @@ void analyze_data_tuples() {
         
     // filenames
     std::string filename = Form("~/Documents/research/othercorrelations/data_ntuples/AnalysisResults_0001.root");
-    std::string base_filepath_perly = Form("/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/31843529");
+    std::string base_filepath_perly = Form("/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/50555227");
     std::string base_filepath_hic = Form("/rstorage/alice/AnalysisResults/blianggi/dEEC/468247"); //442528");
     
     Observable obs_RL("RL", true, 50, 1e-4, 1, "R_{L}", "#frac{dN}{dEEC}"); //"#SigmaEEC");
@@ -1509,9 +1509,9 @@ void analyze_data_tuples() {
     
     
     // make TChains
-    std::ifstream filelist("/software/users/blianggi/mypyjetty/dEEC/filelist_datatuples_468247_shortname.txt");
+    std::ifstream filelist("/global/cfs/cdirs/alice/blianggi/mypyjetty/dEEC/filelist_datatuples_50555227_shortname.txt");
     if (!filelist.is_open()) {
-        std::cerr << "Error: Could not open /software/users/blianggi/mypyjetty/dEEC/filelist_datatuples_468247_shortname.txt" << std::endl;
+        std::cerr << "Error: Could not open /global/cfs/cdirs/alice/blianggi/mypyjetty/dEEC/filelist_datatuples_50555227_shortname.txt" << std::endl;
         return;
     }
 
@@ -1523,10 +1523,10 @@ void analyze_data_tuples() {
 
         if (filecounter == filecounter_cutoff) break;
 
-        std::string JETINFO_fulltreename = Form("%s/%s/%s", base_filepath_hic.c_str(), ntuple_filename.c_str(), JETINFO_name.c_str());
+        std::string JETINFO_fulltreename = Form("%s/%s/%s", base_filepath_perly.c_str(), ntuple_filename.c_str(), JETINFO_name.c_str());
         JETINFO_tree->Add(JETINFO_fulltreename.c_str());
         
-        std::string PAIRINFO_fulltreename = Form("%s/%s/%s", base_filepath_hic.c_str(), ntuple_filename.c_str(), PAIRINFO_name.c_str()); //TODO: this needs to be fixed on perly
+        std::string PAIRINFO_fulltreename = Form("%s/%s/%s", base_filepath_perly.c_str(), ntuple_filename.c_str(), PAIRINFO_name.c_str()); //TODO: this needs to be fixed on perly
         PAIRINFO_tree->Add(PAIRINFO_fulltreename.c_str());
 
         if (debug) {
@@ -1549,7 +1549,7 @@ void analyze_data_tuples() {
     if (debug2) PAIRINFO_tree->Print();
 
     // analyze jet level for plots
-    // analyze_jetlevel_observables(JETINFO_tree, jetRname, thrname, debug, debug2);
+    analyze_jetlevel_observables(JETINFO_tree, jetRname, thrname, debug, debug2);
 
     // rc analysis
     // analyze_rc(JETINFO_tree, PAIRINFO_tree, weightstr, jetRname, thrname, pt_bins, n_bins, pt_avgs, ptRL_bins, n_ptRLbins, include_RL0, include_RL1);

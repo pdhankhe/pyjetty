@@ -88,15 +88,19 @@ class ProcessIO(common_base.CommonBase):
           self.track_columns += ['ParticleMCIndex'] #this accomadates inclusive case
         else:
           self.track_columns += ['ParticlePID'] #this accomadates inclusive case
-    # else:
-    #   print("hello 4")
-    #   self.track_columns += ['ParticleCharge']
+    elif is_mcprod: # this is anch mc case
+      print("hello 4")
+      self.track_columns += ['ParticleCharge', 'ParticleMCid']
+    else: #data 
+      print("hello 5")
+      self.track_columns += ['ParticleCharge']
+    
 
     # could get rid of this later. Also this is not currently compatible with D0 mcprod. (is compatible with D0 fastsim)
-    if is_mcprod:
-      print("hello 5")
-      self.track_columns += ['ParticleCharge', 'ParticleMCid']
-      # self.track_columns += ['ParticleMCid']
+    # if is_mcprod:
+    #   print("hello 5")
+    #   self.track_columns += ['ParticleCharge', 'ParticleMCid']
+    #   # self.track_columns += ['ParticleMCid']
 
     # For D0 case, both the track columns and D0 columns are a little different 
     print("USE D0 INFO IS SET TO", self.use_D0_info)
@@ -161,6 +165,7 @@ class ProcessIO(common_base.CommonBase):
     #   # return df_fjparticles
 
     df_fjparticles = self.group_fjparticles(m, offset_indices, group_by_evid, random_mass, min_pt=min_pt)
+    print("checking before return, ", df_fjparticles)
 
     return df_fjparticles
   
@@ -486,9 +491,14 @@ class ProcessIO(common_base.CommonBase):
         self.get_particles_mcid, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
         df_fjparticles = pandas.DataFrame({"fj_particle": df_fjparticles_orig, "ParticleCharge": df_fjparticles_aux1, "ParticleMCid": df_fjparticles_aux2})
 
-      else:
-        df_fjparticles = track_df_grouped.apply(
+      else: #data
+        # df_fjparticles = track_df_grouped.apply(
+        # self.get_fjparticles, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
+        df_fjparticles_orig = track_df_grouped.apply(
         self.get_fjparticles, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
+        df_fjparticles_aux1 = track_df_grouped.apply(
+        self.get_particles_charge, m=m, offset_indices=offset_indices, random_mass=random_mass, min_pt=min_pt)
+        df_fjparticles = pandas.DataFrame({"fj_particle": df_fjparticles_orig, "ParticleCharge": df_fjparticles_aux1})
       
       print('debug4, combined: ',df_fjparticles)
       
@@ -556,7 +566,7 @@ class ProcessIO(common_base.CommonBase):
       df_tracks_accepted['ParticlePhi'].values, m_array, user_index_offset)
 
     # add for dEEC:
-    if self.is_mcprod: #not self.is_ENC:
+    if not self.is_ENC: #covers mcprod and data cases
       for i, charge in enumerate(df_tracks_accepted['ParticleCharge'].values):
         jetinfo = jet_info.JetInfo()
         jetinfo.charge = charge

@@ -36,6 +36,7 @@ namespace EnergyCorrelators
 			CorrelatorBuilder();
 			// note by default we use energy correlators - one could use different weighting... future: pass as a param
 			CorrelatorBuilder(const std::vector<fastjet::PseudoJet> &parts, const double &scale, const int &nmax, const int &power, const double dphi_cut, const double deta_cut);
+			CorrelatorBuilder(const std::vector<fastjet::PseudoJet> &parts_A, const std::vector<fastjet::PseudoJet> &parts_B, const double &scale, const int &nmax, const int &power, const double dphi_cut, const double deta_cut);
             // CorrelatorBuilder(const std::vector<fastjet::PseudoJet> &parts, const std::vector<fastjet::PseudoJet> Dmeson, const double &scale, const int &nmax, const int &power, const double dphi_cut, const double deta_cut);
 			// CorrelatorBuilder(const std::vector<fastjet::PseudoJet> &parts, const fastjet::PseudoJet Dmeson, const fastjet::PseudoJet softpion,  const double &scale, const int &nmax, const int &power, const double dphi_cut, const double deta_cut);
 			CorrelatorBuilder(const std::vector<fastjet::PseudoJet> &parts, const fastjet::PseudoJet Dmeson, const fastjet::PseudoJet softpion,  const double &scale, const int &nmax, const int &power, const double dphi_cut, const double deta_cut, const bool includeDmeson);

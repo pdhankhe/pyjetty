@@ -1,11 +1,10 @@
 #! /bin/bash
 
-#SBATCH --job-name="processMC_dEECs"
-#SBATCH --nodes=1 --ntasks=1 --cpus-per-task=1
-#SBATCH --account=alice
+#SBATCH --job-name="processMC_dEECs_RMonly"
+#SBATCH --nodes=1 --ntasks=1
 #SBATCH --qos=shared
 #SBATCH --constraint=cpu
-#SBATCH --time=12:00:00
+#SBATCH --time=6:00:00
 #SBATCH --array=1-437
 #SBATCH --exclude=nid004104,nid004160,nid004149
 #SBATCH --output=/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/slurm-%A_%a.out

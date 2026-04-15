@@ -514,7 +514,7 @@ class ProcessBase(common_base.CommonBase):
       # print("what is in self", attr, obj)
 
       # Write all ROOT histograms and trees to file
-      types = (ROOT.TH1, ROOT.THnBase, ROOT.RooUnfoldResponse) #, ROOT.TNtuple)
+      types = (ROOT.TH1, ROOT.THnBase, ROOT.RooUnfoldResponse, ROOT.TNtuple)
       if isinstance(obj, types):
         print("what are we writing", obj.GetName())
         self.fout.cd()

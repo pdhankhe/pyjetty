@@ -8,6 +8,8 @@ Double_t colors[16] = {kMagenta, kBlue, kOrange+1, kViolet+1, kGreen+2, kRed, kY
 Double_t markers[10] = {kFullCircle, kFullSquare, kFullDiamond, kFullTriangleUp, kFullStar, kOpenCircle, kOpenTriangleUp, kOpenDiamond, kOpenSquare, kOpenStar};
 Double_t marker_size = 1.5;
 
+const int pt_bins[] = { 20, 40, 60, 80 };
+const int n_bins = sizeof(pt_bins) / sizeof(pt_bins[0]) - 1;
 const double ptRL_bins[5] = { 2e-1, 8e-1, 5.0, 10.0, 30.0 };
 const int n_ptRLbins = 4;
 std::string attempt_dir = "data_with_generators";
@@ -28,7 +30,10 @@ public:
     TFile * input_anchmc_file;
     TFile * input_pythia_cteq_file;
 
-    std::vector<TH1D*> obs_vec;
+    std::vector<std::vector<TH1D*>> obs_vec_data; // < <pt=20-40> <pt=40-60> <pt=60-80> > 
+    std::vector<std::vector<TH1D*>> obs_vec_pythia;
+    std::vector<std::vector<TH1D*>> obs_vec_herwig;
+    std::vector<std::vector<TH1D*>> obs_vec_anchmc;
 
     Observable(std::string name_val, //int num_bins_val, double min_bound_val, double max_bound_val, 
                std::string axis_label_val, std::string cs_label_val) {
@@ -43,15 +48,18 @@ public:
         // filepath_plots = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir + "%s/%s/" + name + "/%s"; // ptname, norm_string, filename
         // if (name.find("jet_") != std::string::npos || name.find("const") != std::string::npos) filepath_plots = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/plots/" + attempt_dir + "%s"; // filename
 
-        input_data_file = new TFile(Form("/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/data_fifthattempt_ptrlbins/DataHists_%s.root", name.c_str()), "READ");
+        input_data_file = new TFile(Form("/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/data_sixthattempt_ptrlbins/DataHists_%s.root", name.c_str()), "READ");
         input_pythia_file = new TFile(Form("/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/pythia5TeV_histograms_crosscheck/PYTHIAHists_%s.root", name.c_str()), "READ");
         input_herwig_file = new TFile(Form("/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/herwig_secondattempt/HERWIGHists_%s.root", name.c_str()), "READ");
         input_anchmc_file = new TFile(Form("/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/anchMC_firstattempt/ANCHMCHists_%s.root", name.c_str()), "READ");
         input_pythia_cteq_file = new TFile(Form("/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/dEEC/rootfiles/pythia_cteq_firstattempt/PYTHIACTEQHists_%s.root", name.c_str()), "READ");
     }
 
-    void addHist(TH1D* hist) {
-        obs_vec.push_back(hist);
+    void addHists(std::vector<TH1D*> hist_vec_data, std::vector<TH1D*> hist_vec_pythia, std::vector<TH1D*> hist_vec_herwig, std::vector<TH1D*> hist_vec_anchmc) {
+        obs_vec_data.push_back(hist_vec_data);
+        obs_vec_pythia.push_back(hist_vec_pythia);
+        obs_vec_herwig.push_back(hist_vec_herwig);
+        obs_vec_anchmc.push_back(hist_vec_anchmc);
     }
 };
 
@@ -173,7 +181,7 @@ TH2D * get_2D_histogram(TFile * f, std::string histname) {
 // For each observable, plot data and pythia together.
 // For now, this is the uncorrected data with the rec-level MC
 // Can also do corrected data with the truth-level MC
-void plot_1D_obs(Observable obs, int pt_min, int pt_max, //int ptrl_bin, 
+void plot_1D_obs(Observable &obs, int pt_min, int pt_max, //int ptrl_bin, 
                  std::string weight_str, std::string jetR, std::string threshold, std::string norm_string, 
                  int option) {
 
@@ -183,17 +191,28 @@ void plot_1D_obs(Observable obs, int pt_min, int pt_max, //int ptrl_bin,
     can_obs_all->cd();
     gPad->SetLogy();
 
+    TCanvas * can_ratio_all = new TCanvas();
+    can_ratio_all->cd();
+    gPad->SetLogy();
+    std::vector<std::vector<TH1D*>> vec_of_ratios;
+
     TLegend *leg_ev = new TLegend(0.18, 0.2, 0.33, 0.35);
     leg_ev->SetTextSize(0.03);
     leg_ev->AddEntry((TObject*)0, "pp, #sqrt{s} = 5.02 TeV", "");
     leg_ev->AddEntry((TObject*)0, "all ch. jets", "");
     leg_ev->AddEntry((TObject*)0, "anti-k_{T}, R = 0.4", "");
     leg_ev->AddEntry((TObject*)0, Form("%d #leq p_{T}^{ch. jet} < %d GeV/c, |#eta_{jet}| #leq 0.5", pt_min, pt_max), "");
+    leg_ev->SetFillStyle(0);
 
     TLegend *leg_obs_all = new TLegend(0.65, 0.5, 0.88, 0.88);
-    TLegend *leg_ratio_all = new TLegend(0.7, 0.7, 0.88, 0.88);
+    TLegend *leg_ratio_all = new TLegend(0.75, 0.55, 0.88, 0.88);
     leg_obs_all->SetTextSize(0.03);
-    
+    leg_ratio_all->SetTextSize(0.02);
+
+    std::vector<TH1D*> data_hists_vec;
+    std::vector<TH1D*> pythia_hists_vec;
+    std::vector<TH1D*> herwig_hists_vec;
+    std::vector<TH1D*> anchmc_hists_vec;
 
     for ( int j = 0; j < n_ptRLbins; j++ ) { 
 
@@ -315,11 +334,7 @@ void plot_1D_obs(Observable obs, int pt_min, int pt_max, //int ptrl_bin,
             Format1DHist(obs, obs_hist_3, leg_obs_all, label_3, true, colors[j], 2, 0.6);
             Format1DHist(obs, obs_hist_4, leg_obs_all, label_4, true, colors[j], 3, 0.6);
         } else if ( option == 7 ) Format1DHist(obs, obs_hist_3, leg_obs_all, label_3, true, colors[j], 2, 0.6);
-        Format1DHist(obs, hist_obs_ratio, leg_ratio_all, Form("PYTHIA / data p_{T}R_{L} = %.1f - %.1f", ptRL_bins[j], ptRL_bins[j+1]), true, colors[j], 1);
-        if ( option == 1 ) {
-            Format1DHist(obs, hist_obs_ratio_31, leg_ratio_all, Form("HERWIG / data p_{T}R_{L} = %.1f - %.1f", ptRL_bins[j], ptRL_bins[j+1]), true, colors[j], 2);
-            Format1DHist(obs, hist_obs_ratio_41, leg_ratio_all, Form("LHC23a3 / data p_{T}R_{L} = %.1f - %.1f", ptRL_bins[j], ptRL_bins[j+1]), true, colors[j], 3);
-        } else if ( option == 7 ) Format1DHist(obs, hist_obs_ratio_31, leg_ratio_all, Form("HERWIG / data p_{T}R_{L} = %.1f - %.1f", ptRL_bins[j], ptRL_bins[j+1]), true, colors[j], 2);
+        
         leg_obs->AddEntry(obs_hist_1, Form("%s p_{T}R_{L} = %.1f - %.1f", label_1.c_str(), ptRL_bins[j], ptRL_bins[j+1]), "pl");
         leg_obs->AddEntry(obs_hist_2, Form("%s p_{T}R_{L} = %.1f - %.1f", label_2.c_str(), ptRL_bins[j], ptRL_bins[j+1]), "pl");
         if ( option == 1 ) {
@@ -327,7 +342,16 @@ void plot_1D_obs(Observable obs, int pt_min, int pt_max, //int ptrl_bin,
             leg_obs->AddEntry(obs_hist_4, Form("%s p_{T}R_{L} = %.1f - %.1f", label_4.c_str(), ptRL_bins[j], ptRL_bins[j+1]), "pl");
         } else if ( option == 7 ) leg_obs->AddEntry(obs_hist_3, Form("%s p_{T}R_{L} = %.1f - %.1f", label_3.c_str(), ptRL_bins[j], ptRL_bins[j+1]), "pl");
         leg_ratio->AddEntry(hist_obs_ratio, "ratio", "pl");
-                
+        
+        // save original hists to Observable
+        if ( option == 1 ) {
+            data_hists_vec.push_back( (TH1D *) obs_hist_1->Clone(obs_hist_1->GetName()) );
+            pythia_hists_vec.push_back( (TH1D *) obs_hist_2->Clone(obs_hist_2->GetName()) );
+            herwig_hists_vec.push_back( (TH1D *) obs_hist_3->Clone(obs_hist_3->GetName()) );
+            anchmc_hists_vec.push_back( (TH1D *) obs_hist_4->Clone(obs_hist_4->GetName()) );
+
+            if ( j == n_ptRLbins - 1 ) obs.addHists(data_hists_vec, pythia_hists_vec, herwig_hists_vec, anchmc_hists_vec);
+        }
 
         // Draw individual pTRL bins
         obs_hist_2->Draw("HIST");
@@ -340,7 +364,7 @@ void plot_1D_obs(Observable obs, int pt_min, int pt_max, //int ptrl_bin,
         leg_ev->Draw();
 
         // Save individual pTRL bins
-        can_obs->SaveAs(Form("%s/individuals/%s_pt%d-%d_ptrlbin%d_option%d.pdf", obs.filepath_plots.c_str(), obs.name.c_str(), pt_min, pt_max, j, option));
+        can_obs->SaveAs(Form("%s/individuals/%s%s_pt%d-%d_ptrlbin%d_option%d.pdf", obs.filepath_plots.c_str(), obs.name.c_str(), weight_str.c_str(), pt_min, pt_max, j, option));
     
         // Now draw all pTRL bins together
         can_obs_all->cd();
@@ -350,6 +374,22 @@ void plot_1D_obs(Observable obs, int pt_min, int pt_max, //int ptrl_bin,
             obs_hist_4->Draw("HIST SAME");
         } else if ( option == 7 ) obs_hist_3->Draw("HIST SAME");
         obs_hist_1->Draw("P SAME");
+
+        // Make ratio plots
+        if ( option == 1 || option == 7 ) {
+            hist_obs_ratio->Scale(std::pow(10,j)); // scale by 10^j
+            hist_obs_ratio_31->Scale(std::pow(10,j));
+            if ( option == 1 ) hist_obs_ratio_41->Scale(std::pow(10,j));
+
+            leg_ratio_all->AddEntry("NULL", Form("p_{T}R_{L} = %.1f - %.1f", ptRL_bins[j], ptRL_bins[j+1]), "h");
+            Format1DHist(obs, hist_obs_ratio, leg_ratio_all, Form("PYTHIA (x10^{%d})", j), true, colors[j], 1);
+            Format1DHist(obs, hist_obs_ratio_31, leg_ratio_all, Form("HERWIG (x10^{%d})", j), true, colors[j], 2);
+            if ( option == 1 ) Format1DHist(obs, hist_obs_ratio_41, leg_ratio_all, Form("LHC23a3 (x10^{%d})", j), true, colors[j], 3);
+        
+            std::vector<TH1D*> temp_vec = { (TH1D*) hist_obs_ratio->Clone(hist_obs_ratio->GetName()), (TH1D*) hist_obs_ratio_31->Clone(hist_obs_ratio_31->GetName()) };
+            if ( option == 1 ) temp_vec.push_back( (TH1D*) hist_obs_ratio_41->Clone(hist_obs_ratio_41->GetName()));
+            vec_of_ratios.push_back(temp_vec);
+        }
         
     }
 
@@ -357,15 +397,162 @@ void plot_1D_obs(Observable obs, int pt_min, int pt_max, //int ptrl_bin,
     can_obs_all->cd();
     leg_obs_all->Draw();
     leg_ev->Draw();
-    can_obs_all->SaveAs(Form("%s/%s_pt%d-%d_option%d.pdf", obs.filepath_plots.c_str(), obs.name.c_str(), pt_min, pt_max, option));
-    
+    can_obs_all->SaveAs(Form("%s/%s%s_pt%d-%d_option%d.pdf", obs.filepath_plots.c_str(), obs.name.c_str(), weight_str.c_str(), pt_min, pt_max, option));
+
+    // Save ratio plots
+    if ( option == 1 or option == 7 ) {
+        can_ratio_all->cd();
+
+        // find max y value
+        double ratio_max = std::max(vec_of_ratios[n_ptRLbins-1][0]->GetMaximum(), vec_of_ratios[n_ptRLbins-1][1]->GetMaximum());
+        if ( option == 1 ) ratio_max = std::max({vec_of_ratios[n_ptRLbins-1][0]->GetMaximum(), vec_of_ratios[n_ptRLbins-1][1]->GetMaximum(), vec_of_ratios[n_ptRLbins-1][2]->GetMaximum()});
+        vec_of_ratios[0][0]->SetMaximum(ratio_max*1.2);
+        vec_of_ratios[0][0]->GetYaxis()->SetTitle("MC / DATA");
+
+        // plot all curves
+        for ( int j = 0; j < n_ptRLbins; j++ ) {
+            can_ratio_all->cd();
+            vec_of_ratios[j][0]->Draw("SAME");
+            vec_of_ratios[j][1]->Draw("SAME");
+            if ( option == 1 ) vec_of_ratios[j][2]->Draw("SAME");
+
+            drawHoriLine(vec_of_ratios[0][0]->GetXaxis()->GetXmin(), vec_of_ratios[0][0]->GetXaxis()->GetXmax(), std::pow(10,j), kGray+2, 2)->Draw("SAME");
+        }
+
+        leg_ratio_all->Draw();
+        leg_ev->Draw();
+        can_ratio_all->SaveAs(Form("%s/%s%s_RATIO_pt%d-%d_option%d.pdf", obs.filepath_plots.c_str(), obs.name.c_str(), weight_str.c_str(), pt_min, pt_max, option));
+    }
+
+}
+
+void plot_obs_pt_ratios(Observable obs, std::string weight_str, std::string jetR, std::string threshold, 
+                        std::string norm_string) {
+
+    for ( int j = 0; j < n_ptRLbins; j++ ) { 
+
+        double pTRL_min = ptRL_bins[j];
+        double pTRL_max = ptRL_bins[j+1];
+
+        TCanvas * can_obs_all = new TCanvas();
+        can_obs_all->cd();
+        gPad->SetLogy();
+
+        TCanvas * can_ratio_all = new TCanvas();
+        can_ratio_all->cd();
+        gPad->SetLogy();
+        std::vector<std::vector<TH1D*>> vec_of_ratios;
+
+        TLegend *leg_ev = new TLegend(0.18, 0.2, 0.33, 0.35);
+        leg_ev->SetTextSize(0.03);
+        leg_ev->AddEntry((TObject*)0, "pp, #sqrt{s} = 5.02 TeV", "");
+        leg_ev->AddEntry((TObject*)0, "all ch. jets", "");
+        leg_ev->AddEntry((TObject*)0, "anti-k_{T}, R = 0.4", "");
+        // leg_ev->AddEntry((TObject*)0, Form("%d #leq p_{T}^{ch. jet} < %d GeV/c, |#eta_{jet}| #leq 0.5", pt_min, pt_max), "");
+        leg_ev->AddEntry((TObject*)0, Form("%.2f #leq #LTp_{T}#GTR_{L} < %.2f, |#eta_{jet}| #leq 0.5", pTRL_min, pTRL_max), "");
+        leg_ev->SetFillStyle(0);
+
+        TLegend *leg_obs_all = new TLegend(0.65, 0.5, 0.88, 0.88);
+        TLegend *leg_ratio_all = new TLegend(0.75, 0.55, 0.88, 0.88);
+        TLegend *leg_dummy = new TLegend(0.,0.,0.1,0.1);
+        leg_obs_all->SetTextSize(0.03);
+        leg_ratio_all->SetTextSize(0.02);
+
+        // Plot per ptrl bin
+        can_obs_all->cd();
+        Double_t pt_colors[3] = { kBlue, kGreen+2, kRed }; 
+        for ( int i = 0; i < n_bins; i++ ) {
+            std::string label_pt = Form("p_{T} = %d=%d", pt_bins[i], pt_bins[i+1]);
+            Format1DHist(obs, obs.obs_vec_data[i][j], leg_obs_all, label_pt, false, pt_colors[i], kFullCircle);
+            Format1DHist(obs, obs.obs_vec_pythia[i][j], leg_dummy, label_pt, true, pt_colors[i], 1, 0.6);
+            Format1DHist(obs, obs.obs_vec_herwig[i][j], leg_dummy, label_pt, true, pt_colors[i], 1, 0.6);
+            Format1DHist(obs, obs.obs_vec_anchmc[i][j], leg_dummy, label_pt, true, pt_colors[i], 1, 0.6);
+            // obs.obs_vec_data[i][j]->SetMarkerColorAlpha(pt_colors[i], 1.0);
+            // obs.obs_vec_pythia[i][j]->SetMarkerColorAlpha(pt_colors[i], 1.0);
+            // obs.obs_vec_herwig[i][j]->SetMarkerColorAlpha(pt_colors[i], 1.0);
+            // obs.obs_vec_anchmc[i][j]->SetMarkerColorAlpha(pt_colors[i], 1.0);
+            
+            // obs.obs_vec_data[i][j]->SetLineColor(pt_colors[i]);
+            // obs.obs_vec_pythia[i][j]->SetLineColor(pt_colors[i]);
+            // obs.obs_vec_herwig[i][j]->SetLineColor(pt_colors[i]);
+            // obs.obs_vec_anchmc[i][j]->SetLineColor(pt_colors[i]);
+
+            obs.obs_vec_data[i][j]->Draw("SAME");
+            obs.obs_vec_pythia[i][j]->Draw("SAME");
+            obs.obs_vec_herwig[i][j]->Draw("SAME");
+            obs.obs_vec_anchmc[i][j]->Draw("SAME");
+        }
+        leg_ev->Draw("SAME");
+        leg_obs_all->Draw("SAME");
+        can_obs_all->SaveAs(Form("%s/%s%s_pTRLbin%d.pdf", obs.filepath_plots.c_str(), obs.name.c_str(), weight_str.c_str(), j));
+
+
+        // Calculate ratios
+        can_ratio_all->cd();
+        for ( int i = 1; i < n_bins; i++ ) {
+            TH1D * hratio_data = (TH1D *) obs.obs_vec_data[i][j]->Clone(Form("hratio_ptbin%d_data", i));
+            TH1D * hratio_pythia = (TH1D *) obs.obs_vec_pythia[i][j]->Clone(Form("hratio_ptbin%d_pythia", i));
+            TH1D * hratio_herwig = (TH1D *) obs.obs_vec_herwig[i][j]->Clone(Form("hratio_ptbin%d_herwig", i));
+            TH1D * hratio_anchmc = (TH1D *) obs.obs_vec_anchmc[i][j]->Clone(Form("hratio_ptbin%d_anchmc", i));
+
+            hratio_data->Divide(obs.obs_vec_data[0][j]);
+            hratio_pythia->Divide(obs.obs_vec_pythia[0][j]);
+            hratio_herwig->Divide(obs.obs_vec_herwig[0][j]);
+            hratio_anchmc->Divide(obs.obs_vec_anchmc[0][j]);
+
+            hratio_data->GetYaxis()->SetTitle("other p_{T} bins / p_{T} = 20-40");
+
+            hratio_data->Draw("SAME");
+            hratio_pythia->Draw("SAME");
+            hratio_herwig->Draw("SAME");
+            hratio_anchmc->Draw("SAME");
+        }
+
+        leg_ev->Draw("SAME");
+        leg_obs_all->Draw("SAME");
+        can_ratio_all->SaveAs(Form("%s/%s%s_PT_RATIO_pTRLbin%d.pdf", obs.filepath_plots.c_str(), obs.name.c_str(), weight_str.c_str(), j));
+        
+
+        // // Make canvas and legend
+        // TCanvas * can_obs = new TCanvas();
+        // can_obs->cd();
+        // gPad->SetLogy();
+        // TLegend *leg_obs = new TLegend(0.45, 0.75, 0.88, 0.85);
+        // TLegend *leg_ratio = new TLegend(0.7, 0.7, 0.88, 0.88);
+        // leg_obs->SetTextSize(0.027);
+
+        // // Format hists, and add to legend
+        // leg_obs_all->AddEntry("NULL", Form("p_{T}R_{L} = %.1f - %.1f", ptRL_bins[j], ptRL_bins[j+1]), "h");
+        // Format1DHist(obs, obs_hist_1, leg_obs_all, label_1, false, colors[j], kFullCircle);
+        // Format1DHist(obs, obs_hist_2, leg_obs_all, label_2, true, colors[j], 1, 0.6);
+        // if ( option == 1 ) {
+        //     Format1DHist(obs, obs_hist_3, leg_obs_all, label_3, true, colors[j], 2, 0.6);
+        //     Format1DHist(obs, obs_hist_4, leg_obs_all, label_4, true, colors[j], 3, 0.6);
+        // } else if ( option == 7 ) Format1DHist(obs, obs_hist_3, leg_obs_all, label_3, true, colors[j], 2, 0.6);
+        
+        // leg_obs->AddEntry(obs_hist_1, Form("%s p_{T}R_{L} = %.1f - %.1f", label_1.c_str(), ptRL_bins[j], ptRL_bins[j+1]), "pl");
+        // leg_obs->AddEntry(obs_hist_2, Form("%s p_{T}R_{L} = %.1f - %.1f", label_2.c_str(), ptRL_bins[j], ptRL_bins[j+1]), "pl");
+        // if ( option == 1 ) {
+        //     leg_obs->AddEntry(obs_hist_3, Form("%s p_{T}R_{L} = %.1f - %.1f", label_3.c_str(), ptRL_bins[j], ptRL_bins[j+1]), "pl");
+        //     leg_obs->AddEntry(obs_hist_4, Form("%s p_{T}R_{L} = %.1f - %.1f", label_4.c_str(), ptRL_bins[j], ptRL_bins[j+1]), "pl");
+        // } else if ( option == 7 ) leg_obs->AddEntry(obs_hist_3, Form("%s p_{T}R_{L} = %.1f - %.1f", label_3.c_str(), ptRL_bins[j], ptRL_bins[j+1]), "pl");
+        // leg_ratio->AddEntry(hist_obs_ratio, "ratio", "pl");
+                
+
+        // // Now draw all pTRL bins together
+        // can_obs_all->cd();
+        // obs_hist_2->Draw("HIST SAME");
+        // if ( option == 1 ) {
+        //     obs_hist_3->Draw("HIST SAME");
+        //     obs_hist_4->Draw("HIST SAME");
+        // } else if ( option == 7 ) obs_hist_3->Draw("HIST SAME");
+        // obs_hist_1->Draw("P SAME");
+        
+    }
 
 }
 
 void plot_pt_bins(std::string weight_str, std::string jetR, std::string threshold, std::string norm_string) {
-
-    const int pt_bins[] = { 20, 40, 60, 80 };
-    const int n_bins = sizeof(pt_bins) / sizeof(pt_bins[0]) - 1;
 
     Observable obs_deltap("deltap", "#Deltap", "#frac{dN}{d#Deltap}"); 
     Observable obs_deltajt("deltajt", "#Deltaj_{T}", "#frac{dN}{d#Deltaj_{T}}");
@@ -386,13 +573,13 @@ void plot_pt_bins(std::string weight_str, std::string jetR, std::string threshol
         plot_1D_obs(obs_deltap, pt_min, pt_max, weight_str, jetR, threshold, norm_string, 3);
         plot_1D_obs(obs_deltajt, pt_min, pt_max, weight_str, jetR, threshold, norm_string, 3);
 
-        // option 4 = plot pythia (det) vs anchMC (det)
-        plot_1D_obs(obs_deltap, pt_min, pt_max, weight_str, jetR, threshold, norm_string, 4);
-        plot_1D_obs(obs_deltajt, pt_min, pt_max, weight_str, jetR, threshold, norm_string, 4);
+        // // option 4 = plot pythia (det) vs anchMC (det)
+        // plot_1D_obs(obs_deltap, pt_min, pt_max, weight_str, jetR, threshold, norm_string, 4);
+        // plot_1D_obs(obs_deltajt, pt_min, pt_max, weight_str, jetR, threshold, norm_string, 4);
 
-        // option 5 = plot pythia (gen) vs anchMC (gen)
-        plot_1D_obs(obs_deltap, pt_min, pt_max, weight_str, jetR, threshold, norm_string, 5);
-        plot_1D_obs(obs_deltajt, pt_min, pt_max, weight_str, jetR, threshold, norm_string, 5);
+        // // option 5 = plot pythia (gen) vs anchMC (gen)
+        // plot_1D_obs(obs_deltap, pt_min, pt_max, weight_str, jetR, threshold, norm_string, 5);
+        // plot_1D_obs(obs_deltajt, pt_min, pt_max, weight_str, jetR, threshold, norm_string, 5);
 
         // // option 6 = plot pythia (gen) vs anchMC (gen)
         // plot_1D_obs(obs_deltap, pt_min, pt_max, weight_str, jetR, threshold, norm_string, 6);
@@ -403,6 +590,10 @@ void plot_pt_bins(std::string weight_str, std::string jetR, std::string threshol
         plot_1D_obs(obs_deltajt, pt_min, pt_max, weight_str, jetR, threshold, norm_string, 7);
 
     }
+
+    // plot ratios of jet pt
+    plot_obs_pt_ratios(obs_deltap, weight_str, jetR, threshold, norm_string);
+    plot_obs_pt_ratios(obs_deltajt, weight_str, jetR, threshold, norm_string);
 }
 
 void plot_pt_distribution() {
@@ -545,4 +736,9 @@ void plot_data_with_generators() {
     std::string threshold = "1.0";
     std::string norm_string = "self_normalized";
     plot_pt_bins(weight_str, jetR, threshold, norm_string);
+
+    // now do weighted versions
+    weight_str = "_Weighted";
+    plot_pt_bins(weight_str, jetR, threshold, norm_string);
+
 }

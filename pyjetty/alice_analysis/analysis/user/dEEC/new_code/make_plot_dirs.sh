@@ -39,8 +39,8 @@ cd $1
 
 PTBINS=("20-40" "40-60" "60-80")
 NORMS=("unnormalized" "self_normalized" "norm_by_jets")
-OBSERVABLES=("deltap" "deltajt" "rc" "weights" "weights_vs_deltap" "weights_vs_deltajt" "zj_vs_zi" "weights_vs_p1")
-# OBSERVABLES=("deltap" "deltapt" "deltajt" "p1" "jt1" "chargeratio" "rc" "weights" "weights_vs_deltap" "weights_vs_deltajt" "zj_vs_zi" "weights_vs_p1")
+OBSERVABLES=("deltap" "deltajt" "rc" "weights" "weights_vs_deltap" "weights_vs_deltajt" "zj_vs_zi" "weights_vs_p1" "RL")
+# OBSERVABLES=("deltap" "deltapt" "deltajt" "p1" "jt1" "chargeratio" "rc" "weights" "weights_vs_deltap" "weights_vs_deltajt" "zj_vs_zi" "weights_vs_p1" "RL")
 WEIGHTED=("unweighted" "weighted") #don't make yet...
 
 for ptbin in "${PTBINS[@]}"; do

@@ -180,6 +180,7 @@ class ProcessDataBase(process_base.ProcessBase):
     io = process_io.ProcessIO(input_file=self.input_file, track_tree_name='tree_Particle',
                               is_pp=self.is_pp, use_ev_id_ext=True)
     self.df_fjparticles = io.load_data(m=self.m)
+    self.df_fjparticles.columns = ['fj_particle', 'ParticleCharge']
     self.nEvents = len(self.df_fjparticles.index)
     self.nTracks = len(io.track_df.index)
     print('--- {} seconds ---'.format(time.time() - self.start_time))
@@ -244,7 +245,7 @@ class ProcessDataBase(process_base.ProcessBase):
     # Fill track histograms
     print('--- {} seconds ---'.format(time.time() - self.start_time))
     print('Fill track histograms')
-    for fj_particles in self.df_fjparticles:
+    for fj_particles in self.df_fjparticles['fj_particle']:
       for track in fj_particles:
         self.fillTrackHistograms(track) #if something breaks at this line, there are probably no particles in this file!
     print('--- {} seconds ---'.format(time.time() - self.start_time))
@@ -256,8 +257,11 @@ class ProcessDataBase(process_base.ProcessBase):
     self.jet_number = -1 # so that jet counting starts at 0
 
     # Do jet-finding and fill histograms
-    for fj_particles in self.df_fjparticles:
-      self.analyze_event(fj_particles)
+    # for fj_particles in self.df_fjparticles:
+    #   self.analyze_event(fj_particles)
+    [self.analyze_event(fj_particles) for fj_particles in self.df_fjparticles['fj_particle']]
+
+
 
     print('--- {} seconds ---'.format(time.time() - self.start_time))
     print('Save thn...')
@@ -267,6 +271,9 @@ class ProcessDataBase(process_base.ProcessBase):
   # Fill track histograms.
   #---------------------------------------------------------------
   def fillTrackHistograms(self, track):
+
+    if type(track) == str:
+      return
 
     self.hTrackEtaPhi.Fill(track.eta(), track.phi())
     self.hTrackPt.Fill(track.pt())
@@ -295,6 +302,8 @@ class ProcessDataBase(process_base.ProcessBase):
           
 
     if len(fj_particles) > 1:
+      if type(fj_particles) != fj.vectorPJ:
+        return
       if np.abs(fj_particles[0].pt() - fj_particles[1].pt()) <  1e-10:
         print('WARNING: Duplicate particles may be present')
         print([p.user_index() for p in fj_particles])

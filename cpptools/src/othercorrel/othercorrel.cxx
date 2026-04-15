@@ -230,6 +230,7 @@ namespace OtherCorrelators
                     // take the cross section of jet axis x track, then the norm of the resulting vector, then divide by jet pt
                     std::valarray<double> mom4vec_jetaxis = jet.four_mom();
                     std::valarray<double> mom4vec_i = parts[i].four_mom();
+                    double jetp = sqrt(jet.px()*jet.px() + jet.py()*jet.py() + jet.pz()*jet.pz());
 
                     // cout << "mom4vec_jetaxis is " << mom4vec_jetaxis[0] << "; " << mom4vec_jetaxis[1] << "; " << mom4vec_jetaxis[2] << "; " << mom4vec_jetaxis[3] << endl;
                     // cout << "jet p is " << jet.px() << "; " << jet.py() << "; " << jet.pz()  << endl;
@@ -239,27 +240,30 @@ namespace OtherCorrelators
                     std::valarray<double> cross_product_1 = cross_product(mom4vec_jetaxis, mom4vec_i);
                     double cross_product_1_norm = std::hypot(cross_product_1[0], cross_product_1[1], cross_product_1[2]);
                     // cout << "jt 1 is " << cross_product_1_norm / jet.pt() << endl;
-                    _d12 = cross_product_1_norm / jet.pt();
+                    _d12 = cross_product_1_norm / jetp; //jet.pt();
 
                 } else if (strcmp(correltype, "jt2") == 0) {
                     std::valarray<double> mom4vec_jetaxis = jet.four_mom();
                     std::valarray<double> mom4vec_j = parts[j].four_mom();
+                    double jetp = sqrt(jet.px()*jet.px() + jet.py()*jet.py() + jet.pz()*jet.pz());
                     
                     std::valarray<double> cross_product_2 = cross_product(mom4vec_jetaxis, mom4vec_j);
                     double cross_product_2_norm = std::hypot(cross_product_2[0], cross_product_2[1], cross_product_2[2]);
-                    _d12 = cross_product_2_norm / jet.pt();
+                    _d12 = cross_product_2_norm / jetp; //jet.pt();
 
                 } else if (strcmp(correltype, "deltajt") == 0) {
                     std::valarray<double> mom4vec_jetaxis = jet.four_mom();
                     std::valarray<double> mom4vec_i = parts[i].four_mom();
                     std::valarray<double> mom4vec_j = parts[j].four_mom();
+
+                    double jetp = sqrt(jet.px()*jet.px() + jet.py()*jet.py() + jet.pz()*jet.pz());
                     
                     std::valarray<double> cross_product_1 = cross_product(mom4vec_jetaxis, mom4vec_i);
                     double cross_product_1_norm = std::hypot(cross_product_1[0], cross_product_1[1], cross_product_1[2]);
-                    double jt1 = cross_product_1_norm / jet.pt();
+                    double jt1 = cross_product_1_norm / jetp; //jet.pt();
                     std::valarray<double> cross_product_2 = cross_product(mom4vec_jetaxis, mom4vec_j);
                     double cross_product_2_norm = std::hypot(cross_product_2[0], cross_product_2[1], cross_product_2[2]);
-                    double jt2 = cross_product_2_norm / jet.pt();
+                    double jt2 = cross_product_2_norm / jetp; //jet.pt();
 
                     _d12 = fabs(jt1 - jt2);
 
@@ -267,26 +271,29 @@ namespace OtherCorrelators
                     // take the cross section of jet axis x track, then the norm of the resulting vector, then divide by jet pt
                     std::valarray<double> mom4vec_jetaxis = jet.four_mom();
                     std::valarray<double> mom4vec_i = parts[i].four_mom();
+                    double jetp = sqrt(jet.px()*jet.px() + jet.py()*jet.py() + jet.pz()*jet.pz());
                     
                     double dot_product_1 = dot_product(mom4vec_jetaxis, mom4vec_i);
-                    _d12 = dot_product_1 / jet.pt();
+                    _d12 = dot_product_1 / jetp; //jet.pt();
 
                 } else if (strcmp(correltype, "jl2") == 0) {
                     std::valarray<double> mom4vec_jetaxis = jet.four_mom();
                     std::valarray<double> mom4vec_j = parts[j].four_mom();
+                    double jetp = sqrt(jet.px()*jet.px() + jet.py()*jet.py() + jet.pz()*jet.pz());
                     
                     double dot_product_2 = dot_product(mom4vec_jetaxis, mom4vec_j);
-                    _d12 = dot_product_2 / jet.pt();
+                    _d12 = dot_product_2 / jetp; //jet.pt();
 
                 } else if (strcmp(correltype, "deltajl") == 0) {
                     std::valarray<double> mom4vec_jetaxis = jet.four_mom();
                     std::valarray<double> mom4vec_i = parts[i].four_mom();
                     std::valarray<double> mom4vec_j = parts[j].four_mom();
+                    double jetp = sqrt(jet.px()*jet.px() + jet.py()*jet.py() + jet.pz()*jet.pz());
                     
                     double dot_product_1 = dot_product(mom4vec_jetaxis, mom4vec_i);
-                    double jl1 = dot_product_1 / jet.pt();
+                    double jl1 = dot_product_1 / jetp; //jet.pt();
                     double dot_product_2 = dot_product(mom4vec_jetaxis, mom4vec_j);
-                    double jl2 = dot_product_2 / jet.pt();
+                    double jl2 = dot_product_2 / jetp; //jet.pt();
 
                     _d12 = fabs(jl1 - jl2);
 

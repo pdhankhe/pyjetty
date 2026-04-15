@@ -52,7 +52,7 @@ def logbins(xmin, xmax, nbins):
 
 ################################################################
 class EEC_pair:
-  def __init__(self, _index1, _index2, _weight, _r, _jetpt, _deltap, _deltapt, _deltajt, _jt1, _jt2, _deltapl, _deltajl, _jl1, _jl2, _charge, _mcid1, _mcid2):
+  def __init__(self, _index1, _index2, _weight, _r, _jetpt, _deltap, _deltapt, _deltajt, _jt1, _jt2, _q1q2, _mcid1, _mcid2): #def __init__(self, _index1, _index2, _weight, _r, _jetpt, _deltap, _deltapt, _deltajt, _jt1, _jt2, _deltapl, _deltajl, _jl1, _jl2, _charge, _mcid1, _mcid2):
     self.index1 = _index1 #kyle's indexing
     self.index2 = _index2
     self.weight = _weight
@@ -63,11 +63,11 @@ class EEC_pair:
     self.deltajt = _deltajt
     self.jt1 = _jt1
     self.jt2 = _jt2
-    self.deltapl = _deltapl
-    self.deltajl = _deltajl
-    self.jl1 = _jl1
-    self.jl2 = _jl2
-    self.charge = _charge
+    # self.deltapl = _deltapl
+    # self.deltajl = _deltajl
+    # self.jl1 = _jl1
+    # self.jl2 = _jl2
+    self.q1q2 = _q1q2
     self.mcid1 = _mcid1 # my indexing
     self.mcid2 = _mcid2
 
@@ -188,13 +188,13 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
                 h.GetYaxis().SetTitle('#it{R}_{L}')
                 setattr(self, name, h)
 
-                '''
+                
                 name = 'h_{}{}{}Pt_JetPt_Truth_R{}_{}'.format(observable, ipoint, pair_type_label, jetR, obs_label) # pt scaled histograms (currently only for unmatched jets)
                 h = ROOT.TH2D(name, name, 200, pt_bins, 60, ptRL_bins)
                 h.GetXaxis().SetTitle('#it{p}_{T,ch jet}')
                 h.GetYaxis().SetTitle('#it{p}_{T,ch jet}#it{R}_{L}') # NB: y axis scaled by jet pt (applied jet by jet)
                 setattr(self, name, h)
-                '''
+                
 
                 # Det-level histograms
                 name = 'h_{}{}{}_JetPt_Det_R{}_{}'.format(observable, ipoint, pair_type_label, jetR, obs_label) #pair_type_label is blank for me
@@ -203,7 +203,7 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
                 h.GetXaxis().SetTitle('#it{p}_{T,ch jet}')
                 h.GetYaxis().SetTitle('#it{R}_{L}')
                 setattr(self, name, h)
-                '''
+                
                 name = 'h_{}{}{}Pt_JetPt_Det_R{}_{}'.format(observable, ipoint, pair_type_label, jetR, obs_label) # pt scaled histograms (currently only for unmatched jets)
                 h = ROOT.TH2D(name, name, 200, pt_bins, 60, ptRL_bins)
                 h.GetXaxis().SetTitle('#it{p}_{T,ch jet}')
@@ -219,12 +219,14 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
                 h.GetYaxis().SetTitle('#it{R}_{L}')
                 setattr(self, name, h)
 
+                
                 # Matched det histograms (with matched truth jet pT filled to the other axis)
                 name = 'h_matched_extra_{}{}{}_JetPt_R{}_{}'.format(observable, ipoint, pair_type_label, jetR, obs_label)
                 h = ROOT.TH2D(name, name, 200, pt_bins, 50, RL_bins)
                 h.GetXaxis().SetTitle('#it{p}_{T,ch jet}^{truth}')
                 h.GetYaxis().SetTitle('#it{R}_{L}')
                 setattr(self, name, h)
+                
 
                 # Matched truth histograms
                 name = 'h_matched_{}{}{}_JetPt_Truth_R{}_{}'.format(observable, ipoint, pair_type_label, jetR, obs_label)
@@ -232,7 +234,7 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
                 h.GetXaxis().SetTitle('#it{p}_{T,ch jet}')
                 h.GetYaxis().SetTitle('#it{R}_{L}')
                 setattr(self, name, h)
-                '''
+                
 
                 if self.do_jetcone:
                   for jetcone_R in self.jetcone_R_list:
@@ -272,35 +274,36 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
           pt_bins = linbins(0,200,200)
           Nconst_bins = linbins(0,50,50)
 
-          # # Truth histograms
-          # name = 'h_1D{}_JetPt_Truth_R{}_{}'.format(observable, jetR, obs_label)
-          # h = ROOT.TH1D(name, name, 200, pt_bins)
-          # h.GetXaxis().SetTitle('#it{p}_{T,ch jet}')
-          # h.GetYaxis().SetTitle('Counts')
-          # setattr(self, name, h)
+          # Truth histograms
+          name = 'h_1D{}_JetPt_Truth_R{}_{}'.format(observable, jetR, obs_label)
+          h = ROOT.TH1D(name, name, 200, pt_bins)
+          h.GetXaxis().SetTitle('#it{p}_{T,ch jet}')
+          h.GetYaxis().SetTitle('Counts')
+          setattr(self, name, h)
 
-          # name = 'h_Nconst_JetPt_Truth_R{}_{}'.format(jetR, obs_label)
-          # h = ROOT.TH2D(name, name, 200, pt_bins, 50, Nconst_bins)
-          # h.GetXaxis().SetTitle('p_{T,ch jet}')
-          # h.GetYaxis().SetTitle('N_{const}')
-          # setattr(self, name, h)
+          name = 'h_Nconst_JetPt_Truth_R{}_{}'.format(jetR, obs_label)
+          h = ROOT.TH2D(name, name, 200, pt_bins, 50, Nconst_bins)
+          h.GetXaxis().SetTitle('p_{T,ch jet}')
+          h.GetYaxis().SetTitle('N_{const}')
+          setattr(self, name, h)
           
           # name = 'tn_JETINFO{}_Truth_R{}_{}'.format(observable, jetR, obs_label)
           # tn = ROOT.TNtuple(name, name, "event_id:jet_id:jet_num_in_ev:jet_pt:total_num_const:num_const_aftercut:corr_rc:leading_q:subleading_q:total_num_baryons:num_baryons_aftercut:total_num_mesons:num_mesons_aftercut")
           # setattr(self, name, tn)
 
           # # Det histograms
-          # name = 'h_1D{}_JetPt_Det_R{}_{}'.format(observable, jetR, obs_label)
-          # h = ROOT.TH1D(name, name, 200, pt_bins)
-          # h.GetXaxis().SetTitle('#it{p}_{T,ch jet}')
-          # h.GetYaxis().SetTitle('Counts')
-          # setattr(self, name, h)
+          name = 'h_1D{}_JetPt_Det_R{}_{}'.format(observable, jetR, obs_label)
+          h = ROOT.TH1D(name, name, 200, pt_bins)
+          h.GetXaxis().SetTitle('#it{p}_{T,ch jet}')
+          h.GetYaxis().SetTitle('Counts')
+          setattr(self, name, h)
 
-          # name = 'h_Nconst_JetPt_Det_R{}_{}'.format(jetR, obs_label)
-          # h = ROOT.TH2D(name, name, 200, pt_bins, 50, Nconst_bins)
-          # h.GetXaxis().SetTitle('p_{T,ch jet}')
-          # h.GetYaxis().SetTitle('N_{const}')
-          # setattr(self, name, h)
+          name = 'h_Nconst_JetPt_Det_R{}_{}'.format(jetR, obs_label)
+          h = ROOT.TH2D(name, name, 200, pt_bins, 50, Nconst_bins)
+          h.GetXaxis().SetTitle('p_{T,ch jet}')
+          h.GetYaxis().SetTitle('N_{const}')
+          setattr(self, name, h)
+
 
           '''
           name = 'tn_JETINFO{}_Det_R{}_{}'.format(observable, jetR, obs_label)
@@ -310,7 +313,7 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
 
 
           
-          '''
+          
           # Matched det histograms
           name = 'h_matched_1D{}_JetPt_R{}_{}'.format(observable, jetR, obs_label)
           pt_bins = linbins(0,200,200)
@@ -325,7 +328,7 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
           h.GetXaxis().SetTitle('#it{p}_{T,ch jet}')
           h.GetYaxis().SetTitle('Counts')
           setattr(self, name, h)
-          '''
+          
           # create response matrix for 1D RM for jet pt
           name = 'hResponse_JetPt_{}_R{}_{}'.format(observable, jetR, obs_label)
           h = ROOT.TH2D(name, name, 200, pt_bins, 200, pt_bins)
@@ -376,12 +379,12 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
             self.tuple_obs_string = "event_id:jet_id:jet_num_in_ev:jet_pt:RL:weights"   
           elif observable == "corr_end": #only purpose of this observable is to signify the end
             name = 'tn_pairlevel_Truth_R{}_{}'.format(jetR, obs_label)
-            tn = ROOT.TNtuple(name, name, self.tuple_obs_string)
-            setattr(self, name, tn)
-            colon_count = self.tuple_obs_string.count(':')
-            print("COLON COUNT IS ", colon_count)
-            print("TUPLE STRING IS", self.tuple_obs_string)
-            self.fsparsepartonJetvalue_tuple = array.array( 'd', np.zeros(colon_count+1)) # >=18 to match the number of axes
+            # tn = ROOT.TNtuple(name, name, self.tuple_obs_string)
+            # setattr(self, name, tn)
+            # colon_count = self.tuple_obs_string.count(':')
+            # print("COLON COUNT IS ", colon_count)
+            # print("TUPLE STRING IS", self.tuple_obs_string)
+            # self.fsparsepartonJetvalue_tuple = array.array( 'd', np.zeros(colon_count+1)) # >=18 to match the number of axes
           
 #            name = 'tn_pairlevel_Det_R{}_{}'.format(jetR, obs_label)
 #            tn = ROOT.TNtuple(name, name, self.tuple_obs_string)
@@ -406,41 +409,39 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
 
     # Create THn of response for ENC
     pt_bins = linbins(0,200,200)
-    if observable == "corr_deltap":
-      obs_bins = linbins(0,90,900) #180)
-      obstitle_det = "#Deltap_{det}"
-      obstitle_truth = "#Deltap_{truth}"
-    elif observable == "corr_deltapt":
-      obs_bins = linbins(0,90,900) #180)
-      obstitle_det = "#Deltap_{T, det}"
-      obstitle_truth = "#Deltap_{T, truth}"
-    elif observable == "corr_deltajt":
-      obs_bins = linbins(0,5,200)
-      obstitle_det = "#Deltaj_{T, det}"
-      obstitle_truth = "#Deltaj_{T, truth}"
-    elif observable == "corr_deltapl":
-      obs_bins = linbins(0,40,400) #80)
-      obstitle_det = "#Deltap_{L, det}"
-      obstitle_truth = "#Deltap_{L, truth}"
-    elif observable == "corr_deltajl":
-      obs_bins = linbins(0,90,900) #180)
-      obstitle_det = "#Deltaj_{L, det}"
-      obstitle_truth = "#Deltaj_{L, truth}"
-    elif observable == "corr_energyweights":
-      obs_bins = linbins(0,0.3,60)
-      obstitle_det = "EW_{det}"
-      obstitle_truth = "EW_{truth}"
-    elif observable == "corr_charge":
-      obs_bins = linbins(-3,3,6)
-      obstitle_det = "(q_{1}q_{2})_{det}"
-      obstitle_truth = "(q_{1}q_{2})_{truth}"
-    else:
-      return
+    # if observable == "corr_deltap":
+    #   obs_bins = linbins(0,84,42) #linbins(0,90,144) #180)
+    #   obstitle_det = "#Deltap_{det}"
+    #   obstitle_truth = "#Deltap_{truth}"
+    # elif observable == "corr_deltapt":
+    #   obs_bins = linbins(0,84,42) #linbins(0,90,180)
+    #   obstitle_det = "#Deltap_{T, det}"
+    #   obstitle_truth = "#Deltap_{T, truth}"
+    # elif observable == "corr_deltajt":
+    #   obs_bins = linbins(0,5,50) #linbins(0,5,200)
+    #   obstitle_det = "#Deltaj_{T, det}"
+    #   obstitle_truth = "#Deltaj_{T, truth}"
+    # elif observable == "corr_energyweights":
+    #   obs_bins = linbins(0,0.3,60)
+    #   obstitle_det = "EW_{det}"
+    #   obstitle_truth = "EW_{truth}"
+    # elif observable == "corr_rc":
+    #   obs_bins = linbins(-3,3,6)
+    #   obstitle_det = "(q_{1}q_{2})_{det}"
+    #   obstitle_truth = "(q_{1}q_{2})_{truth}"
+    # else:
+    #   return
 
     jetpt_bins = np.array([5, 10, 20, 40, 60, 80, 100, 150]).astype(float)
-    RL_bins_all = [np.array([0, 1e-2, 3e-2, 7e-2, 1.5e-1, 3e-1, 4e-1, 1]).astype(float), \
-          np.array([0, 1e-2, 2.5e-2, 4e-2, 8e-2, 2.5e-1, 4e-1, 1]).astype(float), \
-          np.array([0, 1e-2, 2.5e-2, 3e-2, 4.5e-2, 2e-1, 4e-1, 1]).astype(float) ]
+    ptRL_bins = np.array([0, 2e-1, 8e-1, 5.0, 10, 30, 100]).astype(float) 
+    # RL_bins_all = [np.array([0, 1e-2, 3e-2, 7e-2, 1.5e-1, 3e-1, 4e-1, 1]).astype(float), \
+    #       np.array([0, 1e-2, 2.5e-2, 4e-2, 8e-2, 2.5e-1, 4e-1, 1]).astype(float), \
+    #       np.array([0, 1e-2, 2.5e-2, 3e-2, 4.5e-2, 2e-1, 4e-1, 1]).astype(float) ]
+    weight_bins = linbins(0, 0.3, 60)
+    deltap_bins = linbins(0,84,42)
+    deltapt_bins = linbins(0,84,42)
+    deltajt_bins = linbins(0,5,50)
+    rc_bins = linbins(-3,3,6)
     
     # binnings = (pt_bins, pt_bins, obs_bins, obs_bins)
     # dim = 4;
@@ -454,16 +455,19 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
         self.create_thn(name, title, dim, binnings)
     '''
     
-    # binnings = (pt_bins, pt_bins, obs_bins, obs_bins, RL_bins_all)
-    # dim = 6;
-    # title = ['#it{p}_{T,det}', '#it{p}_{T,truth}', obstitle_det, obstitle_truth, '#it{R}_{L,det}', '#it{R}_{L,truth}']
-    
-    name = 'hResponse_{}_R{}_{}'.format(observable, jetR, obs_label)
-    h = ROOT.TH2D(name, name, len(obs_bins)-1, obs_bins, len(obs_bins)-1, obs_bins)
-    h.GetXaxis().SetTitle(obstitle_det)
-    h.GetYaxis().SetTitle(obstitle_truth)
-    setattr(self, name, h)
+    # name = 'hResponse_{}_R{}_{}'.format(observable, jetR, obs_label)
+    # h = ROOT.TH2D(name, name, len(obs_bins)-1, obs_bins, len(obs_bins)-1, obs_bins)
+    # h.GetXaxis().SetTitle(obstitle_det)
+    # h.GetYaxis().SetTitle(obstitle_truth)
+    # setattr(self, name, h)
 
+    # Just make one big 14-D histograms here! (obs det, obs truth, ptRL det, ptRL truth, pt det, pt truth, weight det, weight truth)
+    
+    name = 'hResponse_14D_ALLOBS_JetPt_R{}_{}'.format(jetR, obs_label)
+    binnings = (pt_bins, pt_bins, ptRL_bins, ptRL_bins, weight_bins, weight_bins, deltap_bins, deltap_bins, deltapt_bins, deltapt_bins, deltajt_bins, deltajt_bins, rc_bins, rc_bins)
+    dim = 14;
+    title = ['#it{p}_{T,det}', '#it{p}_{T,truth}', '#it{p}_{T}#it{R}_{L,det}', '#it{p}_{T}#it{R}_{L,truth}', 'EW_{det}', 'EW_{truth}', '#Deltap_{det}', '#Deltap_{truth}', '#Deltap_{T,det}', '#Deltap_{T,truth}', '#Deltaj_{T,det}', '#Deltaj_{T,truth}', '(q_{1}q_{2})_{det}', '(q_{1}q_{2})_{truth}']
+    self.create_thn(name, title, dim, binnings)
     
     # name = 'hResidual_JetPt_{}{}_R{}_{}{}'.format(observable, ipoint, jetR, trk_thrd, suffix)
     # h = ROOT.TH3F(name, name, 20, 0, 200, 100, 0., 1., 200, -2., 2.)
@@ -756,36 +760,36 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
     # now do other correlations
     deltap_obs_corr = othercorrel.OtherCorrelatorBuilder(_v, jet_pt, max_npoint, weight_power, dphi_cut, deta_cut, "deltap")
     deltapt_obs_corr = othercorrel.OtherCorrelatorBuilder(_v, jet_pt, max_npoint, weight_power, dphi_cut, deta_cut, "deltapt")
-    deltapl_obs_corr = othercorrel.OtherCorrelatorBuilder(_v, jet_pt, max_npoint, weight_power, dphi_cut, deta_cut, "deltapl")
+    # deltapl_obs_corr = othercorrel.OtherCorrelatorBuilder(_v, jet_pt, max_npoint, weight_power, dphi_cut, deta_cut, "deltapl")
     
     jt1_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, _v, jet_pt, 2, 1, dphi_cut, deta_cut, "jt1")
     jt2_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, _v, jet_pt, 2, 1, dphi_cut, deta_cut, "jt2")
     deltajt_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, _v, jet_pt, 2, 1, dphi_cut, deta_cut, "deltajt")
-    jl1_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, _v, jet_pt, 2, 1, dphi_cut, deta_cut, "jl1")
-    jl2_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, _v, jet_pt, 2, 1, dphi_cut, deta_cut, "jl2")
-    deltajl_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, _v, jet_pt, 2, 1, dphi_cut, deta_cut, "deltajl")
+    # jl1_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, _v, jet_pt, 2, 1, dphi_cut, deta_cut, "jl1")
+    # jl2_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, _v, jet_pt, 2, 1, dphi_cut, deta_cut, "jl2")
+    # deltajl_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, _v, jet_pt, 2, 1, dphi_cut, deta_cut, "deltajl")
     
     deltap_cb = deltap_obs_corr.correlator(ipoint)
     deltapt_cb = deltapt_obs_corr.correlator(ipoint)
-    deltapl_cb = deltapl_obs_corr.correlator(ipoint)
+    # deltapl_cb = deltapl_obs_corr.correlator(ipoint)
 
     jt1_cb = jt1_obs_corr.correlator(ipoint)
     jt2_cb = jt2_obs_corr.correlator(ipoint)
     deltajt_cb = deltajt_obs_corr.correlator(ipoint)
-    jl1_cb = jl1_obs_corr.correlator(ipoint)
-    jl2_cb = jl2_obs_corr.correlator(ipoint)
-    deltajl_cb = deltajl_obs_corr.correlator(ipoint)
+    # jl1_cb = jl1_obs_corr.correlator(ipoint)
+    # jl2_cb = jl2_obs_corr.correlator(ipoint)
+    # deltajl_cb = deltajl_obs_corr.correlator(ipoint)
 
     deltap_rs = deltap_cb.rs()
     deltapt_rs = deltapt_cb.rs()
-    deltapl_rs = deltapl_cb.rs()
+    # deltapl_rs = deltapl_cb.rs()
 
     jt1_rs = jt1_cb.rs()
     jt2_rs = jt2_cb.rs()
     deltajt_rs = deltajt_cb.rs()
-    jl1_rs = jl1_cb.rs()
-    jl2_rs = jl2_cb.rs()
-    deltajl_rs = deltajl_cb.rs()
+    # jl1_rs = jl1_cb.rs()
+    # jl2_rs = jl2_cb.rs()
+    # deltajl_rs = deltajl_cb.rs()
 
     for i in range(len(EEC_rs)):
       event_index1 = _v[EEC_indicies1[i]].user_index()
@@ -797,7 +801,8 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
       mcid1 = _v[EEC_indicies1[i]].python_info().particle_mcid
       mcid2 = _v[EEC_indicies2[i]].python_info().particle_mcid
 
-      pairs.append(EEC_pair(event_index1, event_index2, EEC_weights[i], EEC_rs[i], jet_pt, deltap_rs[i], deltapt_rs[i], deltajt_rs[i], jt1_rs[i], jt2_rs[i], deltapl_rs[i],  deltajl_rs[i], jl1_rs[i], jl2_rs[i], pair_q1q2, mcid1, mcid2))
+      pairs.append(EEC_pair(event_index1, event_index2, EEC_weights[i], EEC_rs[i], jet_pt, deltap_rs[i], deltapt_rs[i], deltajt_rs[i], jt1_rs[i], jt2_rs[i], pair_q1q2, mcid1, mcid2))
+      # pairs.append(EEC_pair(event_index1, event_index2, EEC_weights[i], EEC_rs[i], jet_pt, deltap_rs[i], deltapt_rs[i], deltajt_rs[i], jt1_rs[i], jt2_rs[i], deltapl_rs[i],  deltajl_rs[i], jl1_rs[i], jl2_rs[i], pair_q1q2, mcid1, mcid2))
 
     return pairs
 
@@ -860,23 +865,23 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
 
 
     new_corr = ecorrel.CorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut)
-    deltap_obs_corr = othercorrel.OtherCorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "deltap")
-    deltapt_obs_corr = othercorrel.OtherCorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "deltapt")
-    deltapl_obs_corr = othercorrel.OtherCorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "deltapl")
-    # print("THERE ARE ", new_corr.correlator(2).rs().size(), "NUM OF ENTRIES IN NEW CORR")
+    # deltap_obs_corr = othercorrel.OtherCorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "deltap")
+    # deltapt_obs_corr = othercorrel.OtherCorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "deltapt")
+    # deltapl_obs_corr = othercorrel.OtherCorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "deltapl")
+    # # print("THERE ARE ", new_corr.correlator(2).rs().size(), "NUM OF ENTRIES IN NEW CORR")
     
-    jt1_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "jt1")
-    jt2_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "jt2")
-    deltajt_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "deltajt")
-    jl1_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "jl1")
-    jl2_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "jl2")
-    deltajl_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "deltajl")
+    # jt1_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "jt1")
+    # jt2_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "jt2")
+    # deltajt_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "deltajt")
+    # jl1_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "jl1")
+    # jl2_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "jl2")
+    # deltajl_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, c_select, jet_pt, 2, 1, dphi_cut, deta_cut, "deltajl")
     
-    # save jet pt - because it is a jet quantity (not pair)
-    self.fsparsepartonJetvalue_tuple[0] = self.event_number
-    self.fsparsepartonJetvalue_tuple[1] = self.jet_number   
-    self.fsparsepartonJetvalue_tuple[2] = self.ijet    
-    self.fsparsepartonJetvalue_tuple[3] = jet_pt
+    # # save jet pt - because it is a jet quantity (not pair)
+    # self.fsparsepartonJetvalue_tuple[0] = self.event_number
+    # self.fsparsepartonJetvalue_tuple[1] = self.jet_number   
+    # self.fsparsepartonJetvalue_tuple[2] = self.ijet    
+    # self.fsparsepartonJetvalue_tuple[3] = jet_pt
         
 
     for observable in self.observable_list:
@@ -908,12 +913,11 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
               # Det histograms
               if self.ENC_fastsim and (not 'Truth' in hname):
                 getattr(self, hname.format(observable + str(ipoint) + pair_type_label,obs_label)).Fill(jet_pt, new_corr.correlator(ipoint).rs()[index], new_corr.correlator(ipoint).weights()[index]*weights_pair[index])
-#                getattr(self, hname.format(observable + str(ipoint) + pair_type_label + 'Pt',obs_label)).Fill(jet_pt, jet_pt*new_corr.correlator(ipoint).rs()[index], new_corr.correlator(ipoint).weights()[index]*weights_pair[index]) # NB: fill pt*RL
+                getattr(self, hname.format(observable + str(ipoint) + pair_type_label + 'Pt',obs_label)).Fill(jet_pt, jet_pt*new_corr.correlator(ipoint).rs()[index], new_corr.correlator(ipoint).weights()[index]*weights_pair[index]) # NB: fill pt*RL
 
               else: # Truth histogram
                 getattr(self, hname.format(observable + str(ipoint) + pair_type_label,obs_label)).Fill(jet_pt, new_corr.correlator(ipoint).rs()[index], new_corr.correlator(ipoint).weights()[index])
-                
-#                getattr(self, hname.format(observable + str(ipoint) + pair_type_label + 'Pt',obs_label)).Fill(jet_pt, jet_pt*new_corr.correlator(ipoint).rs()[index], new_corr.correlator(ipoint).weights()[index])
+                getattr(self, hname.format(observable + str(ipoint) + pair_type_label + 'Pt',obs_label)).Fill(jet_pt, jet_pt*new_corr.correlator(ipoint).rs()[index], new_corr.correlator(ipoint).weights()[index])
 
 
             if ipoint==2 and 'EEC_noweight' in observable:
@@ -937,19 +941,10 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
         else:
           subleading_q = -99
 
-        # # Det level
-        # if self.ENC_fastsim and (not 'Truth' in hname):
-        #   getattr(self, hname.format("1D"+observable,obs_label)).Fill(jet_pt) #, weights_pair[index])
-        #   getattr(self, hname.format('Nconst', obs_label)).Fill(jet_pt, nconst_jet) #, weights_pair[index]) 
-          
-        #   # TODO: don't do this until you've figured out how...
-        #   # getattr(self, 'tn_JETINFOjet_pt_R{}_{}'.format(jetR, obs_label)).Fill(self.event_number, self.jet_number, self.ijet, jet_pt*weights_pair[index], len(constituents), nconst_jet, leadq_subleadq, leading_q, subleading_q, num_baryons_tot, num_baryons_aftercut, num_mesons_tot, num_mesons_aftercut)
+        getattr(self, hname.format("1D"+observable,obs_label)).Fill(jet_pt)
+        getattr(self, hname.format('Nconst', obs_label)).Fill(jet_pt, nconst_jet) 
 
-        # else: # Truth level
-        #   getattr(self, hname.format("1D"+observable,obs_label)).Fill(jet_pt)
-        #   getattr(self, hname.format('Nconst', obs_label)).Fill(jet_pt, nconst_jet) 
-
-        #   getattr(self, 'tn_JETINFOjet_pt_Truth_R{}_{}'.format(jetR, obs_label)).Fill(self.event_number, self.jet_number, self.ijet, jet_pt, len(constituents), nconst_jet, leadq_subleadq, leading_q, subleading_q, num_baryons_tot, num_baryons_aftercut, num_mesons_tot, num_mesons_aftercut)
+        # getattr(self, 'tn_JETINFOjet_pt_Truth_R{}_{}'.format(jetR, obs_label)).Fill(self.event_number, self.jet_number, self.ijet, jet_pt, len(constituents), nconst_jet, leadq_subleadq, leading_q, subleading_q, num_baryons_tot, num_baryons_aftercut, num_mesons_tot, num_mesons_aftercut)
 
 
         
@@ -1099,7 +1094,7 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
     else:
       jet_pt = jet.perp()
 
-    '''
+    
     new_corr = ecorrel.CorrelatorBuilder(c_select, jet_pt, 2, 1, dphi_cut, deta_cut)
     
     if 'ENC' in observable or 'EEC_noweight' in observable or 'EEC_weight2' in observable:
@@ -1128,7 +1123,7 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
 
     if 'jet_pt' in observable:
       getattr(self, hname.format("1D"+observable,obs_label)).Fill(jet_pt) #observable,obs_label)).Fill(jet_pt)
-    '''
+
 
   #---------------------------------------------------------------
   # This function is called per observable per jet subconfigration 
@@ -1198,13 +1193,19 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
       
       if match_found:
 
-        getattr(self, hname.format("corr_deltap")).Fill(d_pair.deltap, t_pair.deltap)
-        getattr(self, hname.format("corr_deltapt")).Fill(d_pair.deltapt, t_pair.deltapt)
-        getattr(self, hname.format("corr_deltapl")).Fill(d_pair.deltapl, t_pair.deltapl)
-        getattr(self, hname.format("corr_deltajt")).Fill(d_pair.deltajt, t_pair.deltajt)
-        getattr(self, hname.format("corr_deltajl")).Fill(d_pair.deltajl, t_pair.deltajl)
-        getattr(self, hname.format("corr_energyweights")).Fill(d_pair.weight, t_pair.weight)
-        getattr(self, hname.format("corr_charge")).Fill(d_pair.charge, t_pair.charge)
+        # getattr(self, hname.format("corr_deltap")).Fill(d_pair.deltap, t_pair.deltap)
+        # getattr(self, hname.format("corr_deltapt")).Fill(d_pair.deltapt, t_pair.deltapt)
+        # # getattr(self, hname.format("corr_deltapl")).Fill(d_pair.deltapl, t_pair.deltapl)
+        # getattr(self, hname.format("corr_deltajt")).Fill(d_pair.deltajt, t_pair.deltajt)
+        # # getattr(self, hname.format("corr_deltajl")).Fill(d_pair.deltajl, t_pair.deltajl)
+        # getattr(self, hname.format("corr_energyweights")).Fill(d_pair.weight, t_pair.weight)
+        # getattr(self, hname.format("corr_charge")).Fill(d_pair.q1q2, t_pair.q1q2)
+
+        # if 'corr' in observable:
+          # if observable == 'corr_end':
+        name = 'hResponse_14D_ALLOBS_JetPt_R{}_{}'.format(jetR, obs_label)
+        getattr(self, name).Fill(jet_det_pt, jet_truth_pt, d_pair.r*d_pair.jetpt, t_pair.r*t_pair.jetpt, d_pair.weight, t_pair.weight, d_pair.deltap, t_pair.deltap, d_pair.deltapt, t_pair.deltapt, d_pair.deltajt, t_pair.deltajt, d_pair.q1q2, t_pair.q1q2)
+
         
               
         '''
@@ -1448,7 +1449,7 @@ class ProcessMC_dEEC(process_mc_base.ProcessMCBase):
     # hname = 'hResponse_JetPt_{{}}_PTBIN{{}}_RLBIN{{}}_R{}_{}'.format(jetR, obs_label)
     # self.fill_corr_response_matrices(hname, jet_det, jet_truth, jetR, obs_setting, grooming_setting, obs_label)
     
-    hname = 'hResponse_{{}}_R{}_{}'.format(jetR, obs_label)
+    hname = 'hResponse_{{}}_R{}_{}'.format(jetR, obs_label) # not used now
     self.fill_corr_response_matrices(hname, jet_det, jet_truth, jetR, obs_setting, grooming_setting, obs_label)
     
       

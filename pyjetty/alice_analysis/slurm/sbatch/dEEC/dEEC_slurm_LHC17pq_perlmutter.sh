@@ -1,21 +1,23 @@
 #! /bin/bash
 
 #SBATCH --job-name="processdata_dEECs"
-#SBATCH --nodes=1 --ntasks=1 --cpus-per-task=1
+#SBATCH --nodes=1 --ntasks=1
 #SBATCH --account=alice
 #SBATCH --qos=shared
 #SBATCH --constraint=cpu
-#SBATCH --time=12:00:00
-#SBATCH --array=1-640
+#SBATCH --time=24:00:00
+#SBATCH --array=1-853
 #SBATCH --exclude=nid004104,nid004160,nid004149
+#SBATCH --mem=20GB
 #SBATCH --output=/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/dEEC/slurm-%A_%a.out
 
-FILE_PATHS='/global/cfs/projectdirs/alice/blianggi/mypyjetty/dEEC/filelist_LHC17pq_779.txt'
+# FILE_PATHS='/global/cfs/projectdirs/alice/blianggi/mypyjetty/dEEC/filelist_LHC17pq_779.txt'
+FILE_PATHS='/global/cfs/projectdirs/alice/blianggi/mypyjetty/dEEC/filelist_LHC17pq_pass2_807.txt'
 NFILES=$(wc -l < $FILE_PATHS)
 echo "N files to process: ${NFILES}"
 
 # Currently we have 8 nodes * 20 cores active
-FILES_PER_JOB=$(( $NFILES / 640 + 1 ))
+FILES_PER_JOB=1 #$(( $NFILES / 640 + 1 ))
 echo "Files per job: $FILES_PER_JOB"
 
 STOP=$(( SLURM_ARRAY_TASK_ID * FILES_PER_JOB ))
@@ -39,3 +41,10 @@ do
   FILE=$(sed -n "$JOB_N"p $FILE_PATHS)
   srun dEEC_LHC17pq_perlmutter.sh $FILE $SLURM_ARRAY_JOB_ID $SLURM_ARRAY_TASK_ID
 done
+
+# Move stdout to appropriate folder
+OUTPUT_BASEPATH="/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice"
+OUTPUT_PREFIX="AnalysisResults/blianggi/dEEC/$SLURM_ARRAY_JOB_ID"
+
+mkdir -p $OUTPUT_BASEPATH/$OUTPUT_PREFIX/slurm-output
+mv $OUTPUT_BASEPATH/AnalysisResults/blianggi/dEEC/slurm-${SLURM_ARRAY_JOB_ID}_${SLURM_ARRAY_TASK_ID}.out $OUTPUT_BASEPATH/$OUTPUT_PREFIX/slurm-output
