@@ -107,8 +107,15 @@ class HepMC2antuple(hepmc2antuple_base.HepMC2antupleBase):
         if (part.pid == -14122):
           self.particles_accepted.add("Lambda_c+")
         else:
-          self.particles_accepted.add(self.pdg.GetParticle(part.pid).GetName())          
-        self.t_p.Fill(self.run_number, self.ev_id, part.momentum.pt(), part.momentum.eta(), part.momentum.phi(), part.pid, motherPID)          
+          self.particles_accepted.add(self.pdg.GetParticle(part.pid).GetName())  
+
+        if self.include_D0:
+          self.t_p.Fill(self.run_number, self.ev_id, part.momentum.pt(), part.momentum.eta(), part.momentum.phi(), part.pid, motherPID)
+        else:
+          self.t_p.Fill(self.run_number, self.ev_id, part.momentum.pt(), part.momentum.eta(), part.momentum.phi(), part.pid)        
+
+        if self.for_jse:
+          self.t_j.Fill(self.run_number, self.ev_id, part.momentum.px, part.momentum.py, part.momentum.pz, part.momentum.e, part.pid)  
       
       elif self.include_parton and self.accept_particle(part, part.status, part.end_vertex, part.pid, self.pdg, self.gen, parton=True):
 
@@ -129,7 +136,8 @@ if __name__ == '__main__':
   parser.add_argument('--no-progress-bar', help='whether to print progress bar', action='store_true', default=False)
   parser.add_argument('-p', '--include-parton', help='include additional tree of final-state partons', action='store_true', default=False)
   parser.add_argument('-d', '--include-D0', help='include additional tree of D0 information and mother IDs', action='store_true', default=False)
+  parser.add_argument('--jse', help='include additional tree for JSE information', action='store_true', default=False)
   args = parser.parse_args()
   
-  converter = HepMC2antuple(input = args.input, output = args.output, as_data = args.as_data, hepmc = args.hepmc, nev = args.nev, gen = args.gen, no_progress_bar = args.no_progress_bar, include_parton = args.include_parton, include_D0 = args.include_D0)
+  converter = HepMC2antuple(input = args.input, output = args.output, as_data = args.as_data, hepmc = args.hepmc, nev = args.nev, gen = args.gen, no_progress_bar = args.no_progress_bar, include_parton = args.include_parton, include_D0 = args.include_D0, for_jse = args.jse)
   converter.main()

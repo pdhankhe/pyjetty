@@ -1,6 +1,6 @@
 #! /bin/bash
 
-#SBATCH --job-name="processpythiaotf_jse"
+#SBATCH --job-name="generatepythiaotf_jse"
 #SBATCH --nodes=1 --ntasks=1
 #SBATCH --account=alice
 #SBATCH --qos=shared

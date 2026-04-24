@@ -32,10 +32,18 @@ else
   echo "Wrong command line arguments"
 fi
 
+if [ "$5" != "" ]; then
+  JSE_TREE=$5
+  echo "JSE_TREE: $JSE_TREE"
+else
+  echo "Wrong command line arguments"
+fi
+
 
 # Define output path from relevant sub-path of input file
 # Note: suffix depends on file structure of input file -- need to edit appropriately for each dataset
-OUTPUT_SUFFIX=$(echo $INPUT_FILE | cut -d/ -f5-7) #changed suffix for temp_output_dir from -f6-8)
+# OUTPUT_SUFFIX=$(echo $INPUT_FILE | cut -d/ -f5-7) #changed suffix for temp_output_dir from -f6-8)
+OUTPUT_SUFFIX=$(echo $INPUT_FILE | cut -d/ -f7-8)
 echo "OUTPUT_SUFFIX SUPPOSED TO BE:"
 echo $OUTPUT_SUFFIX
 # OUTPUT_SUFFIX=${TASK_ID}
@@ -49,8 +57,8 @@ mkdir -p $OUTPUT_DIR
 # module use /software/users/james/pyjetty/modules
 # module load pyjetty/1.0
 # module list
-source /home/blianggi/activate_pyjetty.sh
-module load herwig_with_deps
+# source /home/blianggi/activate_pyjetty.sh
+# module load herwig_with_deps
 
 # modify as needed but keep /scratch/u/$USER in front, operate on the node's local /scratch ...
 TEMP_OUTPUT_DIRECTORY="/scratch/u/${USER}/${OUTPUT_SUFFIX}/"
@@ -66,8 +74,14 @@ if [ "$SAVE_D0" = true ] ; then
     # python hepmc2antuple_tn.py -i $INPUT_FILE -o $OUTPUT_DIR/AnalysisResultsGen.root -g herwig --no-progress-bar -d
 else
     echo 'Running inclusive'
-    echo "python hepmc2antuple_tn.py -i $INPUT_FILE -o $TEMP_OUTPUT_DIRECTORY/AnalysisResultsGen.root -g herwig --no-progress-bar"
-    python hepmc2antuple_tn.py -i $INPUT_FILE -o $TEMP_OUTPUT_DIRECTORY/AnalysisResultsGen.root -g herwig --no-progress-bar
+    if [ "$JSE_TREE" = true ] ; then
+        echo "Running with JSE tree structure!"
+        echo "python hepmc2antuple_tn.py -i $INPUT_FILE -o $TEMP_OUTPUT_DIRECTORY/AnalysisResultsGen.root -g herwig --jse --no-progress-bar"
+        python hepmc2antuple_tn.py -i $INPUT_FILE -o $TEMP_OUTPUT_DIRECTORY/AnalysisResultsGen.root -g herwig --jse --no-progress-bar 
+    else
+        echo "python hepmc2antuple_tn.py -i $INPUT_FILE -o $TEMP_OUTPUT_DIRECTORY/AnalysisResultsGen.root -g herwig --no-progress-bar"
+        python hepmc2antuple_tn.py -i $INPUT_FILE -o $TEMP_OUTPUT_DIRECTORY/AnalysisResultsGen.root -g herwig --no-progress-bar
+    fi
     # echo "python hepmc2antuple_tn.py -i $INPUT_FILE -o $OUTPUT_DIR/AnalysisResultsGen.root -g herwig --no-progress-bar"
     # python hepmc2antuple_tn.py -i $INPUT_FILE -o $OUTPUT_DIR/AnalysisResultsGen.root -g herwig --no-progress-bar
 fi
