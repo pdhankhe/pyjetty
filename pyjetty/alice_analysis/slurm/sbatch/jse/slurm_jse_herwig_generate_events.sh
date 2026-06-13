@@ -4,19 +4,19 @@
 #SBATCH --nodes=1 --ntasks=1 --cpus-per-task=1
 #SBATCH --partition=std
 #SBATCH --time=3:00:00
-#SBATCH --array=1-600
+#SBATCH --array=1-1200
 #SBATCH --output=/rstorage/alice/AnalysisResults/blianggi/herwig/slurm-%A_%a.out
 
-# I want to generate files files with 150K events. I need about 100x the events but I will just do 5x.
-# Before, I generated 8000 events per file. --> Going to try 5k events per file. --> 150 files per pt hat bin
+# I want to generate files files with 150K events. I need about 100x the events but I will just do 10x.
+# Before, I generated 8000 events per file. --> Going to try 5k events per file. --> 300 files per pt hat bin
 
 JET_PTS=(50 100 200 500)
 echo "Number of pT-hat bins: ${#JET_PTS[@]}"
 
 NEVENTS_PER_FILE=5000
 
-PT_BIN=$(( (SLURM_ARRAY_TASK_ID - 1) / 150 + 1 )) # 150 files per pt hat bin
-CORE_IN_BIN=$(( (SLURM_ARRAY_TASK_ID - 1) % 150 + 1 )) # 150 files per pt hat bin
+PT_BIN=$(( (SLURM_ARRAY_TASK_ID - 1) / 300 + 1 )) # 300 files per pt hat bin
+CORE_IN_BIN=$(( (SLURM_ARRAY_TASK_ID - 1) % 300 + 1 )) # 300 files per pt hat bin
 
 CURRENT_PT=${JET_PTS[$((PT_BIN - 1))]}
 PT_HAT_MIN=$(( CURRENT_PT * 80 / 100 ))
