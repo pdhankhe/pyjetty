@@ -19,7 +19,7 @@ class HepMC2antupleBase(common_base.CommonBase):
   #---------------------------------------------------------------
   # Constructor
   #---------------------------------------------------------------
-  def __init__(self, input = '', output = '', as_data = False, hepmc = 2, nev = 0, gen = 'pythia', no_progress_bar = False, include_parton = False, include_D0 = False, for_jse = False, include_status=False, **kwargs):
+  def __init__(self, input = '', output = '', as_data = False, hepmc = 2, nev = 0, gen = 'pythia', no_progress_bar = False, include_parton = False, include_D0 = False, for_jse = False, include_herwig_parton = False, herwig_log_file = None, include_status=False, **kwargs):
     super(HepMC2antupleBase, self).__init__(**kwargs)
     self.input = input
     self.output = output
@@ -31,7 +31,9 @@ class HepMC2antupleBase(common_base.CommonBase):
     self.include_parton = include_parton
     self.include_D0 = include_D0
     self.for_jse = for_jse
+    self.include_herwig_parton = include_herwig_parton
     self.include_status = include_status
+    self.herwig_log_file = herwig_log_file
 
   #---------------------------------------------------------------
   def init(self):
@@ -55,6 +57,8 @@ class HepMC2antupleBase(common_base.CommonBase):
     # self.t_D = ROOT.TNtuple('tree_D0_gen', 'tree_D0_gen', 'run_number:ev_id:ParticlePt:ParticleEta:ParticlePhi:ParticleRapidity:ParticlePID:MotherPID')
     if self.for_jse:
       self.t_j = ROOT.TNtuple('tree_Particle_jse', 'tree_Particle_jse', 'run_number:ev_id:ParticlePx:ParticlePy:ParticlePz:ParticleE:ParticlePID')
+    if self.include_herwig_parton:
+      self.t_parentparton = ROOT.TNtuple('tree_ParentParton_jse', 'tree_ParentParton_jse', 'run_number:ev_id:ParticlePx:ParticlePy:ParticlePz:ParticleE:ParticlePID:ScatStatus')
 
     # run number will be a double - file size in MB
     self.run_number = os.path.getsize(self.input) / 1.e6

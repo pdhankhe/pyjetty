@@ -258,6 +258,7 @@ namespace EnergyCorrelators
                         
                 _w2 = pow(_w2, power);
                 fec[2 - 2]->addwr(_w2, _d12, i, j); // save weight, distance and indices of the pair
+                fec[2 - 2]->addwr(_w2, _d12, j, i); // do it a second time to fill BA pairs as well as AB pairs
                 
             }
         }

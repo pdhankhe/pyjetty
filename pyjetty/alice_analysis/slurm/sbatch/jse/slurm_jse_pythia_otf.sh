@@ -5,7 +5,7 @@
 #SBATCH --account=alice
 #SBATCH --qos=shared
 #SBATCH --constraint=cpu
-#SBATCH --time=6:00:00
+#SBATCH --time=9:00:00
 #SBATCH --array=1-400
 #SBATCH --exclude=nid004104,nid004160,nid004149
 #SBATCH --output=/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/slurm-%A_%a.out
@@ -18,13 +18,13 @@
 JET_PTS=(50 100 200 500)
 # NUM_PT_BINS=${#JET_PTS[@]}
 
-NEVENTS_PER_FILE=150000 #100k
+NEVENTS_PER_FILE=1500000 #1500k=1.5M events per file, 100 files = 150M events total
 
 PT_BIN=$(( (SLURM_ARRAY_TASK_ID - 1) / 100 + 1 ))
 CORE_IN_BIN=$(( (SLURM_ARRAY_TASK_ID - 1) % 100 + 1 ))
 
 CURRENT_PT=${JET_PTS[$((PT_BIN - 1))]}
-PT_HAT_MIN=$(( CURRENT_PT * 80 / 100 ))
+PT_HAT_MIN=$(( CURRENT_PT * 80 / 100 )) #$CURRENT_PT #
 SEED=$(( ($CORE_IN_BIN - 1) * NEVENTS_PER_FILE + 1111 ))
 EVNUM_START=$(( NEVENTS_PER_FILE * CORE_IN_BIN ))
 
@@ -37,8 +37,8 @@ source pyjetty_env.sh
 cd analysis/
 
 mkdir -p $OUTPUT_DIR
-echo "running python $SCRIPT -c $CONFIG --output-dir $OUTPUT_DIR --user-seed $SEED --py-pthatmin $PT_HAT_MIN --py-ecm 5020 --nev $NEVENTS_PER_FILE --ev-num-base $EVNUM_START --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2"
-python $SCRIPT -c $CONFIG --output-dir $OUTPUT_DIR --user-seed $SEED --py-pthatmin $PT_HAT_MIN --py-ecm 5020 --nev $NEVENTS_PER_FILE --ev-num-base $EVNUM_START --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2
+echo "running python $SCRIPT -c $CONFIG --output-dir $OUTPUT_DIR --user-seed $SEED --py-pthatmin $PT_HAT_MIN --py-ecm 5360 --nev $NEVENTS_PER_FILE --ev-num-base $EVNUM_START --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2"
+python $SCRIPT -c $CONFIG --output-dir $OUTPUT_DIR --user-seed $SEED --py-pthatmin $PT_HAT_MIN --py-ecm 5360 --nev $NEVENTS_PER_FILE --ev-num-base $EVNUM_START --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2
 
 
 # Move stdout to appropriate folder

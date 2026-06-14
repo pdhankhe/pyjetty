@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import os
 import argparse
+import re
 
 import pyhepmc # use this for perlmutter -- also need to change in /global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/generation/select_particles.py
 # import pyhepmc_ng # use this for hiccup
@@ -52,6 +53,9 @@ class HepMC2antuple(hepmc2antuple_base.HepMC2antupleBase):
       self.increment_event()
       if self.nev > 0 and self.ev_id > self.nev:
         break
+    
+    if self.include_herwig_parton:
+        self.fill_herwig_parton_info()
       
     self.finish()
     # print("finish event")
@@ -122,7 +126,127 @@ class HepMC2antuple(hepmc2antuple_base.HepMC2antupleBase):
         self.partons_accepted.add(self.pdg.GetParticle(part.pid).GetName())
         self.t_pp.Fill(self.run_number, self.ev_id, part.momentum.pt(), part.momentum.eta(), part.momentum.phi(), part.pid)
       
-        
+
+
+  def parse_log(self, path):
+    """
+    Parse a Herwig event log. For each event, extract ONLY the primary
+    sub-process incoming/outgoing hard partons.
+    Returns: event_number -> {'incoming': [...], 'outgoing': [...]}
+    where each entry is (pid, px, py, pz, e).
+    """
+    events = {}
+    with open(path) as fh:
+        lines = fh.readlines()
+
+    evt_re = re.compile(r"Event number\s+(\d+)")
+    hdr_re = re.compile(r"^\s*\d+\s+\S+\s+(-?\d+)\b")
+    mom_re = re.compile(
+        r"^\s*(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)\s+(-?\d+\.\d+)"
+    )
+
+    cur_evt = None
+    in_primary = False     # are we inside the Primary sub-process block?
+    section = None         # 'incoming' | 'outgoing' | None (we skip intermediates)
+    pending_pid = None
+
+    for line in lines:
+      s = line.strip()
+
+      m = evt_re.search(line)
+      if m:
+        cur_evt = int(m.group(1))
+        events[cur_evt] = {'incoming': [], 'intermediates': [], 'outgoing': []}
+        in_primary = False
+        section = None
+        pending_pid = None
+        continue
+
+      if cur_evt is None:
+        continue
+
+      # Enter the primary sub-process block
+      if "Primary sub-process performed by" in line:
+        in_primary = True
+        section = None
+        pending_pid = None
+        continue
+
+      # ANY of these ends the primary block. After the primary outgoing
+      # section, the next thing is a "------" divider, then "Step 1", then
+      # "Secondary sub-process". Stop at the first of them.
+      if in_primary:
+        if (s.startswith("Step")
+            or "Secondary sub-process" in line
+            or "performed by EventHandler" in line):
+          in_primary = False
+          section = None
+          pending_pid = None
+          continue
+
+      if not in_primary:
+        continue
+
+      # --- section markers within the primary block ---
+      if "--- incoming:" in line:
+        section = 'incoming'; pending_pid = None; continue
+      if "--- outgoing:" in line:
+        section = 'outgoing'; pending_pid = None; continue
+      if "--- intermediates:" in line:
+        section = 'intermediates'; pending_pid = None; continue
+
+      # The "------" divider closes the primary block (it appears right
+      # after the outgoing section).
+      if s.startswith("---") and set(s) <= {"-"}:
+        in_primary = False
+        section = None
+        pending_pid = None
+        continue
+      # the "------------------..." full divider:
+      if set(s) <= {"-"} and len(s) > 10:
+        in_primary = False
+        section = None
+        pending_pid = None
+        continue
+
+      # only collect incoming/outgoing
+      if section not in ('incoming', 'intermediates', 'outgoing'):
+        pending_pid = None
+        continue
+
+      if pending_pid is None:
+        h = hdr_re.match(line)
+        if h:
+          pending_pid = int(h.group(1))
+        continue
+      else:
+        mm = mom_re.match(line)
+        if mm:
+          px, py, pz, e = (float(mm.group(k)) for k in range(1, 5))
+          events[cur_evt][section].append((pending_pid, px, py, pz, e))
+        pending_pid = None
+        continue
+
+    return events
+    
+  def fill_herwig_parton_info(self):
+    print("Filling parton info from log file for Herwig events...")
+
+    STATUS = {'incoming': 0, 'intermediates': 1, 'outgoing': 2}
+
+    # ---- fill from the parsed log ----
+    log = self.parse_log(self.herwig_log_file)   # {event_number: {'incoming':[...], 'outgoing':[...]}}
+
+    # evt_no counts from 1, so in the Fill use evt_no-1
+    for evt_no in sorted(log.keys()):
+      for sect in ('incoming', 'intermediates', 'outgoing'):
+      # outgoing = log[evt_no]['outgoing']
+
+        for (this_pid, this_px, this_py, this_pz, this_e) in log[evt_no][sect]:
+          self.t_parentparton.Fill(self.run_number, evt_no-1, float(this_px), float(this_py), float(this_pz), float(this_e), float(this_pid), STATUS[sect])
+          if evt_no < 10:
+            print(f"Event {evt_no}: Parton {this_pid} with momentum ({this_px}, {this_py}, {this_pz}), energy {this_e}")
+
 #---------------------------------------------------------------
 if __name__ == '__main__':
   
@@ -137,7 +261,9 @@ if __name__ == '__main__':
   parser.add_argument('-p', '--include-parton', help='include additional tree of final-state partons', action='store_true', default=False)
   parser.add_argument('-d', '--include-D0', help='include additional tree of D0 information and mother IDs', action='store_true', default=False)
   parser.add_argument('--jse', help='include additional tree for JSE information', action='store_true', default=False)
+  parser.add_argument('--add-herwig-parton', help='save the herwig outgoing parton information', action='store_true', default=False)
+  parser.add_argument('-l', '--herwig-log', help='path to the Herwig log file', type=str, required=False)
   args = parser.parse_args()
   
-  converter = HepMC2antuple(input = args.input, output = args.output, as_data = args.as_data, hepmc = args.hepmc, nev = args.nev, gen = args.gen, no_progress_bar = args.no_progress_bar, include_parton = args.include_parton, include_D0 = args.include_D0, for_jse = args.jse)
+  converter = HepMC2antuple(input = args.input, output = args.output, as_data = args.as_data, hepmc = args.hepmc, nev = args.nev, gen = args.gen, no_progress_bar = args.no_progress_bar, include_parton = args.include_parton, include_D0 = args.include_D0, for_jse = args.jse, include_herwig_parton = args.add_herwig_parton, herwig_log_file = args.herwig_log)
   converter.main()
