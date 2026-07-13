@@ -33,8 +33,8 @@ set /Herwig/Cuts/JetKtCut:MaxKT 21.*GeV
 #set /Herwig/Cuts/Cuts:MHatMin 100.*GeV
 #set /Herwig/Cuts/Cuts:MHatMax 200.*GeV
 
-set /Herwig/Cuts/JetKtCut:MinEta -1
-set /Herwig/Cuts/JetKtCut:MaxEta 1
+set /Herwig/Cuts/JetKtCut:MinEta -1.5
+set /Herwig/Cuts/JetKtCut:MaxEta 1.5
 
 # Make particles with c*tau > 10 mm stable:
 set /Herwig/Decays/DecayHandler:MaxLifeTime 10*mm

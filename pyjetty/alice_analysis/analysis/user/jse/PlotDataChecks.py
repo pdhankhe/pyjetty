@@ -4,17 +4,18 @@ jobid="53567700"
 add_ext = False
 
 # # PERLMUTTER FILEPATHS
-# input_base = f"/global/cfs/projectdirs/alice/blianggi/mypyjetty/analysis/testing" # perlmutter
-# extra_input_base = f"/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data_checks/{jobid}" # perlmutter
-# output_base = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/jse/plots/data_checks" # perlmutter
+input_base = f"/global/cfs/projectdirs/alice/blianggi/mypyjetty/analysis/testing" # perlmutter
+extra_input_base = f"/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data_checks/{jobid}" # perlmutter
+output_base = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/jse/plots/data_checks" # perlmutter
 
 # # HICCUP FILEPATHS
-input_base = "/software/users/blianggi/mypyjetty/analysis/testing" # hiccup
-extra_input_base = "" # no extra_input_base on hiccup
-output_base = "/software/users/blianggi/mypyjetty/storage/jse/plots/data_checks" # hiccup
+# input_base = "/software/users/blianggi/mypyjetty/analysis/testing" # hiccup
+# extra_input_base = "" # no extra_input_base on hiccup
+# output_base = "/software/users/blianggi/mypyjetty/storage/jse/plots/data_checks" # hiccup
 
 # f = ROOT.TFile(f"/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data_checks/{jobid}/MergedHistsDataCheck.root")
 f = ROOT.TFile(f"{input_base}/HistsDataCheck.root")
+print("using file:", f.GetName())
 
 if add_ext:
     f = ROOT.TFile(f"{extra_input_base}/1/HistsDataCheckExt.root")
@@ -44,15 +45,20 @@ ROOT.gStyle.SetPadGridY(1)
 
 # y-projection of the 2D over jet pT >= 8 GeV/c
 xlo = f.h_trackpt_jetpt.GetXaxis().FindBin(8.0 + 1e-6)
-xhi = f.h_trackpt_jetpt.GetNbinsX()
+xhi = f.h_trackpt_jetpt.GetXaxis().FindBin(20.0+1e-6) #GetNbinsX()
+print("Getnbinsx():", f.h_trackpt_jetpt.GetXaxis().GetNbins())
 h_injet = f.h_trackpt_jetpt.ProjectionY("h_injet", xlo, xhi)
 h_injet.SetDirectory(0)   # detach so it survives the file going out of scope
 
 # ----- build the edge-jet (>8 GeV/c) track-pt spectrum -----  # h_trackpt_jetpt_edge axes: x = jet pT, y = track pT
 xax = f.h_trackpt_jetpt_edge.GetXaxis()
 bin_lo = xax.FindBin(8.0 + 1e-6)     # first bin with jet pT > 8
-bin_hi = xax.GetNbins() + 1                  # include overflow
+bin_hi = xax.FindBin(20.0 + 1e-6) #xax.GetNbins() + 1                  # include overflow
 h_injet_edge = f.h_trackpt_jetpt_edge.ProjectionY("h_injet_edge", bin_lo, bin_hi)
+
+# h_pt_R06_trig: all tracks in events with an R=0.6 jet > 8 GeV/c
+f.h_pt_R06_trig.SetLineColor(ROOT.kOrange + 7)
+f.h_pt_R06_trig.SetLineWidth(2)
 
 c_pt = ROOT.TCanvas("c_pt", "", 1200, 600)
 c_pt.Divide(2, 1)
@@ -63,14 +69,18 @@ ROOT.gPad.SetLogy()
 ROOT.gPad.SetLeftMargin(0.13)
 
 f.h_pt.SetLineColor(ROOT.kBlack)
-f.h_pt.SetLineWidth(2)
+f.h_pt.SetLineWidth(1)
 f.h_pt.SetTitle(";p_{T} (GeV/c);counts")
 f.h_pt.Draw("HIST")
+f.h_pt_R06_trig_fid.SetLineColor(ROOT.kOrange + 2)
+f.h_pt_R06_trig_fid.SetLineWidth(1)
+f.h_pt_R06_trig_fid.Draw("HIST SAME")
 
-legL = ROOT.TLegend(0.40, 0.78, 0.88, 0.88)
+legL = ROOT.TLegend(0.40, 0.82, 0.88, 0.88)
 legL.SetBorderSize(0)
 legL.SetFillStyle(0)
 legL.AddEntry(f.h_pt, "All tracks in all events", "l")
+legL.AddEntry(f.h_pt_R06_trig_fid, "Tracks in events with R=0.6 jet > 8 GeV/c, jet |eta| < 0.3", "l")
 legL.Draw()
 
 # ----- Right side: jet constituents vs triggered-event tracks (+ ratio) -----
@@ -93,6 +103,11 @@ f.h_pt_jettrig.SetLineWidth(2)
 h_injet_edge.SetLineColor(ROOT.kGreen + 2)
 h_injet_edge.SetLineWidth(2)
 
+# optional histogram: all tracks in events with a jet > 8 GeV/c with no #eta restriction
+if hasattr(f, 'h_pt_jettrig_noetarestr'):
+    f.h_pt_jettrig_noetarestr.SetLineColor(ROOT.kMagenta + 2)
+    f.h_pt_jettrig_noetarestr.SetLineWidth(2)
+
 h_injet_sum = h_injet.Clone("h_injet_sum")
 h_injet_sum.SetDirectory(0)
 h_injet_sum.SetLineColor(ROOT.kGray + 1)
@@ -100,14 +115,36 @@ h_injet_sum.SetLineWidth(2)
 h_injet_sum.SetLineStyle(7)
 h_injet_sum.Add(h_injet_edge)
 
+# # ADDING CHECKS HISTOGRAMS HERE
+# f.hCHECK_trackpt_jetsabove8gev_fid.SetLineColorAlpha(ROOT.kRed - 7, 0.8)
+# f.hCHECK_trackpt_jetsabove8gev_fid.SetLineWidth(1)
+# f.hCHECK_trackpt_jetsabove8gev_fid.SetLineStyle(8)
+# f.hCHECK_trackpt_jetsabove8gev_edge.SetLineColorAlpha(ROOT.kGreen - 3, 0.8)
+# f.hCHECK_trackpt_jetsabove8gev_edge.SetLineWidth(1)
+# f.hCHECK_trackpt_jetsabove8gev_edge.SetLineStyle(8)
+# f.hCHECK_trackpt_jetsabove8gev_all.SetLineColorAlpha(ROOT.kYellow, 0.8)
+# f.hCHECK_trackpt_jetsabove8gev_all.SetLineWidth(1)
+# f.hCHECK_trackpt_jetsabove8gev_all.SetLineStyle(8)
+# f.hCHECK_trackpt_evt_withjetsabove8gev_all.SetLineColorAlpha(ROOT.kMagenta - 4, 0.8)
+# f.hCHECK_trackpt_evt_withjetsabove8gev_all.SetLineWidth(1)
+# f.hCHECK_trackpt_evt_withjetsabove8gev_all.SetLineStyle(8)
+
 # pick the tallest for drawing first
-hmax = max(h_injet.GetMaximum(), f.h_pt_jettrig.GetMaximum(), h_injet_edge.GetMaximum(), h_injet_sum.GetMaximum())
+max_list = [h_injet.GetMaximum(), f.h_pt_jettrig.GetMaximum(), h_injet_edge.GetMaximum(),
+            h_injet_sum.GetMaximum(), f.h_pt_R06_trig.GetMaximum()]
+if hasattr(f, 'h_pt_jettrig_noetarestr'):
+    max_list.append(f.h_pt_jettrig_noetarestr.GetMaximum())
+hmax = max(max_list)
 if hmax == f.h_pt_jettrig.GetMaximum():
     lead = f.h_pt_jettrig
 elif hmax == h_injet.GetMaximum():
     lead = h_injet
 elif hmax == h_injet_edge.GetMaximum():
     lead = h_injet_edge
+elif hmax == f.h_pt_R06_trig.GetMaximum():
+    lead = f.h_pt_R06_trig
+elif hasattr(f, 'h_pt_jettrig_noetarestr') and hmax == f.h_pt_jettrig_noetarestr.GetMaximum():
+    lead = f.h_pt_jettrig_noetarestr
 else:
     lead = h_injet_sum
 
@@ -117,17 +154,37 @@ lead.GetYaxis().SetTitleSize(0.05)
 lead.GetYaxis().SetTitleOffset(1.1)
 lead.GetXaxis().SetLabelSize(0)
 lead.Draw("HIST")
-for h in (f.h_pt_jettrig, h_injet, h_injet_edge, h_injet_sum):
+draw_list = [f.h_pt_jettrig, h_injet, h_injet_edge, h_injet_sum, f.h_pt_R06_trig]
+# draw_list.append(f.hCHECK_trackpt_jetsabove8gev_fid)
+# draw_list.append(f.hCHECK_trackpt_jetsabove8gev_edge)
+# draw_list.append(f.hCHECK_trackpt_jetsabove8gev_all)
+# draw_list.append(f.hCHECK_trackpt_evt_withjetsabove8gev_all)
+if hasattr(f, 'h_pt_jettrig_noetarestr'):
+    draw_list.insert(1, f.h_pt_jettrig_noetarestr)
+for h in draw_list:
     if h is not lead:
         h.Draw("HIST SAME")
 
-legR = ROOT.TLegend(0.30, 0.68, 0.88, 0.88)
+legR = ROOT.TLegend(0.30, 0.65, 0.88, 0.88)
 legR.SetBorderSize(0)
 legR.SetFillStyle(0)
 legR.AddEntry(f.h_pt_jettrig,  "All tracks in events with a jet > 8 GeV/c", "l")
+if hasattr(f, 'h_pt_jettrig_noetarestr'):
+    legR.AddEntry(f.h_pt_jettrig_noetarestr,
+                 "All tracks in events with a jet > 8 GeV/c with no #eta restriction",
+                 "l")
+legR.AddEntry(f.h_pt_R06_trig, "All tracks in events with an R=0.6 jet > 8 GeV/c", "l")
 legR.AddEntry(h_injet,         "Tracks in all jets > 8 GeV/c, |#eta| #leq 0.5", "l")
 legR.AddEntry(h_injet_edge,    "Tracks in all jets > 8 GeV/c, |#eta| > 0.5", "l")
 legR.AddEntry(h_injet_sum,     "Sum of in-jet and edge tracks", "l")
+# if hasattr(f, 'hCHECK_trackpt_jetsabove8gev_fid'):
+#     legR.AddEntry(f.hCHECK_trackpt_jetsabove8gev_fid, "CHECK Tracks in all jets > 8 GeV/c, |#eta| #leq 0.5", "l")
+# if hasattr(f, 'hCHECK_trackpt_jetsabove8gev_edge'):
+#     legR.AddEntry(f.hCHECK_trackpt_jetsabove8gev_edge, "CHECK Tracks in all jets > 8 GeV/c, |#eta| > 0.5", "l")
+# if hasattr(f, 'hCHECK_trackpt_jetsabove8gev_all'):
+#     legR.AddEntry(f.hCHECK_trackpt_jetsabove8gev_all, "CHECK Tracks in all jets > 8 GeV/c, all eta", "l")
+# if hasattr(f, 'hCHECK_trackpt_evt_withjetsabove8gev_all'):
+#     legR.AddEntry(f.hCHECK_trackpt_evt_withjetsabove8gev_all, "CHECK Tracks in events with a jet > 8 GeV/c, all eta", "l")
 legR.Draw()
 
 # ratio pad (bottom), right half of canvas
@@ -143,15 +200,15 @@ h_ratio = h_injet.Clone("h_ratio_R")
 h_ratio.SetStats(0)
 h_ratio.SetLineColor(ROOT.kRed + 1)
 h_ratio.SetLineWidth(2)
-h_ratio.Divide(f.h_pt_jettrig)            # in-jet (fiducial) / all
+h_ratio.Divide(f.h_pt_jettrig_noetarestr)            # in-jet (fiducial) / all
 
 h_ratio_edge = h_injet_edge.Clone("h_ratio_edge_R")
 h_ratio_edge.SetStats(0)
 h_ratio_edge.SetLineColor(ROOT.kGreen + 2)
 h_ratio_edge.SetLineWidth(2)
-h_ratio_edge.Divide(f.h_pt_jettrig)       # in-jet (edge) / all
+h_ratio_edge.Divide(f.h_pt_jettrig_noetarestr)       # in-jet (edge) / all
 
-h_ratio.SetTitle(";p_{T} (GeV/c);in-jet / all")
+h_ratio.SetTitle(";p_{T} (GeV/c);in-jet / all (purple)")
 h_ratio.GetYaxis().SetNdivisions(505)
 h_ratio.GetYaxis().SetTitleSize(0.11)
 h_ratio.GetYaxis().SetTitleOffset(0.45)
@@ -170,6 +227,147 @@ line.Draw()
 
 c_pt.Update()
 c_pt.SaveAs(f"{output_base}/pt_panels_1.pdf")
+
+
+# ============================================================
+# Jet pT comparison: R=0.4 vs R=0.6 vs R=0.4-in-R=0.6-events
+# with ratio panel (R=0.6 / R=0.4)
+# ============================================================
+def make_jetpt_panels(h_R04_fine, h_R06, h_R04_in_R06, outname,
+                      r06_label="R = 0.6 jets",
+                      r04_in_label="R = 0.4 jets in R = 0.6 events",
+                      h_extra=None, extra_label=None, tag=""):
+    """Two-panel jet pT figure: spectra (top) + R=0.6/R=0.4 ratio (bottom).
+    `h_extra` is an optional additional spectrum drawn on the top pad, and
+    (if present) a second R=0.6/extra ratio is drawn on the bottom pad,
+    colored to match the extra curve.
+    `tag` keeps ROOT object names unique between calls."""
+    c = ROOT.TCanvas(f"c_jetpt{tag}", "", 700, 700)
+
+    # rebin R=0.4 (1000 bins) to match R=0.6 hists (100 bins); both span 0-100
+    h_R04 = h_R04_fine.Clone(f"h_jet_pt_rb{tag}")
+    h_R04.SetDirectory(0)
+    h_R04.Rebin(10)
+
+    # top pad: spectra
+    p_top = ROOT.TPad(f"p_jet_top{tag}", "", 0.0, 0.32, 1.0, 1.0)
+    p_top.SetLogy()
+    p_top.SetLeftMargin(0.13)
+    p_top.SetBottomMargin(0.02)
+    p_top.Draw()
+    p_top.cd()
+
+    EXTRA_COLOR = ROOT.kMagenta + 1
+    h_R04.SetLineColor(ROOT.kBlue + 1);  h_R04.SetLineWidth(2)
+    h_R06.SetLineColor(ROOT.kRed + 1);   h_R06.SetLineWidth(2)
+    h_R04_in_R06.SetLineColor(ROOT.kGreen + 2); h_R04_in_R06.SetLineWidth(2)
+
+    # build the list of spectra to draw, appending the optional extra
+    hists = [h_R04, h_R06, h_R04_in_R06]
+    if h_extra is not None:
+        h_extra.SetLineColor(EXTRA_COLOR)
+        h_extra.SetLineWidth(2)
+        hists.append(h_extra)
+
+    # draw tallest first
+    lead = max(hists, key=lambda h: h.GetMaximum())
+    lead.SetStats(0)
+    lead.SetTitle(";;counts")
+    lead.GetYaxis().SetTitleSize(0.05)
+    lead.GetYaxis().SetTitleOffset(1.1)
+    lead.GetXaxis().SetLabelSize(0)
+    lead.Draw("HIST")
+    for h in hists:
+        if h is not lead:
+            h.Draw("HIST SAME")
+
+    leg = ROOT.TLegend(0.40, 0.68, 0.88, 0.88)
+    leg.SetBorderSize(0)
+    leg.SetFillStyle(0)
+    leg.AddEntry(h_R06,        r06_label, "l")
+    leg.AddEntry(h_R04,        "R = 0.4 jets, |#eta| < 0.5", "l")
+    leg.AddEntry(h_R04_in_R06, r04_in_label, "l")
+    if h_extra is not None:
+        leg.AddEntry(h_extra, extra_label, "l")
+    leg.Draw()
+
+    # bottom pad: ratio R=0.6 / R=0.4 (+ R=0.6 / extra if present)
+    c.cd()
+    p_bot = ROOT.TPad(f"p_jet_bot{tag}", "", 0.0, 0.0, 1.0, 0.32)
+    p_bot.SetLeftMargin(0.13)
+    p_bot.SetTopMargin(0.02)
+    p_bot.SetBottomMargin(0.3)
+    p_bot.SetGridy()
+    p_bot.Draw()
+    p_bot.cd()
+
+    h_ratio = h_R06.Clone(f"h_jet_ratio{tag}")
+    h_ratio.SetDirectory(0)
+    h_ratio.SetStats(0)
+    h_ratio.SetLineColor(ROOT.kBlue)
+    h_ratio.SetLineWidth(2)
+    h_ratio.Divide(h_R04)
+
+    # second ratio vs. the extra curve, colored to match it
+    h_ratio_extra = None
+    if h_extra is not None:
+        h_ratio_extra = h_R06.Clone(f"h_jet_ratio_extra{tag}")
+        h_ratio_extra.SetDirectory(0)
+        h_ratio_extra.SetStats(0)
+        h_ratio_extra.SetLineColor(EXTRA_COLOR)
+        h_ratio_extra.SetLineWidth(2)
+        h_ratio_extra.Divide(h_extra)
+
+    ylabel = "R=0.6 / R=0.4" if h_extra is None else "R=0.6 / R=0.4 ratios"
+    h_ratio.SetTitle(f";p_{{T,jet}} (GeV/c);{ylabel}")
+    h_ratio.GetYaxis().SetNdivisions(505)
+    h_ratio.GetYaxis().SetTitleSize(0.11)
+    h_ratio.GetYaxis().SetTitleOffset(0.45)
+    h_ratio.GetYaxis().SetLabelSize(0.09)
+    h_ratio.GetXaxis().SetTitleSize(0.11)
+    h_ratio.GetXaxis().SetTitleOffset(1.0)
+    h_ratio.GetXaxis().SetLabelSize(0.09)
+
+    # set a common y-range so both ratios are visible
+    if h_ratio_extra is not None:
+        ymin = min(h_ratio.GetMinimum(0.0), h_ratio_extra.GetMinimum(0.0))
+        ymax = max(h_ratio.GetMaximum(),    h_ratio_extra.GetMaximum())
+        pad = 0.05 * (ymax - ymin) if ymax > ymin else 0.1
+        h_ratio.GetYaxis().SetRangeUser(ymin - pad, ymax + pad)
+
+    h_ratio.Draw("HIST")
+    if h_ratio_extra is not None:
+        h_ratio_extra.Draw("HIST SAME")
+
+    line = ROOT.TLine(h_ratio.GetXaxis().GetXmin(), 1.0,
+                      h_ratio.GetXaxis().GetXmax(), 1.0)
+    line.SetLineStyle(2)
+    line.SetLineColor(ROOT.kGray + 2)
+    line.Draw()
+
+    c.Update()
+    c.SaveAs(outname)
+
+    # keep references alive so ROOT doesn't garbage-collect the pads/objects
+    return c, p_top, p_bot, leg, h_ratio, h_ratio_extra, line, h_R04, h_extra
+
+
+# non-fiducial
+_keep1 = make_jetpt_panels(
+    f.h_jet_pt, f.h_jet_pt_R06, f.h_jet_pt_R04_with_R06,
+    f"{output_base}/jet_pt_panels_1.pdf",
+)
+
+# fiducial (|eta| < 0.3)
+_keep2 = make_jetpt_panels(
+    f.h_jet_pt, f.h_jet_pt_R06_fid, f.h_jet_pt_R04_with_R04_fid,
+    f"{output_base}/jet_pt_panels_1_fid.pdf",
+    r06_label="R = 0.6 jets, |#eta| < 0.3",
+    r04_in_label="R = 0.4 jets, |#eta| < 0.5 in R = 0.6 events (|#eta| < 0.3)",
+    h_extra=f.h_jet_pt_R04_with_R06_fid,
+    extra_label="R = 0.4, |#eta| < 0.3 jets in R = 0.6 events (|#eta| < 0.3)",
+    tag="_fid",
+)
 
 
 # === ETA ===

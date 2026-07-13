@@ -32,10 +32,10 @@ class PlotCurves:
         self.crosscheck = True
         self.target_jet_pts = [ 50, 100, 200, 500 ]
         self.partontypes    = ["inclusive", "quark", "gluon"]
-        self.cut_modes      = [("sd", 0.1), ("maxkt", None)]
+        self.cut_modes      = [("sd", 0.1)] #, ("maxkt", None)]
         # self.z_cuts = [0.1]
 
-        self.rootfile_template = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/jse/rootfiles/backup/jse_preliminary_curves_{gen}_jetpt{jetpt}.root"
+        self.rootfile_template = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/jse/rootfiles/jse_preliminary_curves_{gen}_jetpt{jetpt}.root"
         self.current_jetpt = None
         self.pythia_rootfile = None
         self.herwig_rootfile = None
@@ -363,6 +363,7 @@ class PlotCurves:
             print(f"WARNING: AA/BB/AB histograms not found for {gen} {partontype} jetpt{target_jetpt} {cut_suffix}")
             return
 
+        # ----- Canvas 1: R_g vs all EEC components -----
         canvas = self.make_canvas(
             "canvas_rg", gen=gen, partontype=partontype,
             target_jetpt=target_jetpt, z_cut=z_cut, den_weight=den_weight,
@@ -405,6 +406,103 @@ class PlotCurves:
             f"_R0.4_{cut_suffix}_ww{den_weight}.pdf"
         )
         self._save_canvas(canvas, gen, z_cut, output_name, plot_type="rg")
+
+        # ----- Canvas 2: R_g vs AxB only (self-normalized, two-panel with ratio) -----
+        # Self-normalize both curves (clone so we don't disturb canvas 1's hists)
+        hist_rg_norm = hist_rg.Clone("hist_rg_norm")
+        hist_AB_norm = hist_AB.Clone("hist_AB_norm")
+        hist_rg_norm.SetDirectory(0)
+        hist_AB_norm.SetDirectory(0)
+
+        rg_integral = hist_rg_norm.Integral()
+        ab_integral = hist_AB_norm.Integral()
+        if rg_integral > 0:
+            hist_rg_norm.Scale(1.0 / rg_integral)
+        if ab_integral > 0:
+            hist_AB_norm.Scale(1.0 / ab_integral)
+
+        canvas2 = self.make_canvas(
+            "canvas_rg_vs_AxB", gen=gen, partontype=partontype,
+            target_jetpt=target_jetpt, z_cut=z_cut, den_weight=den_weight,
+            title="R_{g} vs AxB (self-normalized)"
+        )
+
+        # Top pad (main plot)
+        pad1 = ROOT.TPad("pad1_rgAxB", "pad1_rgAxB", 0, 0.3, 1, 1.0)
+        pad1.SetBottomMargin(0.02)
+        pad1.SetLogx()
+        pad1.Draw()
+
+        # Bottom pad (ratio)
+        canvas2.cd()
+        pad2 = ROOT.TPad("pad2_rgAxB", "pad2_rgAxB", 0, 0.0, 1, 0.3)
+        pad2.SetTopMargin(0.02)
+        pad2.SetBottomMargin(0.35)
+        pad2.SetLogx()
+        pad2.SetGridy()
+        pad2.Draw()
+
+        # ----- Top panel -----
+        pad1.cd()
+        hist_rg_norm.SetLineColor(ROOT.kRed+1)
+        hist_rg_norm.SetLineStyle(ROOT.kDashed)
+        hist_AB_norm.SetLineColor(Color.GREEN)
+        hist_AB_norm.SetLineStyle(ROOT.kSolid)
+
+        y_max2 = max(hist_rg_norm.GetMaximum(), hist_AB_norm.GetMaximum()) * 1.3
+        hist_AB_norm.SetMaximum(y_max2)
+        hist_AB_norm.SetMinimum(0)
+        hist_AB_norm.GetYaxis().SetTitle("Self-normalized")
+        hist_AB_norm.GetYaxis().SetTitleSize(0.05)
+        hist_AB_norm.GetYaxis().SetTitleOffset(0.9)
+        hist_AB_norm.GetXaxis().SetLabelSize(0)  # hide x labels on top pad
+
+        hist_AB_norm.Draw("HIST")
+        hist_rg_norm.Draw("HIST SAME")
+
+        ev_leg2 = self.MakeEventLeg(gen, partontype, target_jetpt, z_cut, den_weight)
+        legend2 = ROOT.TLegend(0.65, 0.74, 0.88, 0.88)
+        legend2.AddEntry(hist_AB_norm, "AxB (EEC)", "l")
+        legend2.AddEntry(hist_rg_norm, "R_{g} = #DeltaR_{AB}/R", "l")
+        ev_leg2.Draw()
+        legend2.Draw()
+
+        # ----- Bottom panel (ratio R_g / AxB) -----
+        pad2.cd()
+        hist_ratio = hist_AB_norm.Clone("hist_ratio_AxB_rg")
+        hist_ratio.SetDirectory(0)
+        hist_ratio.Divide(hist_rg_norm)
+        hist_ratio.SetLineColor(ROOT.kBlack)
+        hist_ratio.SetMarkerStyle(20)
+        hist_ratio.SetMarkerSize(0.7)
+
+        hist_ratio.GetYaxis().SetTitle("AxB / R_{g}")
+        hist_ratio.GetYaxis().SetNdivisions(505)
+        hist_ratio.GetYaxis().SetTitleSize(0.11)
+        hist_ratio.GetYaxis().SetTitleOffset(0.4)
+        hist_ratio.GetYaxis().SetLabelSize(0.09)
+        hist_ratio.GetXaxis().SetTitle("R_{L} or R_{g}")
+        hist_ratio.GetXaxis().SetTitleSize(0.12)
+        hist_ratio.GetXaxis().SetTitleOffset(1.0)
+        hist_ratio.GetXaxis().SetLabelSize(0.09)
+        hist_ratio.SetMinimum(0.0)
+        hist_ratio.SetMaximum(2.0)
+
+        hist_ratio.Draw("EP")
+
+        line = ROOT.TLine(hist_ratio.GetXaxis().GetXmin(), 1.0,
+                          hist_ratio.GetXaxis().GetXmax(), 1.0)
+        line.SetLineColor(ROOT.kGray+2)
+        line.SetLineStyle(ROOT.kDashed)
+        line.Draw("SAME")
+
+        canvas2.cd()
+
+        output_name2 = (
+            f"rg_vs_AxB_{gen}_{partontype}_jetpt{target_jetpt}"
+            f"_R0.4_{cut_suffix}_ww{den_weight}.pdf"
+        )
+        self._save_canvas(canvas2, gen, z_cut, output_name2, plot_type="rg")
 
     # -------------------------------------------------------------------------
     # Plot: C_AB  (regular and ptRL unified)
@@ -479,7 +577,8 @@ class PlotCurves:
                           subdir, file_tag, ratio_ytitle,
                           ratio_subdir, ratio_file_tag,
                           canvas_name, ratio_canvas_name,
-                          ptRL_canvas_name, ptRL_subdir, ptRL_file_tag):
+                          ptRL_canvas_name, ptRL_subdir, ptRL_file_tag,
+                          event_partontype_label=None, plot_type="subjet_eec"):
         cut_suffix = self.get_cut_suffix(z_cut)
 
         canvas = self.make_canvas(canvas_name, partontype=partontype_a,
@@ -502,7 +601,7 @@ class PlotCurves:
 
         ev_leg = self.MakeEventLeg(
             gen_label,
-            "q and g" if partontype_a == "quark" else partontype_a,
+            event_partontype_label if event_partontype_label is not None else partontype_a,
             target_jetpt, z_cut, den_weight)
 
         legend1 = ROOT.TLegend(0.68, 0.68, 0.88, 0.73)
@@ -518,7 +617,7 @@ class PlotCurves:
             f"subjet_eec_comparison_{file_tag}_jetpt{target_jetpt}"
             f"_R0.4_{cut_suffix}_ww{den_weight}.pdf"
         )
-        self._save_canvas(canvas, subdir, z_cut, output_name, plot_type="subjet_eec")
+        self._save_canvas(canvas, subdir, z_cut, output_name, plot_type=plot_type)
 
         # ptRL variant
         hists_ptRL_a = self.GetSubjetEECHists(
@@ -575,6 +674,7 @@ class PlotCurves:
             gen_label=gen,
             target_jetpt=target_jetpt, z_cut=z_cut, den_weight=den_weight,
             subdir=gen,
+            plot_type="subjet_eec/QVSG/RL",
             file_tag=f"{gen}_QVSG",
             ratio_ytitle="C_{AB}^{quark} / C_{AB}^{gluon}",
             ratio_subdir="CAB/ratio", #None,
@@ -584,56 +684,65 @@ class PlotCurves:
             ptRL_canvas_name="canvas_ptRL_qvsg",
             ptRL_subdir= "subjet_eec/QVSG/ptRL", #"QVSG/ptRL",
             ptRL_file_tag=f"{gen}_QVSG",
+            event_partontype_label="q and g",
         )
 
     def plot_herwig_vs_pythia(self, partontype, target_jetpt, z_cut, den_weight):
         self.set_current_rootfiles(target_jetpt)
         self._plot_two_gen_eec(
             file_a=self.pythia_rootfile, file_b=self.herwig_rootfile,
-            partontype_a="inclusive", partontype_b="inclusive",
+            partontype_a=partontype, partontype_b=partontype,
             label_a="pythia", label_b="herwig",
             gen_label="pythia and herwig",
             target_jetpt=target_jetpt, z_cut=z_cut, den_weight=den_weight,
             subdir="pythia_vs_herwig",
-            file_tag="PYTHIA_VS_HERWIG",
+            file_tag=f"PYTHIA_VS_HERWIG_{partontype}",
             ratio_ytitle="C_{AB}^{pythia} / C_{AB}^{herwig}",
             ratio_subdir="CAB_ratio",
-            ratio_file_tag="PYTHIA_VS_HERWIG",
+            ratio_file_tag=f"PYTHIA_VS_HERWIG_{partontype}",
             canvas_name="canvas_herwig_vs_pythia",
             ratio_canvas_name="canvas_ratio_hvp",
             ptRL_canvas_name="canvas_ptRL_hvp",
             ptRL_subdir="subjet_eec/ptRL",
-            ptRL_file_tag="PYTHIA_VS_HERWIG",
+            ptRL_file_tag=f"PYTHIA_VS_HERWIG_{partontype}",
+            event_partontype_label=partontype,
         )
         self._plot_CAB_ptRL_ratio_hvp(partontype, target_jetpt, z_cut)
 
     def _plot_CAB_ptRL_ratio_hvp(self, partontype, target_jetpt, z_cut):
-        """CAB ptRL ratio for PYTHIA vs HERWIG (no q vs g equivalent)."""
+        """CAB ptRL ratio for PYTHIA vs HERWIG, for an arbitrary parton type."""
         cut_suffix = self.get_cut_suffix(z_cut)
         self.set_current_rootfiles(target_jetpt)
+
         hist_a = self.GetCABHist(
-            self.pythia_rootfile, "inclusive", target_jetpt, z_cut, "jet", ptRL=True)
+            self.pythia_rootfile, partontype, target_jetpt, z_cut, "jet", ptRL=True)
         hist_b = self.GetCABHist(
-            self.herwig_rootfile, "inclusive", target_jetpt, z_cut, "jet", ptRL=True)
+            self.herwig_rootfile, partontype, target_jetpt, z_cut, "jet", ptRL=True)
         if not (hist_a and hist_b):
+            print(f"WARNING: CAB ptRL histograms not found for "
+                f"{partontype} jetpt{target_jetpt} {cut_suffix} (pythia vs herwig)")
             return
+
         ratio = hist_a.Clone(
-            f"ratio_CAB_ptRL_pythia_over_herwig_jetpt{target_jetpt}_{cut_suffix}_wwjetpt")
+            f"ratio_CAB_ptRL_pythia_over_herwig_{partontype}"
+            f"_jetpt{target_jetpt}_{cut_suffix}_wwjetpt")
+        ratio.SetDirectory(0)
         ratio.Divide(hist_b)
         ratio.GetYaxis().SetTitle(
             "C_{AB}^{pythia}_{ptRL} / C_{AB}^{herwig}_{ptRL}")
 
         canvas = self.make_canvas("canvas_ratio_ptRL_hvp", partontype=partontype,
-                                  target_jetpt=target_jetpt, z_cut=z_cut)
+                                target_jetpt=target_jetpt, z_cut=z_cut)
         canvas.SetLogx()
         canvas.cd()
         ratio.Draw("HIST")
         self.draw_hori_line(1e-3, 1, 1, ROOT.kGray+3, 9)
         output_name = (
-            f"CAB_ptRL_ratio_PYTHIA_VS_HERWIG_jetpt{target_jetpt}_R0.4_{cut_suffix}.pdf"
+            f"CAB_ptRL_ratio_PYTHIA_VS_HERWIG_{partontype}"
+            f"_jetpt{target_jetpt}_R0.4_{cut_suffix}.pdf"
         )
         self._save_canvas(canvas, "pythia_vs_herwig", z_cut, output_name,
-                          plot_type="CAB_ratio/ptRL")
+                        plot_type="CAB_ratio/ptRL")
 
     # -------------------------------------------------------------------------
     # Plot: PYTHIA vs HERWIG ratio across all jet pTs
@@ -855,6 +964,21 @@ class PlotCurves:
         if hist is None:
             return None, None
 
+        # Full histogram x-axis range for fixing the plot extent (not the fit range).
+        # Guard the lower bound for the log x-axis: clamp to the first positive
+        # bin's low edge if the axis minimum is <= 0.
+        xaxis = hist.GetXaxis()
+        xmin, xmax = xaxis.GetXmin(), xaxis.GetXmax()
+        if xmin <= 0:
+            lo = None
+            for ib in range(1, hist.GetNbinsX() + 1):
+                edge = hist.GetBinLowEdge(ib)
+                if edge > 0:
+                    lo = edge
+                    break
+            xmin = lo if lo is not None else hist.GetBinCenter(1)
+        xrange = (xmin, xmax)
+
         # Pull bin centers and contents into numpy arrays
         nb = hist.GetNbinsX()
         xs, ys, yerrs = [], [], []
@@ -886,7 +1010,7 @@ class PlotCurves:
                 try:
                     self._save_fit_diagnostic(xs_full, ys_full, yerrs_full,
                                               None, save_path, plot_title,
-                                              None, None, p0=None)
+                                              None, None, p0=None, xrange=xrange)
                 except Exception:
                     pass
             return None, None
@@ -931,6 +1055,7 @@ class PlotCurves:
                     xs_full, ys_full, yerrs_full,   # full data for context
                     popt, save_path, plot_title, mu, mu_err,
                     p0=p0, fit_xs=xs,               # windowed x's actually fit
+                    xrange=xrange,
                 )
             except Exception as ex:
                 print(f"  Failed to save fit diagnostic: {ex}")
@@ -938,7 +1063,7 @@ class PlotCurves:
         return mu, mu_err
 
     def _save_fit_diagnostic(self, xs, ys, yerrs, popt, save_path,
-                            title, mu, mu_err, p0=None, fit_xs=None):
+                            title, mu, mu_err, p0=None, fit_xs=None, xrange=None):
         """Save a matplotlib plot showing histogram data points, the initial-guess
         curve (from p0), and the fitted curve."""
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
@@ -995,6 +1120,8 @@ class PlotCurves:
             ax.set_title(title, fontsize=10)
         ax.legend(fontsize=8, loc="best")
         ax.grid(True, which="both", alpha=0.3)
+        if xrange is not None:
+            ax.set_xlim(*xrange)
         fig.tight_layout()
         fig.savefig(save_path)
         plt.close(fig)
@@ -1012,6 +1139,36 @@ class PlotCurves:
         'qvg_ptRL_{gen}_{z_cut_suffix}_ww{den_weight}'
         """
         self.mpv_data = {}
+        self._mpv_cache = {}   # phys_key -> (mu, mu_err)
+    
+    def _phys_key(self, gen, partontype, target_jetpt, z_cut, den_weight, ptRL, comp_name):
+        cut_suffix = self.get_cut_suffix(z_cut)
+        return (gen, partontype, target_jetpt, cut_suffix, den_weight, ptRL, comp_name)
+
+    def _fit_or_get_cached(self, gen, partontype, target_jetpt, z_cut,
+                        den_weight, ptRL, comp_name, h, tag,
+                        must_exist=False):
+        pk = self._phys_key(gen, partontype, target_jetpt, z_cut,
+                            den_weight, ptRL, comp_name)
+        if pk in self._mpv_cache:
+            return self._mpv_cache[pk]          # already fit AND already plotted
+
+        if must_exist:
+            print(f"  WARNING: expected cached fit not found, re-fitting {pk}")
+        if h is None:
+            self._mpv_cache[pk] = (None, None)  # cache the null so we don't retry
+            return None, None
+
+        cut_suffix = self.get_cut_suffix(z_cut)
+        save_path = self._fit_diag_path(
+            f"phys_{gen}_{partontype}_{cut_suffix}_ww{den_weight}"
+            + ("_ptRL" if ptRL else ""),
+            comp_name, target_jetpt)
+        title = (f"{tag} | {gen} {partontype} | jet p_T={target_jetpt} | "
+                f"{cut_suffix} | ww{den_weight} | {comp_name}")
+        mu, mu_err = self._fit_mpv(h, save_path=save_path, plot_title=title)
+        self._mpv_cache[pk] = (mu, mu_err)
+        return mu, mu_err
 
     def _store_mpv(self, case_key, component, jetpt, mu, mu_err):
         if mu is None:
@@ -1026,66 +1183,52 @@ class PlotCurves:
         )
 
     def _collect_mpv_basic(self, gen, partontype, target_jetpt, z_cut, den_weight):
-        """Collect MPVs for the 'basic' (and ptRL) case, while files are open."""
+        """Collect MPVs for the 'basic' (and ptRL) case. This is where fits happen."""
         file = self.get_file(gen)
         cut_suffix = self.get_cut_suffix(z_cut)
 
         for ptRL, tag in [(False, "basic"), (True, "basic_ptRL")]:
             hists = self.GetSubjetEECHists(file, partontype, target_jetpt, z_cut,
                                         den_weight, ptRL=ptRL)
-            hist_full, hist_rad, hist_AA, hist_BB, hist_AB = hists
             case_key = f"{tag}_{gen}_{partontype}_{cut_suffix}_ww{den_weight}"
-            for comp_name, h in [("full", hist_full), ("rad", hist_rad),
-                                ("AA", hist_AA), ("BB", hist_BB), ("AB", hist_AB)]:
-                save_path = self._fit_diag_path(case_key, comp_name, target_jetpt)
-                title = (f"{tag} | {gen} {partontype} | jet p_T={target_jetpt} | "
-                        f"{cut_suffix} | ww{den_weight} | {comp_name}")
-                mu, mu_err = self._fit_mpv(h, save_path=save_path, plot_title=title)
+            for comp_name, h in zip(["full", "rad", "AA", "BB", "AB"], hists):
+                mu, mu_err = self._fit_or_get_cached(
+                    gen, partontype, target_jetpt, z_cut, den_weight,
+                    ptRL, comp_name, h, tag)
                 self._store_mpv(case_key, comp_name, target_jetpt, mu, mu_err)
 
     def _collect_mpv_hvp(self, partontype, target_jetpt, z_cut, den_weight):
-        """Collect MPVs for the herwig vs pythia case (inclusive)."""
+        """Collect MPVs for pythia vs herwig (reuses fits done in basic)."""
         cut_suffix = self.get_cut_suffix(z_cut)
         for ptRL, tag in [(False, "hvp"), (True, "hvp_ptRL")]:
-            hists_p = self.GetSubjetEECHists(self.pythia_rootfile, partontype,
-                                            target_jetpt, z_cut, den_weight, ptRL=ptRL)
-            hists_h = self.GetSubjetEECHists(self.herwig_rootfile, partontype,
-                                            target_jetpt, z_cut, den_weight, ptRL=ptRL)
             case_key = f"{tag}_{partontype}_{cut_suffix}_ww{den_weight}"
             comp_labels = ["full", "rad", "AA", "BB", "AB"]
-            for label, hp, hh in zip(comp_labels, hists_p, hists_h):
-                for gen_name, h in [("pythia", hp), ("herwig", hh)]:
-                    comp_key = f"{label}_{gen_name}"
-                    save_path = self._fit_diag_path(case_key, comp_key, target_jetpt)
-                    title = (f"{tag} | {gen_name} {partontype} | "
-                            f"jet p_T={target_jetpt} | {cut_suffix} | "
-                            f"ww{den_weight} | {label}")
-                    mu, mu_err = self._fit_mpv(h, save_path=save_path, plot_title=title)
-                    self._store_mpv(case_key, comp_key, target_jetpt, mu, mu_err)
+            # NOTE: pass gen names that MATCH what basic used ("pythia"/"herwig"),
+            # and pass h=None since we expect a cache hit (no fitting needed).
+            for label in comp_labels:
+                for gen_name in ("pythia", "herwig"):
+                    mu, mu_err = self._fit_or_get_cached(
+                        gen_name, partontype, target_jetpt, z_cut, den_weight,
+                        ptRL, label, h=None, tag=tag, must_exist=True)
+                    self._store_mpv(case_key, f"{label}_{gen_name}",
+                                    target_jetpt, mu, mu_err)
 
     def _collect_mpv_qvg(self, gen, target_jetpt, z_cut, den_weight):
-        """Collect MPVs for the quark vs gluon case."""
-        file = self.get_file(gen)
+        """Collect MPVs for quark vs gluon (reuses fits done in basic)."""
         cut_suffix = self.get_cut_suffix(z_cut)
         for ptRL, tag in [(False, "qvg"), (True, "qvg_ptRL")]:
-            hists_q = self.GetSubjetEECHists(file, "quark", target_jetpt, z_cut,
-                                            den_weight, ptRL=ptRL)
-            hists_g = self.GetSubjetEECHists(file, "gluon", target_jetpt, z_cut,
-                                            den_weight, ptRL=ptRL)
             case_key = f"{tag}_{gen}_{cut_suffix}_ww{den_weight}"
             comp_labels = ["full", "rad", "AA", "BB", "AB"]
-            for label, hq, hg in zip(comp_labels, hists_q, hists_g):
-                for parton_name, h in [("quark", hq), ("gluon", hg)]:
-                    comp_key = f"{label}_{parton_name}"
-                    save_path = self._fit_diag_path(case_key, comp_key, target_jetpt)
-                    title = (f"{tag} | {gen} {parton_name} | "
-                            f"jet p_T={target_jetpt} | {cut_suffix} | "
-                            f"ww{den_weight} | {label}")
-                    mu, mu_err = self._fit_mpv(h, save_path=save_path, plot_title=title)
-                    self._store_mpv(case_key, comp_key, target_jetpt, mu, mu_err)
+            for label in comp_labels:
+                for parton_name in ("quark", "gluon"):
+                    mu, mu_err = self._fit_or_get_cached(
+                        gen, parton_name, target_jetpt, z_cut, den_weight,
+                        ptRL, label, h=None, tag=tag, must_exist=True)
+                    self._store_mpv(case_key, f"{label}_{parton_name}",
+                                    target_jetpt, mu, mu_err)
 
     def _plot_mpv_summary(self, case_key, title, xlabel, ylabel, outdir, filename,
-                        component_styles=None):
+                        component_styles=None, ylim=None):
         """Generic MPV summary plot: y = peak position vs x = jet pT.
 
         component_styles: dict mapping component name -> dict of matplotlib kwargs
@@ -1122,8 +1265,11 @@ class PlotCurves:
         ax.set_ylabel(ylabel)
         ax.set_title(title, fontsize=11)
         ax.set_xscale("log")
+        ax.set_yscale("log")   # <-- ADD THIS
         ax.grid(True, which="both", alpha=0.3)
         ax.legend(fontsize=8, loc="best", framealpha=0.9)
+        if ylim is not None:
+            ax.set_ylim(*ylim)
         fig.tight_layout()
 
         os.makedirs(outdir, exist_ok=True)
@@ -1131,6 +1277,151 @@ class PlotCurves:
         plt.close(fig)
 
 
+    def _plot_mpv_ratio(self, num_data, den_data, comp_labels, styles,
+                        title, xlabel, ylabel, outdir, filename, ylim=None):
+        """Plot ratio of MPV (num/den) vs jet pT for each component.
+
+        num_data / den_data: dicts {component: {jetpt: (mu, mu_err)}}
+        comp_labels: list of component names to ratio (must exist in both, ideally)
+        styles: dict component -> matplotlib kwargs
+        """
+        fig, ax = plt.subplots(figsize=(7, 5))
+        plotted = False
+
+        for comp in comp_labels:
+            nd = num_data.get(comp, {})
+            dd = den_data.get(comp, {})
+            if not nd or not dd:
+                continue
+            pts = sorted(set(nd.keys()) & set(dd.keys()))
+            if not pts:
+                continue
+
+            ratios, rerrs = [], []
+            for p in pts:
+                n, ne = nd[p]
+                d, de = dd[p]
+                if n is None or d is None or d == 0:
+                    continue
+                r = n / d
+                # propagate relative errors in quadrature
+                rel = 0.0
+                if ne and n:
+                    rel += (ne / n) ** 2
+                if de and d:
+                    rel += (de / d) ** 2
+                ratios.append(r)
+                rerrs.append(abs(r) * np.sqrt(rel))
+            if not ratios:
+                continue
+
+            style = styles.get(comp, dict(marker="o", linestyle="-", label=comp))
+            ax.errorbar(pts[:len(ratios)], ratios, yerr=rerrs, capsize=3,
+                        markersize=7, **style)
+            plotted = True
+
+        if not plotted:
+            plt.close(fig)
+            return
+
+        ax.axhline(1.0, color="gray", linestyle=":", alpha=0.7)
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+        ax.set_title(title, fontsize=11)
+        ax.set_xscale("log")
+        ax.grid(True, which="both", alpha=0.3)
+        ax.legend(fontsize=8, loc="best", framealpha=0.9)
+        if ylim is not None:
+            ax.set_ylim(*ylim)
+        fig.tight_layout()
+        os.makedirs(outdir, exist_ok=True)
+        fig.savefig(os.path.join(outdir, filename))
+        plt.close(fig)
+        
+    def _plot_all_mpv_ratios(self):
+        """Build ratio MPV summaries:
+        quark/inclusive & gluon/inclusive (quark_vs_gluon folder),
+        herwig/pythia (pythia_vs_herwig folder).
+        """
+        base = os.path.join(self.base_plot_dir, "mpv_summary")
+        comp_labels = ["full", "rad", "AA", "BB", "AB"]
+        comp_colors = {"full": "gray", "rad": "black", "AA": "C0", "BB": "C1", "AB": "C2"}
+        comp_markers = {"full": "o", "rad": "s", "AA": "D", "BB": "^", "AB": "v"}
+
+        def base_styles():
+            return {c: dict(color=comp_colors[c], marker=comp_markers[c],
+                            linestyle="-", label=c) for c in comp_labels}
+
+        # collect the parameter combinations actually present
+        gens   = ["pythia", "herwig"]
+        cuts   = sorted({self.get_cut_suffix(z) for _, z in self.cut_modes})
+        dens   = ["jet", "rad"]
+
+        for cut_suffix in cuts:
+            for den in dens:
+                for ptRL in (False, True):
+                    tag = "ptRL_" if ptRL else ""
+                    obs = "p_TR_L" if ptRL else "R_L"
+                    ylim = None  # ratios near 1; let it autoscale (or set fixed if you prefer)
+
+                    # ---- quark/inclusive and gluon/inclusive (per gen) ----
+                    for gen in gens:
+                        incl_key = (f"basic_{('ptRL_' if ptRL else '')}{gen}"
+                                    f"_inclusive_{cut_suffix}_ww{den}")
+                        incl_data = self.mpv_data.get(incl_key, {})
+                        if not incl_data:
+                            continue
+                        for parton in ("quark", "gluon"):
+                            pk = (f"basic_{('ptRL_' if ptRL else '')}{gen}"
+                                f"_{parton}_{cut_suffix}_ww{den}")
+                            pdata = self.mpv_data.get(pk, {})
+                            if not pdata:
+                                continue
+                            outdir = os.path.join(base, "quark_vs_gluon", gen,
+                                                cut_suffix, "ptRL" if ptRL else "RL",
+                                                "ratio")
+                            os.makedirs(outdir, exist_ok=True)
+                            fname = (f"mpv_ratio_{tag}{parton}_over_inclusive_{gen}"
+                                    f"_{cut_suffix}_ww{den}.pdf")
+                            title = (f"MPV ratio — {parton}/inclusive ({gen.upper()}), "
+                                    f"{cut_suffix}, ww{den}" + (" (ptRL)" if ptRL else ""))
+                            self._plot_mpv_ratio(
+                                pdata, incl_data, comp_labels, base_styles(),
+                                title, "Jet p_T [GeV/c]",
+                                f"{parton}/inclusive peak in {obs}",
+                                outdir, fname, ylim=ylim)
+
+                    # ---- herwig/pythia (per partontype) ----
+                    for parton in self.partontypes:
+                        hvp_key = (f"hvp_{('ptRL_' if ptRL else '')}{parton}"
+                                f"_{cut_suffix}_ww{den}")
+                        hvp_data = self.mpv_data.get(hvp_key, {})
+                        if not hvp_data:
+                            continue
+                        # split hvp_data into pythia/herwig per component
+                        pythia_data = {c: hvp_data[f"{c}_pythia"]
+                                    for c in comp_labels if f"{c}_pythia" in hvp_data}
+                        herwig_data = {c: hvp_data[f"{c}_herwig"]
+                                    for c in comp_labels if f"{c}_herwig" in hvp_data}
+                        if not pythia_data or not herwig_data:
+                            continue
+                        outdir = os.path.join(base, "pythia_vs_herwig",
+                                            cut_suffix, "ptRL" if ptRL else "RL",
+                                            "ratio")
+                        os.makedirs(outdir, exist_ok=True)
+                        fname = (f"mpv_ratio_{tag}herwig_over_pythia_{parton}"
+                                f"_{cut_suffix}_ww{den}.pdf")
+                        title = (f"MPV ratio — HERWIG/PYTHIA, {parton}, "
+                                f"{cut_suffix}, ww{den}" + (" (ptRL)" if ptRL else ""))
+                        self._plot_mpv_ratio(
+                            herwig_data, pythia_data, comp_labels, base_styles(),
+                            title, "Jet p_T [GeV/c]",
+                            f"HERWIG/PYTHIA peak in {obs}",
+                            outdir, fname, ylim=ylim)
+
+        print(f"MPV ratio plots saved under: {base}")
+
+    
     def plot_all_mpv_summaries(self):
         """Produce all MPV summary PDFs after data has been collected."""
         base = os.path.join(self.base_plot_dir, "mpv_summary")
@@ -1138,7 +1429,7 @@ class PlotCurves:
         # ---- Component styles ----
         basic_styles = {
             "full": dict(color="gray", marker="o", linestyle="-", label="full (passed cut)"),
-            "rad":  dict(color="C3",    marker="s", linestyle="-", label="radiator"),
+            "rad":  dict(color="black",    marker="s", linestyle="-", label="radiator"), #color="C3"
             "AA":   dict(color="C0",    marker="D", linestyle="-", label="AxA"),
             "BB":   dict(color="C1",    marker="^", linestyle="-", label="BxB"),
             "AB":   dict(color="C2",    marker="v", linestyle="-", label="AxB"),
@@ -1146,7 +1437,7 @@ class PlotCurves:
 
         def hvp_styles():
             s = {}
-            comp_colors = {"full": "gray", "rad": "C3", "AA": "C0", "BB": "C1", "AB": "C2"}
+            comp_colors = {"full": "gray", "rad": "black", "AA": "C0", "BB": "C1", "AB": "C2"} #"rad": "C3"
             for comp, color in comp_colors.items():
                 s[f"{comp}_pythia"] = dict(color=color, marker="o", linestyle="-",
                                         label=f"{comp} (PYTHIA)")
@@ -1157,7 +1448,7 @@ class PlotCurves:
 
         def qvg_styles():
             s = {}
-            comp_colors = {"full": "gray", "rad": "C3", "AA": "C0", "BB": "C1", "AB": "C2"}
+            comp_colors = {"full": "gray", "rad": "black", "AA": "C0", "BB": "C1", "AB": "C2"} #"rad": "C3"
             for comp, color in comp_colors.items():
                 s[f"{comp}_quark"] = dict(color=color, marker="o", linestyle="-",
                                         label=f"{comp} (quark)")
@@ -1165,6 +1456,9 @@ class PlotCurves:
                                         markerfacecolor="none", markeredgecolor=color,
                                         label=f"{comp} (gluon)")
             return s
+
+        def mpv_ylim(ptRL):
+            return (1.5, 7.0) if ptRL else (0.0025, 0.12)
 
         # ---- Iterate over all stored case keys and dispatch to plotter ----
         for case_key in sorted(self.mpv_data.keys()):
@@ -1191,7 +1485,7 @@ class PlotCurves:
                         f"_{cut_suffix}_{den_token}.pdf")
                 self._plot_mpv_summary(case_key, title, "Jet p_T [GeV/c]",
                                     ylabel, outdir, fname,
-                                    component_styles=basic_styles)
+                                    component_styles=basic_styles, ylim=mpv_ylim(ptRL))
 
             elif kind == "hvp":
                 ptRL = (parts[1] == "ptRL")
@@ -1209,7 +1503,7 @@ class PlotCurves:
                         f"_{cut_suffix}_{den_token}.pdf")
                 self._plot_mpv_summary(case_key, title, "Jet p_T [GeV/c]",
                                     ylabel, outdir, fname,
-                                    component_styles=hvp_styles())
+                                    component_styles=hvp_styles(), ylim=mpv_ylim(ptRL))
 
             elif kind == "qvg":
                 ptRL = (parts[1] == "ptRL")
@@ -1227,9 +1521,11 @@ class PlotCurves:
                         f"_{cut_suffix}_{den_token}.pdf")
                 self._plot_mpv_summary(case_key, title, "Jet p_T [GeV/c]",
                                     ylabel, outdir, fname,
-                                    component_styles=qvg_styles())
+                                    component_styles=qvg_styles(), ylim=mpv_ylim(ptRL))
 
         print(f"MPV summary plots saved under: {base}")
+        
+        self._plot_all_mpv_ratios() 
 
     
 
@@ -1252,41 +1548,39 @@ class PlotCurves:
                     for gen in ["pythia", "herwig"]:                # Loop over generators
                         for den_weight in ["jet", "rad"]:           # Loop over weight type
                             
-                            if not (partontype in ("quark", "gluon") and gen == "herwig"):
-                                self.plot_basic(gen, partontype, target_jetpt,
-                                                z_cut, den_weight)
-                                    
-                                # --- MPV collection: basic (and ptRL) ---
-                                self._collect_mpv_basic(gen, partontype, target_jetpt,
-                                                        z_cut, den_weight)
+                            # if not (partontype in ("quark", "gluon") and gen == "herwig"):
+                            self.plot_basic(gen, partontype, target_jetpt,
+                                            z_cut, den_weight)
                                 
-                                # --- GET R_G ---
-                                if self.cut_mode == "sd":
-                                    self.plot_rg(gen, partontype, target_jetpt, z_cut, den_weight)
+                            # --- MPV collection: basic (and ptRL) ---
+                            self._collect_mpv_basic(gen, partontype, target_jetpt,
+                                                    z_cut, den_weight)
                             
-                            # --- PLOT C_AB,etc FOR PYTHIA ---
-                            if gen == "pythia":
-                                self.plot_CAB("pythia", partontype, target_jetpt, z_cut)
-                                self.plot_CAB_ptRL("pythia", partontype, target_jetpt, z_cut)
-                                self.plot_rad_prop("pythia", "pt",   partontype, target_jetpt, z_cut)
-                                self.plot_rad_prop("pythia", "lnkt", partontype, target_jetpt, z_cut)
+                            # --- GET R_G ---
+                            if self.cut_mode == "sd":
+                                self.plot_rg(gen, partontype, target_jetpt, z_cut, den_weight)
+                        
+                            # # --- PLOT C_AB,etc --- #FOR PYTHIA
+                            # if gen == "pythia":
+                            self.plot_CAB(gen, partontype, target_jetpt, z_cut)
+                            self.plot_CAB_ptRL(gen, partontype, target_jetpt, z_cut)
+                            self.plot_rad_prop(gen, "pt",   partontype, target_jetpt, z_cut)
+                            self.plot_rad_prop(gen, "lnkt", partontype, target_jetpt, z_cut)
                             
-                            # --- PLOT C_AB,etc FOR HERWIG ---
-                            if gen == "herwig" and partontype == "inclusive":
-                                self.plot_CAB("herwig", partontype, target_jetpt, z_cut)
-                                self.plot_CAB_ptRL("herwig", partontype, target_jetpt, z_cut)
-                                self.plot_rad_prop("herwig", "pt",   partontype, target_jetpt, z_cut)
-                                self.plot_rad_prop("herwig", "lnkt", partontype, target_jetpt, z_cut)
+                            # # --- PLOT C_AB,etc FOR HERWIG ---
+                            # if gen == "herwig" and partontype == "inclusive":
+                            #     self.plot_CAB("herwig", partontype, target_jetpt, z_cut)
+                            #     self.plot_CAB_ptRL("herwig", partontype, target_jetpt, z_cut)
+                            #     self.plot_rad_prop("herwig", "pt",   partontype, target_jetpt, z_cut)
+                            #     self.plot_rad_prop("herwig", "lnkt", partontype, target_jetpt, z_cut)
                             
-                            if partontype == "inclusive" and gen == "pythia":
+                            if gen == "pythia": #partontype == "inclusive" and 
                                 # --- PYTHIA VS HERWIG ---
                                 self.plot_herwig_vs_pythia(partontype, target_jetpt,
                                                         z_cut, den_weight)
-                                # --- MPV collection: pythia vs herwig ---
-                                self._collect_mpv_hvp(partontype, target_jetpt,
-                                                    z_cut, den_weight)
                                                 
-                                # --- QUARKS VS GLUONS ---
+                            # --- QUARKS VS GLUONS ---
+                            if partontype == "inclusive":
                                 self.plot_q_vs_g(gen, target_jetpt, z_cut, den_weight)
 
                             # --- PLOT ACROSS PT ---
@@ -1294,11 +1588,18 @@ class PlotCurves:
                                 self.plot_herwig_vs_pythia_ratio_acrosspt(z_cut, den_weight)
 
                     
+                
+                # ---- All basic fits for this (jetpt, z_cut) are now cached ----
+                # NOW it's safe for consumers to read the cache.
 
+                # --- MPV collection: pythia vs herwig ---
+                for partontype in self.partontypes:
+                    for den_weight in ["jet", "rad"]:
+                        self._collect_mpv_hvp(partontype, target_jetpt, z_cut, den_weight)
                 # --- MPV collection: quark vs gluon (after partontype loop, so files are loaded) ---
                 # Done per gen, using already-loaded files for this jet pT
                 for cut_mode_check in [cut_mode]:  # current cut_mode only
-                    for gen in ["pythia"]:
+                    for gen in ["pythia", "herwig"]:
                         for den_weight in ["jet", "rad"]:
                             self._collect_mpv_qvg(gen, target_jetpt, z_cut, den_weight)
 

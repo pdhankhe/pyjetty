@@ -1,108 +1,122 @@
 import os
 import numpy as np
 import pandas as pd
+import pyarrow.parquet as pq
 import matplotlib.pyplot as plt
 
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-# Which generators to include. Add "pythia" back when you have the file.
-GENERATORS = ["herwig"]
+GENERATORS = ["pythia", "herwig"]
+target_jet_pts = [50, 100, 200, 500]
 
-# Fill these in with your actual pt-hat bin values (the {..}gev directory names)
-target_jet_pts = [50, 100, 200, 500]   # <-- EDIT to match your bins
+PYTHIA_BASE = "/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/pythia_otf/55555648"
+HERWIG_BASE = "/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/herwiggen/tree_gen/55293842"
 
-PYTHIA_BASE = "/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/pythia_otf/53423546"
-HERWIG_BASE = "/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/herwiggen/tree_gen/54380351"
-# HERWIG_BASE = "/rstorage/generators/herwig_alice/tree_gen/1006458"
-
-# Output: full path is OUTPUT_DIR / OUTPUT_NAME
-OUTPUT_DIR  = "/software/users/blianggi/mypyjetty/storage/jse/plots/"
 OUTPUT_DIR  = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/jse/plots/"
 OUTPUT_NAME = "qg_fraction_vs_pt.pdf"
+
+LABEL_FRAC = 0.8       # pthat label = LABEL_FRAC * ptbin
+N_PT_BINS = 20
 
 def make_path(gen, ptbin):
     base = PYTHIA_BASE if gen == "pythia" else HERWIG_BASE
     return f"{base}/{ptbin}gev/JetsForAnalysisCombined.parquet"
 
-# jet_pt histogram binning used to draw the fraction curves
-N_PT_BINS = 20      # number of bins across the jet_pt range in each panel
-
 # ---------------------------------------------------------------------------
-# Flavor classification
+# Stream the file in batches; dedup within each batch only.
 # ---------------------------------------------------------------------------
-def classify_flavor(pid):
-    apid = abs(int(pid))
-    if 1 <= apid <= 6:
-        return "quark"
-    elif apid == 21:
-        return "gluon"
-    else:
-        return "unidentified"
-
-# ---------------------------------------------------------------------------
-# Load file -> per-jet records (quark/gluon only)
-# ---------------------------------------------------------------------------
-def load_jet_level(gen, ptbin):
+def accumulate_counts(gen, ptbin, pt_edges):
     path = make_path(gen, ptbin)
     if not os.path.exists(path):
-        print(f"  [warning] missing file: {path}")
+        print(f"  [MISSING] {path}")
         return None
 
-    df = pd.read_parquet(
-        path, columns=["event_id", "jet_id", "jet_pt", "parton_pid"]
-    )
-    # one row per jet (jet_pt / parton_pid constant within a jet)
-    jets = df.drop_duplicates(subset=["event_id", "jet_id"]).copy()
-    jets["flavor"] = jets["parton_pid"].apply(classify_flavor)
+    cols = pq.ParquetFile(path).schema.names
+    if "parton_pid" not in cols:
+        print(f"  [SKIP] {gen} {ptbin}gev has no parton_pid column")
+        return None
 
-    # drop unidentified jets entirely, per your definition
-    jets = jets[jets["flavor"].isin(["quark", "gluon"])].copy()
-    return jets
+    n_pt = len(pt_edges) - 1
+    nq = np.zeros(n_pt, dtype=np.int64)
+    ng = np.zeros(n_pt, dtype=np.int64)
 
-# ---------------------------------------------------------------------------
-# Compute quark/gluon fraction vs jet_pt for one jet sample
-# ---------------------------------------------------------------------------
-def fraction_vs_pt(jets, pt_edges):
-    centers = 0.5 * (pt_edges[:-1] + pt_edges[1:])
-    bin_idx = np.digitize(jets["jet_pt"].values, pt_edges) - 1
+    pf = pq.ParquetFile(path)
+    for batch in pf.iter_batches(
+        batch_size=2_000_000,
+        columns=["event_id", "jet_id", "jet_pt", "parton_pid"],
+    ):
+        df = batch.to_pandas().drop_duplicates(subset=["event_id", "jet_id"])
 
-    is_quark = (jets["flavor"] == "quark").values
-    is_gluon = (jets["flavor"] == "gluon").values
+        apid = df["parton_pid"].abs().values
+        is_q = (apid >= 1) & (apid <= 6)
+        is_g = (apid == 21)
 
-    qfrac = np.full(len(centers), np.nan)
-    gfrac = np.full(len(centers), np.nan)
-    qerr  = np.full(len(centers), np.nan)
-    gerr  = np.full(len(centers), np.nan)
+        bin_idx = np.digitize(df["jet_pt"].values, pt_edges) - 1
+        valid = (bin_idx >= 0) & (bin_idx < n_pt)
 
-    for b in range(len(centers)):
-        mask = bin_idx == b
-        n = mask.sum()
-        if n == 0:
-            continue
-        nq = is_quark[mask].sum()
-        ng = is_gluon[mask].sum()       # nq + ng == n (only q/g remain)
-        qfrac[b] = nq / n
-        gfrac[b] = ng / n
-        # binomial error on the fraction
-        qerr[b] = np.sqrt(qfrac[b] * (1 - qfrac[b]) / n)
-        gerr[b] = np.sqrt(gfrac[b] * (1 - gfrac[b]) / n)
+        nq += np.bincount(bin_idx[valid & is_q], minlength=n_pt)[:n_pt]
+        ng += np.bincount(bin_idx[valid & is_g], minlength=n_pt)[:n_pt]
 
-    return centers, qfrac, gfrac, qerr, gerr
+        del df, batch
+
+    return nq, ng
 
 # ---------------------------------------------------------------------------
-# Load everything
+# Cheap jet_pt range from parquet column statistics
 # ---------------------------------------------------------------------------
-data = {}   # data[(gen, ptbin)] = jets dataframe
+def jet_pt_range(gen, ptbin):
+    path = make_path(gen, ptbin)
+    if not os.path.exists(path):
+        return None
+    pf = pq.ParquetFile(path)
+    lo, hi = np.inf, -np.inf
+    col_idx = pf.schema.names.index("jet_pt")
+    for rg in range(pf.num_row_groups):
+        stats = pf.metadata.row_group(rg).column(col_idx).statistics
+        if stats is not None and stats.has_min_max:
+            lo = min(lo, stats.min)
+            hi = max(hi, stats.max)
+    if not np.isfinite(lo) or not np.isfinite(hi):
+        return None
+    return lo, hi
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+results = {}
+
 for ptbin in target_jet_pts:
+    ranges = [r for r in (jet_pt_range(g, ptbin) for g in GENERATORS)
+              if r is not None]
+    if not ranges:
+        continue
+    lo = min(r[0] for r in ranges)
+    hi = max(r[1] for r in ranges)
+    # guard against non-positive lower edge (log requires > 0)
+    if lo <= 0:
+        lo = min(r[1] for r in ranges) * 1e-3  # small positive fallback
+    pt_edges = np.logspace(np.log10(lo), np.log10(hi), N_PT_BINS + 1)
+    centers = np.sqrt(pt_edges[:-1] * pt_edges[1:])  # geometric centers
+
     for gen in GENERATORS:
-        jets = load_jet_level(gen, ptbin)
-        if jets is not None and len(jets):
-            data[(gen, ptbin)] = jets
-            print(f"{gen:7s} {ptbin}gev: {len(jets)} q/g jets")
+        counts = accumulate_counts(gen, ptbin, pt_edges)
+        if counts is None:
+            continue
+        nq, ng = counts
+        ntot = nq + ng
+        with np.errstate(invalid="ignore", divide="ignore"):
+            qfrac = np.where(ntot > 0, nq / ntot, np.nan)
+            gfrac = np.where(ntot > 0, ng / ntot, np.nan)
+            qerr = np.where(ntot > 0,
+                            np.sqrt(qfrac * (1 - qfrac) / ntot), np.nan)
+            gerr = np.where(ntot > 0,
+                            np.sqrt(gfrac * (1 - gfrac) / ntot), np.nan)
+        results[(gen, ptbin)] = (centers, qfrac, gfrac, qerr, gerr)
+        print(f"{gen:7s} {ptbin}gev: {int(ntot.sum())} q/g jets")
 
 # ---------------------------------------------------------------------------
-# Plot: one panel per pt-hat bin
+# Plot
 # ---------------------------------------------------------------------------
 n_bins = len(target_jet_pts)
 ncols = 2
@@ -114,27 +128,20 @@ axes = axes.flatten()
 
 style = {
     ("pythia", "quark"): dict(color="tab:blue", marker="o", ls="-"),
-    ("pythia", "gluon"): dict(color="tab:blue", marker="s", ls="--"),
+    ("pythia", "gluon"): dict(color="tab:blue", marker="s", ls="--", markerfacecolor="none"),
     ("herwig", "quark"): dict(color="tab:red",  marker="o", ls="-"),
-    ("herwig", "gluon"): dict(color="tab:red",  marker="s", ls="--"),
+    ("herwig", "gluon"): dict(color="tab:red",  marker="s", ls="--", markerfacecolor="none"),
 }
 
 for ax, ptbin in zip(axes, target_jet_pts):
-    present = [data[(g, ptbin)] for g in GENERATORS if (g, ptbin) in data]
+    pthat_label = LABEL_FRAC * ptbin
+    present = [g for g in GENERATORS if (g, ptbin) in results]
     if not present:
-        ax.set_title(f"{ptbin} GeV (no data)")
+        ax.set_title(rf"$\hat{{p}}_T$ = {pthat_label:g} GeV (no data)")
         continue
 
-    all_pt = np.concatenate([j["jet_pt"].values for j in present])
-    lo, hi = np.percentile(all_pt, [1, 99])   # trim extreme tails
-    pt_edges = np.linspace(lo, hi, N_PT_BINS + 1)
-
-    for gen in GENERATORS:
-        if (gen, ptbin) not in data:
-            continue
-        centers, qfrac, gfrac, qerr, gerr = fraction_vs_pt(
-            data[(gen, ptbin)], pt_edges
-        )
+    for gen in present:
+        centers, qfrac, gfrac, qerr, gerr = results[(gen, ptbin)]
         ax.errorbar(centers, qfrac, yerr=qerr,
                     label=f"{gen} quark", **style[(gen, "quark")],
                     markersize=4, capsize=2)
@@ -142,24 +149,21 @@ for ax, ptbin in zip(axes, target_jet_pts):
                     label=f"{gen} gluon", **style[(gen, "gluon")],
                     markersize=4, capsize=2)
 
-    ax.set_title(rf"$\hat{{p}}_T$ bin: {ptbin} GeV")
+    ax.set_title(rf"$\hat{{p}}_T$ = {pthat_label:g} GeV")
     ax.set_xlabel(r"jet $p_T$ [GeV]")
+    ax.set_xscale("log")          # <-- add this line
     ax.set_ylabel("flavor fraction")
     ax.set_ylim(0, 1)
-    ax.grid(True, alpha=0.3)
+    ax.grid(True, alpha=0.3, which="both")   # show minor gridlines too
     ax.legend(ncol=2, fontsize=8)
 
-# hide any unused panels
 for ax in axes[n_bins:]:
     ax.set_visible(False)
 
 fig.suptitle("Quark / Gluon Jet Fraction vs. jet " r"$p_T$"
-             "  (q-frac = $N_q/(N_q+N_g)$)", y=1.0)
+             "  (anti-kT R = 0.4) (q-frac = $N_q/(N_q+N_g)$)", y=1.0)
 fig.tight_layout()
 
-# ---------------------------------------------------------------------------
-# Save
-# ---------------------------------------------------------------------------
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 out_path = os.path.join(OUTPUT_DIR, OUTPUT_NAME)
 fig.savefig(out_path, format="pdf", bbox_inches="tight")

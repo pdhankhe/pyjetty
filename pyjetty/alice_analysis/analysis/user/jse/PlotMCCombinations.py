@@ -27,23 +27,26 @@ class PlotCounting:
         ROOT.gStyle.SetPalette(ROOT.kBird)
 
         # ---- generator toggle ----
-        self.include_pythia = False   # flip to True once pythia is up to date
+        self.include_pythia = True   # flip to True once pythia is up to date
         self.generators = (["pythia", "herwig"] if self.include_pythia
                            else ["herwig"])
 
         self.target_jet_pts = [50, 100, 200, 500]
         self.partontypes    = ["inclusive", "quark", "gluon"]
-        self.cut_modes      = [("sd", 0.1), ("maxkt", None)]
+        self.cut_modes      = [("sd", 0.1)] #, ("maxkt", None)]
 
-        # self.input_base = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/jse/rootfiles" # perlmutter
-        self.input_base = "/software/users/blianggi/mypyjetty/storage/jse/rootfiles" # hiccup
+        self.input_base = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/jse/rootfiles" # perlmutter
+        # self.input_base = "/software/users/blianggi/mypyjetty/storage/jse/rootfiles" # hiccup
         self.rootfile_template = f"{self.input_base}/jse_preliminary_curves_{{gen}}_jetpt{{jetpt}}.root"
         self.current_jetpt   = None
         self.pythia_rootfile = None
         self.herwig_rootfile = None
 
         self.cut_mode = ""
-        self.base_plot_dir = "/software/users/blianggi/mypyjetty/storage/jse/plots"
+        # self.base_plot_dir = "/software/users/blianggi/mypyjetty/storage/jse/plots" # hiccup
+        self.base_plot_dir = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/jse/plots" # perlmutter
+
+
 
         # Histogram name templates:  hist_<NAME>_<partontype>_jetpt<jetpt>_<cut_suffix>
         self.NA_NB_TEMPLATE     = "hist_nA_nB_{}_jetpt{}_{}"          # 2D
@@ -217,7 +220,7 @@ class PlotCounting:
 
     def _plot_1d_hvp(self, hist_p, hist_h, partontype, target_jetpt, z_cut,
                      xtitle, ytitle, legend_title, file_tag, plot_type,
-                     normalize=False, logy=False):
+                     normalize=True, logy=False):
         if hist_p is None or hist_h is None:
             print(f"WARNING: missing {file_tag} for {partontype} "
                   f"jetpt{target_jetpt} {self.get_cut_suffix(z_cut)}")
@@ -328,7 +331,7 @@ class PlotCounting:
 
     def _plot_1d_single(self, hist, gen, partontype, target_jetpt, z_cut,
                         xtitle, ytitle, file_tag, plot_type,
-                        normalize=False, logy=False):
+                        normalize=True, logy=False):
         if hist is None:
             print(f"WARNING: missing {file_tag} for {gen} {partontype} "
                   f"jetpt{target_jetpt} {self.get_cut_suffix(z_cut)}")
@@ -411,6 +414,7 @@ class PlotCounting:
 
         # --- self-normalize each projection ---
         projections = [p for p in (projX_p, projY_p, projX_h, projY_h) if p is not None]
+        # Include this block if self-normalization is desired
         for h in projections:
             if h.Integral() > 0:
                 h.Scale(1.0 / h.Integral())
@@ -431,7 +435,7 @@ class PlotCounting:
         first_hist.SetMaximum(y_max * 1.4)
         first_hist.SetMinimum(0)
         first_hist.GetXaxis().SetTitle("N particles in subjet")
-        first_hist.GetYaxis().SetTitle("self-normalized counts")
+        first_hist.GetYaxis().SetTitle("self-normalized counts") # "counts") #
 
         first = True
         for h in projections:
@@ -659,7 +663,7 @@ class PlotCounting:
                 h.Draw("HIST SAME")
             legend.AddEntry(h, name, "l")
 
-        ev_leg = self.MakeEventLeg(gen, partontype, target_jetpt, z_cut)
+        ev_leg = self.MakeEventLeg(gen.upper(), partontype, target_jetpt, z_cut)
         ev_leg.Draw()
         legend.Draw()
 
@@ -668,6 +672,97 @@ class PlotCounting:
         self._save_canvas(canvas, gen, z_cut, output_name,
                           plot_type="combinations")
 
+    # -------------------------------------------------------------------------
+    # Plot: all comb components overlaid, PYTHIA vs HERWIG on one canvas
+    # (color = component, line style = generator; raw counts, logy)
+    # -------------------------------------------------------------------------
+
+    def plot_comb_components_hvp(self, partontype, target_jetpt, z_cut):
+        self.set_current_rootfiles(target_jetpt)
+        cut_suffix = self.get_cut_suffix(z_cut)
+
+        if not self.include_pythia:
+            # nothing to compare against; fall back to single-gen per generator
+            for gen in self.generators:
+                self.plot_comb_components(gen, partontype, target_jetpt, z_cut)
+            return
+
+        hp = self.GetCountingHists(self.pythia_rootfile, partontype, target_jetpt, z_cut)
+        hh = self.GetCountingHists(self.herwig_rootfile, partontype, target_jetpt, z_cut)
+
+        # rebin AA/AB/BB to combTotal's binning, per generator
+        ref_p = hp["combTotal"]
+        ref_h = hh["combTotal"]
+
+        comb_p = {
+            "combAA":    self._rebin_to_match(hp["combAA"], ref_p),
+            "combBB":    self._rebin_to_match(hp["combBB"], ref_p),
+            "combAB":    self._rebin_to_match(hp["combAB"], ref_p),
+            "combTotal": ref_p,
+        }
+        comb_h = {
+            "combAA":    self._rebin_to_match(hh["combAA"], ref_h),
+            "combBB":    self._rebin_to_match(hh["combBB"], ref_h),
+            "combAB":    self._rebin_to_match(hh["combAB"], ref_h),
+            "combTotal": ref_h,
+        }
+
+        # color per component, line style per generator
+        comp_colors = {
+            "combAA":    Color.BLUE,
+            "combBB":    Color.ORANGE,
+            "combAB":    Color.GREEN,
+            "combTotal": ROOT.kBlack,
+        }
+        comp_order = ["combAA", "combBB", "combAB", "combTotal"]
+
+        # collect drawable (name, hist, color, style, gen_label) tuples
+        curves = []
+        for name in comp_order:
+            cp = comb_p.get(name)
+            ch = comb_h.get(name)
+            if cp is not None:
+                curves.append((name, cp, comp_colors[name], ROOT.kSolid,  "PYTHIA"))
+            if ch is not None:
+                curves.append((name, ch, comp_colors[name], ROOT.kDashed, "HERWIG"))
+
+        curves = [c for c in curves if c[1] is not None]
+        if not curves:
+            return
+
+        canvas = self.make_canvas("can_comb_comp_hvp", partontype=partontype,
+                                  target_jetpt=target_jetpt, z_cut=z_cut,
+                                  title="combination components PYTHIA vs HERWIG")
+        canvas.SetLogy()
+        canvas.cd()
+
+        y_max = max(h.GetMaximum() for _, h, _, _, _ in curves)
+
+        legend = ROOT.TLegend(0.58, 0.55, 0.88, 0.88)
+        first = True
+        for name, h, color, style, gen_label in curves:
+            self.FormatHist(h, color, style)
+            if first:
+                h.SetMaximum(y_max * 5)
+                h.GetXaxis().SetTitle("N combinations")
+                h.GetYaxis().SetTitle("counts")
+                h.Draw("HIST")
+                first = False
+            else:
+                h.Draw("HIST SAME")
+            legend.AddEntry(h, f"{gen_label} {name}", "l")
+
+        ev_leg = self.MakeEventLeg("PYTHIA and HERWIG", partontype,
+                                   target_jetpt, z_cut)
+        ev_leg.Draw()
+        legend.Draw()
+
+        output_name = (f"comb_components_PYTHIA_VS_HERWIG_{partontype}"
+                       f"_jetpt{target_jetpt}_R0.4_{cut_suffix}.pdf")
+        self._save_canvas(canvas, "pythia_vs_herwig", z_cut, output_name,
+                          plot_type="combinations")
+    
+    
     # -------------------------------------------------------------------------
     # Main plot loop
     # -------------------------------------------------------------------------
@@ -691,6 +786,9 @@ class PlotCounting:
                     # --- comb components overlay, per enabled generator ---
                     for gen in self.generators:
                         self.plot_comb_components(gen, partontype, target_jetpt, z_cut)
+                    
+                    # --- comb components overlay, PYTHIA vs HERWIG ---
+                    self.plot_comb_components_hvp(partontype, target_jetpt, z_cut)
 
 
 # =============================================================================

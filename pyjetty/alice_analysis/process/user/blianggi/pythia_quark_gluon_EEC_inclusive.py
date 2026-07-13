@@ -3,6 +3,7 @@
 '''
 Script for looking at the quark vs gluon dependence of substructure observables
 Author: Beatrice Liang-Gilman, with most of the code from Ezra Lesser (elesser@berkeley.edu)
+NOTE: this is for inclusive jet EECs divided into quark+gluon
 '''
 
 from __future__ import print_function
@@ -14,8 +15,6 @@ import fjext
 import ecorrel
 import othercorrel
 import sys
-import time
-from datetime import datetime
 
 import ROOT
 
@@ -80,8 +79,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 		self.noISR = (bool)(1-args.ISRon)
 
 		# self defined variables
-		# self.weighted = (bool)(args.weightON) #weightON=True(F) means turn weights on(off)
-		self.ev_num_start = args.ev_num_base
+		self.weighted = (bool)(args.weightON) #weightON=True(F) means turn weights on(off)
 
 		# PDG ID values for quarks and gluons
 		self.quark_pdg_ids = [1, 2, 3, 4, 5, 6, 7, 8, -1, -2, -3, -4, -5, -6, -7, -8]
@@ -99,6 +97,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 
 
 		self.obs_bins_EEC = np.logspace(np.log10(1E-4), np.log10(1), 51)
+		self.obs_bins_corr_deltajt = np.linspace(0, 5, 51)
 
 		self.observable_list = config['process_observables']
 		self.obs_settings = {}
@@ -161,7 +160,7 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 
 		self.scale_print_final_info(pythia)
 
-		# self.fout.Write() # outf.Write() # if things are missing, put this back in
+		# self.fout.Write() # outf.Write()
 		# outf.Close()
 
 		self.save_output_objects() # file gets closed in this function
@@ -172,14 +171,8 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 	def initialize_hist(self):
 
 		self.hNevents = ROOT.TH1I("hNevents", 'Number accepted events (unscaled)', 2, -0.5, 1.5)
-		self.hjetpT = ROOT.TH1D("hjetpT", "pT of jet", 200, 0, 200)
-		self.hjetpTScaled = ROOT.TH1D("hjetpTScaled", "pT of jet (scaled by scale factor)", 200, 0, 200)
+		self.hjetpT = ROOT.TH1D("hjetpT", "pT of all jets", 200, 0, 200)
 		self.hDeltaR = ROOT.TH1F("hDeltaR", 'Delta R between jet and each parent', 40, 0, 0.4)
-
-		self.hparticlepT = ROOT.TH1D("hparticlepT", "pT of particle", 200, 0, 200)
-		self.hparticlepTScaled = ROOT.TH1D("hparticlepTScaled", "pT of particle (scaled by scale factor)", 200, 0, 200)
-		self.hparticleEta = ROOT.TH1D("hparticleEta", "eta of particle", 200, -10, 10)
-		self.hparticleEtaScaled = ROOT.TH1D("hparticleEtaScaled", "eta of particle (scaled by scale factor)", 200, -10, 10)
 
 		
 		for jetR in self.jetR_list:
@@ -189,77 +182,60 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			setattr(self, hist_list_name, [])
 
 
-			# for observable in self.observable_list:
-			# 	# Should only be one: observable == "EEC"
-			# 	if observable != "corr_deltajt":
-			# 		raise ValueError("Observable %s is not implemented in this script" % observable)
+			for observable in self.observable_list:
+				# Should only be one: observable == "EEC"
+				if observable != "EEC" and observable != "corr_deltajt":
+					raise ValueError("Observable %s is not implemented in this script" % observable)
 
-			# 	obs_bins = getattr(self, "obs_bins_" + observable)
-			# 	# Use more finely binned pT bins for TH2s than for the RMs
-			# 	pt_bins = array.array('d', list(range(0, 201, 1)))
-			# 	rapi_bins = np.linspace(-5,5,201)
+				obs_bins = getattr(self, "obs_bins_" + observable)
+				# Use more finely binned pT bins for TH2s than for the RMs
+				pt_bins = array.array('d', list(range(0, 201, 1)))
+				rapi_bins = np.linspace(-5,5,201)
 
 
-			# 	dim = 4
-			# 	nbins  = [len(pt_bins)-1, len(pt_bins)-1, len(rapi_bins)-1, 50]
-			# 	min_li = [pt_bins[0],     pt_bins[0],      rapi_bins[0],      obs_bins[0]]
-			# 	max_li = [pt_bins[-1],    pt_bins[-1],     rapi_bins[-1],     obs_bins[-1]]
+				dim = 2
+				nbins  = [len(pt_bins)-1, len(obs_bins)-1]
+				min_li = [pt_bins[0],          obs_bins[0]]
+				max_li = [pt_bins[-1],     obs_bins[-1]]
 
-			# 	nbins = (nbins)
-			# 	xmin = (min_li)
-			# 	xmax = (max_li)
+				nbins = (nbins)
+				xmin = (min_li)
+				xmax = (max_li)
 				
-			# 	nbins_array = array.array('i', nbins)
-			# 	xmin_array = array.array('d', xmin)
-			# 	xmax_array = array.array('d', xmax)
+				nbins_array = array.array('i', nbins)
+				xmin_array = array.array('d', xmin)
+				xmax_array = array.array('d', xmax)
 
-			# 	obs_setting = self.obs_settings[observable]
-			# 	grooming_setting = self.obs_grooming_settings[observable]
-			# 	obs_label = self.utils.obs_label(obs_setting, grooming_setting)
-			# 	pinfo("all the settings", obs_setting, grooming_setting, obs_label)
+				obs_setting = self.obs_settings[observable]
+				grooming_setting = self.obs_grooming_settings[observable]
+				obs_label = self.utils.obs_label(obs_setting, grooming_setting)
+				pinfo("all the settings", obs_setting, grooming_setting, obs_label)
 
-
-
-				# self.fsparsepartonJetvalue = array.array( 'd', ( 0, 0, 0 ,0 ))
-				# self.fsparsejetlevelJetvalue = array.array( 'd', ( 0, 0, 0 ))
 		
-				# partontypeslist = ["light", "gluon", "inclusive"] #["charm", "light", "gluon", "inclusive"] #got rid of quark
+				partontypeslist = ["light", "gluon", "inclusive"] #["charm", "light", "gluon", "inclusive"] #got rid of quark
 
-				# for parton_type in partontypeslist:
+				for parton_type in partontypeslist:
 
-					# title = [ '#it{p}_{T}^{ch jet}', '#it{p}_{T}^{D^{0}}', 'y', '#it{R}_{L}' ]
+					title = [ '#it{p}_{T}^{ch jet}', '#it{R}_{L}' ]
 
 					# make THnSparse for parton EECs
-					# name = ('hsparse_%s_JetPt_%s_R%s_%s' % (observable, parton_type, jetR, obs_label)) if \
-					# 	len(obs_label) else ('h_%s_JetPt_%s_R%s' % (observable, parton_type, jetR))
-					# hsparse = ROOT.THnSparseD(name,"%s-init_hsparsejet; #it{p}_{T,%s}^{ch jet}; #it{p}_{T}^{D^{0}}; y;R_{L}^{%s}" %(parton_type[0], parton_type[0] + "-init", parton_type[0] + "-init"), dim,  nbins_array, xmin_array, xmax_array)
-					# hsparse.Sumw2()
-					# for i in range(0,dim):
-					# 	hsparse.GetAxis(i).SetTitle(title[i])
-					# 	if i == 0 or i == 1:
-					# 		hsparse.SetBinEdges(i, pt_bins)
-					# 	if i == 2:
-					# 		hsparse.SetBinEdges(i, rapi_bins)
-					# 	if i == 3:
-					# 		hsparse.SetBinEdges(i, obs_bins)
-					# setattr(self, name, hsparse)
-					# getattr(self, hist_list_name).append(hsparse)
+					name = ('h2D_%s_JetPt_%s_R%s_%s' % (observable, parton_type, jetR, obs_label)) if \
+                        len(obs_label) else ('h2D_%s_JetPt_%s_R%s' % (observable, parton_type, jetR))
+					h2D = ROOT.TH2D(name,"%s-init_h2Djet; #it{p}_{T,%s}^{ch jet}; R_{L}^{%s}" %(parton_type[0], parton_type[0] + "-init", parton_type[0] + "-init"), nbins_array[0], pt_bins, nbins_array[1], obs_bins) #dim,  nbins_array, xmin_array, xmax_array)
+					h2D.Sumw2()
+					setattr(self, name, h2D)
+					getattr(self, hist_list_name).append(h2D)
 
 
 
-					# # make another of THnSparse for the jet level (above is pair level)
-					# name_jetpt = ('h_JetPt_%s_R%s_%s_jetlevel' % (parton_type, jetR, obs_label)) if \
-					# 	len(obs_label) else ('h_JetPt_%s_R%s_jetlevel' % (parton_type, jetR))
-					# hsparse_jetpt = ROOT.THnSparseD(name_jetpt,"%s-init_hsparsejet_jetlevel; #it{p}_{T,%s}^{ch jet}; #it{p}_{T}^{D^{0}}; y" %(parton_type[0], parton_type[0] + "-init"), dim-1,  nbins_array[:-1], xmin_array[:-1], xmax_array[:-1])
-					# hsparse_jetpt.Sumw2()
-					# for i in range(0,dim-1):
-					# 	hsparse_jetpt.GetAxis(i).SetTitle(title[i])
-					# 	if i == 0 or i == 1:
-					# 		hsparse_jetpt.SetBinEdges(i, pt_bins)
-					# 	if i == 2:
-					# 		hsparse_jetpt.SetBinEdges(i, rapi_bins)
-					# setattr(self, name_jetpt, hsparse_jetpt)
-					# getattr(self, hist_list_name).append(hsparse_jetpt)
+					# make another of THnSparse for the jet level (above is pair level)
+					name_jetpt = ('h_JetPt_%s_R%s_%s_jetlevel' % (parton_type, jetR, obs_label)) if \
+						len(obs_label) else ('h_JetPt_%s_R%s_jetlevel' % (parton_type, jetR))
+					h1D_jetpt = ROOT.TH1D(name_jetpt,"%s-init_h1Djet_jetlevel; #it{p}_{T,%s}^{ch jet}" %(parton_type[0], parton_type[0] + "-init"),  nbins_array[0], pt_bins)
+					h1D_jetpt.Sumw2()
+					
+					setattr(self, name_jetpt, h1D_jetpt)
+					getattr(self, hist_list_name).append(h1D_jetpt)
 
 	#---------------------------------------------------------------
 	# Initiate jet defs, selectors, and sd (if required)
@@ -296,15 +272,12 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 	def calculate_events(self, pythia):
 
 		iev = 0  # Event loop count
-		self.ijet = 0 # Jet number count
-
-		all_constituents = []
 
 		while iev < self.nev:
 			if not pythia.next():
 				continue
 
-			if (iev%5000 == 0): #10000
+			if (iev%10000 == 0):
 				print("Event", iev)
 			# print("Event", iev)
 
@@ -332,34 +305,18 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			# charged-hadron level
 			parts_pythia_hch = pythiafjext.vectorize_select(pythia, [pythiafjext.kFinal, pythiafjext.kCharged], 0, True)
 
-			### remove later:
-			for p in parts_pythia_hch:
-				self.hparticlepT.Fill(p.pt())
-				self.hparticlepTScaled.Fill(p.pt())
-				self.hparticleEta.Fill(p.eta())
-				self.hparticleEtaScaled.Fill(p.eta())
-
 				
 			# Some "accepted" events don't survive hadronization step -- keep track here
 			self.hNevents.Fill(0)
-			self.find_jets_fill_histograms(parts_pythia_hch, iev, all_constituents)
+			self.find_jets_fill_histograms(parts_pythia_hch, iev, D0Kpidecayfound=False)
 
 			iev += 1
-
-		# Convert to DataFrame
-		print(len(all_constituents))
-		df = pd.DataFrame(all_constituents)
-
-		# Save to Parquet (FAST and SMALL)
-		out_parq_file = os.path.join(self.output_dir, "JetsForAnalysis.parquet")
-		df.to_parquet(out_parq_file, compression="snappy")
 
 
 	#---------------------------------------------------------------
 	# Find jets, do matching between levels, and fill histograms
 	#---------------------------------------------------------------
-	def find_jets_fill_histograms(self, parts_pythia_hch, iev, all_constituents):
-
+	def find_jets_fill_histograms(self, parts_pythia_hch, iev, D0Kpidecayfound):
 		# Loop over jet radii
 		for jetR in self.jetR_list:
 
@@ -376,87 +333,184 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 			#jets_h  = fj.sorted_by_pt(jet_selector(jet_def(parts_pythia_h  ))) # full hadron level
 			jets_ch = fj.sorted_by_pt(jet_selector(jet_def(track_selector_ch(parts_pythia_hch)))) # charged hadron level
 
+			
+			anothacounter=0
+
 			# Find the charged jet closest to the axis of the original parton
 			# Require that the match is within some small angle, and that it is unique
 			jet_matching_distance = 0.6  # Match jets with deltaR < jet_matching_distance*jetR
-			jet_parent_matches = []
-			for i_jch, jch in enumerate(jets_ch):
-				matched_parents = []
-				for i_parent, parent in enumerate(self.parents):
-					# anothacounter += 1
-					dR = jch.delta_R(parent)
-					self.hDeltaR.Fill(dR)
-					if dR < jet_matching_distance * jetR:
-						matched_parents.append(i_parent)
-				if len(matched_parents) == 1:
-					jet_parent_matches.append(matched_parents[0])
-				else:
-					jet_parent_matches.append(None)
-
-			# Assign a unique jet match to each parent if possible, and preserve the old count logic
 			self.parent0match, self.parent1match = None, None
-			for i_parent, parent in enumerate(self.parents):
-				matched_jets = [jch for jch, match_idx in zip(jets_ch, jet_parent_matches) if match_idx == i_parent]
-				if len(matched_jets) == 1:
-					setattr(self, "parent%imatch" % i_parent, matched_jets[0])
-				elif len(matched_jets) > 1:
-					setattr(self, "parent%imatch" % i_parent, 0)
-				else:
-					setattr(self, "parent%imatch" % i_parent, None)
+			for i_jch, jch in enumerate(jets_ch):
+				for i_parent, parent in enumerate(self.parents):
+					anothacounter+=1
+					parentmatch_name = "parent%imatch" % i_parent
+					#plot 
+					self.hDeltaR.Fill(jch.delta_R(parent))
+					if jch.delta_R(parent) < jet_matching_distance * jetR:
+						match = getattr(self, parentmatch_name)
+						if not match:
+							setattr(self, parentmatch_name, jch)
+						else:  # Already found a match
+							# Set flag value so that we know to ignore this one
+							setattr(self, parentmatch_name, 0)
 
-			# for i_parent, parent in enumerate(self.parents):
-			# 	jet = getattr(self, "parent%imatch" % i_parent)
-			# 	if not jet:
-			# 		if jet == 0: # More than one match -- take note and continue
-			# 			count1 += 1
-			# 			continue
-			# 		else:  # jet == None
-			# 			# No matches -- take note and continue
-			# 			count2 += 1
-			# 			continue
+
+			# If we have matches, fill histograms
+			for i_parent, parent in enumerate(self.parents):
+				jet = getattr(self, "parent%imatch" % i_parent)
+				if not jet:
+					if jet == 0: # More than one match -- take note and continue
+						count1 += 1
+						continue
+					else:  # jet == None
+						# No matches -- take note and continue
+						count2 += 1
+						continue
 
 				# One unique match
 				# Identify the histograms which need to be filled
-				# parton_id = self.parent_ids[i_parent]
-				# parton_types = []
-				# if parton_id in self.quark_pdg_ids:
-				# 	if parton_id in self.up_pdg_ids or parton_id in self.down_pdg_ids or parton_id in self.strange_pdg_ids:
-				# 		parton_types += ["light"]
-				# elif parton_id in self.gluon_pdg_ids:
-				# 	parton_types += ["gluon"]
+				parton_id = self.parent_ids[i_parent]
+				# print("parton_id is ", parton_id)
+				parton_types = []
+				if parton_id in self.quark_pdg_ids:
+					# parton_types += ["quark"]
+					if parton_id in self.up_pdg_ids or parton_id in self.down_pdg_ids or parton_id in self.strange_pdg_ids:
+						parton_types += ["light"]
+						# print("in here!")
+				elif parton_id in self.gluon_pdg_ids:
+					parton_types += ["gluon"]
 				# parton_types += ["inclusive"]
 
-				# # If parent parton not identified, skip for now
-				# if not len(parton_types):
-				# 	continue
+				# If parent parton not identified, skip for now
+				if not len(parton_types):
+					continue
 
-			# Save every jet into the output file
-			for i_jch, jch in enumerate(jets_ch):
-				
+
 				# Fill histograms
-				self.hjetpT.Fill(jch.pt())
-				self.hjetpTScaled.Fill(jch.pt())
+				for observable in self.observable_list:
 
-				matched_parent_idx = jet_parent_matches[i_jch]
-				parton_id = self.parent_ids[matched_parent_idx] if matched_parent_idx is not None else 0
-				constituents = fj.sorted_by_pt(jch.constituents())
-				for c in constituents:
-					all_constituents.append({
-						"event_id": iev + self.ev_num_start,
-						"jet_id": self.ijet,
-						"jet_pt": jch.pt(),
-						"parton_pid": parton_id, #this is the parent parton ID
-						"c_px": c.px(),
-						"c_py": c.py(),
-						"c_pz": c.pz(),
-						"c_e": c.e()})
-				self.ijet += 1
+					obs_setting = self.obs_settings[observable]
+					grooming_setting = self.obs_grooming_settings[observable]
+					obs_label = self.utils.obs_label(obs_setting, grooming_setting)
+
+
+					# print("filling jet level thnsparse")
+					# self.hjetpT.Fill(jet.pt())
+					for parton_type in parton_types:
+						# fill jet pt histogram to give the normalization
+						getattr(self, ('h_JetPt_%s_R%s_%s_jetlevel' % (parton_type, jetR, obs_label)) if \
+							len(obs_label) else ('h_JetPt_%s_R%s_jetlevel' % (parton_type, jetR))).Fill(jet.pt())
 					
+
+					jet_groomed_lund = None
+					obs = self.calculate_observable(
+						observable, jet, jet_groomed_lund, jetR, jet.pt())
+
+
+					# print("filling pair level thnsparse")
+					for index in range(obs.correlator(2).rs().size()):
+						for parton_type in parton_types:
+
+							if self.weighted:
+								if (iev < 5):
+									print("weighted!")
+								getattr(self, ('h2D_%s_JetPt_%s_R%s_%s' % (observable, parton_type, jetR, obs_label)) if \
+									len(obs_label) else ('h2D_%s_JetPt_%s_R%s' % (observable, parton_type, jetR))).Fill(jet.pt(), obs.correlator(2).rs()[index], obs.correlator(2).weights()[index])
+							
+							else:
+								if (iev < 5):
+									print("unweighted!")
+								getattr(self, ('h2D_%s_JetPt_%s_R%s_%s' % (observable, parton_type, jetR, obs_label)) if \
+									len(obs_label) else ('h2D_%s_JetPt_%s_R%s' % (observable, parton_type, jetR))).Fill(jet.pt(), obs.correlator(2).rs()[index])
+							
+			for i_jch, jch in enumerate(jets_ch):
+				# Fill histograms
+				for observable in self.observable_list:
+
+					obs_setting = self.obs_settings[observable]
+					grooming_setting = self.obs_grooming_settings[observable]
+					obs_label = self.utils.obs_label(obs_setting, grooming_setting)
+
+
+					# print("filling jet level thnsparse")
+					self.hjetpT.Fill(jch.pt())
+					# fill jet pt histogram to give the normalization
+					getattr(self, ('h_JetPt_%s_R%s_%s_jetlevel' % ("inclusive", jetR, obs_label)) if \
+						len(obs_label) else ('h_JetPt_%s_R%s_jetlevel' % ("inclusive", jetR))).Fill(jch.pt())
 					
+
+					jet_groomed_lund = None
+					obs = self.calculate_observable(
+						observable, jch, jet_groomed_lund, jetR, jch.pt())
+
+
+					# print("filling pair level thnsparse")
+					for index in range(obs.correlator(2).rs().size()):
+
+						if self.weighted:
+							if (iev < 5):
+								print("weighted!")
+							getattr(self, ('h2D_%s_JetPt_%s_R%s_%s' % (observable, "inclusive", jetR, obs_label)) if \
+								len(obs_label) else ('h2D_%s_JetPt_%s_R%s' % (observable, "inclusive", jetR))).Fill(jch.pt(), obs.correlator(2).rs()[index], obs.correlator(2).weights()[index])
+						
+						else:
+							if (iev < 5):
+								print("unweighted!")
+							getattr(self, ('h2D_%s_JetPt_%s_R%s_%s' % (observable, "inclusive", jetR, obs_label)) if \
+								len(obs_label) else ('h2D_%s_JetPt_%s_R%s' % (observable, "inclusive", jetR))).Fill(jch.pt(), obs.correlator(2).rs()[index])
+
+			setattr(self, "count1_R%s" % jetR_str, count1)
+			setattr(self, "count2_R%s" % jetR_str, count2)
 
 	#---------------------------------------------------------------
 	# Calculate the observable given a jet
 	#---------------------------------------------------------------
+	def calculate_observable(self, observable, jet, jet_groomed_lund,
+		jetR, jet_pt_ungroomed):
+
+		if observable == "EEC":
+			
+			# Extract information for EEC
+			constituents = fj.sorted_by_pt(jet.constituents())
+			c_select = fj.vectorPJ()
+			trk_thrd = 1 # track pt threshold
+				
+			# apply pT threshold on jet constituents
+			for c in constituents:
+				if c.pt() < trk_thrd:
+					break
+				#print("constituent used for pair =", c)
+				c_select.append(c)
+				
+			dphi_cut = -9999
+			deta_cut = -9999
+			
+			new_corr = ecorrel.CorrelatorBuilder(c_select, jet.perp(), 2, 1, dphi_cut, deta_cut)
+			return new_corr #new_corr.correlator(2).rs()[index]
+
+		elif observable == "corr_deltajt":
+
+			# Extract information for EEC
+			constituents = fj.sorted_by_pt(jet.constituents())
+			c_select = fj.vectorPJ()
+			trk_thrd = 1 # track pt threshold
+				
+			# apply pT threshold on jet constituents
+			for c in constituents:
+				if c.pt() < trk_thrd:
+					break
+				#print("constituent used for pair =", c)
+				c_select.append(c)
+				
+			dphi_cut = -9999
+			deta_cut = -9999
+			
+			deltajt_obs_corr = othercorrel.OtherCorrelatorBuilder(jet, c_select, jet.perp(), 2, 1, dphi_cut, deta_cut, "deltajt") 
+			return deltajt_obs_corr
+
+
+		# Should not be any other observable
+		raise ValueError("Observable %s not implemented" % observable)
 	
 
 	#---------------------------------------------------------------
@@ -465,8 +519,6 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 	def scale_print_final_info(self, pythia):
 		# Scale all jet histograms by the appropriate factor from generated cross section and the number of accepted events
 		scale_f = pythia.info.sigmaGen() / self.hNevents.GetBinContent(1)
-		print("Scale factor for histograms is", scale_f) # in mb
-		print("Calculated from sigmaGen", pythia.info.sigmaGen(), "and Naccepted", self.hNevents.GetBinContent(1))
 
 		for jetR in self.jetR_list:
 			hist_list_name = "hist_list_R%s" % str(jetR).replace('.', '')
@@ -475,21 +527,6 @@ class PythiaQuarkGluon(process_base.ProcessBase):
 
 		self.hNevents.SetBinError(1, 0)
 		self.hjetpT.SetBinError(1, 0)
-
-		self.hjetpTScaled.Scale(scale_f)
-		self.hjetpTScaled.SetBinError(1, 0)
-
-
-		## remove later:
-		self.hparticlepTScaled.Scale(scale_f)
-		self.hparticleEtaScaled.Scale(scale_f)
-		
-		self.hparticlepT.SetBinError(1, 0)
-		self.hparticlepTScaled.SetBinError(1, 0)
-		self.hparticleEta.SetBinError(1, 0)
-		self.hparticleEtaScaled.SetBinError(1, 0)
-
-
 
 
 
@@ -511,7 +548,6 @@ if __name__ == '__main__':
 	parser.add_argument('-cf', '--config_file', action='store', type=str, default='config/angularity.yaml',
 						help="Path of config file for observable configurations")
 	parser.add_argument('--weightON', action='store', type=int, default=1, help="'1' turns weights on, '0' turns them off")
-	parser.add_argument('--ev-num-base', action='store', type=int, default=0, help="for merged files, this counts the total number of events")
 	
 	
 
@@ -533,16 +569,4 @@ if __name__ == '__main__':
 
 
 	process = PythiaQuarkGluon(config_file=args.config_file, output_dir=args.output_dir, args=args)
-
-	start_time = time.time()
-	start_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-	print(f"Start time: {start_timestamp}")
-
 	process.pythia_quark_gluon(args)
-
-	end_time = time.time()
-	end_timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-	duration = end_time - start_time
-
-	print(f"Stop time: {end_timestamp}")
-	print(f"Total execution time: {duration:.2f} seconds")

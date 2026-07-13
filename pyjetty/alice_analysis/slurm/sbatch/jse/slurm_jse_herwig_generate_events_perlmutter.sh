@@ -5,23 +5,23 @@
 #SBATCH --account=alice
 #SBATCH --qos=shared
 #SBATCH --constraint=cpu
-#SBATCH --time=4:00:00
-#SBATCH --array=1-3000
+#SBATCH --time=5:00:00
+#SBATCH --array=1-2000
 #SBATCH --exclude=nid004104,nid004160,nid004149
 #SBATCH --output=/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/herwig/slurm-%A_%a.out
 #SBATCH --mem=20GB
 
 
-# I want to generate files files with 150K events. I need about 100x the events but I will just do 50x.
-# Before, I generated 8000 events per file. --> Going to try 5k-->10k events per file. --> 750 files per pt hat bin
+# I want to generate files files with 150K events. I need about 100x the events.
+# Before, I generated 8000 events per file. --> Going to try 5k-->10k-->30k events per file. --> 500 files per pt hat bin --> could shorten time to 3:00:00? (taking ~30 min on perlmutter)
 
 JET_PTS=(50 100 200 500)
 echo "Number of pT-hat bins: ${#JET_PTS[@]}"
 
-NEVENTS_PER_FILE=10000
+NEVENTS_PER_FILE=30000
 
-PT_BIN=$(( (SLURM_ARRAY_TASK_ID - 1) / 750 + 1 )) # 750 files per pt hat bin
-CORE_IN_BIN=$(( (SLURM_ARRAY_TASK_ID - 1) % 750 + 1 )) # 750 files per pt hat bin
+PT_BIN=$(( (SLURM_ARRAY_TASK_ID - 1) / 500 + 1 )) # 500 files per pt hat bin
+CORE_IN_BIN=$(( (SLURM_ARRAY_TASK_ID - 1) % 500 + 1 )) # 500 files per pt hat bin
 
 CURRENT_PT=${JET_PTS[$((PT_BIN - 1))]}
 # PT_HAT_MIN=$(( CURRENT_PT * 80 / 100 ))
@@ -33,7 +33,7 @@ source /global/homes/b/blianggi/herwig_pyjetty_env.sh
 
 # HERWIG_SCRIPT_MPI="/home/james/pyjetty/pyjetty/alice_analysis/generation/herwig/run/$BIN/LHC_5020_MPI.run"
 # OUTDIR="/rstorage/generators/herwig_alice/hepmc/$SLURM_ARRAY_JOB_ID/$BIN/$CORE_IN_BIN"
-HERWIG_SCRIPT_MPI="/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/generation/herwig/run/$PT_BIN/LHC_5020_MPI_jse.run"
+HERWIG_SCRIPT_MPI="/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/generation/herwig/run/$PT_BIN/LHC_5360_MPI_jse.run"
 OUTDIR="/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/herwiggen/hepmc/$SLURM_ARRAY_JOB_ID/${CURRENT_PT}gev/$CORE_IN_BIN"
 mkdir -p $OUTDIR
 
@@ -71,6 +71,7 @@ JETS_SCRIPT=/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alice_ana
 INPUT_FILE=${NEW_OUTPUT_DIR}/AnalysisResultsGen.root
 CONFIG=/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/config/jse/pp/configcuts_ptbin.yaml
 EVNUM_START=$(( NEVENTS_PER_FILE * (CORE_IN_BIN - 1) ))
+echo "running jets script: $JETS_SCRIPT -i $INPUT_FILE -c $CONFIG --output-dir $NEW_OUTPUT_DIR --ev-num-base $EVNUM_START"
 python $JETS_SCRIPT -i $INPUT_FILE -c $CONFIG --output-dir $NEW_OUTPUT_DIR --ev-num-base $EVNUM_START
 
 # Move stdout to appropriate folder

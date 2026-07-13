@@ -4,6 +4,7 @@
 
 import os
 import ROOT
+import math
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
@@ -27,15 +28,18 @@ class PlotDataCurves:
 
         self.crosscheck = True
 
-        # jet pT RANGE bins: 10-80 GeV in 7 bins of 10 GeV -> (lo, hi) tuples
-        self.target_jet_pts = [(lo, lo + 10) for lo in range(10, 80, 10)]
-        # -> [(10,20),(20,30),(30,40),(40,50),(50,60),(60,70),(70,80)]
+        # jet pT RANGE bins
+        self.target_jet_pts = [
+            (10, 20), (20, 40), (40, 60), (60, 80), (80, 100),
+            (100, 120), (120, 150), (150, 200), (50, 60)
+        ]
+        # -> [(10,20),(20,40),(40,60),(60,80),(80,100),(100,120),(120,150),(150,200),(50,60)]
 
         self.cut_modes = [("sd", 0.1), ("maxkt", None)]
 
         # *** single input file containing ALL slices ***
-        # self.rootfile_path = ("/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/jse/rootfiles/AnalysisResultsCombined.root")
-        self.rootfile_path = ("/global/cfs/cdirs/alice/blianggi/mypyjetty/analysis/testing/AnalysisResults.root")
+        self.rootfile_path = ("/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/55778272/AnalysisResultsMerged.root")
+        # self.rootfile_path = ("/global/cfs/cdirs/alice/blianggi/mypyjetty/analysis/testing/AnalysisResults.root")
         self.data_rootfile = None
 
         self.cut_mode = ""
@@ -45,8 +49,11 @@ class PlotDataCurves:
         self._persistent_canvases = []
         self._canvas_counter = 0
 
+        self._counter_cache = {}   # (pr, cut) -> (num_jets, avg_jet_pt)
+
         # den_weight key -> token used in histogram names
         self.WEIGHT_TOKEN = {"jet": "wwjetpt", "rad": "wwradpt"}
+        
 
     # -------------------------------------------------------------------------
     # pt-range helpers
@@ -85,6 +92,58 @@ class PlotDataCurves:
     def _ptRL(self, prefix, ptRL):
         """Return 'prefix_ptRL_' or 'prefix_' for name construction."""
         return f"{prefix}_ptRL_" if ptRL else f"{prefix}_"
+    
+    # -------------------------------------------------------------------------
+    # Normalization factors (read-only)
+    # -------------------------------------------------------------------------
+
+    def _get_norm_factors(self, jetpt, z_cut):
+        """Return (num_jets_passed_cut, avg_jet_pt) for this slice, cached.
+
+        #counters bin 1 = num_jets
+        counters bin 2 = num_jets_passed_cut
+        counters bin 3 = sum_jetpt_passed_cut
+        avg_jet_pt = sum_jetpt_passed_cut / num_jets_passed_cut  (correct global average)
+        Returns (None, None) if counters missing or num_jets <= 0.
+        """
+        cut = self.get_cut_suffix(z_cut)
+        pr = self._ptrange_token(jetpt)
+        key = (pr, cut)
+        if key in self._counter_cache:
+            return self._counter_cache[key]
+
+        counters = self._get(f"counters_{pr}_{cut}")
+        if not counters:
+            print(f"WARNING: counters_{pr}_{cut} not found")
+            self._counter_cache[key] = (None, None)
+            return (None, None)
+
+        num_jets = counters.GetBinContent(2)
+        sum_jetpt = counters.GetBinContent(3)
+        if num_jets <= 0:
+            self._counter_cache[key] = (None, None)
+            return (None, None)
+
+        avg_jet_pt = sum_jetpt / num_jets
+        self._counter_cache[key] = (num_jets, avg_jet_pt)
+        return (num_jets, avg_jet_pt)
+
+    def _normalize_eec(self, hist, jetpt, z_cut, ptRL=False):
+        """Scale a fetched EEC/ptRL hist in memory (does not touch the file).
+
+        Regular:  1/num_jets with "width"
+        ptRL:     log(<pt>)/<pt> content factor, then 1/num_jets with "width"
+        """
+        if hist is None:
+            return None
+        num_jets, avg_jet_pt = self._get_norm_factors(jetpt, z_cut)
+        if num_jets is None:
+            return hist
+        if ptRL:
+            hist.Scale(math.log(avg_jet_pt) / avg_jet_pt)
+        hist.Scale(1.0 / num_jets, "width")
+        return hist
+
 
     # -------------------------------------------------------------------------
     # File handling (single file, opened once)
@@ -185,8 +244,9 @@ class PlotDataCurves:
         bb_name   = f"{self._ptRL('hist_BB', ptRL)}{pr}_{cut}_{w}"
         ab_name   = f"{self._ptRL('hist_AB', ptRL)}{pr}_{cut}_{w}"
 
-        return (self._get(full_name), self._get(rad_name), self._get(aa_name),
-                self._get(bb_name), self._get(ab_name))
+        hists = (self._get(full_name), self._get(rad_name), self._get(aa_name),
+                 self._get(bb_name), self._get(ab_name))
+        return tuple(self._normalize_eec(h, jetpt, z_cut, ptRL=ptRL) for h in hists)
 
     def GetCABHist(self, jetpt, z_cut, den_weight, ptRL=False):
         cut = self.get_cut_suffix(z_cut)
@@ -550,8 +610,6 @@ class PlotDataCurves:
             for h, name in zip([hr, hAA, hBB, hAB], ["rad", "AA", "BB", "AB"]):
                 c = h.Clone(f"acrosspt_{name}_data_{tag}_{cut}_ww{den_weight}")
                 c.SetDirectory(0)
-                if c.Integral() > 0:
-                    c.Scale(1.0 / c.Integral())
                 self.FormatHist(c, colors[ijetpt], ijetpt + 1, markers[ijetpt])
                 comps.append(c)
             persistent.append(comps)
@@ -577,7 +635,7 @@ class PlotDataCurves:
                 if first:
                     h.SetMaximum(ymax * 1.3)
                     h.SetMinimum(0)
-                    h.GetYaxis().SetTitle("self-normalized")
+                    h.GetYaxis().SetTitle("(1/N_{jets}) dN/dR_{L}")
                     h.GetYaxis().SetTitleSize(0.06)
                     h.GetYaxis().SetTitleOffset(0.9)
                     h.GetXaxis().SetTitleSize(0.06)
@@ -865,6 +923,7 @@ class PlotDataCurves:
     # -------------------------------------------------------------------------
 
     def plot(self):
+        # self.normalize_all()
         self.open_rootfile()
         self._init_mpv_storage()
 

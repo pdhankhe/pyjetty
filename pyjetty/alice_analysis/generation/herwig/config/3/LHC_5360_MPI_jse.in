@@ -11,7 +11,7 @@ read snippets/PPCollider.in
 # LHC physics parameters (override defaults here) 
 ##################################################
 
-set /Herwig/Generators/EventGenerator:EventHandler:LuminosityFunction:Energy 5020.0
+set /Herwig/Generators/EventGenerator:EventHandler:LuminosityFunction:Energy 5360.0
 
 ##################################################
 # Matrix Elements for hadron-hadron collisions 
@@ -26,15 +26,15 @@ insert SubProcess:MatrixElements[0] MEQCD2to2
 ##################################################
 
 # Cut directly on jet pt
-set /Herwig/Cuts/JetKtCut:MinKT 400.*GeV
-#set /Herwig/Cuts/JetKtCut:MaxKT 21.*GeV
+set /Herwig/Cuts/JetKtCut:MinKT 160.*GeV
+#set /Herwig/Cuts/JetKtCut:MaxKT 16.*GeV
 
 # Or, cut on Q^2?
 #set /Herwig/Cuts/Cuts:MHatMin 100.*GeV
 #set /Herwig/Cuts/Cuts:MHatMax 200.*GeV
 
-set /Herwig/Cuts/JetKtCut:MinEta -1.5
-set /Herwig/Cuts/JetKtCut:MaxEta 1.5
+#set /Herwig/Cuts/JetKtCut:MinEta -1.5
+#set /Herwig/Cuts/JetKtCut:MaxEta 1.5
 
 # Make particles with c*tau > 10 mm stable:
 set /Herwig/Decays/DecayHandler:MaxLifeTime 10*mm
@@ -57,5 +57,5 @@ set /Herwig/Analysis/HepMC:PrintEvent 2000000
 ##################################################
 # Save run for later usage with 'Herwig run'
 ##################################################
-set /Herwig/Generators/EventGenerator:PrintEvent 20000000
-saverun LHC_5020_MPI_jse /Herwig/Generators/EventGenerator
+set /Herwig/Generators/EventGenerator:PrintEvent 2000000
+saverun LHC_5360_MPI_jse /Herwig/Generators/EventGenerator

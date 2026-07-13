@@ -5,8 +5,8 @@
 #SBATCH --account=alice
 #SBATCH --qos=shared
 #SBATCH --constraint=cpu
-#SBATCH --time=9:00:00
-#SBATCH --array=1-400
+#SBATCH --time=4:00:00
+#SBATCH --array=1-2000
 #SBATCH --exclude=nid004104,nid004160,nid004149
 #SBATCH --output=/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/slurm-%A_%a.out
 #SBATCH --mem=20GB
@@ -18,10 +18,10 @@
 JET_PTS=(50 100 200 500)
 # NUM_PT_BINS=${#JET_PTS[@]}
 
-NEVENTS_PER_FILE=1500000 #1500k=1.5M events per file, 100 files = 150M events total
+NEVENTS_PER_FILE=150000 #150k events per file, 1000 files = 75M events total per pt-hat
 
-PT_BIN=$(( (SLURM_ARRAY_TASK_ID - 1) / 100 + 1 ))
-CORE_IN_BIN=$(( (SLURM_ARRAY_TASK_ID - 1) % 100 + 1 ))
+PT_BIN=$(( (SLURM_ARRAY_TASK_ID - 1) / 500 + 1 ))
+CORE_IN_BIN=$(( (SLURM_ARRAY_TASK_ID - 1) % 500 + 1 ))
 
 CURRENT_PT=${JET_PTS[$((PT_BIN - 1))]}
 PT_HAT_MIN=$(( CURRENT_PT * 80 / 100 )) #$CURRENT_PT #
@@ -33,12 +33,12 @@ SCRIPT=/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis
 CONFIG=/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/config/jse/pp/configcuts_ptbin.yaml
 
 cd ~/
-source pyjetty_env.sh
+source /global/homes/b/blianggi/pyjetty_env.sh
 cd analysis/
 
 mkdir -p $OUTPUT_DIR
-echo "running python $SCRIPT -c $CONFIG --output-dir $OUTPUT_DIR --user-seed $SEED --py-pthatmin $PT_HAT_MIN --py-ecm 5360 --nev $NEVENTS_PER_FILE --ev-num-base $EVNUM_START --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2"
-python $SCRIPT -c $CONFIG --output-dir $OUTPUT_DIR --user-seed $SEED --py-pthatmin $PT_HAT_MIN --py-ecm 5360 --nev $NEVENTS_PER_FILE --ev-num-base $EVNUM_START --pythiaopts HardQCD:all=on,TimeShower:pTmin=0.2
+echo "running python $SCRIPT -c $CONFIG --output-dir $OUTPUT_DIR --user-seed $SEED --py-pthatmin $PT_HAT_MIN --py-ecm 5360 --nev $NEVENTS_PER_FILE --ev-num-base $EVNUM_START --pythiaopts HardQCD:all=on" #,TimeShower:pTmin=0.2"
+python $SCRIPT -c $CONFIG --output-dir $OUTPUT_DIR --user-seed $SEED --py-pthatmin $PT_HAT_MIN --py-ecm 5360 --nev $NEVENTS_PER_FILE --ev-num-base $EVNUM_START --pythiaopts HardQCD:all=on #,TimeShower:pTmin=0.2
 
 
 # Move stdout to appropriate folder

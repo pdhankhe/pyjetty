@@ -51,7 +51,8 @@ fi
 OUTPUT_SUFFIX=$(echo $INPUT_FILE | cut -d/ -f15-16)
 echo "OUTPUT_SUFFIX SUPPOSED TO BE:"
 echo $OUTPUT_SUFFIX
-OUTPUT_DIR="/global/cfs/cdirs/alice/blianggi/rstorage/alice/generation/blianggi/herwiggen/tree_gen/$JOB_ID/$OUTPUT_SUFFIX/"
+# OUTPUT_DIR="/global/cfs/cdirs/alice/blianggi/rstorage/alice/generation/blianggi/herwiggen/tree_gen/$JOB_ID/$OUTPUT_SUFFIX/"
+OUTPUT_DIR="/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/generation/blianggi/herwiggen/tree_gen/$JOB_ID/$OUTPUT_SUFFIX/"
 echo "Output dir: $OUTPUT_DIR"
 mkdir -p $OUTPUT_DIR
 
@@ -86,8 +87,8 @@ else
 fi
 
 
-# Move stdout to appropriate folder
-mkdir -p /global/cfs/cdirs/alice/blianggi/rstorage/alice/generation/blianggi/herwiggen/tree_gen/${JOB_ID}/slurm-output
-mv /global/cfs/cdirs/alice/blianggi/rstorage/alice/generation/blianggi/herwiggen/tree_gen/slurm-${JOB_ID}_${TASK_ID}.out /global/cfs/cdirs/alice/blianggi/rstorage/alice/generation/blianggi/herwiggen/tree_gen/${JOB_ID}/slurm-output/
+# # Move stdout to appropriate folder
+# mkdir -p /global/cfs/cdirs/alice/blianggi/rstorage/alice/generation/blianggi/herwiggen/tree_gen/${JOB_ID}/slurm-output
+# mv /global/cfs/cdirs/alice/blianggi/rstorage/alice/generation/blianggi/herwiggen/tree_gen/slurm-${JOB_ID}_${TASK_ID}.out /global/cfs/cdirs/alice/blianggi/rstorage/alice/generation/blianggi/herwiggen/tree_gen/${JOB_ID}/slurm-output/
 
 
