@@ -301,24 +301,24 @@ def make_jetpt_panels(h_R04_fine, h_R06, h_R04_in_R06, outname,
     p_bot.Draw()
     p_bot.cd()
 
-    h_ratio = h_R06.Clone(f"h_jet_ratio{tag}")
+    h_ratio = h_R04.Clone(f"h_jet_ratio{tag}")
     h_ratio.SetDirectory(0)
     h_ratio.SetStats(0)
     h_ratio.SetLineColor(ROOT.kBlue)
     h_ratio.SetLineWidth(2)
-    h_ratio.Divide(h_R04)
+    h_ratio.Divide(h_R06)
 
     # second ratio vs. the extra curve, colored to match it
     h_ratio_extra = None
     if h_extra is not None:
-        h_ratio_extra = h_R06.Clone(f"h_jet_ratio_extra{tag}")
+        h_ratio_extra = h_extra.Clone(f"h_jet_ratio_extra{tag}")
         h_ratio_extra.SetDirectory(0)
         h_ratio_extra.SetStats(0)
         h_ratio_extra.SetLineColor(EXTRA_COLOR)
         h_ratio_extra.SetLineWidth(2)
-        h_ratio_extra.Divide(h_extra)
+        h_ratio_extra.Divide(h_R06)
 
-    ylabel = "R=0.6 / R=0.4" if h_extra is None else "R=0.6 / R=0.4 ratios"
+    ylabel = "R=0.4 / R=0.6" if h_extra is None else "R=0.4 / R=0.6 ratios"
     h_ratio.SetTitle(f";p_{{T,jet}} (GeV/c);{ylabel}")
     h_ratio.GetYaxis().SetNdivisions(505)
     h_ratio.GetYaxis().SetTitleSize(0.11)

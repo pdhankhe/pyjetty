@@ -232,7 +232,7 @@ class PlotDataCurves:
             return h
         return None
 
-    def GetSubjetEECHists(self, jetpt, z_cut, den_weight, ptRL=False):
+    def GetSubjetEECHists(self, jetpt, z_cut, den_weight, ptRL=False, norm_by_jets=True):
         cut = self.get_cut_suffix(z_cut)
         pr = self._ptrange_token(jetpt)
         w = self.WEIGHT_TOKEN[den_weight]
@@ -246,14 +246,42 @@ class PlotDataCurves:
 
         hists = (self._get(full_name), self._get(rad_name), self._get(aa_name),
                  self._get(bb_name), self._get(ab_name))
-        return tuple(self._normalize_eec(h, jetpt, z_cut, ptRL=ptRL) for h in hists)
+        if norm_by_jets:
+            final_hists = tuple(self._normalize_eec(h, jetpt, z_cut, ptRL=ptRL) for h in hists)
+        return final_hists if norm_by_jets else hists
 
-    def GetCABHist(self, jetpt, z_cut, den_weight, ptRL=False):
+    # Can't use this anymore because CAB was calculated with unnormalized histograms... though maybe this shouldn't make a difference?
+    # def GetCABHist(self, jetpt, z_cut, den_weight, ptRL=False):
+        # cut = self.get_cut_suffix(z_cut)
+        # pr = self._ptrange_token(jetpt)
+        # w = self.WEIGHT_TOKEN[den_weight]
+        # name = f"{self._ptRL('CAB', ptRL)}{pr}_{cut}_{w}"
+    #     return self._get(name)
+
+    def GetCABHist(self, jetpt, z_cut, den_weight, hist_AA, hist_BB, hist_AB, ptRL=False):
         cut = self.get_cut_suffix(z_cut)
         pr = self._ptrange_token(jetpt)
         w = self.WEIGHT_TOKEN[den_weight]
         name = f"{self._ptRL('CAB', ptRL)}{pr}_{cut}_{w}"
-        return self._get(name)
+
+        hist_CAB = hist_AB.Clone(name)
+        hist_CAB.SetTitle("C_{AB};R_{L};AxB / #sqrt{AxA #times BxB}")
+        hist_CAB.Reset()
+        for i in range(1, hist_CAB.GetNbinsX() + 1):
+            aa, bb, ab = hist_AA.GetBinContent(i), hist_BB.GetBinContent(i), hist_AB.GetBinContent(i)
+            sig_aa, sig_bb, sig_ab = hist_AA.GetBinError(i), hist_BB.GetBinError(i), hist_AB.GetBinError(i)
+            if aa > 0 and bb > 0:
+                denom = math.sqrt(aa * bb)
+                result = ab / denom
+                term_ab = sig_ab / denom
+                term_aa = (result * sig_aa) / (2 * aa)
+                term_bb = (result * sig_bb) / (2 * bb)
+                hist_CAB.SetBinContent(i, result)
+                hist_CAB.SetBinError(i, np.sqrt(term_ab**2 + term_aa**2 + term_bb**2))
+            else:
+                hist_CAB.SetBinContent(i, 0)
+                hist_CAB.SetBinError(i, 0)
+        return hist_CAB
 
     def GetRGHist(self, jetpt, z_cut):
         cut = self.get_cut_suffix(z_cut)
@@ -336,7 +364,7 @@ class PlotDataCurves:
 
             ev_leg = self.MakeEventLeg(label, z_cut, den_weight)
             legend = ROOT.TLegend(0.68, 0.5, 0.88, 0.68)
-            if hist_full is not None:
+            if hist_full is not None and den_weight == "jet":
                 legend.AddEntry(hist_full,
                                 f"all jets that passed {self.get_passed_label()}", "l")
             legend.AddEntry(hist_rad, "radiator", "l")
@@ -346,7 +374,10 @@ class PlotDataCurves:
             legend.AddEntry(hist_BB, "BxB", "l")
             legend.AddEntry(hist_AB, "AxB", "l")
 
-            hists_to_draw = [h for h in hists if h is not None]
+            excluded = {None}
+            if den_weight == "rad":
+                excluded.add(hist_full)
+            hists_to_draw = [h for h in hists if h not in excluded]
             self._draw_eec_canvas(canvas, hists_to_draw, ev_leg=ev_leg,
                                   legend=legend, crosscheck_hist=crosscheck)
 
@@ -373,47 +404,47 @@ class PlotDataCurves:
             return
 
         _, _, hist_AA, hist_BB, hist_AB = self.GetSubjetEECHists(
-            jetpt, z_cut, den_weight)
+            jetpt, z_cut, den_weight, False, False)
         if not all([hist_AA, hist_BB, hist_AB]):
             print(f"WARNING: AA/BB/AB not found for data {tag} {cut}")
             return
 
-        # ----- Canvas 1: R_g vs all EEC components -----
-        canvas = self.make_canvas("canvas_rg", tag=tag, z_cut=z_cut,
-                                  den_weight=den_weight,
-                                  title="R_{g} vs EEC components")
-        canvas.SetLogx()
-        canvas.cd()
+        # # ----- Canvas 1: R_g vs all EEC components -----
+        # canvas = self.make_canvas("canvas_rg", tag=tag, z_cut=z_cut,
+        #                           den_weight=den_weight,
+        #                           title="R_{g} vs EEC components")
+        # canvas.SetLogx()
+        # canvas.cd()
 
-        hist_AA.SetLineColor(Color.BLUE)
-        hist_BB.SetLineColor(Color.ORANGE)
-        hist_AB.SetLineColor(Color.GREEN)
-        hist_rg.SetLineColor(ROOT.kRed + 1)
-        hist_rg.SetLineStyle(ROOT.kDashed)
+        # hist_AA.SetLineColor(Color.BLUE)
+        # hist_BB.SetLineColor(Color.ORANGE)
+        # hist_AB.SetLineColor(Color.GREEN)
+        # hist_rg.SetLineColor(ROOT.kRed + 1)
+        # hist_rg.SetLineStyle(ROOT.kDashed)
 
-        y_max = max(hist_AA.GetMaximum(), hist_BB.GetMaximum(),
-                    hist_AB.GetMaximum(), hist_rg.GetMaximum()) * 1.3
-        hist_AA.SetMaximum(y_max)
-        hist_AA.SetMinimum(0)
-        hist_AA.GetXaxis().SetTitle("R_{L} or R_{g}")
-        hist_AA.GetYaxis().SetTitle("(1/N_{jets}) dN/d(R_{L} or R_{g})")
+        # y_max = max(hist_AA.GetMaximum(), hist_BB.GetMaximum(),
+        #             hist_AB.GetMaximum(), hist_rg.GetMaximum()) * 1.3
+        # hist_AA.SetMaximum(y_max)
+        # hist_AA.SetMinimum(0)
+        # hist_AA.GetXaxis().SetTitle("R_{L} or R_{g}")
+        # hist_AA.GetYaxis().SetTitle("(1/N_{jets}) dN/d(R_{L} or R_{g})")
 
-        hist_AA.Draw("HIST")
-        hist_BB.Draw("HIST SAME")
-        hist_AB.Draw("HIST SAME")
-        hist_rg.Draw("HIST SAME")
+        # hist_AA.Draw("HIST")
+        # hist_BB.Draw("HIST SAME")
+        # hist_AB.Draw("HIST SAME")
+        # hist_rg.Draw("HIST SAME")
 
-        ev_leg = self.MakeEventLeg(label, z_cut, den_weight)
-        legend = ROOT.TLegend(0.55, 0.65, 0.88, 0.88)
-        legend.AddEntry(hist_AA, "AxA (EEC)", "l")
-        legend.AddEntry(hist_BB, "BxB (EEC)", "l")
-        legend.AddEntry(hist_AB, "AxB (EEC)", "l")
-        legend.AddEntry(hist_rg, "R_{g} = #DeltaR_{AB}/R", "l")
-        ev_leg.Draw()
-        legend.Draw()
+        # ev_leg = self.MakeEventLeg(label, z_cut, den_weight)
+        # legend = ROOT.TLegend(0.55, 0.65, 0.88, 0.88)
+        # legend.AddEntry(hist_AA, "AxA (EEC)", "l")
+        # legend.AddEntry(hist_BB, "BxB (EEC)", "l")
+        # legend.AddEntry(hist_AB, "AxB (EEC)", "l")
+        # legend.AddEntry(hist_rg, "R_{g} = #DeltaR_{AB}/R", "l")
+        # ev_leg.Draw()
+        # legend.Draw()
 
-        output_name = (f"rg_vs_eec_data_{tag}_R0.4_{cut}_ww{den_weight}.pdf")
-        self._save_canvas(canvas, "data", z_cut, output_name, plot_type="rg")
+        # output_name = (f"rg_vs_eec_data_{tag}_R0.4_{cut}_ww{den_weight}.pdf")
+        # self._save_canvas(canvas, "data", z_cut, output_name, plot_type="rg")
 
         # ----- Canvas 2: R_g vs AxB self-normalized with ratio panel -----
         hist_rg_norm = hist_rg.Clone(f"hist_rg_norm_data_{tag}")
@@ -509,8 +540,10 @@ class PlotDataCurves:
         can_CAB.SetLogx()
         can_CAB.SetLogy()
 
-        hist_wwjetpt = self.GetCABHist(jetpt, z_cut, "jet", ptRL=ptRL)
-        hist_wwradpt = self.GetCABHist(jetpt, z_cut, "rad", ptRL=ptRL)
+        _, _, hist_AA_jet, hist_BB_jet, hist_AB_jet = self.GetSubjetEECHists(jetpt, z_cut, "jet", ptRL=ptRL)
+        _, _, hist_AA_rad, hist_BB_rad, hist_AB_rad = self.GetSubjetEECHists(jetpt, z_cut, "rad", ptRL=ptRL)
+        hist_wwjetpt = self.GetCABHist(jetpt, z_cut, "jet", hist_AA_jet, hist_BB_jet, hist_AB_jet, ptRL=ptRL)
+        hist_wwradpt = self.GetCABHist(jetpt, z_cut, "rad", hist_AA_rad, hist_BB_rad, hist_AB_rad, ptRL=ptRL)
         if not (hist_wwjetpt and hist_wwradpt):
             print(f"WARNING: CAB hist(s) not found for data {tag} {cut} (ptRL={ptRL})")
             return
@@ -667,7 +700,9 @@ class PlotDataCurves:
         persistent_CAB = []
         first_CAB = True
         for ijetpt, jetpt in enumerate(self.target_jet_pts):
-            h = self.GetCABHist(jetpt, z_cut, den_weight)
+            hists = self.GetSubjetEECHists(jetpt, z_cut, den_weight)
+            _, hr, hAA, hBB, hAB = hists
+            h = self.GetCABHist(jetpt, z_cut, den_weight, hAA, hBB, hAB)
             if not h:
                 continue
             tag = self._ptrange_tag(jetpt)
