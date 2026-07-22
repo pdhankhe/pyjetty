@@ -31,7 +31,7 @@ python ${SCRIPT_FIND_JETS} "$INFILE" "$PARQUET_OUTFILE" --ptmin 50.0
 # Process jets
 SCRIPT_PROCESS_JETS=/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/process/user/jse/data_process_jets.py
 ROOT_OUTFILE=${OUTDIR}/AnalysisResults.root
-python ${SCRIPT_PROCESS_JETS} ${PARQUET_OUTFILE} ${ROOT_OUTFILE} --zcuts 0.1 0.2 --no-maxkt
+python ${SCRIPT_PROCESS_JETS} ${PARQUET_OUTFILE} ${ROOT_OUTFILE} --zcuts 0.1 0.2 --no-maxkt --add-noweight
 
 # Move stdout to appropriate folder
 cd /global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/${SLURM_ARRAY_JOB_ID}/ #before was hepmc
