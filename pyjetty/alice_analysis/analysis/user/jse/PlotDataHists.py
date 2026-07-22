@@ -29,18 +29,22 @@ class PlotDataCurves:
         self.crosscheck = True
 
         # jet pT RANGE bins
-        self.target_jet_pts = [
-            (10, 20), (20, 40), (40, 60), (60, 80), (80, 100),
-            (100, 120), (120, 150), (150, 200), (50, 60)
-        ]
+        # self.target_jet_pts = [
+        #     (10, 20), (20, 40), (40, 60), (60, 80), (80, 100),
+        #     (100, 120), (120, 150), (150, 200)
+        # ]
         # -> [(10,20),(20,40),(40,60),(60,80),(80,100),(100,120),(120,150),(150,200),(50,60)]
+        self.target_jet_pts = [(60, 80), (80, 100), (100, 120), (120, 150), (150, 200)]
 
-        self.cut_modes = [("sd", 0.1), ("maxkt", None)]
+        # self.cut_modes = [("sd", 0.1), ("maxkt", None)]
+        self.cut_modes = [("sd", 0.2)]
 
         # *** single input file containing ALL slices ***
         self.rootfile_path = ("/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/55778272/AnalysisResultsMerged.root")
         # self.rootfile_path = ("/global/cfs/cdirs/alice/blianggi/mypyjetty/analysis/testing/AnalysisResults.root")
+        self.zcut2_rootfile_path = ("/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/56140697/AnalysisResultsMerged.root")
         self.data_rootfile = None
+        self.current_rootfile_path = None
 
         self.cut_mode = ""
         self.z_cut = None
@@ -149,12 +153,23 @@ class PlotDataCurves:
     # File handling (single file, opened once)
     # -------------------------------------------------------------------------
 
-    def open_rootfile(self):
+    def open_rootfile(self, z_cut=None):
+        # Determine which file we should be using
+        target_path = self.zcut2_rootfile_path if z_cut == 0.2 else self.rootfile_path
+
+        # If already open and it's the correct file, just return
         if self.data_rootfile and not self.data_rootfile.IsZombie():
-            return
-        self.data_rootfile = ROOT.TFile.Open(self.rootfile_path)
+            if self.current_rootfile_path == target_path:
+                return
+            # Otherwise, we need to switch files
+            self.data_rootfile.Close()
+
+        # Open the target file
+        self.data_rootfile = ROOT.TFile.Open(target_path)
         if not self.data_rootfile or self.data_rootfile.IsZombie():
-            raise RuntimeError(f"Could not open {self.rootfile_path}")
+            raise RuntimeError(f"Could not open {target_path}")
+
+        self.current_rootfile_path = target_path
 
     # -------------------------------------------------------------------------
     # Output paths and canvases
@@ -602,12 +617,17 @@ class PlotDataCurves:
     def plot_basic_acrosspt(self, z_cut, den_weight):
         cut = self.get_cut_suffix(z_cut)
         n_pt = len(self.target_jet_pts)
-        # build colour/marker cycles long enough for 7 bins
-        base_colors = [ROOT.kBlack, ROOT.kBlue, ROOT.kOrange + 7, ROOT.kGreen + 2,
-                       ROOT.kRed + 1, ROOT.kMagenta + 1, ROOT.kCyan + 2]
-        base_markers = [ROOT.kFullCircle, ROOT.kFullSquare, ROOT.kFullDiamond,
-                        ROOT.kFullStar, ROOT.kFullTriangleUp, ROOT.kFullTriangleDown,
-                        ROOT.kFullCross]
+        # Expanded colour/marker cycles
+        base_colors = [
+            ROOT.kBlack, ROOT.kBlue, ROOT.kOrange + 7, ROOT.kGreen + 2,
+            ROOT.kRed + 1, ROOT.kMagenta + 1, ROOT.kCyan + 2, ROOT.kAzure + 1,
+            ROOT.kYellow + 1, ROOT.kGray + 1
+        ]
+        base_markers = [
+            ROOT.kFullCircle, ROOT.kFullSquare, ROOT.kFullDiamond,
+            ROOT.kFullStar, ROOT.kFullTriangleUp, ROOT.kFullTriangleDown,
+            ROOT.kFullCross, ROOT.kFullCircle, ROOT.kFullSquare, ROOT.kFullDiamond
+        ]
         colors  = [base_colors[i % len(base_colors)] for i in range(n_pt)]
         markers = [base_markers[i % len(base_markers)] for i in range(n_pt)]
 
@@ -617,8 +637,8 @@ class PlotDataCurves:
                                   den_weight=den_weight, w=1200, h=1000)
         canvas.Divide(2, 2, 0.005, 0.005)
 
-        ev_leg = self.MakeEventLeg("10-80", z_cut, den_weight)
-        legend_pt = ROOT.TLegend(0.4, 0.6, 0.77, 0.88)
+        ev_leg = self.MakeEventLeg("10-200", z_cut, den_weight)
+        legend_pt = ROOT.TLegend(0.6, 0.6, 0.88, 0.88) # Restored vertical dimensions
         legend_pt.SetBorderSize(0)
 
         dummy_graphs = []
@@ -695,7 +715,7 @@ class PlotDataCurves:
         can_CAB.SetLogx()
         can_CAB.SetLogy()
         can_CAB.cd()
-        legend_CAB = ROOT.TLegend(0.38, 0.12, 0.58, 0.32)
+        legend_CAB = ROOT.TLegend(0.65, 0.12, 0.88, 0.32) # Moved to bottom right
         legend_CAB.SetBorderSize(0)
         persistent_CAB = []
         first_CAB = True
@@ -709,7 +729,28 @@ class PlotDataCurves:
             c = h.Clone(f"acrosspt_CAB_data_{tag}_{cut}_ww{den_weight}")
             c.SetDirectory(0)
             self.FormatHist(c, colors[ijetpt], ijetpt + 1, markers[ijetpt])
-            legend_CAB.AddEntry(c, f"jet p_{{T}} = {self._ptrange_label(jetpt)} GeV/c", "pe")
+
+            # Extract slope for RL = 0.2 to 1
+            slope_str = ""
+            try:
+                # Extract points
+                bins = h.GetNbinsX()
+                xs, ys = [], []
+                for b in range(1, bins + 1):
+                    xb = h.GetBinCenter(b)
+                    if 0.2 <= xb <= 1.0:
+                        xs.append(xb)
+                        ys.append(h.GetBinContent(b))
+
+                if len(xs) >= 2:
+                    # Fit straight line y = mx + c
+                    coeffs = np.polyfit(xs, ys, 1)
+                    slope = coeffs[0]
+                    slope_str = f" (slope={slope:.2e})"
+            except Exception as e:
+                print(f"Fit failed for {tag}: {e}")
+
+            legend_CAB.AddEntry(c, f"jet p_{{T}} = {self._ptrange_label(jetpt)} GeV/c{slope_str}", "pe")
             persistent_CAB.append(c)
             c.Draw("PE" if first_CAB else "PE SAME")
             first_CAB = False
@@ -721,6 +762,68 @@ class PlotDataCurves:
 
         output_name = (f"CAB_acrosspt_data_alljetpt_R0.4_{cut}_ww{den_weight}.pdf")
         self._save_canvas(can_CAB, "data", z_cut, output_name, plot_type="CAB")
+
+        # ---- C_AB overlaid across pT (with Fit Lines) ----
+        can_CAB_fits = self.make_canvas("can_CAB_acrosspt_fits", z_cut=z_cut,
+                                        den_weight=den_weight, title="C_{AB} fits")
+        can_CAB_fits.SetLogx()
+        can_CAB_fits.SetLogy()
+        can_CAB_fits.cd()
+        legend_CAB_fits = ROOT.TLegend(0.65, 0.12, 0.88, 0.32)
+        legend_CAB_fits.SetBorderSize(0)
+        persistent_CAB_fits = []
+        first_CAB_fits = True
+        for ijetpt, jetpt in enumerate(self.target_jet_pts):
+            hists = self.GetSubjetEECHists(jetpt, z_cut, den_weight)
+            _, hr, hAA, hBB, hAB = hists
+            h = self.GetCABHist(jetpt, z_cut, den_weight, hAA, hBB, hAB)
+            if not h:
+                continue
+            tag = self._ptrange_tag(jetpt)
+            c_fits = h.Clone(f"acrosspt_CAB_fits_data_{tag}_{cut}_ww{den_weight}")
+            c_fits.SetDirectory(0)
+            self.FormatHist(c_fits, colors[ijetpt], ijetpt + 1, markers[ijetpt])
+
+            slope_str_fits = ""
+            try:
+                bins = h.GetNbinsX()
+                xs, ys = [], []
+                for b in range(1, bins + 1):
+                    xb = h.GetBinCenter(b)
+                    yb = h.GetBinContent(b)
+                    if 0.2 <= xb <= 1.0 and yb > 0:
+                        xs.append(xb)
+                        ys.append(yb)
+
+                if len(xs) >= 2:
+                    # Fit log(y) = m*log(x) + b  =>  y = exp(b) * x^m
+                    # This looks linear in log(x) and log(y)
+                    coeffs = np.polyfit(np.log(xs), np.log(ys), 1)
+                    m, b_int = coeffs[0], coeffs[1]
+                    A = np.exp(b_int)
+                    slope_str_fits = f" (slope={m:.3f})"
+
+                    # Draw power-law fit line: y = [0] * x^[1]
+                    fit_func = ROOT.TF1(f"fit_{tag}_{ijetpt}", "[0]*TMath.Power(x, [1])", 0.2, 1.0)
+                    fit_func.SetParameters(A, m)
+                    fit_func.SetLineColor(colors[ijetpt])
+                    fit_func.SetLineWidth(2)
+                    fit_func.Draw("SAME")
+            except Exception as e:
+                print(f"Fit failed for {tag} (fits version): {e}")
+
+            legend_CAB_fits.AddEntry(c_fits, f"jet p_{{T}} = {self._ptrange_label(jetpt)} GeV/c{slope_str_fits}", "pe")
+            persistent_CAB_fits.append(c_fits)
+            c_fits.Draw("PE" if first_CAB_fits else "PE SAME")
+            first_CAB_fits = False
+
+        if persistent_CAB_fits:
+            ev_leg.Draw()
+            legend_CAB_fits.Draw()
+            self.draw_hori_line(1e-3, 1, 1, ROOT.kGray + 3, 9)
+
+        output_name_fits = (f"CAB_acrosspt_fits_data_alljetpt_R0.4_{cut}_ww{den_weight}.pdf")
+        self._save_canvas(can_CAB_fits, "data", z_cut, output_name_fits, plot_type="CAB")
 
     # -------------------------------------------------------------------------
     # MPV (Most Probable Value) machinery
@@ -959,13 +1062,13 @@ class PlotDataCurves:
 
     def plot(self):
         # self.normalize_all()
-        self.open_rootfile()
         self._init_mpv_storage()
 
         for i, jetpt in enumerate(self.target_jet_pts):
             for cut_mode, z_cut in self.cut_modes:
                 self.cut_mode = cut_mode
                 self.z_cut = z_cut
+                self.open_rootfile(z_cut)
                 print(f"Processing {cut_mode} mode, z_cut={z_cut}, "
                       f"jetpt={self._ptrange_label(jetpt)}...")
 
