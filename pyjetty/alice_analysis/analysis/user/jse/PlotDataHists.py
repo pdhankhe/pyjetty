@@ -37,7 +37,7 @@ class PlotDataCurves:
         self.target_jet_pts = [(60, 80), (80, 100), (100, 120), (120, 150), (150, 200)]
 
         # self.cut_modes = [("sd", 0.1), ("maxkt", None)]
-        self.cut_modes = [("sd", 0.2)]
+        self.cut_modes = [("sd", 0.1), ("sd", 0.2)]
 
         # *** single input file containing ALL slices ***
         # self.rootfile_path = ("/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/55778272/AnalysisResultsMerged.root")
@@ -58,7 +58,7 @@ class PlotDataCurves:
         self._counter_cache = {}   # (pr, cut) -> (num_jets, avg_jet_pt)
 
         # den_weight key -> token used in histogram names
-        self.WEIGHT_TOKEN = {"jet": "wwjetpt", "rad": "wwradpt"}
+        self.WEIGHT_TOKEN = {"jet": "wwjetpt", "rad": "wwradpt", "null": "wwnullpt"}
         
 
     # -------------------------------------------------------------------------
