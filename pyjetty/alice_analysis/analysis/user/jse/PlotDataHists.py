@@ -19,68 +19,109 @@ class Color(IntEnum):
 
 
 class PlotDataCurves:
-    def __init__(self):
+    def __init__(self, groomed_binning=False):
         ROOT.gROOT.SetBatch(True)
         ROOT.gStyle.SetLegendBorderSize(0)
         ROOT.gStyle.SetLegendFillColor(0)
         ROOT.gStyle.SetPadGridX(1)
         ROOT.gStyle.SetPadGridY(1)
 
+        ROOT.gStyle.SetOptStat(0)
+
         self.crosscheck = True
 
-        # jet pT RANGE bins
-        # self.target_jet_pts = [
-        #     (10, 20), (20, 40), (40, 60), (60, 80), (80, 100),
-        #     (100, 120), (120, 150), (150, 200)
-        # ]
-        # -> [(10,20),(20,40),(40,60),(60,80),(80,100),(100,120),(120,150),(150,200),(50,60)]
-        self.target_jet_pts = [(60, 80), (80, 100), (100, 120), (120, 150), (150, 200)]
+        # -------------------------------------------------------------
+        # Binning mode.
+        #   False -> slices in ungroomed jet pT, names use  'jetpt{lo}_{hi}'
+        #   True  -> slices in groomed/radiator pT, names use 'gjetpt{lo}_{hi}'
+        # -------------------------------------------------------------
+        self.groomed_binning = groomed_binning
+
+        # jet pT RANGE bins (available in file:
+        #   [(10,20),(20,40),(40,60),(60,80),(80,100),(100,120),(120,150),(150,200),(50,60)])
+        self.target_jet_pts_ungroomed = [
+            # (10, 20), (20, 40), (40, 60), (60, 80), (80, 100), (100, 120), (120, 150), (150, 200)
+            (60, 80), (80, 100), (100, 120), (120, 150), (150, 200)
+        ]
+        # groomed pT is strictly below the ungroomed pT of the same jet, so the
+        # useful slices sit lower; adjust to whatever the writer actually filled.
+        self.target_jet_pts_groomed = [
+            (10, 20), (20, 40), (40, 60), (60, 80), (80, 100), (100, 120), (120, 150), (150, 200)
+        ]
+        self.target_jet_pts = (self.target_jet_pts_groomed if self.groomed_binning
+                               else self.target_jet_pts_ungroomed)
 
         # self.cut_modes = [("sd", 0.1), ("maxkt", None)]
-        self.cut_modes = [("sd", 0.1), ("sd", 0.2)]
+        self.cut_modes = [("sd", 0.1)] #, ("sd", 0.2)]
 
-        # *** single input file containing ALL slices ***
         # self.rootfile_path = ("/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/55778272/AnalysisResultsMerged.root")
         # # self.rootfile_path = ("/global/cfs/cdirs/alice/blianggi/mypyjetty/analysis/testing/AnalysisResults.root")
         # self.zcut2_rootfile_path = ("/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/56140697/AnalysisResultsMerged.root")
-        self.rootfile_path = ("/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/56300667/AnalysisResultsMerged.root") # smaller bins
-        self.zcut2_rootfile_path = ("/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/56300667/AnalysisResultsMerged.root") # smaller bins
+        # self.rootfile_path = ("/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/56300667/AnalysisResultsMerged.root") # perlmutter, smaller bins
+        # self.zcut2_rootfile_path = ("/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/56300667/AnalysisResultsMerged.root") # perlmutter, smaller bins
+        
+        # hiccup
+        print("self.groomed_binning", self.groomed_binning)
+        if self.groomed_binning:
+            print("Using groomed binning file")
+            self.rootfile_path = ("/rstorage/alice/AnalysisResults/blianggi/jse/data/1839690/AnalysisResultsMerged.root") # Groomed, hiccup
+            self.zcut2_rootfile_path = ("/rstorage/alice/AnalysisResults/blianggi/jse/data/1839690/AnalysisResultsMerged.root")
+        else:
+            print("Using ungroomed binning file")
+            self.rootfile_path = ("/rstorage/alice/AnalysisResults/blianggi/jse/data/56300667/AnalysisResultsMerged.root") # Ungroomed, hiccup
+            self.zcut2_rootfile_path = ("/rstorage/alice/AnalysisResults/blianggi/jse/data/56300667/AnalysisResultsMerged.root")
         self.data_rootfile = None
         self.current_rootfile_path = None
 
         self.cut_mode = ""
         self.z_cut = None
-        self.base_plot_dir = ("/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/jse/plots") #data
+        self.base_plot_dir = ("/software/users/blianggi/mypyjetty/storage/jse/plots")
 
         self._persistent_canvases = []
         self._canvas_counter = 0
 
         self._counter_cache = {}   # (pr, cut) -> (num_jets, avg_jet_pt)
 
-        # den_weight key -> token used in histogram names
         self.WEIGHT_TOKEN = {"jet": "wwjetpt", "rad": "wwradpt", "null": "wwnullpt"}
-        
+
+        self._keep = []          # anything that must outlive the drawing call
 
     # -------------------------------------------------------------------------
     # pt-range helpers
     # -------------------------------------------------------------------------
 
-    @staticmethod
-    def _ptrange_token(jetpt):
-        """jetpt is a (lo, hi) tuple -> 'jetpt70_80'."""
+    # -------------------------------------------------------------------------
+    # pt-range helpers
+    # -------------------------------------------------------------------------
+
+    @property
+    def binning_tag(self):
+        """Slice-token prefix: 'gjetpt' for groomed binning, 'jetpt' otherwise."""
+        return "gjetpt" if self.groomed_binning else "jetpt"
+
+    @property
+    def binning_dir(self):
+        """Subdirectory so the two binnings never overwrite each other."""
+        return "groomed_bins" if self.groomed_binning else "ungroomed_bins"
+
+    @property
+    def binning_desc(self):
+        """How to describe the binning variable in legends."""
+        return "gr. jet p_{T}" if self.groomed_binning else "jet p_{T}"
+
+    def _ptrange_token(self, jetpt):
+        """jetpt is a (lo, hi) tuple -> 'jetpt70_80' or 'gjetpt70_80'."""
         lo, hi = jetpt
-        return f"jetpt{lo}_{hi}"
+        return f"{self.binning_tag}{lo}_{hi}"
 
     @staticmethod
     def _ptrange_label(jetpt):
         lo, hi = jetpt
         return f"{lo}-{hi}"
 
-    @staticmethod
-    def _ptrange_tag(jetpt):
-        """For filenames: 'jetpt70_80'."""
-        lo, hi = jetpt
-        return f"jetpt{lo}_{hi}"
+    def _ptrange_tag(self, jetpt):
+        """For filenames; same token as the histogram names."""
+        return self._ptrange_token(jetpt)
 
     # -------------------------------------------------------------------------
     # Name building
@@ -178,7 +219,8 @@ class PlotDataCurves:
     # -------------------------------------------------------------------------
 
     def get_output_dir(self, subdir, z_cut, plot_type=None):
-        parts = [self.base_plot_dir, subdir, self.get_cut_suffix(z_cut)]
+        parts = [self.base_plot_dir, subdir, self.binning_dir,
+                 self.get_cut_suffix(z_cut)]
         if plot_type:
             parts.extend(plot_type.split('/'))
         path = os.path.join(*parts)
@@ -222,7 +264,49 @@ class PlotDataCurves:
         line.SetLineColor(color)
         line.SetLineStyle(linestyle)
         line.Draw("SAME")
+        self._keep.append(line)
         return line
+
+    def draw_rl_low_region(self, hist=None, x_max=0.01, color=ROOT.kGray + 1,
+                        alpha=0.35, redraw=None):
+        """Shade the region R_L < x_max on the current pad."""
+        pad = ROOT.gPad
+        if not pad:
+            return None
+
+        # frame coordinates are only valid once the pad has been laid out
+        pad.Modified()
+        pad.Update()
+
+        x_lo, x_hi = pad.GetUxmin(), pad.GetUxmax()
+        y_lo, y_hi = pad.GetUymin(), pad.GetUymax()
+        if pad.GetLogx():
+            x_lo, x_hi = 10.0 ** x_lo, 10.0 ** x_hi
+        if pad.GetLogy():
+            y_lo, y_hi = 10.0 ** y_lo, 10.0 ** y_hi
+
+        x_right = min(x_max, x_hi)
+        if not np.isfinite(x_lo) or not np.isfinite(x_right) or x_right <= x_lo:
+            return None
+        if not (np.isfinite(y_lo) and np.isfinite(y_hi)) or y_hi <= y_lo:
+            return None
+
+        box = ROOT.TBox(x_lo, y_lo, x_right, y_hi)
+        box.SetFillColorAlpha(color, alpha)
+        box.SetLineColor(color)
+        box.SetLineWidth(0)
+        box.Draw()
+
+        # optionally put the curves back on top of the band
+        if redraw:
+            for h, opt in redraw:
+                h.Draw(opt + " SAME")
+
+        pad.RedrawAxis()
+        pad.Modified()
+        pad.Update()
+        self._keep.append(box)      # <-- the actual fix
+        return box
 
     def MakeEventLeg(self, jetpt_label, z_cut, den_weight="",
                      x1=0.15, y1=0.7, x2=0.40, y2=0.88):
@@ -230,8 +314,10 @@ class PlotDataCurves:
         leg.SetBorderSize(0)
         leg.SetFillColor(0)
         leg.SetMargin(0)
+        leg.SetTextFont(42)
+        leg.SetTextSize(0.04)
         leg.AddEntry(ROOT.nullptr, "pp data, R = 0.4 jets", "")
-        leg.AddEntry(ROOT.nullptr, f"jet p_{{T}} = {jetpt_label} GeV/c", "")
+        leg.AddEntry(ROOT.nullptr, f"{self.binning_desc} = {jetpt_label} GeV/c", "")
         leg.AddEntry(ROOT.nullptr, self.get_cut_label(z_cut), "")
         if den_weight:
             leg.AddEntry(ROOT.nullptr,
@@ -280,6 +366,7 @@ class PlotDataCurves:
         pr = self._ptrange_token(jetpt)
         w = self.WEIGHT_TOKEN[den_weight]
         name = f"{self._ptRL('CAB', ptRL)}{pr}_{cut}_{w}"
+        print("name", name)
 
         hist_CAB = hist_AB.Clone(name)
         hist_CAB.SetTitle("C_{AB};R_{L};AxB / #sqrt{AxA #times BxB}")
@@ -338,6 +425,7 @@ class PlotDataCurves:
         self._draw_eec_set(hists_primary, first=True)
         if crosscheck_hist:
             crosscheck_hist.Draw("HIST SAME")
+        self.draw_rl_low_region(hists_primary[0]) 
         for leg in (ev_leg, legend):
             if leg:
                 leg.Draw()
@@ -379,8 +467,8 @@ class PlotDataCurves:
                 crosscheck.Add(hist_AB)
                 self.FormatHist(crosscheck, ROOT.kGray + 2, ROOT.kDashed)
 
-            ev_leg = self.MakeEventLeg(label, z_cut, den_weight)
-            legend = ROOT.TLegend(0.68, 0.5, 0.88, 0.68)
+            ev_leg = self.MakeEventLeg(label, z_cut, den_weight, x1=0.15, y1=0.7, x2=0.40, y2=0.88)
+            legend = ROOT.TLegend(0.68, 0.7, 0.88, 0.88)
             if hist_full is not None and den_weight == "jet":
                 legend.AddEntry(hist_full,
                                 f"all jets that passed {self.get_passed_label()}", "l")
@@ -503,6 +591,7 @@ class PlotDataCurves:
         hist_AB_norm.GetXaxis().SetLabelSize(0)
         hist_AB_norm.Draw("HIST")
         hist_rg_norm.Draw("HIST SAME")
+        self.draw_rl_low_region(hist_AB_norm)
 
         ev_leg2 = self.MakeEventLeg(label, z_cut, den_weight)
         legend2 = ROOT.TLegend(0.65, 0.74, 0.88, 0.88)
@@ -530,6 +619,7 @@ class PlotDataCurves:
         hist_ratio.SetMinimum(0.0)
         hist_ratio.SetMaximum(2.0)
         hist_ratio.Draw("EP")
+        self.draw_rl_low_region(hist_ratio)
         # corrected argument order: (x1, x2, y, color, linestyle)
         self.draw_hori_line(hist_ratio.GetXaxis().GetXmin(),
                             hist_ratio.GetXaxis().GetXmax(),
@@ -576,6 +666,7 @@ class PlotDataCurves:
         can_CAB.cd()
         hist_wwjetpt.Draw("HIST")
         hist_wwradpt.Draw("HIST SAME")
+        self.draw_rl_low_region(hist_wwjetpt)
         ev_leg.Draw()
         legend.Draw()
         self.draw_hori_line(1e-3, 1, 1, ROOT.kGray + 3, 9)
@@ -639,7 +730,9 @@ class PlotDataCurves:
                                   den_weight=den_weight, w=1200, h=1000)
         canvas.Divide(2, 2, 0.005, 0.005)
 
-        ev_leg = self.MakeEventLeg("10-200", z_cut, den_weight)
+        pt_lo = min(lo for lo, _ in self.target_jet_pts)
+        pt_hi = max(hi for _, hi in self.target_jet_pts)
+        ev_leg = self.MakeEventLeg(f"{pt_lo}-{pt_hi}", z_cut, den_weight)
         legend_pt = ROOT.TLegend(0.6, 0.6, 0.88, 0.88) # Restored vertical dimensions
         legend_pt.SetBorderSize(0)
 
@@ -649,7 +742,8 @@ class PlotDataCurves:
             d.SetMarkerStyle(marker)
             d.SetMarkerColor(color)
             d.SetLineColor(color)
-            legend_pt.AddEntry(d, f"jet p_{{T}} = {self._ptrange_label(jetpt)} GeV/c", "p")
+            # legend_pt.AddEntry(d, f"jet p_{{T}} = {self._ptrange_label(jetpt)} GeV/c", "p")
+            legend_pt.AddEntry(d, f"{self.binning_desc} = {self._ptrange_label(jetpt)} GeV/c", "p")
             dummy_graphs.append(d)
 
         # persistent[ijetpt] = [rad, AA, BB, AB] or None
@@ -696,6 +790,7 @@ class PlotDataCurves:
                     h.GetXaxis().SetTitleSize(0.06)
                     h.GetXaxis().SetTitle("R_{L}")
                 h.Draw("PE" if first else "PE SAME")
+                self.draw_rl_low_region(h)
                 first = False
 
             latex = ROOT.TLatex()
@@ -708,7 +803,7 @@ class PlotDataCurves:
                 ev_leg.Draw()
                 legend_pt.Draw()
 
-        output_name = (f"subjet_eec_acrosspt_data_alljetpt_R0.4_{cut}_ww{den_weight}.pdf")
+        output_name = (f"subjet_eec_acrosspt_data_all{self.binning_tag}"f"_R0.4_{cut}_ww{den_weight}.pdf")
         self._save_canvas(canvas, "data", z_cut, output_name, "subjet_eec")
 
         # ---- C_AB overlaid across pT ----
@@ -752,9 +847,11 @@ class PlotDataCurves:
             except Exception as e:
                 print(f"Fit failed for {tag}: {e}")
 
-            legend_CAB.AddEntry(c, f"jet p_{{T}} = {self._ptrange_label(jetpt)} GeV/c{slope_str}", "pe")
+            # legend_CAB.AddEntry(c, f"jet p_{{T}} = {self._ptrange_label(jetpt)} GeV/c{slope_str}", "pe")
+            legend_CAB.AddEntry(d, f"{self.binning_desc} = {self._ptrange_label(jetpt)} GeV/c", "p") #TODO: fix?
             persistent_CAB.append(c)
             c.Draw("PE" if first_CAB else "PE SAME")
+            self.draw_rl_low_region(c)
             first_CAB = False
 
         if persistent_CAB:
@@ -762,7 +859,7 @@ class PlotDataCurves:
             legend_CAB.Draw()
             self.draw_hori_line(1e-3, 1, 1, ROOT.kGray + 3, 9)
 
-        output_name = (f"CAB_acrosspt_data_alljetpt_R0.4_{cut}_ww{den_weight}.pdf")
+        output_name = (f"CAB_acrosspt_data_all{self.binning_tag}"f"_R0.4_{cut}_ww{den_weight}.pdf")
         self._save_canvas(can_CAB, "data", z_cut, output_name, plot_type="CAB")
 
         # ---- C_AB overlaid across pT (with Fit Lines) ----
@@ -814,9 +911,10 @@ class PlotDataCurves:
             except Exception as e:
                 print(f"Fit failed for {tag} (fits version): {e}")
 
-            legend_CAB_fits.AddEntry(c_fits, f"jet p_{{T}} = {self._ptrange_label(jetpt)} GeV/c{slope_str_fits}", "pe")
-            persistent_CAB_fits.append(c_fits)
+            # legend_CAB_fits.AddEntry(c_fits, f"jet p_{{T}} = {self._ptrange_label(jetpt)} GeV/c{slope_str_fits}", "pe")
+            legend_CAB_fits.AddEntry(d, f"{self.binning_desc} = {self._ptrange_label(jetpt)} GeV/c", "p") #TODO: fix?persistent_CAB_fits.append(c_fits)
             c_fits.Draw("PE" if first_CAB_fits else "PE SAME")
+            self.draw_rl_low_region(c_fits)
             first_CAB_fits = False
 
         if persistent_CAB_fits:
@@ -824,7 +922,7 @@ class PlotDataCurves:
             legend_CAB_fits.Draw()
             self.draw_hori_line(1e-3, 1, 1, ROOT.kGray + 3, 9)
 
-        output_name_fits = (f"CAB_acrosspt_fits_data_alljetpt_R0.4_{cut}_ww{den_weight}.pdf")
+        output_name_fits = (f"CAB_acrosspt_fits_data_all{self.binning_tag}"f"_R0.4_{cut}_ww{den_weight}.pdf")
         self._save_canvas(can_CAB_fits, "data", z_cut, output_name_fits, plot_type="CAB")
 
     # -------------------------------------------------------------------------
@@ -968,6 +1066,11 @@ class PlotDataCurves:
     def _init_mpv_storage(self):
         # self.mpv_data[case_key][component][jetpt_mid] = (mu, mu_err)
         self.mpv_data = {}
+        self.mpv_meta = {}   # case_key -> dict(cut=, den=, ptRL=, binning=)
+
+    def _mpv_case_key(self, cut, den_weight, ptRL):
+        return (f"basic_{self.binning_tag}_{cut}_ww{den_weight}"
+                + ("_ptRL" if ptRL else ""))
 
     def _fit_diag_path(self, case_key, component, tag):
         return os.path.join(self.base_plot_dir, "mpv_summary", "fits", case_key,
@@ -983,16 +1086,20 @@ class PlotDataCurves:
         tag = self._ptrange_tag(jetpt)
         lo, hi = jetpt
         jetpt_mid = 0.5 * (lo + hi)   # x-position for the summary plot
-        for ptRL, t in [(False, "basic"), (True, "basic_ptRL")]:
+        for ptRL in (False, True):
             hists = self.GetSubjetEECHists(jetpt, z_cut, den_weight, ptRL=ptRL)
-            case_key = f"{t}_data_{cut}_ww{den_weight}"
+            case_key = self._mpv_case_key(cut, den_weight, ptRL)
+            self.mpv_meta[case_key] = dict(cut=cut, den=den_weight, ptRL=ptRL,
+                                           binning=self.binning_tag,
+                                           groomed=self.groomed_binning)
+            diag_key = (f"phys_data_{self.binning_tag}_{cut}_ww{den_weight}"
+                        + ("_ptRL" if ptRL else ""))
             for comp_name, h in zip(["full", "rad", "AA", "BB", "AB"], hists):
                 if h is None:
                     continue
-                save_path = self._fit_diag_path(
-                    f"phys_data_{cut}_ww{den_weight}" + ("_ptRL" if ptRL else ""),
-                    comp_name, tag)
-                title = (f"{t} | data | jet p_T={self._ptrange_label(jetpt)} | "
+                save_path = self._fit_diag_path(diag_key, comp_name, tag)
+                title = (f"{'basic_ptRL' if ptRL else 'basic'} | data | "
+                         f"{self.binning_desc}={self._ptrange_label(jetpt)} | "
                          f"{cut} | ww{den_weight} | {comp_name}")
                 mu, mu_err = self._fit_mpv(h, save_path=save_path, plot_title=title)
                 self._store_mpv(case_key, comp_name, jetpt_mid, mu, mu_err)
@@ -1041,20 +1148,25 @@ class PlotDataCurves:
             "AB":   dict(color="C2",    marker="v", linestyle="-", label="AxB"),
         }
         for case_key in sorted(self.mpv_data.keys()):
-            parts = case_key.split("_")
-            # basic_data_{cut}_ww{den}  or  basic_ptRL_data_{cut}_ww{den}
-            ptRL = (parts[1] == "ptRL")
-            offset = 2 if ptRL else 1
-            cut_suffix = parts[offset + 1]
-            den_token  = parts[offset + 2]
+            meta = self.mpv_meta.get(case_key)
+            if meta is None:
+                print(f"WARNING: no metadata for MPV case {case_key}, skipping")
+                continue
+            cut_suffix = meta["cut"]
+            den_token  = f"ww{meta['den']}"
+            ptRL       = meta["ptRL"]
+            binning    = meta["binning"]
             obs = "p_TR_L" if ptRL else "R_L"
             ylabel = f"Peak position in {obs}"
-            title = (f"MPV summary — data, {cut_suffix}, {den_token}"
+            xlabel = ("Groomed jet p_T [GeV/c]" if meta["groomed"]
+                      else "Jet p_T [GeV/c]")
+            title = (f"MPV summary — data, {binning}, {cut_suffix}, {den_token}"
                      + (" (ptRL)" if ptRL else ""))
-            outdir = os.path.join(base, "data", cut_suffix, "ptRL" if ptRL else "RL")
-            fname = (f"mpv_basic{'_ptRL' if ptRL else ''}_data"
+            outdir = os.path.join(base, "data", self.binning_dir, cut_suffix,
+                                  "ptRL" if ptRL else "RL")
+            fname = (f"mpv_basic{'_ptRL' if ptRL else ''}_data_{binning}"
                      f"_{cut_suffix}_{den_token}.pdf")
-            self._plot_mpv_summary(case_key, title, "Jet p_T [GeV/c]", ylabel,
+            self._plot_mpv_summary(case_key, title, xlabel, ylabel,
                                    outdir, fname, component_styles=basic_styles)
         print(f"MPV summary plots saved under: {base}")
 
@@ -1074,7 +1186,7 @@ class PlotDataCurves:
                 print(f"Processing {cut_mode} mode, z_cut={z_cut}, "
                       f"jetpt={self._ptrange_label(jetpt)}...")
 
-                for den_weight in ["jet", "rad"]:
+                for den_weight in ["jet", "rad"]: #, "null"]:
                     self.plot_basic(jetpt, z_cut, den_weight)
                     self._collect_mpv_basic(jetpt, z_cut, den_weight)
                     if self.cut_mode == "sd":
@@ -1093,5 +1205,15 @@ class PlotDataCurves:
 
 
 if __name__ == "__main__":
-    plotter = PlotDataCurves()
-    plotter.plot()
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--binning", choices=["ungroomed", "groomed", "both"],
+                    default="groomed",
+                    help="which pT slicing to read: 'jetpt...' or 'gjetpt...' hists")
+    args = ap.parse_args()
+
+    modes = ([False, True] if args.binning == "both"
+             else [args.binning == "groomed"])
+    for groomed in modes:
+        print(f"\n=== binning: {'groomed' if groomed else 'ungroomed'} ===")
+        PlotDataCurves(groomed_binning=groomed).plot()

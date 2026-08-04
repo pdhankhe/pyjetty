@@ -1,27 +1,22 @@
+import math
 import ROOT
 
 jobid="53567700"
-add_ext = False
 
-# # PERLMUTTER FILEPATHS
-input_base = f"/global/cfs/projectdirs/alice/blianggi/mypyjetty/analysis/testing" # perlmutter
-extra_input_base = f"/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data_checks/{jobid}" # perlmutter
-output_base = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/jse/plots/data_checks" # perlmutter
+# # # PERLMUTTER FILEPATHS
+# input_base = f"/global/cfs/projectdirs/alice/blianggi/mypyjetty/analysis/testing" # perlmutter
+# extra_input_base = f"/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data_checks/{jobid}" # perlmutter
+# output_base = "/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/jse/plots/data_checks" # perlmutter
 
 # # HICCUP FILEPATHS
-# input_base = "/software/users/blianggi/mypyjetty/analysis/testing" # hiccup
-# extra_input_base = "" # no extra_input_base on hiccup
-# output_base = "/software/users/blianggi/mypyjetty/storage/jse/plots/data_checks" # hiccup
+input_base = "/rstorage/alice/AnalysisResults/blianggi/jse/data_checks/1839116" #"/software/users/blianggi/mypyjetty/analysis/testing" # hiccup
+extra_input_base = "" # no extra_input_base on hiccup
+output_base = "/software/users/blianggi/mypyjetty/storage/jse/plots/data_checks" # hiccup
 
 # f = ROOT.TFile(f"/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data_checks/{jobid}/MergedHistsDataCheck.root")
-f = ROOT.TFile(f"{input_base}/HistsDataCheck.root")
+f = ROOT.TFile(f"{input_base}/HistsDataCheckMerged.root")
 print("using file:", f.GetName())
 
-if add_ext:
-    f = ROOT.TFile(f"{extra_input_base}/1/HistsDataCheckExt.root")
-    f_2 = ROOT.TFile(f"{extra_input_base}/2/HistsDataCheckExt.root")
-    f_luisa = ROOT.TFile(f"{extra_input_base}/1/trackPt_QAhist.root")
-    f_luisa_2 = ROOT.TFile(f"{extra_input_base}/2/trackPt_QAhist_file2.root")
 f.h_cuts.Print("all")     # see total/sel8/global-track counts
 
 c = ROOT.TCanvas("c", "", 1500, 450)
@@ -29,10 +24,7 @@ c.Divide(3, 1)
 c.cd(1); ROOT.gPad.SetLogy(); f.h_pt.Draw()
 c.cd(2); f.h_eta.Draw()
 c.cd(3); f.h_phi.Draw()
-if add_ext:
-    c.SaveAs(f"{output_base}/merged_1_ext.pdf")
-else:
-    c.SaveAs(f"{output_base}/merged_1.pdf")
+c.SaveAs(f"{output_base}/merged_1.pdf")
 
 
 # ============================================================
@@ -233,6 +225,19 @@ c_pt.SaveAs(f"{output_base}/pt_panels_1.pdf")
 # Jet pT comparison: R=0.4 vs R=0.6 vs R=0.4-in-R=0.6-events
 # with ratio panel (R=0.6 / R=0.4)
 # ============================================================
+def draw_alice_label(canvas):
+    """Draw the common ALICE/analysis label block on a canvas."""
+    lat = ROOT.TLatex()
+    lat.SetNDC()
+    lat.SetTextFont(42)
+    lat.SetTextSize(0.035)
+    lat.SetTextAlign(11)
+    lat.DrawLatex(0.17, 0.84, "ALICE pp #sqrt{s} = 5.36 TeV")
+    lat.DrawLatex(0.17, 0.80, "LHC24 ppref pass 1, JE derived")
+    lat.DrawLatex(0.17, 0.76, "anti-k_{T} R = 0.4, |#eta_{jet}| < 0.5")
+    return lat
+
+
 def make_jetpt_panels(h_R04_fine, h_R06, h_R04_in_R06, outname,
                       r06_label="R = 0.6 jets",
                       r04_in_label="R = 0.4 jets in R = 0.6 events",
@@ -290,6 +295,7 @@ def make_jetpt_panels(h_R04_fine, h_R06, h_R04_in_R06, outname,
     if h_extra is not None:
         leg.AddEntry(h_extra, extra_label, "l")
     leg.Draw()
+    draw_alice_label(c)
 
     # bottom pad: ratio R=0.6 / R=0.4 (+ R=0.6 / extra if present)
     c.cd()
@@ -368,6 +374,47 @@ _keep2 = make_jetpt_panels(
     extra_label="R = 0.4, |#eta| < 0.3 jets in R = 0.6 events (|#eta| < 0.3)",
     tag="_fid",
 )
+
+# === JET ETA SPECTRUM ===
+if hasattr(f, "h_jet_eta"):
+    h_jet_eta = f.h_jet_eta.Clone("h_jet_eta_plot")
+    h_jet_eta.SetDirectory(0)
+    h_jet_eta.SetLineColor(ROOT.kBlue + 1)
+    h_jet_eta.SetLineWidth(2)
+    h_jet_eta.SetStats(0)
+    h_jet_eta.SetTitle(";#eta_{jet};counts")
+
+    c_jet_eta = ROOT.TCanvas("c_jet_eta", "", 900, 700)
+    c_jet_eta.SetLeftMargin(0.13)
+    c_jet_eta.SetBottomMargin(0.13)
+    c_jet_eta.SetRightMargin(0.05)
+    c_jet_eta.SetTicks(1, 1)
+    c_jet_eta.SetGrid(0, 0)
+
+    ymax = h_jet_eta.GetMaximum()
+    yhi = ymax * 1.20 if ymax > 0 else 1.0
+    frame_eta = c_jet_eta.DrawFrame(h_jet_eta.GetXaxis().GetXmin(), 0.0,
+                                    h_jet_eta.GetXaxis().GetXmax(), yhi)
+    frame_eta.GetXaxis().SetTitle("#eta_{jet}")
+    frame_eta.GetYaxis().SetTitle("counts")
+    frame_eta.GetXaxis().SetTitleSize(0.045)
+    frame_eta.GetYaxis().SetTitleSize(0.045)
+    frame_eta.GetYaxis().SetTitleOffset(1.35)
+
+    h_jet_eta.Draw("HIST SAME")
+
+    leg_eta = ROOT.TLegend(0.62, 0.72, 0.92, 0.88)
+    leg_eta.SetBorderSize(0)
+    leg_eta.SetFillStyle(0)
+    leg_eta.SetTextSize(0.032)
+    leg_eta.AddEntry(h_jet_eta, "jet #eta spectrum", "l")
+    leg_eta.Draw()
+
+    draw_alice_label(c_jet_eta)
+    c_jet_eta.RedrawAxis()
+    c_jet_eta.SaveAs(f"{output_base}/jet_eta_spectrum.pdf")
+else:
+    print("warning: h_jet_eta not found in input file")
 
 
 # === ETA ===
@@ -506,64 +553,204 @@ c_2d.SaveAs(f"{output_base}/tracketa_trackpt_panels_1.pdf")
 # f.h_tracketa_trackpt_edge.Draw("COLZ")
 
 
+# ------------------------------------------------------------------
+# LOOK AT INCLUSIVE EEC ACROSS JET PT BINS
+# ------------------------------------------------------------------
+# Plot Full inclusive EEC across jet pt
+full_eec_filename_hiccup = "/rstorage/alice/AnalysisResults/blianggi/jse/data/55778272/AnalysisResultsMerged.root"
 
-if add_ext:
-    # Dedicated canvas that plots ONLY the variable-binned h_pt_ext
-    c_ext = ROOT.TCanvas("c_ext", "", 600, 500)
-    c_ext.SetLogy()
-    # Divide by bin width so the variable bins are shown as a proper density
-    h_pt_ext_norm = f.h_pt_ext.Clone("h_pt_ext_norm")
-    h_pt_ext_norm.SetDirectory(0)          # detach from file so it survives
-    h_pt_ext_norm.Scale(1.0, "width")
-    h_pt_ext_norm.GetYaxis().SetTitle("counts / (GeV/c)")
-    h_pt_ext_norm.Draw("hist e0")
-    c_ext.SaveAs(f"{output_base}/h_pt_ext_1.pdf")
+GROOM_TAG = "sd0.1"      # "sd0.1" or "maxkt" -- hist_full is the ungroomed EEC,
+                         # so either copy works; just picks which key to read
+USE_PTRL  = False        # False -> hist_full_...   True -> hist_full_ptRL_...
+OUTNAME   = f"{output_base}/full_eec_all_ptbins"
 
-    # Dedicated canvas to compare me+Luisa
-    c_comp = ROOT.TCanvas("c_comp", "", 600, 500)
-    c_comp.SetLogy()
+pt_bins = [(10, 20), (20, 40), (40, 60), (60, 80),
+           (80, 100), (100, 120), (120, 150), (150, 200)]
 
-    f.h_pt.SetMarkerColorAlpha(ROOT.kBlue, 0.75)
-    f.h_pt.SetLineColorAlpha(ROOT.kBlue, 0.75)
-    f.h_pt.Draw("hist e0")
-    f.h_pt_float.SetMarkerColorAlpha(ROOT.kGreen+2, 0.75)
-    f.h_pt_float.SetLineColorAlpha(ROOT.kGreen+2, 0.75)
-    f.h_pt_float.SetLineStyle(ROOT.kDashed)
-    f.h_pt_float.Draw("hist e0 same")
-    f_luisa.hQA_trackPt.SetMarkerColorAlpha(ROOT.kRed, 0.75)
-    f_luisa.hQA_trackPt.SetLineColorAlpha(ROOT.kRed, 0.75)
-    f_luisa.hQA_trackPt.SetLineStyle(3)
-    f_luisa.hQA_trackPt.Draw("hist e0 same")
+base_colors = [
+    ROOT.kBlack, ROOT.kBlue, ROOT.kOrange + 7, ROOT.kGreen + 2,
+    ROOT.kRed + 1, ROOT.kMagenta + 1, ROOT.kCyan + 2, ROOT.kAzure + 1,
+    ROOT.kYellow + 1, ROOT.kGray + 1
+]
+base_markers = [
+    ROOT.kFullCircle, ROOT.kFullSquare, ROOT.kFullDiamond,
+    ROOT.kFullStar, ROOT.kFullTriangleUp, ROOT.kFullTriangleDown,
+    ROOT.kFullCross, ROOT.kFullCircle, ROOT.kFullSquare, ROOT.kFullDiamond
+]
 
-    # Legend: (x1, y1, x2, y2) in normalized pad coordinates (0-1)
-    leg = ROOT.TLegend(0.6, 0.75, 0.85, 0.85)
-    leg.SetBorderSize(0)          # no box border
-    leg.SetFillStyle(0)           # transparent background
-    leg.AddEntry(f.h_pt,              "Beatrice double",    "l")
-    leg.AddEntry(f.h_pt_float,        "Beatrice float",    "l")
-    leg.AddEntry(f_luisa.hQA_trackPt, "Luisa", "l")
-    leg.Draw()
+_counter_cache = {}
 
-    c_comp.SaveAs(f"{output_base}/h_pt_comp_1.pdf")
-    
-    # Dedicated canvas to compare me+Luisa
-    c_comp_2 = ROOT.TCanvas("c_comp_2", "", 600, 500)
-    c_comp_2.SetLogy()
 
-    f_2.h_pt.SetMarkerColorAlpha(ROOT.kBlue, 0.75)
-    f_2.h_pt.SetLineColorAlpha(ROOT.kBlue, 0.75)
-    f_2.h_pt.Draw("hist e0")
-    f_luisa_2.hQA_trackPt.SetMarkerColorAlpha(ROOT.kRed, 0.75)
-    f_luisa_2.hQA_trackPt.SetLineColorAlpha(ROOT.kRed, 0.75)
-    f_luisa_2.hQA_trackPt.SetLineStyle(ROOT.kDashed)
-    f_luisa_2.hQA_trackPt.Draw("hist e0 same")
+# ------------------------------------------------------------------
+# normalization helpers  (mirrors PlotDataCurves._get_norm_factors)
+# ------------------------------------------------------------------
+COUNTER_NAME = "counters_jetpt%d_%d_%s"   # adjust if yours is e.g. "hist_counters_..."
+BIN_NJETS = 2                             # bin holding N_jets
+BIN_SUMPT = 3                             # bin holding sum of jet pT
 
-    # Legend: (x1, y1, x2, y2) in normalized pad coordinates (0-1)
-    leg_2 = ROOT.TLegend(0.6, 0.75, 0.85, 0.85)
-    leg_2.SetBorderSize(0)          # no box border
-    leg_2.SetFillStyle(0)           # transparent background
-    leg_2.AddEntry(f_2.h_pt,              "Beatrice file 2",    "l")
-    leg_2.AddEntry(f_luisa_2.hQA_trackPt, "Luisa file 2", "l")
-    leg_2.Draw()
 
-    c_comp_2.SaveAs(f"{output_base}/h_pt_comp_2.pdf")
+def get_norm_factors(f, lo, hi, cut=GROOM_TAG):
+    """Return (num_jets, avg_jet_pt) read from the counters histogram.
+
+    num_jets   = counters bin BIN_NJETS
+    avg_jet_pt = counters bin BIN_SUMPT / counters bin BIN_NJETS
+    Returns (None, None) if the hist is missing or the jet count is zero.
+    """
+    key = (lo, hi, cut)
+    if key in _counter_cache:
+        return _counter_cache[key]
+
+    cname = COUNTER_NAME % (lo, hi, cut)
+    hc = f.Get(cname)
+    if not hc:
+        print("WARNING: %s not found" % cname)
+        _counter_cache[key] = (None, None)
+        return (None, None)
+
+    if hc.GetNbinsX() < max(BIN_NJETS, BIN_SUMPT):
+        print("WARNING: %s has only %d bins" % (cname, hc.GetNbinsX()))
+        _counter_cache[key] = (None, None)
+        return (None, None)
+
+    num_jets = hc.GetBinContent(BIN_NJETS)
+    sum_jetpt = hc.GetBinContent(BIN_SUMPT)
+    if num_jets <= 0:
+        print("WARNING: %s has zero jets in bin %d" % (cname, BIN_NJETS))
+        _counter_cache[key] = (None, None)
+        return (None, None)
+
+    avg_jet_pt = sum_jetpt / num_jets
+    _counter_cache[key] = (num_jets, avg_jet_pt)
+    return (num_jets, avg_jet_pt)
+
+
+def normalize_eec(hist, f, lo, hi, cut=GROOM_TAG, ptRL=False):
+    """Scale a fetched EEC hist in memory (does not touch the file).
+
+    Regular:  1/num_jets with "width"
+    ptRL:     log(<pt>)/<pt> content factor first, then 1/num_jets with "width"
+    """
+    if hist is None:
+        return None
+    num_jets, avg_jet_pt = get_norm_factors(f, lo, hi, cut)
+    if num_jets is None:
+        return None
+    if ptRL:
+        hist.Scale(math.log(avg_jet_pt) / avg_jet_pt)
+    hist.Scale(1.0 / num_jets, "width")
+    return hist
+
+    # jetname = "hist_jetpt_jetpt%d_%d_sd0.1" % (lo, hi)
+    # hjet = f.Get(jetname)
+    # if not hjet:
+    #     print("WARNING: missing %s -- skipping %s" % (jetname, hname))
+    #     continue
+    # njets = hjet.Integral()
+    # if njets <= 0:
+    #     print("WARNING: %s has zero integral -- skipping" % jetname)
+    #     continue
+
+    # h = h.Clone("clone_%s" % hname)
+    # h.SetDirectory(0)
+    # h.Scale(1.0 / njets, "width")
+    # print("%s: N_jets = %.0f" % (hname, njets))
+
+
+# ------------------------------------------------------------------
+# read + normalize
+# ------------------------------------------------------------------
+f = ROOT.TFile.Open(full_eec_filename_hiccup, "READ")
+if not f or f.IsZombie():
+    raise IOError("could not open %s" % full_eec_filename_hiccup)
+
+hists = []
+for i, (lo, hi) in enumerate(pt_bins):
+    stem = "hist_full_ptRL" if USE_PTRL else "hist_full"
+    hname = "%s_jetpt%d_%d_%s" % (stem, lo, hi, GROOM_TAG)
+    h = f.Get(hname)
+    if not h:
+        print("WARNING: missing %s -- skipping" % hname)
+        continue
+
+    h = h.Clone("clone_%s" % hname)
+    h.SetDirectory(0)
+    if normalize_eec(h, f, lo, hi, GROOM_TAG, ptRL=USE_PTRL) is None:
+        print("WARNING: no norm factors for %d-%d -- skipping" % (lo, hi))
+        continue
+
+    njets, avgpt = get_norm_factors(f, lo, hi, GROOM_TAG)
+    print("%s: N_jets = %.0f, <p_T> = %.2f GeV/c" % (hname, njets, avgpt))
+
+    h.SetLineColor(base_colors[i % len(base_colors)])
+    h.SetMarkerColor(base_colors[i % len(base_colors)])
+    h.SetMarkerStyle(base_markers[i % len(base_markers)])
+    h.SetMarkerSize(1.1)
+    h.SetLineWidth(2)
+    hists.append((h, lo, hi))
+
+if not hists:
+    raise RuntimeError("no histograms found")
+
+# ------------------------------------------------------------------
+# draw
+# ------------------------------------------------------------------
+c = ROOT.TCanvas("c", "c", 900, 700)
+c.SetLeftMargin(0.13)
+c.SetBottomMargin(0.13)
+c.SetRightMargin(0.05)
+c.SetLogx(1)
+# c.SetLogy(1)
+c.SetTicks(1, 1)
+
+ymin, ymax = 1e30, -1e30
+for h, _, _ in hists:
+    for b in range(1, h.GetNbinsX() + 1):
+        v = h.GetBinContent(b)
+        ymin = min(ymin, v)
+        ymax = max(ymax, v)
+
+span = ymax - ymin
+ylo = 0.0 if ymin >= 0 else ymin - 0.10 * span   # anchor at 0 for a positive distribution
+yhi = ymax + 0.35 * span                         # headroom for the legend/latex
+
+ax = hists[0][0].GetXaxis()
+xlow = ax.GetXmin() if ax.GetXmin() > 0 else ax.GetBinLowEdge(2)
+xhigh = ax.GetXmax()
+
+frame = c.DrawFrame(xlow, ylo, xhigh, yhi)
+xtitle = "p_{T}R_{L}" if USE_PTRL else "R_{L}"
+frame.GetXaxis().SetTitle(xtitle)
+frame.GetYaxis().SetTitle("#frac{1}{N_{jet}} #frac{dN_{EEC}}{d%s}" % xtitle)
+frame.GetXaxis().SetTitleSize(0.045)
+frame.GetYaxis().SetTitleSize(0.045)
+frame.GetYaxis().SetTitleOffset(1.35)
+frame.GetXaxis().SetMoreLogLabels()
+
+leg = ROOT.TLegend(0.62, 0.57, 0.92, 0.87)
+leg.SetBorderSize(0)
+leg.SetFillStyle(0)
+leg.SetTextSize(0.032)
+leg.SetHeader("full EEC")
+
+for h, lo, hi in hists:
+    h.Draw("PE same")
+    leg.AddEntry(h, "%d < p_{T,jet} < %d GeV/c" % (lo, hi), "lp")
+
+leg.Draw()
+
+lat = ROOT.TLatex()
+lat.SetNDC()
+lat.SetTextFont(42)
+lat.SetTextSize(0.035)
+lat.SetTextAlign(11)          # 11 is left-bottom aligned, 31 is right-aligned at the given x
+
+xtxt = 0.17
+lat.DrawLatex(xtxt, 0.84, "ALICE pp #sqrt{s} = 5.36 TeV")
+lat.DrawLatex(xtxt, 0.80, "LHC24 ppref pass 1, JE derived")
+lat.DrawLatex(xtxt, 0.76, "anti-k_{T} R = 0.4, |#eta_{jet}| < 0.5")
+
+c.RedrawAxis()
+c.SaveAs(OUTNAME + ".pdf")
+
+f.Close()
+print("wrote %s.pdf" % OUTNAME)

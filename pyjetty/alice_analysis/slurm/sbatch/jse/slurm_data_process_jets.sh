@@ -19,8 +19,8 @@ cd analysis/
 FILELIST=/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/run3/data/LHC24_ppref/BerkeleyTrees/tree_list.txt
 INFILE=$(sed -n "${SLURM_ARRAY_TASK_ID}p" $FILELIST)
 TAG=$(basename $(dirname "$INFILE"))   # or any unique tag
-# OUTDIR=/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/${SLURM_ARRAY_JOB_ID}/${TAG}
-OUTDIR=/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/56300667/${TAG}
+OUTDIR=/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/${SLURM_ARRAY_JOB_ID}/${TAG}
+# OUTDIR=/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/56300667/${TAG}
 
 mkdir -p $OUTDIR
 
@@ -32,7 +32,7 @@ PARQUET_OUTFILE=${OUTDIR}/DataJetsForAnalysis.parquet
 # Process jets
 SCRIPT_PROCESS_JETS=/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/process/user/jse/data_process_jets.py
 ROOT_OUTFILE=${OUTDIR}/AnalysisResults.root
-python ${SCRIPT_PROCESS_JETS} ${PARQUET_OUTFILE} ${ROOT_OUTFILE} --zcuts 0.1 0.2 --no-maxkt --add-noweight
+python ${SCRIPT_PROCESS_JETS} ${PARQUET_OUTFILE} ${ROOT_OUTFILE} --zcuts 0.1 0.2 --no-maxkt --add-noweight --binning groomed
 
 # Move stdout to appropriate folder
 cd /global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/${SLURM_ARRAY_JOB_ID}/ #before was hepmc
