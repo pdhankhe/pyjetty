@@ -28,7 +28,7 @@ class PlotDataCurves:
 
         ROOT.gStyle.SetOptStat(0)
 
-        self.crosscheck = True
+        self.crosscheck = False #True
 
         # -------------------------------------------------------------
         # Binning mode.
@@ -40,8 +40,8 @@ class PlotDataCurves:
         # jet pT RANGE bins (available in file:
         #   [(10,20),(20,40),(40,60),(60,80),(80,100),(100,120),(120,150),(150,200),(50,60)])
         self.target_jet_pts_ungroomed = [
-            # (10, 20), (20, 40), (40, 60), (60, 80), (80, 100), (100, 120), (120, 150), (150, 200)
-            (60, 80), (80, 100), (100, 120), (120, 150), (150, 200)
+            (10, 20), (20, 40), (40, 60), (60, 80), (80, 100), (100, 120), (120, 150), (150, 200)
+            # (60, 80), (80, 100), (100, 120), (120, 150), (150, 200)
         ]
         # groomed pT is strictly below the ungroomed pT of the same jet, so the
         # useful slices sit lower; adjust to whatever the writer actually filled.
@@ -54,28 +54,43 @@ class PlotDataCurves:
         # self.cut_modes = [("sd", 0.1), ("maxkt", None)]
         self.cut_modes = [("sd", 0.1)] #, ("sd", 0.2)]
 
+        print("self.groomed_binning", self.groomed_binning)
+
+        # perlmutter
+        if self.groomed_binning:
+            print("Using groomed binning file")
+            self.rootfile_path = ("/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/57174964/AnalysisResultsMerged_groomedbins.root") # Groomed, hiccup
+            self.zcut2_rootfile_path = ("/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/57174964/AnalysisResultsMerged_groomedbins.root")
+        else:
+            print("Using ungroomed binning file")
+            self.rootfile_path = ("/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/57174964/AnalysisResultsMerged_ungroomedbins.root") # Ungroomed, perlmutter
+            self.zcut2_rootfile_path = ("/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/57174964/AnalysisResultsMerged_ungroomedbins.root") # small bins
+        
+
         # self.rootfile_path = ("/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/55778272/AnalysisResultsMerged.root")
         # # self.rootfile_path = ("/global/cfs/cdirs/alice/blianggi/mypyjetty/analysis/testing/AnalysisResults.root")
         # self.zcut2_rootfile_path = ("/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/56140697/AnalysisResultsMerged.root")
+        
+        # perlmutter smaller bins
         # self.rootfile_path = ("/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/56300667/AnalysisResultsMerged.root") # perlmutter, smaller bins
         # self.zcut2_rootfile_path = ("/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/56300667/AnalysisResultsMerged.root") # perlmutter, smaller bins
         
         # hiccup
-        print("self.groomed_binning", self.groomed_binning)
-        if self.groomed_binning:
-            print("Using groomed binning file")
-            self.rootfile_path = ("/rstorage/alice/AnalysisResults/blianggi/jse/data/1839690/AnalysisResultsMerged.root") # Groomed, hiccup
-            self.zcut2_rootfile_path = ("/rstorage/alice/AnalysisResults/blianggi/jse/data/1839690/AnalysisResultsMerged.root")
-        else:
-            print("Using ungroomed binning file")
-            self.rootfile_path = ("/rstorage/alice/AnalysisResults/blianggi/jse/data/56300667/AnalysisResultsMerged.root") # Ungroomed, hiccup
-            self.zcut2_rootfile_path = ("/rstorage/alice/AnalysisResults/blianggi/jse/data/56300667/AnalysisResultsMerged.root")
+        # if self.groomed_binning:
+        #     print("Using groomed binning file")
+        #     self.rootfile_path = ("/rstorage/alice/AnalysisResults/blianggi/jse/data/1839690/AnalysisResultsMerged.root") # Groomed, hiccup
+        #     self.zcut2_rootfile_path = ("/rstorage/alice/AnalysisResults/blianggi/jse/data/1839690/AnalysisResultsMerged.root")
+        # else:
+        #     print("Using ungroomed binning file")
+        #     self.rootfile_path = ("/rstorage/alice/AnalysisResults/blianggi/jse/data/56300667/AnalysisResultsMerged.root") # Ungroomed, hiccup
+        #     self.zcut2_rootfile_path = ("/rstorage/alice/AnalysisResults/blianggi/jse/data/56300667/AnalysisResultsMerged.root")
         self.data_rootfile = None
         self.current_rootfile_path = None
 
         self.cut_mode = ""
         self.z_cut = None
-        self.base_plot_dir = ("/software/users/blianggi/mypyjetty/storage/jse/plots")
+        self.base_plot_dir = ("/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/jse/plots")
+        # self.base_plot_dir = ("/software/users/blianggi/mypyjetty/storage/jse/plots")
 
         self._persistent_canvases = []
         self._canvas_counter = 0
@@ -316,6 +331,7 @@ class PlotDataCurves:
         leg.SetMargin(0)
         leg.SetTextFont(42)
         leg.SetTextSize(0.04)
+        leg.AddEntry(ROOT.nullptr, "ALICE WIP", "")
         leg.AddEntry(ROOT.nullptr, "pp data, R = 0.4 jets", "")
         leg.AddEntry(ROOT.nullptr, f"{self.binning_desc} = {jetpt_label} GeV/c", "")
         leg.AddEntry(ROOT.nullptr, self.get_cut_label(z_cut), "")
@@ -408,10 +424,10 @@ class PlotDataCurves:
     # -------------------------------------------------------------------------
 
     def _draw_eec_set(self, hists, first=True):
-        draw_opt = "HIST" if first else "HIST SAME"
+        draw_opt = "EP" if first else "EP SAME" #"HIST" if first else "HIST SAME"
         for h in hists:
             h.Draw(draw_opt)
-            draw_opt = "HIST SAME"
+            draw_opt = "EP SAME" #"HIST SAME"
 
     def _draw_eec_canvas(self, canvas, hists_primary, ev_leg=None, legend=None,
                          crosscheck_hist=None):
@@ -467,8 +483,8 @@ class PlotDataCurves:
                 crosscheck.Add(hist_AB)
                 self.FormatHist(crosscheck, ROOT.kGray + 2, ROOT.kDashed)
 
-            ev_leg = self.MakeEventLeg(label, z_cut, den_weight, x1=0.15, y1=0.7, x2=0.40, y2=0.88)
-            legend = ROOT.TLegend(0.68, 0.7, 0.88, 0.88)
+            ev_leg = self.MakeEventLeg(label, z_cut, den_weight, x1=0.15, y1=0.65, x2=0.40, y2=0.88)
+            legend = ROOT.TLegend(0.68, 0.65, 0.88, 0.88)
             if hist_full is not None and den_weight == "jet":
                 legend.AddEntry(hist_full,
                                 f"all jets that passed {self.get_passed_label()}", "l")

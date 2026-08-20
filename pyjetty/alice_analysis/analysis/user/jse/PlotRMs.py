@@ -43,7 +43,7 @@ AX_W_DET,   AX_W_PART   = 4, 5
 
 # (name, det axis, part axis, axis title, logx on 1D, log x&y on 2D, logy on 1D)
 PROJECTIONS = [
-    ("jetpt",  AX_PT_DET, AX_PT_PART, "#it{p}_{T,jet} (GeV/#it{c})", True,  False, False),
+    ("jetpt",  AX_PT_DET, AX_PT_PART, "#it{p}_{T,jet} (GeV/#it{c})", True,  False, True),
     ("RL",     AX_RL_DET, AX_RL_PART, "#it{R}_{L}",                  True,  True,  False),
     ("weight", AX_W_DET,  AX_W_PART,  "weight",                      False, False, True),
 ]
@@ -230,10 +230,14 @@ def process_sparse(hs, lab, outdir, lines=None):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("-i", "--input",
-                    default="/rstorage/alice/AnalysisResults/blianggi/jse/rms/1836481/reponse_merged.root",
+                    # default="/rstorage/alice/AnalysisResults/blianggi/jse/rms/1836481/reponse_merged.root",
+                    default="/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/rms/57259276/response_merged.root",
+                    # default="/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/rms/1836481/reponse_merged.root",
+                    # default="/global/cfs/cdirs/alice/blianggi/mypyjetty/analysis/testing/response.root",
                     help="input ROOT file (from make_rms.py)")
     ap.add_argument("-o", "--outdir",
-                    default="/software/users/blianggi/mypyjetty/storage/jse/plots/response_matrices",
+                    # default="/software/users/blianggi/mypyjetty/storage/jse/plots/response_matrices",
+                    default="/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/jse/plots/response_matrices",
                     help="output directory for plots")
     args = ap.parse_args()
 

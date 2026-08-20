@@ -51,7 +51,7 @@ do
 
     # Process jets, make response matrices
     PARQUET_FILE=$TEMP_OUTPUT_DIRECTORY/jets_out.parquet
-    RM_SCRIPT=/software/users/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/process/user/jse/make_rms.py
+    RM_SCRIPT=/software/users/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/process/user/jse/make_rms_etc.py
     python $RM_SCRIPT $PARQUET_FILE
 
 
