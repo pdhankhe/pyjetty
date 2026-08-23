@@ -116,7 +116,7 @@ def draw_th2(h, outpath, logx=False, logy=False, logz=True,
 
 
 def draw_1d_overlay(h_det, h_part, xtitle, outpath,
-                    logx=False, logy=False, lines=None, extra_lines=None):
+                    logx=False, logy=False, lines=None, extra_lines=None, matchvsall=False):
     """Overlay det and part 1D projections and save."""
     c = _new_canvas(800, 650)
     c.SetLeftMargin(0.13)
@@ -178,8 +178,12 @@ def draw_1d_overlay(h_det, h_part, xtitle, outpath,
     leg.SetFillStyle(0)
     leg.SetTextFont(42)
     leg.SetTextSize(0.033)
-    leg.AddEntry(h_det, "detector", "lep")
-    leg.AddEntry(h_part, "particle", "lep")
+    if matchvsall:
+        leg.AddEntry(h_det, "matched", "lep")
+        leg.AddEntry(h_part, "all", "lep")
+    else:
+        leg.AddEntry(h_det, "detector", "lep")
+        leg.AddEntry(h_part, "particle", "lep")
     leg.Draw()
 
     block = list(lines) if lines else []
@@ -226,12 +230,50 @@ def process_sparse(hs, lab, outdir, lines=None):
             lines=lines, extra_lines=[f"{lab}, {name}"],
         )
 
+def PlotGiven1D(hist, outpath, logx=False, logy=False):
+    # hist = f.Get(hist_name)
+    c = _new_canvas(800, 650)
+    # c.SetLeftMargin(0.13)
+    # c.SetRightMargin(0.05)
+    # c.SetBottomMargin(0.12)
+    # c.SetTopMargin(0.06)
+    if logx and _log_ok(hist.GetXaxis()):
+        c.SetLogx()
+    if logy:
+        c.SetLogy()
+
+
+    hist.Draw("E1")
+    c.SaveAs(outpath)
+    c.Close()
+
+    # leg = ROOT.TLegend(0.68, 0.74, 0.92, 0.88)
+    # leg.SetBorderSize(0)
+    # leg.SetFillStyle(0)
+    # leg.SetTextFont(42)
+    # leg.SetTextSize(0.033)
+    # leg.AddEntry(h_det, "detector", "lep")
+    # leg.AddEntry(h_part, "particle", "lep")
+    # leg.Draw()
+
+
+def PlotGiven2D(hist2D, outpath):
+    c = _new_canvas(800, 650)
+    # c.SetLeftMargin(0.13)
+    # c.SetRightMargin(0.05)
+    # c.SetBottomMargin(0.12)
+    # c.SetTopMargin(0.06)
+
+    hist2D.Draw("COLZ")
+    c.SaveAs(outpath)
+    c.Close()
+
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("-i", "--input",
                     # default="/rstorage/alice/AnalysisResults/blianggi/jse/rms/1836481/reponse_merged.root",
-                    default="/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/rms/57259276/response_merged.root",
+                    default="/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/rms/57259276/response_merged_partial.root",
                     # default="/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/rms/1836481/reponse_merged.root",
                     # default="/global/cfs/cdirs/alice/blianggi/mypyjetty/analysis/testing/response.root",
                     help="input ROOT file (from make_rms.py)")
@@ -271,6 +313,42 @@ def main():
                  lines=INFO_LINES, extra_lines=["groomed jet #it{p}_{T} response"])
     else:
         print("WARNING: resp_groomed_jetpt not found")
+
+    # Plot efficiency/purity plots
+    draw_1d_overlay(f.jet_match_gen_eff_num_ungroomed, f.jet_all_gen_eff_den_ungroomed, "#it{p}_{T} (GeV/#it{c})", os.path.join(args.outdir, "effpur/jet_gen_ungroomed_matchedvsall.pdf"),logx=True, logy=True)
+    PlotGiven1D(f.jet_efficiency_ungroomed_new, os.path.join(args.outdir, "effpur/jet_efficiency_ungroomed_new.pdf"), logx=True)
+    draw_1d_overlay(f.jet_match_rec_pur_num_ungroomed, f.jet_all_rec_pur_den_ungroomed, "#it{p}_{T} (GeV/#it{c})", os.path.join(args.outdir, "effpur/jet_rec_ungroomed_matchedvsall.pdf"),logx=True, logy=True)
+    PlotGiven1D(f.jet_purity_ungroomed_new, os.path.join(args.outdir, "effpur/jet_purity_ungroomed_new.pdf"), logx=True)
+
+    draw_1d_overlay(f.jet_match_gen_eff_num_groomed, f.jet_all_gen_eff_den_groomed, "#it{p}_{T,g} (GeV/#it{c})", os.path.join(args.outdir, "effpur/jet_gen_groomed_matchedvsall.pdf"),logx=True, logy=True)
+    PlotGiven1D(f.jet_efficiency_groomed_new, os.path.join(args.outdir, "effpur/jet_efficiency_groomed_new.pdf"), logx=True)
+    draw_1d_overlay(f.jet_match_rec_pur_num_groomed, f.jet_all_rec_pur_den_groomed, "#it{p}_{T} (GeV/#it{c})", os.path.join(args.outdir, "effpur/jet_rec_groomed_matchedvsall.pdf"),logx=True, logy=True)
+    PlotGiven1D(f.jet_purity_groomed_new, os.path.join(args.outdir, "effpur/jet_purity_groomed_new.pdf"), logx=True)
+
+    draw_1d_overlay(f.pair_match_gen_eff_num_AA, f.pair_all_gen_eff_den_AA, "#it{R}_{L}", os.path.join(args.outdir, "effpur/pair_gen_AA_matchedvsall.pdf"),logx=True, logy=True)
+    PlotGiven1D(f.pair_efficiency_AA_new, os.path.join(args.outdir, "effpur/pair_efficiency_AA_new.pdf"))
+    draw_1d_overlay(f.pair_match_rec_pur_num_AA, f.pair_all_rec_pur_den_AA, "#it{p}_{T}", os.path.join(args.outdir, "effpur/pair_rec_AA_matchedvsall.pdf"),logx=True, logy=True)
+    PlotGiven1D(f.pair_purity_AA_new, os.path.join(args.outdir, "effpur/pair_purity_AA_new.pdf"))
+
+    draw_1d_overlay(f.pair_match_gen_eff_num_AB, f.pair_all_gen_eff_den_AB, "#it{R}_{L}", os.path.join(args.outdir, "effpur/pair_gen_AB_matchedvsall.pdf"),logx=True, logy=True)
+    PlotGiven1D(f.pair_efficiency_AB_new, os.path.join(args.outdir, "effpur/pair_efficiency_AB_new.pdf"))
+    draw_1d_overlay(f.pair_match_rec_pur_num_AB, f.pair_all_rec_pur_den_AB, "#it{p}_{T}", os.path.join(args.outdir, "effpur/pair_rec_AB_matchedvsall.pdf"),logx=True, logy=True)
+    PlotGiven1D(f.pair_purity_AB_new, os.path.join(args.outdir, "effpur/pair_purity_AB_new.pdf"))
+
+    draw_1d_overlay(f.pair_match_gen_eff_num_BB, f.pair_all_gen_eff_den_BB, "#it{R}_{L}", os.path.join(args.outdir, "effpur/pair_gen_BB_matchedvsall.pdf"),logx=True, logy=True)
+    PlotGiven1D(f.pair_efficiency_BB_new, os.path.join(args.outdir, "effpur/pair_efficiency_BB_new.pdf"))
+    draw_1d_overlay(f.pair_match_rec_pur_num_BB, f.pair_all_rec_pur_den_BB, "#it{p}_{T}", os.path.join(args.outdir, "effpur/pair_rec_BB_matchedvsall.pdf"),logx=True, logy=True)
+    PlotGiven1D(f.pair_purity_BB_new, os.path.join(args.outdir, "effpur/pair_purity_BB_new.pdf"))
+
+    draw_1d_overlay(f.pair_match_gen_eff_num_rad, f.pair_all_gen_eff_den_rad, "#it{R}_{L}", os.path.join(args.outdir, "effpur/pair_gen_rad_matchedvsall.pdf"),logx=True, logy=True)
+    PlotGiven1D(f.pair_efficiency_rad_new, os.path.join(args.outdir, "effpur/pair_efficiency_rad_new.pdf"))
+    draw_1d_overlay(f.pair_match_rec_pur_num_rad, f.pair_all_rec_pur_den_rad, "#it{p}_{T}", os.path.join(args.outdir, "effpur/pair_rec_rad_matchedvsall.pdf"),logx=True, logy=True)
+    PlotGiven1D(f.pair_purity_rad_new, os.path.join(args.outdir, "effpur/pair_purity_rad_new.pdf"))
+
+    PlotGiven2D(f.lund_split_efficiency_new, os.path.join(args.outdir, "effpur/lund_split_efficiency_new.pdf"))
+    PlotGiven2D(f.lund_split_purity_new, os.path.join(args.outdir, "effpur/lund_split_purity_new.pdf"))
+
+
 
     # -----------------------------------------------------------------------
     # 6D THnSparse projections

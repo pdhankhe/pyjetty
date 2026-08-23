@@ -27,7 +27,7 @@ mkdir -p $OUTDIR
 # Find jets
 SCRIPT_FIND_JETS=/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/process/user/jse/data_find_jets.py
 PARQUET_OUTFILE=${OUTDIR}/DataJetsForAnalysis.parquet
-python ${SCRIPT_FIND_JETS} "$INFILE" "$PARQUET_OUTFILE" --ptmin 50.0
+python ${SCRIPT_FIND_JETS} "$INFILE" "$PARQUET_OUTFILE" #--ptmin 50.0
 
 # Process jets - do ungroomed and groomed versions
 SCRIPT_PROCESS_JETS=/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/process/user/jse/data_process_jets.py
