@@ -27,6 +27,7 @@ ROOT.gStyle.SetNumberContours(255)
 ROOT.TH1.AddDirectory(False)
 
 EEC_LABELS = ["AA", "AB", "BB", "rad"]
+PT_BINS = [10.0, 20.0, 40.0, 60.0, 80.0, 100.0, 120.0, 150.0, 200.0, 500.0]
 
 # text block drawn on every plot
 INFO_LINES = [

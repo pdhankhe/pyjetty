@@ -9,7 +9,7 @@
 
 # THIS IS FOR HICCUP!!!
 
-FILELIST=/software/users/blianggi/mypyjetty/jse/LHC24ppRef_filelist.txt #17874 files
+FILELIST=/software/users/blianggi/mypyjetty/jse/LHC24ppRefMC_filelist.txt #17516 files
 
 NUM_FILES_PER_JOB=25
 TOTAL_FILES=$(wc -l < "$FILELIST")

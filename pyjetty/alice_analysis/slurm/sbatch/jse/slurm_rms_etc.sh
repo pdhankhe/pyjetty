@@ -5,7 +5,7 @@
 #SBATCH --account=alice
 #SBATCH --qos=shared
 #SBATCH --constraint=cpu
-#SBATCH --time=6:00:00
+#SBATCH --time=12:00:00
 #SBATCH --array=1-715
 #SBATCH --exclude=nid004104,nid004160,nid004149
 #SBATCH --output=/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/slurm-%A_%a.out
@@ -14,9 +14,9 @@
 
 # THIS IS FOR PERLMUTTER!!!
 
-FILELIST=/global/cfs/cdirs/alice/blianggi/mypyjetty/jse/LHC24ppRef_filelist.txt #17874 files, on perly... 8826 files?
+FILELIST=/global/cfs/cdirs/alice/blianggi/mypyjetty/jse/LHC24ppRefMC_filelist.txt #17516 files
 
-NUM_FILES_PER_JOB=13 #25
+NUM_FILES_PER_JOB=25
 TOTAL_FILES=$(wc -l < "$FILELIST")
 
 
