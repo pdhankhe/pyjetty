@@ -15,7 +15,7 @@ PATHS = {
         input_base="/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data_checks/56458992",
         extra_input_base=f"/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data_checks/{JOBID}",
         output_base="/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/jse/plots/data_checks",
-        full_eec_file="/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/55778272/AnalysisResultsMerged.root",
+        full_eec_file="/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/57696990/AnalysisResultsMerged_ungroomedbins.root" #"/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/55778272/AnalysisResultsMerged.root",
     ),
     "hiccup": dict(
         input_base="/rstorage/alice/AnalysisResults/blianggi/jse/data_checks/1839116",
@@ -509,7 +509,7 @@ def plot_tracketa_trackpt(f):
 _counter_cache = {}
 
 
-def get_norm_factors(f, lo, hi, cut=GROOM_TAG):
+def get_norm_factors(f, lo, hi, cut=GROOM_TAG, numjets_bin=BIN_NJETS):
     """(num_jets, <jet pT>) from the counters hist, or (None, None) if unusable."""
     key = (lo, hi, cut)
     if key in _counter_cache:
@@ -520,21 +520,21 @@ def get_norm_factors(f, lo, hi, cut=GROOM_TAG):
     result = (None, None)
     if not hc:
         print("WARNING: %s not found" % cname)
-    elif hc.GetNbinsX() < max(BIN_NJETS, BIN_SUMPT):
+    elif hc.GetNbinsX() < max(numjets_bin, BIN_SUMPT):
         print("WARNING: %s has only %d bins" % (cname, hc.GetNbinsX()))
-    elif hc.GetBinContent(BIN_NJETS) <= 0:
-        print("WARNING: %s has zero jets in bin %d" % (cname, BIN_NJETS))
+    elif hc.GetBinContent(numjets_bin) <= 0:
+        print("WARNING: %s has zero jets in bin %d" % (cname, numjets_bin))
     else:
-        njets = hc.GetBinContent(BIN_NJETS)
+        njets = hc.GetBinContent(numjets_bin)
         result = (njets, hc.GetBinContent(BIN_SUMPT) / njets)
 
     _counter_cache[key] = result
     return result
 
 
-def normalize_eec(hist, f, lo, hi, cut=GROOM_TAG, ptRL=False):
+def normalize_eec(hist, f, lo, hi, cut=GROOM_TAG, ptRL=False, numjets_bin=BIN_NJETS):
     """Scale an EEC hist in memory: 1/N_jets with "width" (plus log<pt>/<pt> for ptRL)."""
-    njets, avg_pt = get_norm_factors(f, lo, hi, cut)
+    njets, avg_pt = get_norm_factors(f, lo, hi, cut, numjets_bin=numjets_bin)
     if hist is None or njets is None:
         return None
     if ptRL:
@@ -545,10 +545,12 @@ def normalize_eec(hist, f, lo, hi, cut=GROOM_TAG, ptRL=False):
 
 def load_eec_hists(f):
     """Fetch, normalize and style the full-EEC hist for each jet pT bin."""
-    stem = "hist_full_ptRL" if USE_PTRL else "hist_full"
+    # stem = "hist_full_ptRL" if USE_PTRL else "hist_full"
+    stem = "QA_hist_full"
     hists = []
     for i, (lo, hi) in enumerate(PT_BINS):
-        hname = "%s_jetpt%d_%d_%s" % (stem, lo, hi, GROOM_TAG)
+        # hname = "%s_jetpt%d_%d_%s" % (stem, lo, hi, GROOM_TAG)
+        hname = "%s_pt%d_%d_wwjetpt" % (stem, lo, hi)
         h = f.Get(hname)
         if not h:
             print("WARNING: missing %s -- skipping" % hname)
@@ -556,7 +558,8 @@ def load_eec_hists(f):
 
         h = h.Clone("clone_%s" % hname)
         h.SetDirectory(0)
-        if normalize_eec(h, f, lo, hi, GROOM_TAG, ptRL=USE_PTRL) is None:
+        INCL_BIN_NJETS=1
+        if normalize_eec(h, f, lo, hi, GROOM_TAG, ptRL=USE_PTRL, numjets_bin=INCL_BIN_NJETS) is None:
             print("WARNING: no norm factors for %d-%d -- skipping" % (lo, hi))
             continue
 

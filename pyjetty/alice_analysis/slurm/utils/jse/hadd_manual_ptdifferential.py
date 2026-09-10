@@ -3,14 +3,14 @@ import argparse
 import os
 
 
-# python3 -u hadd_partial_manual.py --dir /global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/rms/57485566
+# python3 -u hadd_manual_ptdifferential.py --dir /global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/rms/57626568
 
 is_final_merge = False
 rap = False
 
-suffix = "" #"LHC18f3/803"
-subdirs = ['0', '1', '2'] # ppb
-runlist = ['559348', '559361', '559362', '559385', '559387', '559408', '559409', '559410', '559437', '559443', '559444', '559456']
+# suffix = "" #"LHC18f3/803"
+# subdirs = ['0', '1', '2'] # ppb
+# runlist = ['559348', '559361', '559362', '559385', '559387', '559408', '559409', '559410', '559437', '559443', '559444', '559456']
 
 
 default_subpath_file = "/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/rms/anchmc_subpath_filelist.txt"

@@ -3,34 +3,23 @@ import argparse
 import os
 import gc
 
-# python3 -u hadd_partial_manual.py --dir /global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/rms/57626568 --grooming groomed --nbatches 4 --budget-mb 500 --keep-tmp
+# python3 -u hadd_partial_manual_old.py --dir /global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/rms/57259276 --grooming groomed --nbatches 4 --budget-mb 500 --keep-tmp
 ROOT.gROOT.SetBatch(True)
 ROOT.TH1.AddDirectory(False)   # objects are detached from the input file
 
 GLOBAL_HIST_LIST = [
-    'resp_jetpt_{}', 'resp6_{}_full_ungroomed',
-    'resp6_{}_AA', 'resp6_{}_AB', 'resp6_{}_BB', 'resp6_{}_rad',
-    'jet_match_gen_eff_num_{}', 'jet_all_gen_eff_den_{}', 'jet_match_rec_pur_num_{}', 'jet_all_rec_pur_den_{}',
+    'resp_jetpt',
+    'resp6_AA', 'resp6_AB', 'resp6_BB', 'resp6_rad',
+    'jet_match_gen_eff_num_groomed', 'jet_all_gen_eff_den_groomed', 'jet_match_rec_pur_num_groomed', 'jet_all_rec_pur_den_groomed',
     'lund_matched_gen', 'lund_matched_rec', 'lund_all_gen', 'lund_all_rec',
     'pair_match_gen_eff_num_full_ungroomed', 'pair_all_gen_eff_den_full_ungroomed', 'pair_match_rec_pur_num_full_ungroomed', 'pair_all_rec_pur_den_full_ungroomed',
     'pair_match_gen_eff_num_AA', 'pair_all_gen_eff_den_AA', 'pair_match_rec_pur_num_AA', 'pair_all_rec_pur_den_AA',
     'pair_match_gen_eff_num_AB', 'pair_all_gen_eff_den_AB', 'pair_match_rec_pur_num_AB', 'pair_all_rec_pur_den_AB',
     'pair_match_gen_eff_num_BB', 'pair_all_gen_eff_den_BB', 'pair_match_rec_pur_num_BB', 'pair_all_rec_pur_den_BB',
     'pair_match_gen_eff_num_rad', 'pair_all_gen_eff_den_rad', 'pair_match_rec_pur_num_rad', 'pair_all_rec_pur_den_rad',
-    'res_jetpt_{}',
-    'trk_eff_num', 'trk_eff_den', 'trk_pur_num', 'trk_pur_den', 'trk_res_pt',
-    'res_rl_full_ungroomed', 'res_rl_AA', 'res_rl_AB', 'res_rl_BB', 'res_rl_rad',
-    'res_w_full_ungroomed', 'res_w_AA', 'res_w_AB', 'res_w_BB', 'res_w_rad',
     'summary_efficiencies'
 ]
 
-UNGROOMED_HIST_LIST = [
-    'resp_jetpt_{}', 'resp6_{}_full_ungroomed',
-    'resp6_{}_AA', 'resp6_{}_AB', 'resp6_{}_BB', 'resp6_{}_rad',
-    'jet_match_gen_eff_num_{}', 'jet_all_gen_eff_den_{}', 'jet_match_rec_pur_num_{}', 'jet_all_rec_pur_den_{}',
-    'res_jetpt_{}',
-    'summary_efficiencies'
-]
 
 default_subpath_file = "/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/rms/anchmc_subpath_filelist.txt"
 
@@ -266,7 +255,7 @@ def finishing_merge(dir_path, grooming_str, nbatches=2, budget_mb=500.0, keep_tm
     subpaths = read_subpaths(default_subpath_file)
     file_paths = ["{}/{}/response.root".format(dir_path, sp) for sp in subpaths]
 
-    raw_list = UNGROOMED_HIST_LIST if grooming_str == "ungroomed" else GLOBAL_HIST_LIST
+    raw_list = GLOBAL_HIST_LIST
     names = [full_name(h, grooming_str) for h in raw_list]
 
     groups = scan_and_group(file_paths[0], names, budget_mb)
@@ -288,7 +277,7 @@ def finishing_merge(dir_path, grooming_str, nbatches=2, budget_mb=500.0, keep_tm
         print("=== batch {}/{} ({} files) ===".format(ib + 1, len(batches), len(batch)), flush=True)
         partials.append(merge_stage(batch, groups, tmp, missing, "b{} ".format(ib + 1)))
 
-    out_path = "{}/response_{}_merged_partial.root".format(dir_path, grooming_str)
+    out_path = "{}/response_merged_partial.root".format(dir_path, grooming_str)
     print("=== combining {} partial files ===".format(len(partials)), flush=True)
     merge_stage(partials, groups, out_path, missing, "final ")
 

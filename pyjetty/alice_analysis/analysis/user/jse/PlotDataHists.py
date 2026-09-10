@@ -59,7 +59,7 @@ class PlotDataCurves:
         # perlmutter
         if self.groomed_binning:
             print("Using groomed binning file")
-            self.rootfile_path = ("/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/57174964/AnalysisResultsMerged_groomedbins.root") # Groomed, hiccup
+            self.rootfile_path = ("/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/57540479/AnalysisResultsMerged_groomedbins.root") # Groomed, hiccup
             self.zcut2_rootfile_path = ("/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/57174964/AnalysisResultsMerged_groomedbins.root")
         else:
             print("Using ungroomed binning file")
@@ -91,6 +91,9 @@ class PlotDataCurves:
         self.z_cut = None
         self.base_plot_dir = ("/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/jse/plots")
         # self.base_plot_dir = ("/software/users/blianggi/mypyjetty/storage/jse/plots")
+
+        self.outputforvassu = "/global/cfs/cdirs/alice/blianggi/mypyjetty/jse/InclusivePassedSDEECs.root"
+        self.outputforvassufile = ROOT.TFile.Open(self.outputforvassu, "RECREATE")
 
         self._persistent_canvases = []
         self._canvas_counter = 0
@@ -190,7 +193,7 @@ class PlotDataCurves:
         self._counter_cache[key] = (num_jets, avg_jet_pt)
         return (num_jets, avg_jet_pt)
 
-    def _normalize_eec(self, hist, jetpt, z_cut, ptRL=False):
+    def _normalize_eec(self, hist, jetpt, z_cut, ptRL=False, save=False):
         """Scale a fetched EEC/ptRL hist in memory (does not touch the file).
 
         Regular:  1/num_jets with "width"
@@ -203,7 +206,22 @@ class PlotDataCurves:
             return hist
         if ptRL:
             hist.Scale(math.log(avg_jet_pt) / avg_jet_pt)
-        hist.Scale(1.0 / num_jets, "width")
+
+        # hist.Scale(1.0 / num_jets, "width")
+
+        oldname = hist.GetName()
+        self.outputforvassufile.cd()
+        hist.Scale(1.0, "width")
+        hist.SetName(f"{oldname}_justdividedbybinwidth")
+        if "full" in oldname and not ptRL and save:
+            hist.Write()
+            print("wrote!!")
+        if ptRL:
+            print("histogram maximum", hist.GetName(), hist.GetMaximum())
+        hist.Scale(1.0 / num_jets)
+        hist.SetName(f"{oldname}")
+        if "full" in oldname and not ptRL and save:
+            hist.Write()
         return hist
 
 
@@ -351,7 +369,7 @@ class PlotDataCurves:
             return h
         return None
 
-    def GetSubjetEECHists(self, jetpt, z_cut, den_weight, ptRL=False, norm_by_jets=True):
+    def GetSubjetEECHists(self, jetpt, z_cut, den_weight, ptRL=False, norm_by_jets=True, save=False):
         cut = self.get_cut_suffix(z_cut)
         pr = self._ptrange_token(jetpt)
         w = self.WEIGHT_TOKEN[den_weight]
@@ -366,7 +384,10 @@ class PlotDataCurves:
         hists = (self._get(full_name), self._get(rad_name), self._get(aa_name),
                  self._get(bb_name), self._get(ab_name))
         if norm_by_jets:
-            final_hists = tuple(self._normalize_eec(h, jetpt, z_cut, ptRL=ptRL) for h in hists)
+            print("about to normalize function", jetpt, z_cut, den_weight, ptRL, norm_by_jets)
+            if den_weight == "rad":
+                save = False #only save when looking at full eec
+            final_hists = tuple(self._normalize_eec(h, jetpt, z_cut, ptRL=ptRL, save=save) for h in hists)
         return final_hists if norm_by_jets else hists
 
     # Can't use this anymore because CAB was calculated with unnormalized histograms... though maybe this shouldn't make a difference?
@@ -459,7 +480,8 @@ class PlotDataCurves:
             (False, "subjet_eec",      "canvas_basic"),
             (True,  "subjet_eec/ptRL", "canvas_ptRL"),
         ]:
-            hists = self.GetSubjetEECHists(jetpt, z_cut, den_weight, ptRL=ptRL)
+            print("subjeteec1")
+            hists = self.GetSubjetEECHists(jetpt, z_cut, den_weight, ptRL=ptRL, save=True)
             hist_full, hist_rad, hist_AA, hist_BB, hist_AB = hists
             if not all([hist_rad, hist_AA, hist_BB, hist_AB]):
                 continue
@@ -524,6 +546,7 @@ class PlotDataCurves:
             print(f"WARNING: R_g histogram not found for data {tag} {cut}")
             return
 
+        print("subjeteec2")
         _, _, hist_AA, hist_BB, hist_AB = self.GetSubjetEECHists(
             jetpt, z_cut, den_weight, False, False)
         if not all([hist_AA, hist_BB, hist_AB]):
@@ -663,6 +686,7 @@ class PlotDataCurves:
         can_CAB.SetLogx()
         can_CAB.SetLogy()
 
+        print("subjeteec34")
         _, _, hist_AA_jet, hist_BB_jet, hist_AB_jet = self.GetSubjetEECHists(jetpt, z_cut, "jet", ptRL=ptRL)
         _, _, hist_AA_rad, hist_BB_rad, hist_AB_rad = self.GetSubjetEECHists(jetpt, z_cut, "rad", ptRL=ptRL)
         hist_wwjetpt = self.GetCABHist(jetpt, z_cut, "jet", hist_AA_jet, hist_BB_jet, hist_AB_jet, ptRL=ptRL)
@@ -765,6 +789,7 @@ class PlotDataCurves:
         # persistent[ijetpt] = [rad, AA, BB, AB] or None
         persistent = []
         for ijetpt, jetpt in enumerate(self.target_jet_pts):
+            print("subjeteec5")
             hists = self.GetSubjetEECHists(jetpt, z_cut, den_weight)
             _, hr, hAA, hBB, hAB = hists
             if not all([hr, hAA, hBB, hAB]):
@@ -833,6 +858,7 @@ class PlotDataCurves:
         persistent_CAB = []
         first_CAB = True
         for ijetpt, jetpt in enumerate(self.target_jet_pts):
+            print("subjeteec6")
             hists = self.GetSubjetEECHists(jetpt, z_cut, den_weight)
             _, hr, hAA, hBB, hAB = hists
             h = self.GetCABHist(jetpt, z_cut, den_weight, hAA, hBB, hAB)
@@ -889,6 +915,7 @@ class PlotDataCurves:
         persistent_CAB_fits = []
         first_CAB_fits = True
         for ijetpt, jetpt in enumerate(self.target_jet_pts):
+            print("subjeteec7")
             hists = self.GetSubjetEECHists(jetpt, z_cut, den_weight)
             _, hr, hAA, hBB, hAB = hists
             h = self.GetCABHist(jetpt, z_cut, den_weight, hAA, hBB, hAB)
@@ -1103,6 +1130,7 @@ class PlotDataCurves:
         lo, hi = jetpt
         jetpt_mid = 0.5 * (lo + hi)   # x-position for the summary plot
         for ptRL in (False, True):
+            print("subjeteec8")
             hists = self.GetSubjetEECHists(jetpt, z_cut, den_weight, ptRL=ptRL)
             case_key = self._mpv_case_key(cut, den_weight, ptRL)
             self.mpv_meta[case_key] = dict(cut=cut, den=den_weight, ptRL=ptRL,
