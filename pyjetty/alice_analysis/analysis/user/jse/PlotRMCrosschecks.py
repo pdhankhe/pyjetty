@@ -12,7 +12,7 @@ Reads the ROOT file and produces:
         * 1D projections (det and part overlaid) for jet pt, RL, weight
 
     Usage:
-        python plot_rms.py -i response.root -o plots
+        python PlotRMCrosschecks.py # -i crosschecks.root
 """
 
 import os
@@ -87,43 +87,6 @@ def draw_hori_line(x1, x2, y1, color, linestyle, linewidth=1):
     line.SetLineStyle(linestyle)
     line.Draw("SAME")
     return line
-
-def draw_th2(h, outpath, logx=False, logy=False, logz=True,
-             zmin=None, zmax=None, lines=None, extra_lines=None):
-    """Draw a TH2 as a colz plot and save."""
-    c = _new_canvas(800, 700)
-    c.SetRightMargin(0.15)
-    c.SetLeftMargin(0.13)
-    c.SetBottomMargin(0.12)
-    c.SetTopMargin(0.06)
-
-    if logx and _log_ok(h.GetXaxis()):
-        c.SetLogx()
-    if logy and _log_ok(h.GetYaxis()):
-        c.SetLogy()
-    if logz and h.GetEntries() > 0:
-        c.SetLogz()
-        if zmin is None:
-            zmin = h.GetMinimum(0.0)      # smallest bin content strictly > 0
-            if zmin <= 0:                 # everything zero/negative
-                zmin = 1e-3
-    if zmin is not None:
-        h.SetMinimum(zmin)
-    if zmax is not None:
-        h.SetMaximum(zmax)
-
-    h.GetXaxis().SetTitleOffset(1.1)
-    h.GetYaxis().SetTitleOffset(1.3)
-    h.Draw("COLZ")
-
-    block = list(lines) if lines else []
-    if extra_lines:
-        block += list(extra_lines)
-    txt = draw_text(block) if block else None   # local ref keeps it alive
-
-    c.RedrawAxis()
-    c.SaveAs(outpath)
-    c.Close()
 
 
 def draw_1d_overlay(h_det, h_part, xtitle, outpath,
@@ -295,25 +258,17 @@ def plot_consolidated_2d(consolidated_h2s, eec_labels, projections, grooming_str
         c_cons.Close()
         
         
-def PlotGiven1D(hist, outpath, xtitle="", ytitle="", lines=None, extra_lines=None, ytext=0.86, logx=False, logy=False, horiline=False, yscale01=False, showmorexlab=False, minlogx=0.1, miny=None, maxy=None):
+def PlotGiven1D(hist, outpath, xtitle="", ytitle="", lines=None, extra_lines=None, ytext=0.86, logx=False, logy=False, horiline=False, yscale01=False, showmorexlab=False):
     # hist = f.Get(hist_name)
     c = _new_canvas(800, 650)
 
-    if logx:
-        if not _log_ok(hist.GetXaxis()):
-            # set x axis minimum to minlogx
-            hist.SetAxisRange(minlogx, hist.GetXaxis().GetXmax(), "X")
+    if logx and _log_ok(hist.GetXaxis()):
         c.SetLogx()
         if showmorexlab:
             hist.GetXaxis().SetMoreLogLabels()  # <--- Forces 10, 20, 50, 100, 200... labels
             hist.GetXaxis().SetNoExponent()
     if logy:
         c.SetLogy()
-
-    if miny is not None:
-        hist.SetMinimum(miny)
-    if maxy is not None:
-        hist.SetMinimum(maxy)
 
     if yscale01: #set the y axis from 0 to 1
         hist.SetMinimum(0.0)
@@ -352,9 +307,33 @@ def PlotGiven1D(hist, outpath, xtitle="", ytitle="", lines=None, extra_lines=Non
     # leg.Draw()
 
 
-def PlotGiven2D(hist2D, outpath, xtitle="", ytitle="", lines=None, extra_lines=None, zscale01=False):
-    c = _new_canvas(800, 650)
+def PlotGiven2D(hist2D, outpath, xtitle="", ytitle="", lines=None, extra_lines=None, logx=False, logy=False, logz=False, zscale01=False):
+    #, logx=False, logy=False, logz=True, zmin=None, zmax=None,
+
+    c = _new_canvas(800, 650) #(800, 700)
+    c.SetRightMargin(0.15)
+    c.SetLeftMargin(0.13)
+    c.SetBottomMargin(0.12)
+    c.SetTopMargin(0.06)
+
+    hist2D.GetXaxis().SetTitleOffset(1.1)
+    hist2D.GetYaxis().SetTitleOffset(1.3)
     
+    if logx and _log_ok(hist2D.GetXaxis()):
+        c.SetLogx()
+    if logy and _log_ok(hist2D.GetYaxis()):
+        c.SetLogy()
+    if logz and hist2D.GetEntries() > 0:
+        c.SetLogz()
+        # if zmin is None:
+        #     zmin = hist2D.GetMinimum(0.0)      # smallest bin content strictly > 0
+        #     if zmin <= 0:                 # everything zero/negative
+        #         zmin = 1e-3
+    # if zmin is not None:
+    #     hist2D.SetMinimum(zmin)
+    # if zmax is not None:
+    #     hist2D.SetMaximum(zmax)
+        
     if zscale01: #set the z axis from 0 to 1
         hist2D.SetMinimum(0.0)
         hist2D.SetMaximum(1.0)
@@ -385,16 +364,9 @@ def plot_QA(f, grooming_str, outdir):
     residual_dir = os.path.join(outdir, "residuals")
     os.makedirs(residual_dir, exist_ok=True)
 
-    jet_residual_dir = os.path.join(residual_dir, "jet")
-    pair_residual_dir = os.path.join(residual_dir, "pair")
-    track_residual_dir = os.path.join(residual_dir, "track")
-    os.makedirs(jet_residual_dir, exist_ok=True)
-    os.makedirs(pair_residual_dir, exist_ok=True)
-    os.makedirs(track_residual_dir, exist_ok=True)
-
     # First, jet pt
     residual_jetpt = f.Get(f"res_jetpt_{grooming_str}")
-    CalculateAndPlotResAndScale(residual_jetpt, "jetpt", "", f"jetpt", jet_residual_dir, xtitle="Truth #it{p}_{T,gr. jet} [GeV/#it{c}]", yvar="p_{T, gr. jet}", logx=False)
+    CalculateAndPlotResAndScale(residual_jetpt, "jetpt", "", f"jetpt", residual_dir, logx=True)
 
     # Then, RL & weights
     residuals_rl = {}
@@ -402,8 +374,8 @@ def plot_QA(f, grooming_str, outdir):
     for lab in EEC_LABELS:
         res_rl = f.Get(f"res_rl_{lab}")
         res_w = f.Get(f"res_w_{lab}")
-        CalculateAndPlotResAndScale(res_rl, "rl", lab, f"rl_{lab}", pair_residual_dir, xtitle="Truth #it{R}_{L}", yvar="R_{L}", y_res=(0, 0.07), y_scale=(-0.006, 0.003), logx=True)
-        CalculateAndPlotResAndScale(res_w, "weight", lab, f"weight_{lab}", pair_residual_dir, xtitle="Truth #it{R}_{L}", yvar="R_{L}", logx=True)
+        CalculateAndPlotResAndScale(res_rl, "rl", lab, f"rl_{lab}", residual_dir, logx=True)
+        CalculateAndPlotResAndScale(res_w, "weight", lab, f"weight_{lab}", residual_dir, logx=True)
         # residuals_rl[lab] = res_rl
         # residuals_w[lab] = res_w
 
@@ -413,21 +385,17 @@ def plot_QA(f, grooming_str, outdir):
     trk_pur_num = f.Get("trk_pur_num")
     trk_pur_den = f.Get("trk_pur_den")
 
-    trk_eff_new = f.Get("track_efficiency_new")
-    trk_pur_new = f.Get("track_purity_new")
-    PlotGiven1D(trk_eff_new, os.path.join(track_residual_dir, "track_efficiency_new.pdf"), ytitle="Efficiency = matched gen/all gen", logx=False, yscale01=True) #, lines=lines, extra_lines=None, ytext=0.86, logx=False, logy=False, horiline=False, yscale01=False)
-    PlotGiven1D(trk_pur_new, os.path.join(track_residual_dir, "track_purity_new.pdf"), ytitle="Purity = matched rec/all rec",logx=False, yscale01=True)
 
 
     trk_res_pt = f.Get("trk_res_pt")
-    CalculateAndPlotResAndScale(trk_res_pt, "trackpt", "", f"trackpt", track_residual_dir, xtitle="Truth #it{p}_{T,track} [GeV/#it{c}]", yvar="p_{T, gr. jet}", logx=True)
+    CalculateAndPlotResAndScale(trk_res_pt, "trackpt", "", f"trackpt", residual_dir, logx=True)
 
 
 def CalculateAndPlotResAndScale(h2D, name, lab, hname, outdir,
-                                xtitle="", yvar="",
                                 logx=False, min_entries=100,
                                 fit_range=(-1.0, 1.0),
-                                y_res=None, y_scale=None, 
+                                jes_range=(-0.5, 0.5),
+                                jer_range=(0.0, 0.5),
                                 draw_slices=True, lines=None):
     """
     Input: 2D residual plot, xaxis: part, yaxis: (part-det)/part
@@ -441,7 +409,7 @@ def CalculateAndPlotResAndScale(h2D, name, lab, hname, outdir,
         return None, None
 
     base = h2D.GetName()
-    # os.makedirs(outdir, exist_ok=True)
+    os.makedirs(outdir, exist_ok=True)
 
     slice_pdf = None
     if draw_slices:
@@ -457,21 +425,11 @@ def CalculateAndPlotResAndScale(h2D, name, lab, hname, outdir,
     hJES = hMean.Clone(f"hJES_{hname}")
     hJER = hSigma.Clone(f"hJER_{hname}")
 
-    ytitle_sigma = f"#sigma(#Delta{yvar}/{yvar})"
-    ytitle_mean = f"#langle #Delta{yvar}/{yvar} #rangle"
-
     os.makedirs(outdir, exist_ok=True)
-    if y_res is not None:
-        miny = y_res[0]
-        maxy = y_res[1]
-    PlotGiven1D(hJER, os.path.join(outdir, f"Resolution_{hname}.pdf"), xtitle=xtitle, ytitle=ytitle_sigma,
-                logx=logx, logy=False, miny=miny, maxy=maxy, horiline=False)
-
-    if y_scale is not None:
-        miny = y_scale[0]
-        maxy = y_scale[1]
-    PlotGiven1D(hJES, os.path.join(outdir, f"Scale_{hname}.pdf"), xtitle=xtitle, ytitle=ytitle_mean,
-                logx=logx, logy=False, miny=miny, maxy=maxy, horiline=False)
+    PlotGiven1D(hJER, os.path.join(outdir, f"JER_{hname}.pdf"),
+                logx=logx, logy=False, horiline=False)
+    PlotGiven1D(hJES, os.path.join(outdir, f"JES_{hname}.pdf"),
+                logx=logx, logy=False, horiline=False)
 
 
 
@@ -501,8 +459,6 @@ def _fit_slices_with_plots(h2D, min_entries=100, fit_range=(-1.0, 1.0),
     if slice_pdf:
         os.makedirs(os.path.dirname(slice_pdf) or ".", exist_ok=True)
         c = _new_canvas(400 * ncols, 340 * nrows)
-        c.SetGridx(0)
-        c.SetGridy(0)
         c.Print(slice_pdf + "[")     # open multi-page document
 
     n_ok = n_skip = n_fail = 0
@@ -556,8 +512,6 @@ def _fit_slices_with_plots(h2D, min_entries=100, fit_range=(-1.0, 1.0),
         pad.SetRightMargin(0.04)
         pad.SetTopMargin(0.06)
         pad.SetBottomMargin(0.13)
-        pad.SetGridx(0)
-        pad.SetGridy(0)
 
         p.SetMarkerStyle(20)
         p.SetMarkerSize(0.6)
@@ -646,115 +600,66 @@ def GetHist(f, histname):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("-i", "--input",
-                    # default="/rstorage/alice/AnalysisResults/blianggi/jse/rms/1836481/reponse_merged.root",
-                    default="/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/rms/57911278/response_{}_merged_partial.root",
-                    # default="/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/rms/1836481/reponse_merged.root",
-                    # default="/global/cfs/cdirs/alice/blianggi/mypyjetty/analysis/testing/response.root",
+                    default="/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/rm_crosscheck/58272568/crosschecks_merged.root",
                     help="input ROOT file (from make_rms.py)")
     ap.add_argument("-o", "--outdir",
-                    # default="/software/users/blianggi/mypyjetty/storage/jse/plots/response_matrices",
-                    default="/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/jse/plots/response_matrices",
+                    default="/global/cfs/cdirs/alice/blianggi/mypyjetty/storage/jse/plots/response_matrices/crosschecks",
                     help="output directory for plots")
-    ap.add_argument("--groomed-bins", default=True, help="True if looking at groomed bins, False if looking at ungroomed bins")
     args = ap.parse_args()
 
-    # Groomed vs ungroomed bins
-    gr_bins_bool = bool(args.groomed_bins)
-    grooming_str = "groomed" if gr_bins_bool else "ungroomed"
     
-    updated_outdir = os.path.join(args.outdir, f"{grooming_str}_bins")
-    os.makedirs(updated_outdir, exist_ok=True)
-    os.makedirs(os.path.join(updated_outdir, "effpur"), exist_ok=True)
+    os.makedirs(args.outdir, exist_ok=True)
+    # os.makedirs(os.path.join(updated_outdir, "effpur"), exist_ok=True)
 
-    # fill the {} placeholder only if one is present, so an explicit -i still works
-    infile = args.input.format(grooming_str) if "{}" in args.input else args.input
-    f = ROOT.TFile.Open(infile)
+    f = ROOT.TFile.Open(args.input)
     if not f or f.IsZombie():
-        raise RuntimeError(f"could not open {infile}")
-    
-
-    # -----------------------------------------------------------------------
-    # 2D jet pt and groomed jet pt responses
-    # -----------------------------------------------------------------------
-    h_jetpt = f.Get(f"resp_jetpt_{grooming_str}")
-    if h_jetpt:
-
-        jetptstr = "#it{p}_{T,g}" if gr_bins_bool else "it{p}_{T}"
-        ext_line = ["groomed jet #it{p}_{T} response"] if gr_bins_bool else ["jet #it{p}_{T} response"]
-        
-        h_jetpt.SetTitle("")
-        h_jetpt.GetXaxis().SetTitle(f"{jetptstr}^{{det}} (GeV/#it{{c}})")
-        h_jetpt.GetYaxis().SetTitle(f"{jetptstr}^{{part}} (GeV/#it{{c}})")
-        draw_th2(h_jetpt, os.path.join(updated_outdir, "resp2D_jetpt.pdf"),
-                 logx=False, logy=False, logz=True,
-                 lines=INFO_LINES, extra_lines=ext_line)
-        
-        # CalculateResidual(h_jetpt.ProjectionY(), h_jetpt.ProjectionX(), "jetpt", "", f"hresidual_{grooming_str}_jetpt", updated_outdir, logx=logx1d) #part, det
-        # CalculateJER(h_jetpt, "jetpt", "", f"hjer_{grooming_str}_jetpt", updated_outdir, logx=True)
-        # CalculateJES(h_jetpt, "jetpt", "", f"hjes_{grooming_str}_jetpt", updated_outdir, logx=True)
-    else:
-        print(f"WARNING: resp_jetpt_{grooming_str} not found")
+        raise RuntimeError(f"could not open {args.input}")
 
     
-    # Plot efficiency/purity plots
-    draw_1d_overlay(GetHist(f, f"jet_match_gen_eff_num_{grooming_str}"), GetHist(f, f"jet_all_gen_eff_den_{grooming_str}"), "#it{p}_{T}^{tr} (GeV/#it{c})", os.path.join(updated_outdir, f"effpur/jet_gen_{grooming_str}_matchedvsall.pdf"),
-                    lines=INFO_LINES, extra_lines=["truth jet p_{T}"], logx=True, logy=True, matchvsall=True, showmorexlab=True)
-    PlotGiven1D(GetHist(f, f"jet_efficiency_{grooming_str}_new"), os.path.join(updated_outdir, f"effpur/jet_efficiency_{grooming_str}_new.pdf"), 
-                xtitle="#it{p}_{T}^{tr} (GeV/#it{c})", ytitle="Efficiency = matched gen/all gen", lines=INFO_LINES, extra_lines=["truth jet p_{T}"], ytext=0.3, logx=True, yscale01=True, showmorexlab=True)
-    draw_1d_overlay(GetHist(f, f"jet_match_rec_pur_num_{grooming_str}"), GetHist(f, f"jet_all_rec_pur_den_{grooming_str}"), "#it{p}_{T}^{det} (GeV/#it{c})", os.path.join(updated_outdir, f"effpur/jet_rec_{grooming_str}_matchedvsall.pdf"),
-                    lines=INFO_LINES, extra_lines=["detector jet p_{T}"], logx=True, logy=True, matchvsall=True, showmorexlab=True)
-    PlotGiven1D(GetHist(f, f"jet_purity_{grooming_str}_new"), os.path.join(updated_outdir, f"effpur/jet_purity_{grooming_str}_new.pdf"), 
-                xtitle="#it{p}_{T}^{det} (GeV/#it{c})", ytitle="Purity = matched rec/all rec", lines=INFO_LINES, extra_lines=["detector jet p_{T}"], ytext=0.3, logx=True, yscale01=True, showmorexlab=True)
+    hnevents = f.Get("hNevents")
+    print("There are a total of ", hnevents.GetBinContent(hnevents.FindBin(0)), "events in anch mc.")
 
-    if gr_bins_bool:
+    suffix = ["det", "part"]
 
-        PlotGiven2D(f.lund_matched_gen, os.path.join(updated_outdir, "effpur/lund_matched_gen.pdf"), lines=INFO_LINES, extra_lines=["matched truth splittings"])
-        PlotGiven2D(f.lund_all_gen, os.path.join(updated_outdir, "effpur/lund_all_gen.pdf"), lines=INFO_LINES, extra_lines=["all truth splittings"])
-        PlotGiven2D(f.lund_matched_rec, os.path.join(updated_outdir, "effpur/lund_matched_rec.pdf"), lines=INFO_LINES, extra_lines=["all detector splittings"])
-        PlotGiven2D(f.lund_all_rec, os.path.join(updated_outdir, "effpur/lund_all_rec.pdf"), lines=INFO_LINES, extra_lines=["matched detector splittings"])
-
-        PlotGiven2D(f.lund_split_efficiency_new, os.path.join(updated_outdir, "effpur/lund_split_efficiency_new.pdf"), lines=INFO_LINES, extra_lines=["truth splittings"], zscale01=True)
-        PlotGiven2D(f.lund_split_purity_new, os.path.join(updated_outdir, "effpur/lund_split_purity_new.pdf"), lines=INFO_LINES, extra_lines=["detector splittings"], zscale01=True)
-
-        for lab in EEC_LABELS:
-
-            draw_1d_overlay(GetHist(f, f"pair_match_gen_eff_num_{lab}"), GetHist(f, f"pair_all_gen_eff_den_{lab}"), "#it{R}_{L}^{tr}", os.path.join(updated_outdir, f"effpur/pair_gen_{lab}_matchedvsall.pdf"),
-                            lines=INFO_LINES, extra_lines=[f"truth {lab} pairs"], logx=True, logy=True, matchvsall=True)
-            PlotGiven1D(GetHist(f, f"pair_efficiency_{lab}_new"), os.path.join(updated_outdir, f"effpur/pair_efficiency_{lab}_new.pdf"), 
-                        xtitle="#it{R}_{L}^{tr}", ytitle="Efficiency = matched gen/all gen", 
-                        lines=INFO_LINES, extra_lines=[f"truth {lab} pairs"], ytext=0.3, 
-                        logx=True, yscale01=True)
-            draw_1d_overlay(GetHist(f, f"pair_match_rec_pur_num_{lab}"), GetHist(f, f"pair_all_rec_pur_den_{lab}"), "#it{R}_{L}^{det}", os.path.join(updated_outdir, f"effpur/pair_rec_{lab}_matchedvsall.pdf"),
-                            lines=INFO_LINES, extra_lines=[f"detector {lab} pairs"], logx=True, logy=True, matchvsall=True)
-            PlotGiven1D(GetHist(f, f"pair_purity_{lab}_new"), os.path.join(updated_outdir, f"effpur/pair_purity_{lab}_new.pdf"), 
-                        xtitle="#it{R}_{L}^{det}", ytitle="Purity = matched rec/all rec", 
-                        lines=INFO_LINES, extra_lines=[f"detector {lab} pairs"], ytext=0.3, 
-                        logx=True, yscale01=True)
-
-    
+    # 2D histograms
+    # the brackets get replaced with det/part
+    # histogram name, x title, y title, logx, logy, logz
+    hist2D_list = [
+        ("h_pair_pt_{}",   "#it{p}_{T,i} [GeV/#it{c}]", "#it{p}_{T,j} [GeV/#it{c}]", False, False, True),
+        ("h_pair_pid_{}",  "particle from subjet A",    "particle from subjet B",    False, False, True),
+    ]
+    for h2D_str, xtitle, ytitle, logx, logy, logz in hist2D_list:
+        for suf in suffix:
+            h2D_name = h2D_str.format(suf)
+            print(h2D_name)
+            h2D = f.Get(h2D_name)
+            outpath = os.path.join(args.outdir, f"{h2D_name}.pdf")
+            PlotGiven2D(h2D, outpath, logx=logx, logy=logy, logz=logz) #, xtitle="", ytitle="", lines=None, extra_lines=None)
 
 
-    # Plot QA
-    plot_QA(f, grooming_str, updated_outdir)
-
-    # -----------------------------------------------------------------------
-    # 6D THnSparse projections
-    # -----------------------------------------------------------------------
-    # Dictionary to collect histograms: {name: {lab: h2}}
-    consolidated_h2s = {}
-    
-    for lab in EEC_LABELS:
-        hs = f.Get(f"resp6_{grooming_str}_{lab}")
-        if not hs:
-            print(f"WARNING: resp6_{grooming_str}_{lab} not found")
-            continue
-        process_sparse(hs, lab, grooming_str, updated_outdir, lines=INFO_LINES, consolidated_dict=consolidated_h2s)
-    
-    # Call the consolidated plot function after looping through all labels
-    plot_consolidated_2d(consolidated_h2s, EEC_LABELS, PROJECTIONS, grooming_str, updated_outdir, lines=INFO_LINES)
-
-    f.Close()
-    print(f"Wrote plots to {updated_outdir}/")
+    # 1D histograms
+    hist1D_list = [ "h_n_const_orig_{}", "h_n_const_groomed_{}", "h_n_const_removed_{}", "h_jet_pt_orig_{}", "h_jet_pt_groomed_{}", "h_pair_dr_{}", "h_pair_mass_{}" ]
+    # histogram name, x title, y title logx, logy
+    hist1D_list = [
+        ("h_n_const_orig_{}",     "N_{constituents}",                 "counts",  False, True),
+        ("h_n_const_groomed_{}",  "N_{groomed constituents}",         "counts",  False, True),
+        ("h_n_const_removed_{}",  "N_{removed}",                      "counts",  False, True),
+        ("h_jet_pt_orig_{}",      "#it{p}_{T,jet} [GeV/#it{c}]",      "counts",  False, True),
+        ("h_jet_pt_groomed_{}",   "#it{p}_{T,gr. jet} [GeV/#it{c}]",  "counts",  False, True),
+        ("h_pair_dr_{}",          "#Delta R",                         "counts",  False, True),
+        ("h_pair_mass_{}",        "Pair Mass [GeV]",                  "counts",  False, True),
+    ]
+    for h_str, xtitle, ytitle, logx, logy in hist1D_list:
+        hists = []
+        for suf in suffix:
+            h_name = h_str.format(suf)
+            h = f.Get(h_name)
+            hists.append(h)
+            
+            # PlotGiven1D(h, outpath) #, xtitle="", ytitle="")
+        output_name = h_str.format("part_vs_det")
+        outpath = os.path.join(args.outdir, f"{output_name}.pdf")
+        draw_1d_overlay(hists[0], hists[1], xtitle, outpath, logx=logx, logy=logy) #, lines=None, extra_lines)
 
 
 if __name__ == "__main__":

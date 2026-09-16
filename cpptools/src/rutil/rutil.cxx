@@ -1,7 +1,7 @@
 #include <rutil.hh>
 
 #include <TFile.h>
-#include <THnSparse.h>
+
 #include <iostream>
 
 ClassImp(RUtil::Test);
@@ -26,7 +26,7 @@ namespace RUtil
         	std::cout << val << " " << cell << std::endl;
         	exit(0);
     }
-
+	
     //---------------------------------------------------------------
     // Rebin 2D histogram h with name hname using axes given by x_bins and y_bins
     // If move_y_underflow is set, y-underflow bins in h_to_rebin are added to (x, 1) bin
@@ -88,7 +88,7 @@ namespace RUtil
 
 
     //---------------------------------------------------------------
-    // Same function, but overloaded for TH2D
+	// Same function, but overloaded for TH2D 
     //---------------------------------------------------------------
     TH2D* HistUtils::rebin_th2(TH2D & h_to_rebin, char* hname, double* x_bins, int n_x_bins,
                     double* y_bins, int n_y_bins, bool move_y_underflow /*= false*/) {
@@ -207,196 +207,6 @@ namespace RUtil
 
     }  // rebin_thn
 
-//---------------------------------------------------------------
-// Rebin THn according to specified binnings; return pointer to rebinned THn
-// Same function, but overloaded for THnSparseD
-//---------------------------------------------------------------
-THnSparseD* HistUtils::rebin_thn(const std::string & response_file_name,
-                       const THnSparseD* thn,
-                       const std::string & name_thn_rebinned,
-                       const std::string & name_roounfold,
-                       const int & n_dim,
-                       const int & n_pt_bins_det,
-                       const double* det_pt_bin_array,
-                       const int & n_obs_bins_det,
-                       const double* det_bin_array,
-                       const int & n_pt_bins_truth,
-                       const double* truth_pt_bin_array,
-                       const int & n_obs_bins_truth,
-                       const double* truth_bin_array,
-                       const std::string & label/*=""*/,
-                       const double & prior_variation_parameter/*=0.*/,
-                       const int & prior_option/*=1*/,
-                       const bool move_underflow/*=false*/,
-                       const bool use_miss_fake/*=false*/,
-                       const bool do_roounfoldresponse/*=true*/) {
-
-// ------------------------------------------------------
-// Create empty THn with specified binnings
-
-THnSparseD* thn_rebinned = this->create_empty_thnsparse(name_thn_rebinned.c_str(), n_dim,
-                                            n_pt_bins_det, det_pt_bin_array,
-                                            n_obs_bins_det, det_bin_array,
-                                            n_pt_bins_truth, truth_pt_bin_array,
-                                            n_obs_bins_truth, truth_bin_array);
-
-for (unsigned int i = 0; i < n_dim; i++) {
-    thn_rebinned->GetAxis(i)->SetTitle(thn->GetAxis(i)->GetTitle());
-}
-
-// ------------------------------------------------------
-// Create RooUnfoldResponse
-    RooUnfoldResponse* roounfold_response = (
-      do_roounfoldresponse ?
-    this->create_empty_roounfoldresponse(thn_rebinned, name_roounfold, label) : nullptr);
-
-    const prior_scale_func f = this->prior_scale_factor_obs(prior_option);
-
-    // Loop through THn and fill rebinned THn and RooUnfoldResponse
-    float min_det_pt = det_pt_bin_array[0];
-    float min_truth_pt = truth_pt_bin_array[0];
-    float min_det = det_bin_array[0];
-    float min_truth = truth_bin_array[0];
-    float max_det_pt = det_pt_bin_array[n_pt_bins_det];
-    float max_truth_pt = truth_pt_bin_array[n_pt_bins_truth];
-    float max_det = det_bin_array[n_obs_bins_det];
-    float max_truth = truth_bin_array[n_obs_bins_truth];
-
-    this->fill_rebinned_thn(response_file_name, thn, thn_rebinned, n_dim, f,
-                        do_roounfoldresponse, roounfold_response,
-                        min_det_pt, min_truth_pt, min_det, min_truth,
-                        max_det_pt, max_truth_pt, max_det, max_truth,
-                        prior_variation_parameter, move_underflow, use_miss_fake);
-
-    return thn_rebinned;
-
-}  // rebin_thn
-
-    //---------------------------------------------------------------
-    // Rebin THn according to specified binnings; return pointer to rebinned THn
-    // Overloaded function that takes TH2 for prior variation
-    //---------------------------------------------------------------
-    THnF* HistUtils::rebin_thn_th2prior(
-        const std::string & response_file_name,
-        const THnF* thn,
-        const std::string & name_thn_rebinned,
-        const std::string & name_roounfold,
-        const int & n_dim,
-        const int & n_pt_bins_det,
-        const double* det_pt_bin_array,
-        const int & n_obs_bins_det,
-        const double* det_bin_array,
-        const int & n_pt_bins_truth,
-        const double* truth_pt_bin_array,
-        const int & n_obs_bins_truth,
-        const double* truth_bin_array,
-        const std::string & label/*=""*/,
-        const double & prior_variation_parameter/*=0.*/,
-        const TH2* prior_variation/*=nullptr*/,
-        const bool move_underflow/*=false*/,
-        const bool use_miss_fake/*=false*/,
-        const bool do_roounfoldresponse/*=true*/) {
-
-        // ------------------------------------------------------
-        // Create empty THn with specified binnings
-        THnF* thn_rebinned = this->create_empty_thn(name_thn_rebinned.c_str(), n_dim,
-                                                    n_pt_bins_det, det_pt_bin_array,
-                                                    n_obs_bins_det, det_bin_array,
-                                                    n_pt_bins_truth, truth_pt_bin_array,
-                                                    n_obs_bins_truth, truth_bin_array);
-
-        for (unsigned int i = 0; i < n_dim; i++) {
-            thn_rebinned->GetAxis(i)->SetTitle(thn->GetAxis(i)->GetTitle());
-        }
-
-        // ------------------------------------------------------
-        // Create RooUnfoldResponse
-        RooUnfoldResponse* roounfold_response = (
-            do_roounfoldresponse ?
-            this->create_empty_roounfoldresponse(thn_rebinned, name_roounfold, label) : nullptr);
-
-        // Loop through THn and fill rebinned THn and RooUnfoldResponse
-        float min_det_pt = det_pt_bin_array[0];
-        float min_truth_pt = truth_pt_bin_array[0];
-        float min_det = det_bin_array[0];
-        float min_truth = truth_bin_array[0];
-        float max_det_pt = det_pt_bin_array[n_pt_bins_det];
-        float max_truth_pt = truth_pt_bin_array[n_pt_bins_truth];
-        float max_det = det_bin_array[n_obs_bins_det];
-        float max_truth = truth_bin_array[n_obs_bins_truth];
-
-        this->fill_rebinned_thn(response_file_name, thn, thn_rebinned, n_dim,
-                                do_roounfoldresponse, roounfold_response,
-                                min_det_pt, min_truth_pt, min_det, min_truth,
-                                max_det_pt, max_truth_pt, max_det, max_truth,
-                                prior_variation, prior_variation_parameter,
-                                move_underflow, use_miss_fake);
-
-        return thn_rebinned;
-
-    }  // rebin_thn
-
-
-THnSparseD* HistUtils::rebin_thn_th2prior_thnsparse(
-    const std::string & response_file_name,
-    const THnSparseD* thn,
-    const std::string & name_thn_rebinned,
-    const std::string & name_roounfold,
-    const int & n_dim,
-    const int & n_pt_bins_det,
-    const double* det_pt_bin_array,
-    const int & n_obs_bins_det,
-    const double* det_bin_array,
-    const int & n_pt_bins_truth,
-    const double* truth_pt_bin_array,
-    const int & n_obs_bins_truth,
-    const double* truth_bin_array,
-    const std::string & label/*=""*/,
-    const double & prior_variation_parameter/*=0.*/,
-    const TH2* prior_variation/*=nullptr*/,
-    const bool move_underflow/*=false*/,
-    const bool use_miss_fake/*=false*/,
-    const bool do_roounfoldresponse/*=true*/) {
-
-    // ------------------------------------------------------
-    // Create empty THn with specified binnings
-    THnSparseD* thn_rebinned = this->create_empty_thnsparse(name_thn_rebinned.c_str(), n_dim,
-                                                n_pt_bins_det, det_pt_bin_array,
-                                                n_obs_bins_det, det_bin_array,
-                                                n_pt_bins_truth, truth_pt_bin_array,
-                                                n_obs_bins_truth, truth_bin_array);
-
-    for (unsigned int i = 0; i < n_dim; i++) {
-        thn_rebinned->GetAxis(i)->SetTitle(thn->GetAxis(i)->GetTitle());
-    }
-
-    // ------------------------------------------------------
-    // Create RooUnfoldResponse
-    RooUnfoldResponse* roounfold_response = (
-        do_roounfoldresponse ?
-        this->create_empty_roounfoldresponse(thn_rebinned, name_roounfold, label) : nullptr);
-
-    // Loop through THn and fill rebinned THn and RooUnfoldResponse
-    float min_det_pt = det_pt_bin_array[0];
-    float min_truth_pt = truth_pt_bin_array[0];
-    float min_det = det_bin_array[0];
-    float min_truth = truth_bin_array[0];
-    float max_det_pt = det_pt_bin_array[n_pt_bins_det];
-    float max_truth_pt = truth_pt_bin_array[n_pt_bins_truth];
-    float max_det = det_bin_array[n_obs_bins_det];
-    float max_truth = truth_bin_array[n_obs_bins_truth];
-
-    this->fill_rebinned_thn(response_file_name, thn, thn_rebinned, n_dim,
-                            do_roounfoldresponse, roounfold_response,
-                            min_det_pt, min_truth_pt, min_det, min_truth,
-                            max_det_pt, max_truth_pt, max_det, max_truth,
-                            prior_variation, prior_variation_parameter,
-                            move_underflow, use_miss_fake);
-
-    return thn_rebinned;
-
-}  // rebin_thn
-
     //---------------------------------------------------------------
     // Create an empty THn according to specified binnings
     //---------------------------------------------------------------
@@ -405,7 +215,7 @@ THnSparseD* HistUtils::rebin_thn_th2prior_thnsparse(
                                       const int & n_obs_bins_det, const double* det_bin_array,
                                       const int & n_pt_bins_truth, const double* truth_pt_bin_array,
                                       const int & n_obs_bins_truth, const double* truth_bin_array) {
-
+ 
         // Obviously only working for n_dim == 4 at the moment
         if (n_dim != 4) {
             std::cerr << "ERROR: Not Implemented: Assertion n_dim == 4 failed in "
@@ -447,55 +257,6 @@ THnSparseD* HistUtils::rebin_thn_th2prior_thnsparse(
 
     }  // create_empty_thn
 
-//---------------------------------------------------------------
-// Create an empty THnSparse according to specified binnings
-//---------------------------------------------------------------
-THnSparseD* HistUtils::create_empty_thnsparse(const char* name, const int & n_dim,
-                              const int & n_pt_bins_det, const double* det_pt_bin_array,
-                              const int & n_obs_bins_det, const double* det_bin_array,
-                              const int & n_pt_bins_truth, const double* truth_pt_bin_array,
-                              const int & n_obs_bins_truth, const double* truth_bin_array) {
-
-    // Obviously only working for n_dim == 4 at the moment
-    if (n_dim != 4) {
-        std::cerr << "ERROR: Not Implemented: Assertion n_dim == 4 failed in "
-              << "fjtools.cxx::create_empty_thn()" << std::endl;
-        std::terminate();
-    }
-
-    // Initialize array of min & max values
-    int nbins[4] = { n_pt_bins_det, n_pt_bins_truth, n_obs_bins_det, n_obs_bins_truth };
-    double min[4] = { det_pt_bin_array[0], truth_pt_bin_array[0], det_bin_array[0], truth_bin_array[0] };
-    double max[4] = { det_pt_bin_array[n_pt_bins_det], truth_pt_bin_array[n_pt_bins_truth],
-                  det_bin_array[n_obs_bins_det], truth_bin_array[n_obs_bins_truth] };
-
-    /*  Use this in arbitrary dimension case
-     double** bin_edges = new double*[n_dim];
-     bin_edges[0] = det_pt_bin_array;
-     bin_edges[1] = truth_pt_bin_array;
-     bin_edges[2] = det_bin_array;
-     bin_edges[3] = truth_bin_array;
-     */
-
-    // Create the new THnSparse and set correct axes titles / bin edges
-    THnSparseD* h = new THnSparseD(name, name, n_dim, nbins, min, max);
-    h->SetBinEdges(0, det_pt_bin_array);
-    h->SetBinEdges(1, truth_pt_bin_array);
-    h->SetBinEdges(2, det_bin_array);
-    h->SetBinEdges(3, truth_bin_array);
-
-    /*  For arbitrary dimensions
-     for (unsigned int i = 0; i < n_dim; i++) {
-        h->SetBinEdges(i, bin_edges[i]);
-     }
-     */
-
-    // Clean up memory
-    //delete[] bin_edges;
-
-    return h;
-
-}
 
     //---------------------------------------------------------------
     // Create empty RooUnfoldResponse object and return pointer
@@ -520,31 +281,6 @@ THnSparseD* HistUtils::create_empty_thnsparse(const char* name, const int & n_di
 
     }  // create_empty_roounfold_response
 
-//---------------------------------------------------------------
-// Create empty RooUnfoldResponse object and return pointer
-// Same function, but overloaded for THnSparseD
-RooUnfoldResponse* HistUtils::create_empty_roounfoldresponse(THnSparseD* thn_rebinned,
-                                                             const std::string & name_roounfold, const std::string & label) {
-
-    // Create empty RooUnfoldResponse with specified binning
-    TH2D* hist_measured = thn_rebinned->Projection(2, 0);
-    std::string name_measured = std::string("hist_measured_") + label;
-    hist_measured->SetName(name_measured.c_str());
-    TH2D* hist_truth = thn_rebinned->Projection(3, 1);
-    std::string name_truth = std::string("hist_truth_") + label;
-    hist_truth->SetName(name_truth.c_str());
-    RooUnfoldResponse* roounfold_response = new RooUnfoldResponse(
-    hist_measured, hist_truth, name_roounfold.c_str(), name_roounfold.c_str());
-
-    // Note: Using overflow bins doesn't work for 2D unfolding in RooUnfold
-    //       -- we have to do it manually
-    //roounfold_response.UseOverflow(True)
-
-    return roounfold_response;
-
-}  // create_empty_roounfold_response
-
-
 
     //---------------------------------------------------------------
     // Fill thn_rebinned with data from thn
@@ -560,165 +296,6 @@ RooUnfoldResponse* HistUtils::create_empty_roounfoldresponse(THnSparseD* thn_reb
         const float max_det_pt, const float max_truth_pt, const float max_det, const float max_truth,
         const double & prior_variation_parameter/*=0.*/, const bool move_underflow/*=false*/,
         const bool use_miss_fake/*=false*/) {
-
-        // Only working for n_dim == 4 at the moment; generalizing to N dimensions
-        // will require some sort of recursive implementation
-        if (n_dim != 4) {
-            std::cerr << "ERROR: Not Implemented: Assertion n_dim == 4 failed in "
-                      << "fjtools.cxx::fill_rebinned_thn()" << std::endl;
-            std::terminate();
-        }
-
-        // loop through all axes
-        const unsigned int n_bins_0 = thn->GetAxis(0)->GetNbins();
-        const unsigned int n_bins_1 = thn->GetAxis(1)->GetNbins();
-        const unsigned int n_bins_2 = thn->GetAxis(2)->GetNbins();
-        const unsigned int n_bins_3 = thn->GetAxis(3)->GetNbins();
-
-        // Typically the n_dim = 4 setting is
-        // [pT_det, pT_truth, obs_det, obs_truth]
-
-        // I don't find any global bin index implementation, so I manually loop through axes
-        int* global_bin = new int[n_dim];
-        double* x = new double[n_dim];
-        for (unsigned int bin_1 = 0; bin_1 < n_bins_1+2; bin_1++) { // pT-truth
-            global_bin[1] = bin_1;
-            x[1] = thn->GetAxis(1)->GetBinCenter(bin_1);
-
-            // print helpful message while waiting
-            std::cout << bin_1 << " / " << n_bins_1 << '\r' << std::flush;
-
-            /* // Sum of obs_true in this pT_true bin
-            thn->GetAxis(1)->SetRange(bin_1, bin_1+1);
-            TH2* proj = (TH2*) thn->Projection(3,1);
-            double base_content = proj->ProjectionY()->Integral();
-            delete proj;
-            thn->GetAxis(1)->SetRange(0, 0);  // unset range */
-
-            for (unsigned int bin_0 = 0; bin_0 < n_bins_0+2; bin_0++) { // pT-det
-                global_bin[0] = bin_0;
-                x[0] = thn->GetAxis(0)->GetBinCenter(bin_0);
-
-                for (unsigned int bin_2 = 0; bin_2 < n_bins_2+2; bin_2++) {
-                    global_bin[2] = bin_2;
-                    x[2] = thn->GetAxis(2)->GetBinCenter(bin_2);
-
-                    for (unsigned int bin_3 = 0; bin_3 < n_bins_3+2; bin_3++) {
-                        global_bin[3] = bin_3;
-                        x[3] = thn->GetAxis(3)->GetBinCenter(bin_3);
-
-                        int bin = thn->GetBin(global_bin);
-                        double content = thn->GetBinContent(bin);
-                        if (content == 0) { continue; }
-                        double error = thn->GetBinError(bin);
-
-                        // Impose a custom prior, if desired
-                        if (std::abs(prior_variation_parameter) > 1e-5 && x[1] > 0 && x[3] > 0) {
-
-                            // Scale number of counts according to variation of pt & observable prior
-                            int sign = prior_variation_parameter / std::abs(prior_variation_parameter);
-                            double scale_factor = std::pow(x[1], sign * 0.5) *
-                                (*prior_scale_f)(x[3], content /* / base_content*/, prior_variation_parameter);
-
-                            content *= scale_factor;
-                            error *= scale_factor;
-
-                        }  // scale prior
-
-                        // If underflow bin, and if move_underflow flag is activated,
-                        // put the contents of the underflow bin into first bin of thn_rebinned
-                        if (bin_2 == 0 || bin_3 == 0) {
-                            if (move_underflow) {
-                                if (bin_2 == 0) {
-                                    x[2] = thn_rebinned->GetAxis(2)->GetBinCenter(1);
-                                }  // bin_2 == 0
-                                if (bin_3 == 0) {
-                                    x[3] = thn_rebinned->GetAxis(3)->GetBinCenter(1);
-                                    std::string name(thn->GetName());
-                                    if (name.find("matched") != std::string::npos) {
-                                        if (bin_2 == 0) { content = 1; }
-                                        else { content = 0; }
-                                    }
-                                }  // bin_3 == 0
-                            }
-                        }  // underflow bins
-
-                        // THn is filled as (x[0], x[1], x[2], x[3])
-                        // corresponding e.g. to (pt_det, pt_true, obs_det, obs_true)
-                        bin = thn_rebinned->GetBin(x);
-                        double prev_content = thn_rebinned->GetBinContent(bin);
-                        double prev_error2 = thn_rebinned->GetBinError2(bin);
-                        thn_rebinned->SetBinContent(bin, prev_content + content);
-                        thn_rebinned->SetBinError(bin, std::sqrt(prev_error2 + std::pow(error, 2)));
-
-                        // RooUnfoldResponse should be filled as (x[0], x[2], x[1], x[3])
-                        // corresponding e.g. to (pt_det, obs_det, pt_true, obs_true)
-                        if (do_roounfoldresponse) {
-
-                            bool pt_in_det_range = x[0] > min_det_pt && x[0] < max_det_pt;
-                            bool obs_in_det_range = x[2] > min_det && x[2] < max_det;
-                            bool pt_in_true_range = x[1] > min_truth_pt && x[1] < max_truth_pt;
-                            bool obs_in_true_range = x[3] > min_truth && x[3] < max_truth;
-
-                            bool in_det_range = pt_in_det_range && obs_in_det_range;
-                            bool in_true_range = pt_in_true_range && obs_in_true_range;
-
-                            // Fill if both det, true are in domain of RM
-                            if (in_det_range and in_true_range) {
-                                roounfold_response->FillContentError(x[0], x[2], x[1], x[3], content, error);
-                            }
-
-                            if (use_miss_fake) {
-
-                                // If input is not in det-range (this is our usual kinematic efficiency correction), Miss
-                                if (!in_det_range && in_true_range) {
-                                    roounfold_response->Miss(x[1], x[3], content);
-                                }
-                                // If truth-level is outside RM range (e.g. jet pt range is technically not [0,\infty]), Fake
-                                // This is usually a negligible correction for us
-                                else if (in_det_range && !in_true_range) {
-                                    roounfold_response->Fake(x[0], x[2], content);
-                                }
-                            }
-                        }
-                    }  // bin_3 loop
-                }  // bin_2 loop
-            }  // bin_0 loop
-        }  // bin_1 loop
-
-        std::cout << "writing response..." << std::endl;
-        TFile f(response_file_name.c_str(), "UPDATE");
-        thn_rebinned->Write();
-        if (do_roounfoldresponse) { roounfold_response->Write(); }
-        f.Close();
-        std::cout << "done" << std::endl;
-
-        // clean up memory
-        delete[] global_bin;
-        delete[] x;
-
-        return;
-
-    }  // fill_rebinned_thn
-
-    //---------------------------------------------------------------
-    // Fill thn_rebinned with data from thn
-    //
-    // Don't include underflow/overflow by default
-    // If move_underflow = True, then fill underflow content of the observable
-    // (from original THn) into first bin (of rebinned THn)
-    //
-    // Overloaded definition with prior_variation a TH2
-    void HistUtils::fill_rebinned_thn(
-        const std::string & response_file_name, const THnF* thn, THnF* thn_rebinned,
-        const unsigned int & n_dim, const bool do_roounfoldresponse/*=true*/,
-        RooUnfoldResponse* roounfold_response/*=nullptr*/,
-        const float min_det_pt, const float min_truth_pt,
-        const float min_det, const float min_truth,
-        const float max_det_pt, const float max_truth_pt,
-        const float max_det, const float max_truth,
-        const TH2* prior_variation/*=nullptr*/, const double & prior_variation_parameter/*=0.*/,
-        const bool move_underflow/*=false*/, const bool use_miss_fake/*=false*/) {
 
         // Only working for n_dim == 4 at the moment; generalizing to N dimensions
         // will require some sort of recursive implementation
@@ -762,11 +339,11 @@ RooUnfoldResponse* HistUtils::create_empty_roounfoldresponse(THnSparseD* thn_reb
                         double error = thn->GetBinError(bin);
 
                         // Impose a custom prior, if desired
-                        if (prior_variation != nullptr) {
+                        if (std::abs(prior_variation_parameter) > 1e-5 && x[1] > 0 && x[3] > 0) {
 
                             // Scale number of counts according to variation of pt & observable prior
                             double scale_factor = std::pow(x[1], prior_variation_parameter) *
-                                prior_variation->GetBinContent(bin_3, bin_1);
+                                (*prior_scale_f)(x[3], content, prior_variation_parameter);
 
                             content *= scale_factor;
                             error *= scale_factor;
@@ -802,7 +379,7 @@ RooUnfoldResponse* HistUtils::create_empty_roounfoldresponse(THnSparseD* thn_reb
                         // RooUnfoldResponse should be filled as (x[0], x[2], x[1], x[3])
                         // corresponding e.g. to (pt_det, obs_det, pt_true, obs_true)
                         if (do_roounfoldresponse) {
-
+                            
                             bool pt_in_det_range = x[0] > min_det_pt && x[0] < max_det_pt;
                             bool obs_in_det_range = x[2] > min_det && x[2] < max_det;
                             bool pt_in_true_range = x[1] > min_truth_pt && x[1] < max_truth_pt;
@@ -810,12 +387,12 @@ RooUnfoldResponse* HistUtils::create_empty_roounfoldresponse(THnSparseD* thn_reb
 
                             bool in_det_range = pt_in_det_range && obs_in_det_range;
                             bool in_true_range = pt_in_true_range && obs_in_true_range;
-
+                            
                             // Fill if both det, true are in domain of RM
                             if (in_det_range and in_true_range) {
                                 roounfold_response->FillContentError(x[0], x[2], x[1], x[3], content, error);
                             }
-
+                        
                             if (use_miss_fake) {
 
                                 // If input is not in det-range (this is our usual kinematic efficiency correction), Miss
@@ -846,301 +423,8 @@ RooUnfoldResponse* HistUtils::create_empty_roounfoldresponse(THnSparseD* thn_reb
         delete[] x;
 
         return;
-
+            
     }  // fill_rebinned_thn
-
-//---------------------------------------------------------------
-// Fill thn_rebinned with data from thn
-//
-// Don't include underflow/overflow by default
-// If move_underflow = True, then fill underflow content of the observable
-// (from original THn) into first bin (of rebinned THn)
-//
-// Overloaded definition with prior_variation a TH2
-void HistUtils::fill_rebinned_thn(
-    const std::string & response_file_name, const THnSparseD* thn, THnSparseD* thn_rebinned,
-    const unsigned int & n_dim, const bool do_roounfoldresponse/*=true*/,
-    RooUnfoldResponse* roounfold_response/*=nullptr*/,
-    const float min_det_pt, const float min_truth_pt,
-    const float min_det, const float min_truth,
-    const float max_det_pt, const float max_truth_pt,
-    const float max_det, const float max_truth,
-    const TH2* prior_variation/*=nullptr*/, const double & prior_variation_parameter/*=0.*/,
-    const bool move_underflow/*=false*/, const bool use_miss_fake/*=false*/) {
-
-    // Only working for n_dim == 4 at the moment; generalizing to N dimensions
-    // will require some sort of recursive implementation
-    if (n_dim != 4) {
-        std::cerr << "ERROR: Not Implemented: Assertion n_dim == 4 failed in "
-                  << "fjtools.cxx::fill_rebinned_thn()" << std::endl;
-        std::terminate();
-    }
-
-    // loop through all axes
-    const unsigned int n_bins_0 = thn->GetAxis(0)->GetNbins();
-    const unsigned int n_bins_1 = thn->GetAxis(1)->GetNbins();
-    const unsigned int n_bins_2 = thn->GetAxis(2)->GetNbins();
-    const unsigned int n_bins_3 = thn->GetAxis(3)->GetNbins();
-
-    // I don't find any global bin index implementation, so I manually loop through axes
-    int* global_bin = new int[n_dim];
-    double* x = new double[n_dim];
-    for (unsigned int bin_0 = 0; bin_0 < n_bins_0+2; bin_0++) {
-        global_bin[0] = bin_0;
-        x[0] = thn->GetAxis(0)->GetBinCenter(bin_0);
-
-        // print helpful message while waiting
-        std::cout << bin_0 << " / " << n_bins_0 << '\r' << std::flush;
-
-        for (unsigned int bin_1 = 0; bin_1 < n_bins_1+2; bin_1++) {
-            global_bin[1] = bin_1;
-            x[1] = thn->GetAxis(1)->GetBinCenter(bin_1);
-
-            for (unsigned int bin_2 = 0; bin_2 < n_bins_2+2; bin_2++) {
-                global_bin[2] = bin_2;
-                x[2] = thn->GetAxis(2)->GetBinCenter(bin_2);
-
-                for (unsigned int bin_3 = 0; bin_3 < n_bins_3+2; bin_3++) {
-                    global_bin[3] = bin_3;
-                    x[3] = thn->GetAxis(3)->GetBinCenter(bin_3);
-
-                    int bin = thn->GetBin(global_bin);
-                    double content = thn->GetBinContent(bin);
-                    if (content == 0) { continue; }
-                    double error = thn->GetBinError(bin);
-
-                    // Impose a custom prior, if desired
-                    if (prior_variation != nullptr) {
-
-                        // Scale number of counts according to variation of pt & observable prior
-                        double scale_factor = std::pow(x[1], prior_variation_parameter) *
-                            prior_variation->GetBinContent(bin_3, bin_1);
-
-                        content *= scale_factor;
-                        error *= scale_factor;
-
-                    }  // scale prior
-
-                    // If underflow bin, and if move_underflow flag is activated,
-                    // put the contents of the underflow bin into first bin of thn_rebinned
-                    if (bin_2 == 0 || bin_3 == 0) {
-                        if (move_underflow) {
-                            if (bin_2 == 0) {
-                                x[2] = thn_rebinned->GetAxis(2)->GetBinCenter(1);
-                            }  // bin_2 == 0
-                            if (bin_3 == 0) {
-                                x[3] = thn_rebinned->GetAxis(3)->GetBinCenter(1);
-                                std::string name(thn->GetName());
-                                if (name.find("matched") != std::string::npos) {
-                                    if (bin_2 == 0) { content = 1; }
-                                    else { content = 0; }
-                                }
-                            }  // bin_3 == 0
-                        }
-                    }  // underflow bins
-
-                    // THn is filled as (x[0], x[1], x[2], x[3])
-                    // corresponding e.g. to (pt_det, pt_true, obs_det, obs_true)
-                    bin = thn_rebinned->GetBin(x);
-                    double prev_content = thn_rebinned->GetBinContent(bin);
-                    double prev_error2 = thn_rebinned->GetBinError2(bin);
-                    thn_rebinned->SetBinContent(bin, prev_content + content);
-                    thn_rebinned->SetBinError(bin, std::sqrt(prev_error2 + std::pow(error, 2)));
-
-                    // RooUnfoldResponse should be filled as (x[0], x[2], x[1], x[3])
-                    // corresponding e.g. to (pt_det, obs_det, pt_true, obs_true)
-                    if (do_roounfoldresponse) {
-
-                        bool pt_in_det_range = x[0] > min_det_pt && x[0] < max_det_pt;
-                        bool obs_in_det_range = x[2] > min_det && x[2] < max_det;
-                        bool pt_in_true_range = x[1] > min_truth_pt && x[1] < max_truth_pt;
-                        bool obs_in_true_range = x[3] > min_truth && x[3] < max_truth;
-
-                        bool in_det_range = pt_in_det_range && obs_in_det_range;
-                        bool in_true_range = pt_in_true_range && obs_in_true_range;
-
-                        // Fill if both det, true are in domain of RM
-                        if (in_det_range and in_true_range) {
-                            roounfold_response->FillContentError(x[0], x[2], x[1], x[3], content, error);
-                        }
-
-                        if (use_miss_fake) {
-
-                            // If input is not in det-range (this is our usual kinematic efficiency correction), Miss
-                            if (!in_det_range && in_true_range) {
-                                roounfold_response->Miss(x[1], x[3], content);
-                            }
-                            // If truth-level is outside RM range (e.g. jet pt range is technically not [0,\infty]), Fake
-                            // This is usually a negligible correction for us
-                            else if (in_det_range && !in_true_range) {
-                                roounfold_response->Fake(x[0], x[2], content);
-                            }
-                        }
-                    }
-                }  // bin_3 loop
-            }  // bin_2 loop
-        }  // bin_1 loop
-    }  // bin_0 loop
-
-    std::cout << "writing response..." << std::endl;
-    TFile f(response_file_name.c_str(), "UPDATE");
-    thn_rebinned->Write();
-    if (do_roounfoldresponse) { roounfold_response->Write(); }
-    f.Close();
-    std::cout << "done" << std::endl;
-
-    // clean up memory
-    delete[] global_bin;
-    delete[] x;
-
-    return;
-
-}  // fill_rebinned_thn
-
-//---------------------------------------------------------------
-// Fill thn_rebinned with data from thn
-//
-// Don't include underflow/overflow by default
-// If move_underflow = True, then fill underflow content of the observable
-// (from original THn) into first bin (of rebinned THnSparse)
-//Same function, but overloaded for THnSparseD
-void HistUtils::fill_rebinned_thn(
-                    const std::string & response_file_name, const THnSparseD* thn, THnSparseD* thn_rebinned, const unsigned int & n_dim,
-                                  const prior_scale_func prior_scale_f, const bool do_roounfoldresponse/*=true*/,
-                                  RooUnfoldResponse* roounfold_response/*=nullptr*/,
-                                  const float min_det_pt, const float min_truth_pt, const float min_det, const float min_truth,
-                                  const float max_det_pt, const float max_truth_pt, const float max_det, const float max_truth,
-                                  const double & prior_variation_parameter/*=0.*/, const bool move_underflow/*=false*/,
-                                  const bool use_miss_fake/*=false*/) {
-
-    // Only working for n_dim == 4 at the moment; generalizing to N dimensions
-    // will require some sort of recursive implementation
-    if (n_dim != 4) {
-        std::cerr << "ERROR: Not Implemented: Assertion n_dim == 4 failed in "
-                << "fjtools.cxx::fill_rebinned_thnsparse()" << std::endl;
-        std::terminate();
-    }
-
-    // loop through all axes
-    const unsigned int n_bins_0 = thn->GetAxis(0)->GetNbins();
-    const unsigned int n_bins_1 = thn->GetAxis(1)->GetNbins();
-    const unsigned int n_bins_2 = thn->GetAxis(2)->GetNbins();
-    const unsigned int n_bins_3 = thn->GetAxis(3)->GetNbins();
-
-    // I don't find any global bin index implementation, so I manually loop through axes
-    int* global_bin = new int[n_dim];
-    double* x = new double[n_dim];
-    for (unsigned int bin_0 = 0; bin_0 < n_bins_0+2; bin_0++) {
-        global_bin[0] = bin_0;
-        x[0] = thn->GetAxis(0)->GetBinCenter(bin_0);
-
-        // print helpful message while waiting
-        std::cout << bin_0 << " / " << n_bins_0 << '\r' << std::flush;
-
-        for (unsigned int bin_1 = 0; bin_1 < n_bins_1+2; bin_1++) {
-            global_bin[1] = bin_1;
-            x[1] = thn->GetAxis(1)->GetBinCenter(bin_1);
-
-            for (unsigned int bin_2 = 0; bin_2 < n_bins_2+2; bin_2++) {
-                global_bin[2] = bin_2;
-                x[2] = thn->GetAxis(2)->GetBinCenter(bin_2);
-
-                for (unsigned int bin_3 = 0; bin_3 < n_bins_3+2; bin_3++) {
-                    global_bin[3] = bin_3;
-                    x[3] = thn->GetAxis(3)->GetBinCenter(bin_3);
-
-                    int bin = thn->GetBin(global_bin);
-                    double content = thn->GetBinContent(bin);
-                    if (content == 0) { continue; }
-                    double error = thn->GetBinError(bin);
-
-                    // Impose a custom prior, if desired
-                    if (std::abs(prior_variation_parameter) > 1e-5 && x[1] > 0 && x[3] > 0) {
-
-                        // Scale number of counts according to variation of pt & observable prior
-                        double scale_factor = std::pow(x[1], prior_variation_parameter) *
-                            (*prior_scale_f)(x[3], content, prior_variation_parameter);
-
-                        content *= scale_factor;
-                        error *= scale_factor;
-
-                    }  // scale prior
-
-                    // If underflow bin, and if move_underflow flag is activated,
-                    // put the contents of the underflow bin into first bin of thn_rebinned
-                    if (bin_2 == 0 || bin_3 == 0) {
-                        if (move_underflow) {
-                            if (bin_2 == 0) {
-                                x[2] = thn_rebinned->GetAxis(2)->GetBinCenter(1);
-                            }  // bin_2 == 0
-                            if (bin_3 == 0) {
-                                x[3] = thn_rebinned->GetAxis(3)->GetBinCenter(1);
-                                std::string name(thn->GetName());
-                                if (name.find("matched") != std::string::npos) {
-                                    if (bin_2 == 0) { content = 1; }
-                                    else { content = 0; }
-                                }
-                            }  // bin_3 == 0
-                        }
-                    }  // underflow bins
-
-                    // THnSparse is filled as (x[0], x[1], x[2], x[3])
-                    // corresponding e.g. to (pt_det, pt_true, obs_det, obs_true)
-                    bin = thn_rebinned->GetBin(x);
-                    double prev_content = thn_rebinned->GetBinContent(bin);
-                    double prev_error2 = thn_rebinned->GetBinError2(bin);
-                    thn_rebinned->SetBinContent(bin, prev_content + content);
-                    thn_rebinned->SetBinError(bin, std::sqrt(prev_error2 + std::pow(error, 2)));
-
-                    // RooUnfoldResponse should be filled as (x[0], x[2], x[1], x[3])
-                    // corresponding e.g. to (pt_det, obs_det, pt_true, obs_true)
-                    if (do_roounfoldresponse) {
-                    
-                        bool pt_in_det_range = x[0] > min_det_pt && x[0] < max_det_pt;
-                        bool obs_in_det_range = x[2] > min_det && x[2] < max_det;
-                        bool pt_in_true_range = x[1] > min_truth_pt && x[1] < max_truth_pt;
-                        bool obs_in_true_range = x[3] > min_truth && x[3] < max_truth;
-
-                        bool in_det_range = pt_in_det_range && obs_in_det_range;
-                        bool in_true_range = pt_in_true_range && obs_in_true_range;
-                    
-                        // Fill if both det, true are in domain of RM
-                        if (in_det_range and in_true_range) {
-                            roounfold_response->FillContentError(x[0], x[2], x[1], x[3], content, error);
-                        }
-                
-                        if (use_miss_fake) {
-
-                            // If input is not in det-range (this is our usual kinematic efficiency correction), Miss
-                            if (!in_det_range && in_true_range) {
-                                roounfold_response->Miss(x[1], x[3], content);
-                            }
-                            // If truth-level is outside RM range (e.g. jet pt range is technically not [0,\infty]), Fake
-                            // This is usually a negligible correction for us
-                            else if (in_det_range && !in_true_range) {
-                                roounfold_response->Fake(x[0], x[2], content);
-                            }
-                        }
-                    }
-                }  // bin_3 loop
-            }  // bin_2 loop
-        }  // bin_1 loop
-    }  // bin_0 loop
-
-    std::cout << "writing response..." << std::endl;
-    TFile f(response_file_name.c_str(), "UPDATE");
-    thn_rebinned->Write();
-    if (do_roounfoldresponse) { roounfold_response->Write(); }
-    f.Close();
-    std::cout << "done" << std::endl;
-
-    // clean up memory
-    delete[] global_bin;
-    delete[] x;
-
-    return;
-    
-}  // fill_rebinned_thn
 
     //---------------------------------------------------------------
     // Compute scale factor to vary prior of observable
@@ -1162,8 +446,6 @@ void HistUtils::fill_rebinned_thn(
                 return prior_scale_func_3;
             case 4:
                 return prior_scale_func_4;
-            case 5:
-                return prior_scale_func_5;
             default:
                 return prior_scale_func_def;
         }
@@ -1187,10 +469,7 @@ void HistUtils::fill_rebinned_thn(
     double prior_scale_func_2(const double & obs_true, const double & content,
                               const double & prior_variation_parameter) {
         // sharpening/smoothing the distributions
-        double factor = std::pow(content, prior_variation_parameter);
-        if (factor > 1.5) { return 1.5; }
-        else if (factor < 0.5) { return 0.5; }
-        return factor;
+        return std::pow(content, 1 + prior_variation_parameter);
     }
 
     double prior_scale_func_3(const double & obs_true, const double & content,
@@ -1200,7 +479,7 @@ void HistUtils::fill_rebinned_thn(
 
     double prior_scale_func_4(const double & obs_true, const double & content,
                               const double & prior_variation_parameter) {
-
+        
         // Ax+B, where A=slope, B=offset at z=0
         // For 0.7<z<1.0, dz = 0.3 --> A = 1/dz, B = 1-(1-dz/2)*A
         float dz = 0.3;
@@ -1208,17 +487,9 @@ void HistUtils::fill_rebinned_thn(
         return (A*obs_true + 1 - (1-dz/2.)*A);
     }
 
-    double prior_scale_func_5(const double & obs_true, const double & content,
-                              const double & prior_variation_parameter) {
-        // linear scaling by +/- fraction between 0 and prior_var_param
-        double frac = 0.2;
-        return std::abs(1 + frac * (2 * obs_true / prior_variation_parameter - 1));
-    }
-
     double prior_scale_func_def(const double & obs_true, const double & content,
                                 const double & prior_variation_parameter) {
-        // In default case, do not apply any scaling
-        return 1;
+        return obs_true;
     }
 
 
@@ -1234,242 +505,9 @@ void HistUtils::fill_rebinned_thn(
         return;
     }
 
-    //---------------------------------------------------------------
-    // Remove outliers from a TH1 via "simple" method:
-    //   delete any bin contents with N counts < limit
-    // Modifies histogram in-place and returns its pointer
-    //---------------------------------------------------------------
-    TH1* HistUtils::simpleRemoveOutliers(TH1* hist, bool verbose, int limit) {
-
-        if (verbose) {
-            std::cout << "Applying simple removal of outliers with counts < "
-                      << limit << " for " << hist->GetName() << std::endl;
-        }
-
-        for (int i = 1; i <= hist->GetNcells(); i++) {
-            if (hist->GetBinContent(i) < limit) {
-                hist->SetBinContent(i, 0);
-                hist->SetBinError(i, 0);
-            }
-        }
-
-        return hist;
-    }
-
-    //---------------------------------------------------------------
-    // Remove outliers from a TH1 via pT-hat method:
-    //   delete any bin contents with pT > limit
-    // Modifies histogram in-place and returns its pointer
-    //---------------------------------------------------------------
-    TH1* HistUtils::pThatRemoveOutliers(TH1* hist, bool verbose, const double & limit) {
-
-        // First search for the pT bin to start the cut
-        int max_cell_number = -1;
-        // Assume that pT is on the x-axis
-        for (int i = 1; i <= hist->GetNbinsX(); i++) {
-            if (hist->GetXaxis()->GetBinLowEdge(i) > limit) {
-                max_cell_number = hist->GetBin(i, 0, 0);
-                break;
-            }
-        }
-
-        // Apply cut if necessary
-        if (max_cell_number >= 0) {
-            if (verbose) {
-                std::cout << "Applying pT-hat removal of outliers for pT > "
-                          << limit << " for " << hist->GetName() << std::endl;
-            }
-
-            for (int i = max_cell_number; i <= hist->GetNcells(); i++) {
-                if (hist->GetBinContent(i)) {
-                    hist->SetBinContent(i, 0);
-                    hist->SetBinError(i, 0);
-                }
-            }
-        }
-
-        return hist;
-    }
-
-    //---------------------------------------------------------------
-    // Remove outliers from a THn via pT-hat method:
-    //   delete any bin contents with pT_truth > limit
-    // Modifies histogram in-place and returns its pointer
-    //---------------------------------------------------------------
-    THn* HistUtils::pThatRemoveOutliers(THn* hist, bool verbose, const double & limit, int dim, int pTdim) {
-
-        // Safety check
-        if (dim != 4) {
-            std::cerr << "ERROR: THn of dim != 4 not yet implemented" << std::endl;
-            throw dim;
-        }
-        if (pTdim != 1) {
-            std::cerr << "ERROR: pTdim != 1 not yet implemented" << std::endl;
-            throw pTdim;
-        }
-
-        // First search for the pT bin to start the cut
-        int max_bin_number = -1;
-        for (int i = 1; i <= hist->GetAxis(pTdim)->GetNbins(); i++) {
-            if (hist->GetAxis(pTdim)->GetBinLowEdge(i) > limit) {
-                max_bin_number = i;
-                break;
-            }
-        }
-
-        if (max_bin_number >= 0) {
-            if (verbose) {
-                std::cout << "Applying pT-hat removal of outliers for pT > "
-                          << limit << " for " << hist->GetName() << std::endl;
-            }
-
-            for (int i = max_bin_number; i <= hist->GetAxis(pTdim)->GetNbins(); i++) {
-                for (int j = 0; j <= hist->GetAxis(0)->GetNbins(); j++) {
-                    for (int k = 0; k <= hist->GetAxis(2)->GetNbins(); k++) {
-                        for (int l = 0; l <= hist->GetAxis(3)->GetNbins(); l++) {
-                            int datapoint[4] = {j, i, k, l};
-                            if (hist->GetBinContent(datapoint)) {
-                                hist->SetBinContent(datapoint, 0);
-                                hist->SetBinError(datapoint, 0);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        return hist;
-    }
-
-    /* Recursive method -- unverified code!
-    //---------------------------------------------------------------
-    // Remove outliers from a THn via pT-hat method:
-    //   delete any bin contents with pT_truth > limit
-    // Modifies histogram in-place and returns its pointer
-    //---------------------------------------------------------------
-    THn* HistUtils::pThatRemoveOutliers(THn* hist, bool verbose, const double & limit, int dim, int pTdim) {
-
-        // Safety check
-        if (pTdim > dim) {
-            std::cerr << "ERROR: cannot have pTdim = " << pTdim
-                      << " for a THn of dim = " << dim << std::endl;
-            throw pTdim;
-        }
-
-        // First search for the pT bin to start the cut
-        int max_bin_number = -1;
-        for (int i = 1; i <= hist->GetAxis(pTdim)->GetNbins(); i++) {
-            if (hist->GetAxis(pTdim)->GetBinLowEdge(i) > limit) {
-                max_bin_number = i;
-                break;
-            }
-        }
-
-        if (max_bin_number >= 0) {
-            if (verbose) {
-                std::cout << "Applying pT-hat removal of outliers for pT > "
-                          << limit << " for " << hist->GetName() << std::endl;
-            }
-
-            int n_bins[dim] = { 0 };
-            for (int d = 0; d < dim; d++) {
-                n_bins[d] = hist->GetAxis(d)->GetNbins();
-            }
-
-            // Recursively iterate through dimensions to remove extra counts
-            int x[dim] = { 0 };
-            int dim_to_update = 0;
-            pThatRemoveOutliersTHn_recurse(
-                hist, limit, dim, pTdim, max_bin_number, n_bins, x, dim_to_update, verbose);
-
-        }
-
-        return hist;
-    }
-
-    //---------------------------------------------------------------
-    void HistUtils::pThatRemoveOutliersTHn_recurse(
-        THn* hist, int limit, int dim, int pTdim, int max_bin_number,
-        int* n_bins, int* x, int dim_to_update, bool verbose) {
-
-        // In the deepest recursion case, empty the bin and return
-        if (dim_to_update == dim) {
-            if (hist->GetBinContent(x)) {
-                if (verbose) {
-                   std::cout << "Erasing point " << x << " from " << hist->GetName()
-                             << " with min pT-truth " << hist->GetAxis(pTdim)->GetBinLowEdge(x[pTdim])
-                             << std::endl;
-                }
-                hist->SetBinContent(x, 0);
-                hist->SetBinError(x, 0);
-            }
-            return;
-        }
-
-        // Otherwise, go to next dimension
-        for (int i = 1; i <= n_bins[dim_to_update]; i++) {
-            if (dim_to_update == pTdim && i < max_bin_number) {
-                continue;
-            }
-            x[dim_to_update] = i;
-            simpleRemoveOutliersTHn_recurse(hist, limit, dim, n_bins, x, dim_to_update+1);
-        }
-
-        return;
-    }
-    */
-
-    //---------------------------------------------------------------
-    // Remove outliers from a THn via "simple" method:
-    //   delete any bin contents with N counts < limit
-    // Modifies histogram in-place and returns its pointer
-    //---------------------------------------------------------------
-    THn* HistUtils::simpleRemoveOutliersTHn(THn* hist, bool verbose, int limit, int dim) {
-
-        if (verbose) {
-            std::cout << "Applying simple removal of outliers with counts < "
-                      << limit << " for " << hist->GetName() << std::endl;
-        }
-
-        int n_bins[dim];
-        for (int d = 0; d < dim; d++) {
-            n_bins[d] = hist->GetAxis(d)->GetNbins();
-        }
-
-        // Recursively iterate through dimensions to remove extra counts
-        int x[dim];
-        int dim_to_update = 0;
-        simpleRemoveOutliersTHn_recurse(hist, limit, dim, n_bins, x, dim_to_update);
-
-        return hist;
-    }
-
-    //---------------------------------------------------------------
-    void HistUtils::simpleRemoveOutliersTHn_recurse(
-        THn* hist, int limit, int dim, int* n_bins, int* x, int dim_to_update) {
-
-        // In the deepest recursion case, check bin and return
-        if (dim_to_update == dim) {
-            if (hist->GetBinContent(x) < limit) {
-                hist->SetBinContent(x, 0);
-                hist->SetBinError(x, 0);
-            }
-            return;
-        }
-
-        // Otherwise, go to next dimension
-        for (int i = 1; i <= n_bins[dim_to_update]; i++) {
-            x[dim_to_update] = i;
-            simpleRemoveOutliersTHn_recurse(hist, limit, dim, n_bins, x, dim_to_update+1);
-        }
-
-        return;
-    }
-
-    //---------------------------------------------------------------
-    // Create and return 2D histogram, convolving h with shape function
-    // ob & pT bins are identical in both old & new histograms
-    // obs & pTs are arrays of the central bin values
+	// Create and return 2D histogram, convolving h with shape function
+	// ob & pT bins are identical in both old & new histograms 
+	// obs & pTs are arrays of the central bin values
     TH2D* HistUtils::convolve_F_np(const double & Omega, const double & R, const double & beta,
 								   const double* ob_bins, const int & n_ob_bins, const double* obs,
 								   const double* ob_bin_width,

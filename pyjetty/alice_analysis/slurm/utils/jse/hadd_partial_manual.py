@@ -3,7 +3,8 @@ import argparse
 import os
 import gc
 
-# python3 -u hadd_partial_manual.py --dir /global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/rms/57626568 --grooming groomed --nbatches 4 --budget-mb 500 --keep-tmp
+# python3 -u hadd_partial_manual.py --dir /global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/rms/57911278 --grooming groomed --nbatches 4 --budget-mb 500 
+# --keep-tmp
 ROOT.gROOT.SetBatch(True)
 ROOT.TH1.AddDirectory(False)   # objects are detached from the input file
 
@@ -228,7 +229,9 @@ def write_ratios(path, grooming_str):
     recipes = [(f'jet_match_gen_eff_num_{g}', f'jet_all_gen_eff_den_{g}', f'jet_efficiency_{g}_new'),
                (f'jet_match_rec_pur_num_{g}', f'jet_all_rec_pur_den_{g}', f'jet_purity_{g}_new')]
     if g == "groomed":
-        recipes += [('lund_matched_gen', 'lund_all_gen', 'lund_split_efficiency_new'),
+        recipes += [('trk_eff_num', 'trk_eff_den', 'track_efficiency_new'),
+                    ('trk_pur_num', 'trk_pur_den', 'track_purity_new'),
+                    ('lund_matched_gen', 'lund_all_gen', 'lund_split_efficiency_new'),
                     ('lund_matched_rec', 'lund_all_rec', 'lund_split_purity_new')]
         for tag in ['full_ungroomed', 'AA', 'AB', 'BB', 'rad']:
             recipes += [(f'pair_match_gen_eff_num_{tag}', f'pair_all_gen_eff_den_{tag}', f'pair_efficiency_{tag}_new'),
