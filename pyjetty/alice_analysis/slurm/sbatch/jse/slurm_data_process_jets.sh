@@ -19,16 +19,16 @@ cd analysis/
 FILELIST=/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/run3/data/LHC24_ppref/BerkeleyTrees/tree_list.txt
 INFILE=$(sed -n "${SLURM_ARRAY_TASK_ID}p" $FILELIST)
 TAG=$(basename $(dirname "$INFILE"))   # or any unique tag
-EXISTING_JOBID=60017705 #${SLURM_ARRAY_JOB_ID}
+EXISTING_JOBID=${SLURM_ARRAY_JOB_ID} #60017705 #${SLURM_ARRAY_JOB_ID}
 OUTDIR=/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/${EXISTING_JOBID}/${TAG}
 # OUTDIR=/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/56300667/${TAG}
 
 mkdir -p $OUTDIR
 
 # # Find jets
-# SCRIPT_FIND_JETS=/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/process/user/jse/data_find_jets.py
+SCRIPT_FIND_JETS=/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/process/user/jse/data_find_jets.py
 PARQUET_OUTFILE=${OUTDIR}/DataJetsForAnalysis.parquet
-# python ${SCRIPT_FIND_JETS} "$INFILE" "$PARQUET_OUTFILE" #--ptmin 50.0
+python ${SCRIPT_FIND_JETS} "$INFILE" "$PARQUET_OUTFILE" #--ptmin 50.0
 
 # Process jets - do ungroomed and groomed versions
 SCRIPT_PROCESS_JETS=/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/process/user/jse/data_process_jets.py

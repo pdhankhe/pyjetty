@@ -24,12 +24,12 @@ hist_list = [NEVENTS_NAME,
              'jet_match_gen_eff_num_{}', 'jet_all_gen_eff_den_{}',
              '{}_full_ungroomed_roounfold_response', '{}_AA_roounfold_response',
              '{}_AB_roounfold_response', '{}_BB_roounfold_response', '{}_rad_roounfold_response',
-             '{}_full_ungroomed_reco', '{}_full_ungroomed_reco_unmatched', '{}_AA_reco', '{}_AA_reco_unmatched',
-             '{}_AB_reco', '{}_AB_reco_unmatched', '{}_BB_reco', '{}_BB_reco_unmatched',
-             '{}_rad_reco', '{}_rad_reco_unmatched',
-             '{}_full_ungroomed_gen', '{}_full_ungroomed_gen_unmatched', '{}_AA_gen', '{}_AA_gen_unmatched',
-             '{}_AB_gen', '{}_AB_gen_unmatched', '{}_BB_gen', '{}_BB_gen_unmatched',
-             '{}_rad_gen', '{}_rad_gen_unmatched']
+             '{}_full_ungroomed_reco_matched', '{}_full_ungroomed_reco_all', '{}_AA_reco_matched', '{}_AA_reco_all',
+             '{}_AB_reco_matched', '{}_AB_reco_all', '{}_BB_reco_matched', '{}_BB_reco_all',
+             '{}_rad_reco_matched', '{}_rad_reco_all',
+             '{}_full_ungroomed_gen_matched', '{}_full_ungroomed_gen_all', '{}_AA_gen_matched', '{}_AA_gen_all',
+             '{}_AB_gen_matched', '{}_AB_gen_all', '{}_BB_gen_matched', '{}_BB_gen_all',
+             '{}_rad_gen_matched', '{}_rad_gen_all']
 
 default_subpath_file = "/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/rms/anchmc_subpath_filelist.txt"
 
@@ -751,11 +751,11 @@ def report_check_errors(out_path, errs, check_failures):
     check_failures.append((out_path, errs))
 
 
-def hierarchical_merge(indir, subpaths, grooming_str, names, batch_size, tmpdir, keep_tmp,
+def hierarchical_merge(indir, subpaths, zcut_str, grooming_str, names, batch_size, tmpdir, keep_tmp,
                        groups, verbose_mem, mem_limit, resume):
     os.makedirs(tmpdir, exist_ok=True)
 
-    current = [os.path.join(indir, sp, "response.root") for sp in subpaths]
+    current = [os.path.join(indir, sp, "response{}.root".format(zcut_str)) for sp in subpaths]
     bad_files, problems, check_failures = [], [], []
     skip_pairs = load_skip_pairs(tmpdir)
     known_ledgers = {}
@@ -952,6 +952,7 @@ if __name__ == "__main__":
     parser.add_argument('--group-budget-mb', type=float, default=500.0,
                         help="max MB of accumulators held at once; peak RAM is ~2x this")
     parser.add_argument('--tmpdir', default=None)
+    parser.add_argument('--zcut', type=float, default=0.1, help="which zcut do you want to look at (for naming)")
     parser.add_argument('--keep-tmp', action='store_true')
     parser.add_argument('--resume', action='store_true',
                         help="skip intermediate files that were completed by a previous run")
@@ -968,7 +969,13 @@ if __name__ == "__main__":
     subpaths = read_subpaths(flags.filelist)
     print_mem("after libRooUnfold load")
 
-    sizes = scan_sizes(os.path.join(flags.dir, subpaths[0], "response.root"), flags.groomingstr)
+    zcut_str = ""
+    if flags.zcut == 0.1:
+        zcut_str = f"_zcut0p1"
+    elif flags.zcut == 0.2:
+        zcut_str = f"_zcut0p2"
+
+    sizes = scan_sizes(os.path.join(flags.dir, subpaths[0], "response{}.root".format(zcut_str)), flags.groomingstr)
 
     ru_names = [n for n in names if "roounfold_response" in n]
     zero = [n for n in ru_names if sizes.get(n, 0.0) == 0.0]
@@ -983,7 +990,7 @@ if __name__ == "__main__":
 
     tmpdir = flags.tmpdir if flags.tmpdir else os.path.join(flags.dir, "tmp_merge")
     final_path, bad_files, problems, final_ledger, check_failures = hierarchical_merge(
-        flags.dir, subpaths, flags.groomingstr, names, flags.batch_size, tmpdir,
+        flags.dir, subpaths, zcut_str, flags.groomingstr, names, flags.batch_size, tmpdir,
         flags.keep_tmp, groups, flags.verbose_mem, flags.mem_limit_mb, flags.resume)
 
     print("\n{} files missing / unreadable".format(len(bad_files)))

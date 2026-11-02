@@ -256,7 +256,7 @@ def write_ratios(path, grooming_str):
 
 
 # ----------------------------------------------------------------------
-def finishing_merge(dir_path, grooming_str, nbatches=2, budget_mb=500.0, keep_tmp=False):
+def finishing_merge(dir_path, zcut_str, grooming_str, nbatches=2, budget_mb=500.0, keep_tmp=False):
     print("LOADING ROOUNFOLD")
     roo = False
     while not roo:
@@ -267,7 +267,7 @@ def finishing_merge(dir_path, grooming_str, nbatches=2, budget_mb=500.0, keep_tm
     print_mem("after libRooUnfold load")
 
     subpaths = read_subpaths(default_subpath_file)
-    file_paths = ["{}/{}/response.root".format(dir_path, sp) for sp in subpaths]
+    file_paths = ["{}/{}/response{}.root".format(dir_path, sp, zcut_str) for sp in subpaths]
 
     raw_list = UNGROOMED_HIST_LIST if grooming_str == "ungroomed" else GLOBAL_HIST_LIST
     names = [full_name(h, grooming_str) for h in raw_list]
@@ -317,6 +317,7 @@ def finishing_merge(dir_path, grooming_str, nbatches=2, budget_mb=500.0, keep_tm
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--dir', default=None)
+    parser.add_argument('--zcut', type=float, default=0.1, help="which zcut do you want to look at (for naming)")
     parser.add_argument('--nbatches', type=int, default=2)
     parser.add_argument('--budget-mb', type=float, default=500.0,
                         help="max MB of accumulators held at once; peak is ~2x this")
@@ -325,8 +326,14 @@ if __name__ == "__main__":
                         help="keep per-batch files and reuse them on a re-run")
     flags = parser.parse_args()
 
+    zcut_str = ""
+    if flags.zcut == 0.1:
+        zcut_str = f"_zcut0p1"
+    elif flags.zcut == 0.2:
+        zcut_str = f"_zcut0p2"
+
     nonexistent = []
     if flags.grooming in ("groomed", "both"):
-        finishing_merge(flags.dir, "groomed", flags.nbatches, flags.budget_mb, flags.keep_tmp)
+        finishing_merge(flags.dir, zcut_str, "groomed", flags.nbatches, flags.budget_mb, flags.keep_tmp)
     if flags.grooming in ("ungroomed", "both"):
-        finishing_merge(flags.dir, "ungroomed", flags.nbatches, flags.budget_mb, flags.keep_tmp)
+        finishing_merge(flags.dir, zcut_str, "ungroomed", flags.nbatches, flags.budget_mb, flags.keep_tmp)

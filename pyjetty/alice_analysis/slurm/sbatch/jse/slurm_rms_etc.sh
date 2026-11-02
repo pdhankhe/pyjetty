@@ -5,7 +5,7 @@
 #SBATCH --account=alice
 #SBATCH --qos=shared
 #SBATCH --constraint=cpu
-#SBATCH --time=3:00:00
+#SBATCH --time=12:00:00
 #SBATCH --array=1-715
 #SBATCH --exclude=nid004104,nid004160,nid004149
 #SBATCH --output=/global/cfs/projectdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/slurm-%A_%a.out
@@ -47,7 +47,7 @@ do
 
     # Find jets
     SCRIPT=/global/cfs/cdirs/alice/blianggi/mypyjetty/pyjetty/pyjetty/alice_analysis/process/user/jse/anchmc_find_jets.py
-    PTHAT_OUTLIER_FACTOR=6.0
+    PTHAT_OUTLIER_FACTOR=4.0
     echo "Processing line $i: $INFILE w/ pt-hat outlier factor of $PTHAT_OUTLIER_FACTOR"
     python $SCRIPT $INFILE --pthat-outlier-factor $PTHAT_OUTLIER_FACTOR
 
