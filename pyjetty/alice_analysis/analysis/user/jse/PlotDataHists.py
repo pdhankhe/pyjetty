@@ -59,12 +59,12 @@ class PlotDataCurves:
         # perlmutter
         if self.groomed_binning:
             print("Using groomed binning file")
-            self.rootfile_path = ("/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/57540479/AnalysisResultsMerged_groomedbins.root") # Groomed, hiccup
-            self.zcut2_rootfile_path = ("/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/57174964/AnalysisResultsMerged_groomedbins.root")
+            self.rootfile_path = ("/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/60320414/AnalysisResultsMerged_groomedbins.root") # Groomed, hiccup
+            self.zcut2_rootfile_path = ("/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/60320414/AnalysisResultsMerged_groomedbins.root")
         else:
             print("Using ungroomed binning file")
-            self.rootfile_path = ("/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/57174964/AnalysisResultsMerged_ungroomedbins.root") # Ungroomed, perlmutter
-            self.zcut2_rootfile_path = ("/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/57174964/AnalysisResultsMerged_ungroomedbins.root") # small bins
+            self.rootfile_path = ("/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/60320414/AnalysisResultsMerged_ungroomedbins.root") # Ungroomed, perlmutter
+            self.zcut2_rootfile_path = ("/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/60320414/AnalysisResultsMerged_ungroomedbins.root") # small bins
         
 
         # self.rootfile_path = ("/global/cfs/cdirs/alice/alicepro/hiccup/rstorage/alice/AnalysisResults/blianggi/jse/data/55778272/AnalysisResultsMerged.root")
@@ -507,6 +507,7 @@ class PlotDataCurves:
 
             ev_leg = self.MakeEventLeg(label, z_cut, den_weight, x1=0.15, y1=0.65, x2=0.40, y2=0.88)
             legend = ROOT.TLegend(0.68, 0.65, 0.88, 0.88)
+            legend.SetTextFont(42)
             if hist_full is not None and den_weight == "jet":
                 legend.AddEntry(hist_full,
                                 f"all jets that passed {self.get_passed_label()}", "l")
@@ -634,6 +635,7 @@ class PlotDataCurves:
 
         ev_leg2 = self.MakeEventLeg(label, z_cut, den_weight)
         legend2 = ROOT.TLegend(0.65, 0.74, 0.88, 0.88)
+        legend2.SetTextFont(42)
         legend2.AddEntry(hist_AB_norm, "AxB (EEC)", "l")
         legend2.AddEntry(hist_rg_norm, "R_{g} = #DeltaR_{AB}/R", "l")
         ev_leg2.Draw()
@@ -700,6 +702,7 @@ class PlotDataCurves:
 
         ev_leg = self.MakeEventLeg(label, z_cut)
         legend = ROOT.TLegend(0.2, 0.5, 0.4, 0.65)
+        legend.SetTextFont(42)
         legend.AddEntry(hist_wwjetpt, "weight uses jet pt", "l")
         legend.AddEntry(hist_wwradpt, "weight uses rad pt", "l")
 
@@ -774,6 +777,7 @@ class PlotDataCurves:
         pt_hi = max(hi for _, hi in self.target_jet_pts)
         ev_leg = self.MakeEventLeg(f"{pt_lo}-{pt_hi}", z_cut, den_weight)
         legend_pt = ROOT.TLegend(0.6, 0.6, 0.88, 0.88) # Restored vertical dimensions
+        legend_pt.SetTextFont(42)
         legend_pt.SetBorderSize(0)
 
         dummy_graphs = []
@@ -855,6 +859,7 @@ class PlotDataCurves:
         can_CAB.cd()
         legend_CAB = ROOT.TLegend(0.65, 0.12, 0.88, 0.32) # Moved to bottom right
         legend_CAB.SetBorderSize(0)
+        legend_CAB.SetTextFont(42)
         persistent_CAB = []
         first_CAB = True
         for ijetpt, jetpt in enumerate(self.target_jet_pts):
@@ -912,6 +917,7 @@ class PlotDataCurves:
         can_CAB_fits.cd()
         legend_CAB_fits = ROOT.TLegend(0.65, 0.12, 0.88, 0.32)
         legend_CAB_fits.SetBorderSize(0)
+        legend_CAB_fits.SetTextFont(42)
         persistent_CAB_fits = []
         first_CAB_fits = True
         for ijetpt, jetpt in enumerate(self.target_jet_pts):
