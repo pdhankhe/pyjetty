@@ -1,0 +1,75 @@
+name: Sync Files to Second Repo
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ beatrice_work ]
+    paths:
+      - 'pyjetty/alice_analysis/process/user/jse/**'
+      - 'pyjetty/alice_analysis/analysis/user/jse/**'
+      - '.github/workflows/sync.yaml'
+
+jobs:
+  copy-files:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source repo
+        uses: actions/checkout@v4
+        with:
+          path: source
+
+      - name: Checkout destination repo
+        uses: actions/checkout@v4
+        with:
+          repository: luisabergmann/c_ab-analyses
+          token: ${{ secrets.API_TOKEN_GITHUB }}
+          path: dest
+          ref: main   # change if the destination's branch is different
+
+      - name: Copy files
+        run: |
+          set -e
+          SRC_PROC=source/pyjetty/alice_analysis/process/user/jse
+          SRC_ANA=source/pyjetty/alice_analysis/analysis/user/jse
+          SRC_UNF=$SRC_ANA/3Dunfolding
+
+          # usage: copy <source file> <destination folder inside dest repo>
+          copy() { mkdir -p "dest/$2"; cp "$1" "dest/$2/"; }
+
+          # --- processing scripts ---
+          for f in anchmc_find_jets.py data_find_jets.py combine_and_filter_parquet_files.py \
+                   data_process_jets.py herwig_make_jets.py make_rms_etc.py \
+                   precompute_avg_pt_rad.py pythia_quark_gluon_jse.py; do
+            copy "$SRC_PROC/$f" process
+          done
+
+          # --- plotting scripts ---
+          for f in PlotDataHists.py PlotDataMCComparison.py PlotRMs.py; do
+            copy "$SRC_ANA/$f" plotting
+          done
+
+          # --- unfolding macros ---
+          for f in unfold1D.C unfold.C unfolding1D_tests.C unfolding_tests.C \
+                   dump_response_internals.C closure_tests_common.py jupyter_utils.py; do
+            copy "$SRC_UNF/$f" unfolding
+          done
+
+          # --- notebooks ---
+          for f in plots1D_closure_tests.ipynb plots1D_fr.ipynb plots_closure_tests.ipynb \
+                   plots_closure_tests_part1_refolding_statistical.ipynb \
+                   plots_closure_tests_part2_shape_prior.ipynb plots_fr.ipynb; do
+            copy "$SRC_UNF/$f" unfolding/notebooks
+          done
+
+      - name: Commit and push
+        working-directory: dest
+        run: |
+          git config user.name "blianggilman"
+          git config user.email "blianggilman@gmail.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to sync."
+          else
+            git commit -m "Sync from source repo @ ${GITHUB_SHA::7}"
+            git push
+          fi
